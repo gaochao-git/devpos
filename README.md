@@ -15,3 +15,15 @@ npm install
 yarn start
 ```
 
+## 新增功能
+```shell
+1.后端配置
+    后端django_backend/django_backend/settings.py修改mysql连接信息
+    后端django_backend/django_backend/url.py添加url和方法，参考get_cluster_info
+    后端django_backend/apps/views.py添加方法，参考get_cluster_info_func
+2.前端添加对应页面展示
+    src/scripts里面创建功能目录，参考mysqlCluster集群信息配置
+    src/scripts功能目录里面创建文件，开始开发，参考mysqlCluster集群信息配置
+    react_front/src/app.js首页中content块中添加对应路由信息，参考mysqlCluster集群信息配置
+    react_front/src/app.js首页import该方法，参考mysqlCluster集群信息配置
+```
