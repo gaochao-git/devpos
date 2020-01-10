@@ -18,10 +18,10 @@ yarn start
 
 ## 参考下面步骤进行新功能开发
 ```shell
-1.后端配置
+1.后端代码及API开发
     后端django_backend/django_backend/url.py添加url和方法，参考get_cluster_info
     后端django_backend/apps/views.py添加方法，参考get_cluster_info_func
-2.前端添加对应页面展示
+2.前端页面开发
     src/scripts里面创建功能目录，参考mysqlCluster集群信息配置
     src/scripts功能目录里面创建文件，开始开发，参考mysqlCluster集群信息配置
     react_front/src/app.js首页中content块中添加对应路由信息，参考mysqlCluster集群信息配置
