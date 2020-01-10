@@ -15,7 +15,7 @@ npm install
 yarn start
 ```
 
-## 新增功能
+## 参考下面步骤进行新功能开发
 ```shell
 1.后端配置
     后端django_backend/django_backend/settings.py修改mysql连接信息
