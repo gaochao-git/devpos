@@ -13,7 +13,7 @@ git clone https://github.com/gaochao-git/devpos.git
 2.启动前端
     cd $path/devepos/react_front
     npm install 
-yarn start
+    yarn start
 ```
 
 ## 参考下面步骤进行新功能开发
