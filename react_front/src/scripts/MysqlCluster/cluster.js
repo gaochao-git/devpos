@@ -1,11 +1,12 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import { Layout, Button,Table, Menu, Icon } from "antd";
+import { Layout, Button,Table, Menu, Icon, Input } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
+import "../../styles/index.scss"
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
-
+const { Search } = Input;
 const server = 'http://127.0.0.1:8000';
 
 
@@ -89,9 +90,13 @@ export default class mysqlCluster extends Component  {
                             集群信息
                         </Link>
                     </div>
-
+                    <Search
+                      placeholder="input search text"
+                      onSearch={value => console.log(value)}
+                      style={{ width: 200 }}
+                    />
                 </div>
-                <div className="searchbar">
+            <div>
             </div>
                 <Table dataSource={this.state.cluster_info} columns={columns} bordered />
             </div>
