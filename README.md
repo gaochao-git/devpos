@@ -26,7 +26,22 @@ gaochao@localhost:~ # git clone https://github.com/gaochao-git/devpos.git
         sudo npm install -g yarn        #全局安装yarn
         yarn start
 ```
-
+***
+## 后端代码说明
+```
+配置文件--------devpos/django_backend/django_backend/settings.py
+路由文件--------devpos/django_backend/django_backend/urls.py
+接口文件--------devpos/django_backend/apps/views.py    #文件名与方法自己按需编辑
+```
+## 前端代码说明
+```
+首页html--------devpos/react_front/public/index.html
+首页js----------devpos/react_front/src/index.js
+布局及路由文件---devpos/react_front/src/App.js
+js代码----------devpos/react_front/src/scripts
+css代码---------devpos/react_front/src/styles
+```
+***
 ## 参考下面步骤进行新功能开发
 ```shell
 1.后端代码及API开发
@@ -37,12 +52,4 @@ gaochao@localhost:~ # git clone https://github.com/gaochao-git/devpos.git
     src/scripts功能目录里面创建文件，开始开发，参考mysqlCluster集群信息配置
     react_front/src/app.js首页中content块中添加对应路由信息，参考mysqlCluster集群信息配置
     react_front/src/app.js首页import该方法，参考mysqlCluster集群信息配置
-```
-## 前端代码说明
-```
-首页html:devpos/react_front/public/index.html
-首页js:devpos/react_front/src/index.js
-布局及路由文件:devpos/react_front/src/App.js
-js代码:devpos/react_front/src/scripts
-css代码:devpos/react_front/src/styles
 ```
