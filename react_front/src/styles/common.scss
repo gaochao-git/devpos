@@ -1,0 +1,116 @@
+.header {
+  display: flex;
+  height: 50px;
+  min-width: 1080px;
+  padding: 0 20px;
+  justify-content: space-between;
+  align-items: center;
+  background: #328eb6;
+  color: #fff;
+}
+
+.sidebar {
+  width: 180px;
+  height: calc(100vh - 50px);
+}
+
+.main {
+  display: flex;
+  min-width: 1080px;
+}
+
+.container {
+  width: 100%;
+  min-width: 900px;
+  padding: 0 15px;
+  padding-bottom: 0;
+  background: #f6f6f6;
+}
+
+.sub-title {
+  padding: 10px 15px;
+  background: #f6f6f6;
+  display: flex;
+  justify-content: space-between;
+
+  .title-text {
+    margin: 0 5px;
+  }
+}
+
+.server-list {
+  // padding: 10px;
+  background: #ffffff;
+  height: 100%;
+}
+
+.padding-container {
+  padding: 10px;
+}
+
+.col-detail {
+  margin-right: 10px;
+  background: #fafafa;
+
+  > .ant-row {
+    > div:first-child {
+      text-align: right;
+    }
+  }
+}
+
+// 覆盖antd可编辑表格样式
+.editable-cell-value-wrap {
+  /*使内容区有了宽度*/
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+// 覆盖antd可编辑表格样式
+.editable-row:hover .editable-cell-value-wrap {
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 4px 11px;
+}
+
+//覆盖antd menu样式
+.ant-menu-inline .ant-menu-submenu-title {
+  margin: 2px 0;
+}
+
+.ant-table-thead > tr > th, .ant-table-tbody > tr > td {
+  word-break: break-word;
+}
+
+//text过长使用...
+.col-long-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.card-container > .ant-tabs-card > .ant-tabs-content {
+  //height: 120px;
+  //margin-top: -16px;
+}
+
+.card-container > .ant-tabs-card > .ant-tabs-content > .ant-tabs-tabpane {
+  background: #fff;
+  //padding: 16px;
+}
+
+.card-container > .ant-tabs-card > .ant-tabs-bar {
+  border-color: #fff;
+}
+
+.card-container > .ant-tabs-card > .ant-tabs-bar .ant-tabs-tab {
+  border-color: transparent;
+  background: transparent;
+}
+
+.card-container > .ant-tabs-card > .ant-tabs-bar .ant-tabs-tab-active {
+  border-color: #fff;
+  background: #fff;
+}

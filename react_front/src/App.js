@@ -70,7 +70,9 @@ class App extends Component {
                                        <Menu.Item key="2">导出</Menu.Item>
                                      </SubMenu>
                                      <SubMenu key="sub7" title={<span><Icon type="robot" />自助服务</span>}>
-                                       <Menu.Item key="1">公共账号同步</Menu.Item>
+                                       <Menu.Item key="1">
+                                           <Link to="/commonUser">公共账号管理</Link>
+                                       </Menu.Item>
                                        <Menu.Item key="2">备份</Menu.Item>
                                        <Menu.Item key="3">归档</Menu.Item>
                                      </SubMenu>
@@ -78,6 +80,7 @@ class App extends Component {
                              </Sider>
                              <Content>
                                  <Route exact path="/mysqlCluster" component={mysqlCluster} />
+                                 <Route exact path="/commonUser" component={mysqlCluster} />
                              </Content>
                          </Layout>
                              <Footer >Footer</Footer>
