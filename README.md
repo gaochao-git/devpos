@@ -6,13 +6,20 @@ git clone https://github.com/gaochao-git/devpos.git
 ```
 ## 启动步骤
 ```
-1.启动后端
+1.启动后端(建议安装anaconda管理python多版本环境)
     后端django_backend/django_backend/settings.py修改mysql连接信息
     cd $path/devepos/django_backend
+    pip3.5 install django==2.1.1
+    pip3.5 install pymysql
+    pip3.5 install django-cors-headers
     python3.5 manage.py runserver 0.0.0.0:8000
 2.启动前端
+    brew install nodejs #安装nodejs根据mac、windows、linux不同系统自行百度安装
+    node -v
+    npm -v
     cd $path/devepos/react_front
     npm install 
+    sudo npm install -g yarn
     yarn start
 ```
 
