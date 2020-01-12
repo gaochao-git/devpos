@@ -60,7 +60,7 @@ class App extends Component {
                                      </SubMenu>
                                      <SubMenu key="sub4" title={<span><Icon type="laptop" />工单</span>}>
                                        <Menu.Item key="1">
-                                           <Link to="/checkSql">SQL执行</Link>
+                                           <Link to="/checkSql">SQL审核</Link>
                                        </Menu.Item>
                                        <Menu.Item key="2">权限申请</Menu.Item>
                                      </SubMenu>
