@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import {HashRouter,Route} from 'react-router-dom';
 import mysqlCluster from './scripts/MysqlCluster/cluster'
+import checkSql from './scripts/checkSql/inceptionCheckSql'
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
 
@@ -43,7 +44,7 @@ class App extends Component {
                                             <Link to="#">实例</Link>
                                         </Menu.Item>
                                         <Menu.Item key="3">
-                                            <Link to="/mysqlCluster">集群</Link>
+                                            <Link to="/mysqlCluster">集群</Link >
                                         </Menu.Item>
                                      </SubMenu>
                                      <SubMenu key="sub3" title={<span><Icon type="database" />Redis</span>}>
@@ -58,7 +59,9 @@ class App extends Component {
                                         </Menu.Item>
                                      </SubMenu>
                                      <SubMenu key="sub4" title={<span><Icon type="laptop" />工单</span>}>
-                                       <Menu.Item key="1">SQL执行</Menu.Item>
+                                       <Menu.Item key="1">
+                                           <Link to="/checkSql">SQL执行</Link>
+                                       </Menu.Item>
                                        <Menu.Item key="2">权限申请</Menu.Item>
                                      </SubMenu>
                                      <SubMenu key="sub5" title={<span><Icon type="code" />控制台</span>}>
@@ -81,6 +84,7 @@ class App extends Component {
                              <Content>
                                  <Route exact path="/mysqlCluster" component={mysqlCluster} />
                                  <Route exact path="/commonUser" component={mysqlCluster} />
+                                 <Route exact path="/checkSql" component={checkSql} />
                              </Content>
                          </Layout>
                              <Footer >Footer</Footer>

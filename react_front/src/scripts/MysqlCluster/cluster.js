@@ -21,7 +21,7 @@ export default class mysqlCluster extends Component  {
     componentDidMount() {
         this.GetClusterInfo()
     }
-
+    //获取所有集群信息
     async GetClusterInfo() {
         let res = await axios.get(`${server}/get_cluster_info/`);
         console.log(res.data);
@@ -29,7 +29,14 @@ export default class mysqlCluster extends Component  {
             cluster_info: res.data
         })
     }
-
+    //模糊搜索
+    async GetSearchClusterInfo(cluster_name) {
+        let res = await axios.post(`${server}/get_search_cluster_info/`,{cluster_name});
+        console.log(res.data);
+        this.setState({
+            cluster_info: res.data
+        })
+    }
 
     render() {
         let {cluster_info} = this.state;
@@ -90,11 +97,16 @@ export default class mysqlCluster extends Component  {
                             集群信息
                         </Link>
                     </div>
-                    <Search
-                      placeholder="input search text"
-                      onSearch={value => console.log(value)}
-                      style={{ width: 200 }}
-                    />
+                    <div>
+                        <Button type="primary" onClick={() => {
+                            this.GetClusterInfo()
+                        }}>置空</Button>
+                        <Search
+                          placeholder="集群名"
+                          onSearch={value => this.GetSearchClusterInfo(value)}
+                          style={{ width: 200 }}
+                        />
+                    </div>
                 </div>
             <div>
             </div>
