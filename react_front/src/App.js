@@ -4,7 +4,7 @@ import { Layout, Menu, Icon } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import {HashRouter,Route} from 'react-router-dom';
-import mysqlCluster from './scripts/MysqlCluster/cluster'
+import mysqlCluster from './scripts/mysqlCluster/cluster'
 import checkSql from './scripts/checkSql/inceptionCheckSql'
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;

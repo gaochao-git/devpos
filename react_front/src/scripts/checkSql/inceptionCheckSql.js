@@ -4,10 +4,10 @@ import { Layout, Button,Table, Menu, Icon, Input } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
+import { backendServerApiRoot } from "../common/util"
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
-const { TextArea } = Input;
-const server = 'http://127.0.0.1:8000';
+const { TextArea } = Input
 
 
 export default class checkSql extends Component  {
@@ -26,7 +26,7 @@ export default class checkSql extends Component  {
     }
 
     async GetClusterInfo() {
-        let res = await axios.get(`${server}/check_sql_info/`);
+        let res = await axios.get(`${backendServerApiRoot}/check_sql_info/`);
         console.log(res.data);
         this.setState({
             check_sql_results: res.data
@@ -58,7 +58,7 @@ export default class checkSql extends Component  {
             check_sql_info: this.state.check_sql
         };
         console.log(params);
-        let res = await axios.post(`${server}/check_sql_info/`,{params});
+        let res = await axios.post(`${backendServerApiRoot}/check_sql_info/`,{params});
         console.log(res.data);
         this.setState({
             check_sql_results: res.data

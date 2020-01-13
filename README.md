@@ -40,6 +40,7 @@ gaochao@localhost:~ # git clone https://github.com/gaochao-git/devpos.git
 布局及路由文件---devpos/react_front/src/App.js
 js代码----------devpos/react_front/src/scripts
 css代码---------devpos/react_front/src/styles
+公共配置---------devpos/react_front/src/common          #后端server api在util.js中配置
 ```
 ***
 ## 参考下面步骤进行新功能开发
