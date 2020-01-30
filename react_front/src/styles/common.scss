@@ -38,13 +38,11 @@
   }
 }
 .sub-title-input {
-  padding-top: 15px;
-  padding-bottom: 15px;
-  padding-left: 15px;
-  padding-right: 400px;
+  padding: 15px 0px;
   background: #f6f6f6;
   display: flex;
   justify-content: space-between;
+  max-width: 400px;
 
   .title-text {
     margin: 0 5px;
@@ -70,6 +68,14 @@
       text-align: right;
     }
   }
+}
+
+.row-detail-red {
+  color: #ff0000;
+}
+
+.row-detail-default {
+  background: #00000000;
 }
 
 // 覆盖antd可编辑表格样式
@@ -126,4 +132,31 @@
 .card-container > .ant-tabs-card > .ant-tabs-bar .ant-tabs-tab-active {
   border-color: #fff;
   background: #fff;
+}
+
+.ant-advanced-search-form {
+  padding: 24px;
+  background: #fbfbfb;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+}
+
+.ant-advanced-search-form .ant-form-item {
+  display: flex;
+  text-align:left;
+}
+
+.ant-advanced-search-form .ant-form-item-control-wrapper {
+  flex: 1;
+}
+
+
+.link-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline;
+  margin: 0;
+  padding: 0;
+  color: #1890ff;
 }

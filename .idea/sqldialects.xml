@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="SqlDialectMappings">
+    <file url="file://$PROJECT_DIR$/django_backend/apps/inception.py" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/django_backend/apps/views.py" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/django_backend/upload/20200114/gaochao_6a953f1a-4acb-4e7a-b3c9-9120a2be56b4.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/django_backend/upload/20200114/gaochao_70ee328c-44d3-4849-b540-d074c5957eaf.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/django_backend/upload/20200116/gaochao_5a1522e4-917b-4265-b731-c2aa278b80f8.sql" dialect="MySQL" />
   </component>
 </project>

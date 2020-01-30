@@ -5,16 +5,14 @@ import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import {HashRouter,Route} from 'react-router-dom';
 import mysqlCluster from './scripts/mysqlCluster/cluster'
-import checkSql from './scripts/checkSql/inceptionCheckSql'
+import UserSqlCheckSubmit from './scripts/sqlApply/userSqlCheckSubmit'
+import UserSqlApply from './scripts/sqlApply/userSqlApply'
+import publicManage from "./scripts/publicUserManage/pubicUserPrivilegeManage"
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
 
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
-
-const server = 'http://127.0.0.1:8000';
-
-
 
 class App extends Component {
     constructor(props) {
@@ -60,7 +58,7 @@ class App extends Component {
                                      </SubMenu>
                                      <SubMenu key="sub4" title={<span><Icon type="laptop" />工单</span>}>
                                        <Menu.Item key="1">
-                                           <Link to="/checkSql">SQL审核</Link>
+                                           <Link to="/checkSummitSql">SQL审核</Link>
                                        </Menu.Item>
                                        <Menu.Item key="2">权限申请</Menu.Item>
                                      </SubMenu>
@@ -74,7 +72,7 @@ class App extends Component {
                                      </SubMenu>
                                      <SubMenu key="sub7" title={<span><Icon type="robot" />自助服务</span>}>
                                        <Menu.Item key="1">
-                                           <Link to="/commonUser">公共账号管理</Link>
+                                           <Link to="/publicManage">公共账号管理</Link>
                                        </Menu.Item>
                                        <Menu.Item key="2">备份</Menu.Item>
                                        <Menu.Item key="3">归档</Menu.Item>
@@ -83,8 +81,9 @@ class App extends Component {
                              </Sider>
                              <Content>
                                  <Route exact path="/mysqlCluster" component={mysqlCluster} />
-                                 <Route exact path="/commonUser" component={mysqlCluster} />
-                                 <Route exact path="/checkSql" component={checkSql} />
+                                 <Route exact path="/publicManage" component={publicManage} />
+                                 <Route exact path="/checkSummitSql" component={UserSqlCheckSubmit} />
+                                 <Route exact path="/viewApplySqlByUuid/:submit_sql_uuid" component={UserSqlApply} />
                              </Content>
                          </Layout>
                              <Footer >Footer</Footer>
