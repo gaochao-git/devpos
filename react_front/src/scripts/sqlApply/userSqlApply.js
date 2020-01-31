@@ -1,15 +1,23 @@
 import React, { Component } from 'react';
-import { Table, Row, Col, Button, message, Modal, Input, Checkbox } from 'antd';
+import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm, } from 'antd';
 import { Link } from 'react-router-dom';
 import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
-import EditableTable from './inceptionVriableConfig'
+
 
 const Column = Table.Column;
 const TextArea = Input.TextArea;
-const CheckboxGroup = Checkbox.Group;
-const plainOptions = ['备份', '忽略inception警告', '忽略inception错误强制执行'];
-const defaultCheckedList = ['备份'];
+// const CheckboxGroup = Checkbox.Group;
+// const plainOptions = ['备份', '忽略inception警告', '忽略inception错误强制执行'];
+// const defaultCheckedList = ['备份'];
+const EditableCell = ({ editable, value, onChange }) => (
+    <div>
+        {editable
+          ? <Input style={{ margin: '-5px 0' }} value={value} onChange={e => onChange(e.target.value)} />
+          : value
+        }
+    </div>
+);
 
 export default class UserSqlApply extends Component {
     constructor(props) {
@@ -46,13 +54,19 @@ export default class UserSqlApply extends Component {
             inception_backup:1,
             inception_check_ignore_warning:0,
             inception_execute_ignore_error:0,
+            data :[],
+            editingKey:'',
+            newClusterCfg:{},
+            newConfig:{}
         }
+        this.cacheData = this.state.data.map(item => ({ ...item }));
     }
 
     componentDidMount() {
         console.log(this.props.match.params["submit_sql_uuid"]);
         let submit_sql_uuid = this.props.match.params["submit_sql_uuid"];
         this.GetSqlApplyByUuid(submit_sql_uuid)
+        this.GetInceptionVariableConfig();
     };
     // componentWillUnmount() {
     //     clearInterval(this.timerId);
@@ -142,6 +156,9 @@ export default class UserSqlApply extends Component {
         });
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
+            inception_backup: this.state.inception_backup,
+            inception_check_ignore_warning: this.state.inception_check_ignore_warning,
+            inception_execute_ignore_error: this.state.inception_execute_ignore_error,
         };
         console.log(this.state.execute_sql_flag);
         if(this.state.execute_sql_flag === "未提交"){
@@ -250,27 +267,138 @@ export default class UserSqlApply extends Component {
         });
     }
 
-    //更新备份、警告、错误数据库状态
-    async handleUpdateInceptionVariable(params) {
-        console.log(params)
-        axios.post(`${backendServerApiRoot}/update_inception_variable/`,{params}).then(
-           res => {res.data.status==="ok" ? window.location.reload() : message.error(res.data.message)}
-        ).catch(err => {message.error(err.message)})
-    }
      //是否备份选择框
     async inceptionBackupCheckBoxOnChange(e) {
         console.log("inception_backup", e.target.checked);
         e.target.checked ? console.log("备份") : console.log("不备份")
-        e.target.checked ? this.handleUpdateInceptionVariable("inception_backup:1") : this.handleUpdateInceptionVariable("inception_backup:0")
+        e.target.checked ? this.setState({inception_backup:1}) : this.setState({inception_backup:0})
     }
     //忽略inception警告选择框
     async inceptionIgnoreWarningCheckBoxOnChange(e) {
         console.log("inception_execute_ignore_error", `checked = ${e.target.checked}`);
+        e.target.checked ? console.log("忽略inception警告选择框") : console.log("不忽略inception警告选择框")
+        e.target.checked ? this.setState({inception_check_ignore_warning:1}) : this.setState({inception_check_ignore_warning:0})
     }
     //忽略inception错误继续执行选择框
     async inceptionIgnoreErrorCheckBoxOnChange(e) {
         console.log(`checked = ${e.target.checked}`);
+        e.target.checked ? console.log("忽略inception错误继续执行选择框") : console.log("不忽略inception错误继续执行选择框")
+        e.target.checked ? this.setState({inception_execute_ignore_error:1}) : this.setState({inception_execute_ignore_error:0})
     }
+    async GetInceptionVariableConfig() {
+        let res = await axios.get(`${backendServerApiRoot}/get_inception_variable_config_info/`);
+        console.log(res.data);
+        this.setState({
+            data: res.data.data,
+        });
+        this.cacheData = this.state.data.map(item => ({ ...item }))
+    }
+    async handleUpdateInceptionVariable() {
+        let params = {
+            new_config_json: this.state.newConfig,
+        };
+        axios.post(`${backendServerApiRoot}/update_inception_variable/`,{params}).then(
+           res => {res.data.status==="ok" ? message.success(res.data.message) : message.error(res.data.message)}
+        ).catch(err => {message.error(err.message)})
+        this.setState({
+            InceptionVariableConfigModalVisible: false
+        });
+    }
+
+  columns = [{
+    title: '参数名称',
+    dataIndex: 'name',
+    width: '25%',
+    render: (text, record) => this.renderColumns(text, record, 'name')
+  }, {
+    title: '参数含义',
+    dataIndex: 'variable_description',
+    width: '45%',
+    render: (text, record) => this.renderColumns(text, record, 'variable_description')
+  }, {
+    title: '值',
+    dataIndex: 'value',
+    width: '10%',
+    render: (text, record) => this.renderColumns(text, record, 'value')
+  }, {
+    title: '操作',
+    dataIndex: 'operation',
+    render: (text, record) => {
+      return (
+        <div className="editable-row-operations">
+          {
+            this.state.editingKey === record.name ?
+              <span>
+                <Button onClick={() => this.cancel(record.name)} type='primary' size='small'>取消</Button>
+                <Popconfirm title="确认保存 ?" onConfirm={() => this.save(record.name)} okText="确认" cancelText="取消">
+                  <Button type='primary' size='small' style={{marginLeft: '10px'}}>保存</Button>
+                </Popconfirm>
+              </span>
+              : <Button onClick={() => this.edit(record.name)} disabled={!record.editable} type='primary' size='small'>修改</Button>
+          }
+        </div>
+      );
+    }
+  }];
+
+  renderColumns(text, record, column) {
+    return (
+      <EditableCell
+        editable={column === 'value' && record.editable && this.state.editingKey === record.name}
+        value={text}
+        onChange={value => this.handleChange(value, record.name, column)}
+      />
+    );
+  }
+  handleChange(value, key, column) {
+    const newData = [...this.state.data];
+    const target = newData.filter(item => key === item.name)[0];
+    if (target) {
+      target[column] = value;
+      let newCfg = {}
+      newCfg[key] = value
+      this.setState({ data: newData, newClusterCfg: newCfg } , () => console.log(this.state.newClusterCfg))
+
+  }}
+  edit(key) {
+      console.log(key);
+      console.log(this.state.editingKey);
+    if(this.state.editingKey !== ''){
+        this.cancel(this.state.editingKey)
+        this.setState({editingKey: key})
+    }else{
+        this.setState({editingKey: key})
+    }
+
+  }
+  // 修改集群的配置
+  save(key) {
+    const newData = [...this.state.data];
+    const target = newData.filter(item => key === item.name)[0];       //原始行记录target.value,target.name
+    const cacheData =  [...this.cacheData];
+    const cacheTarget = cacheData.filter(item => key === item.name)[0];   //新行记录cacheTarget.value,cacheTarget.name
+    console.log(target)
+    console.log(cacheTarget)
+      let newConfigJson = this.state.newConfig
+    if (target) {
+      if(this.state.newClusterCfg[this.state.editingKey] && cacheTarget.value !== target.value){
+          newConfigJson[key]=target.value
+          this.setState({newConfig:newConfigJson})
+          console.log("当前incption配置",this.state.newConfig)
+      }else{
+          console.log("不知道",)
+      }
+      this.setState({ data: newData, editingKey: '' }, () => this.cacheData = this.state.data.map(item => ({ ...item })));
+    }
+  }
+  cancel(key) {
+    const newData = [...this.state.data];
+    const target = newData.filter(item => key === item.name)[0];
+    if (target) {
+      Object.assign(target, this.cacheData.filter(item => key === item.name)[0]);
+      this.setState({ data: newData, editingKey:'' });
+    }
+  }
     render() {
         const execute_results_columns = [
             {
@@ -384,8 +512,8 @@ export default class UserSqlApply extends Component {
                     <div>
                         <h3>执行选项</h3>
                         <Checkbox defaultChecked onChange={this.inceptionBackupCheckBoxOnChange.bind(this)}>备份</Checkbox>
-                        <Checkbox onChange={this.inceptionIgnoreWarningCheckBoxOnChange}>忽略inception警告</Checkbox>
-                        <Checkbox onChange={this.inceptionIgnoreErrorCheckBoxOnChange}>忽略inception错误强制执行</Checkbox>
+                        <Checkbox onChange={this.inceptionIgnoreWarningCheckBoxOnChange.bind(this)}>忽略inception警告</Checkbox>
+                        <Checkbox onChange={this.inceptionIgnoreErrorCheckBoxOnChange.bind(this)}>忽略inception错误强制执行</Checkbox>
                     </div>
                     <br/>
                     <h3>执行操作</h3>
@@ -506,7 +634,8 @@ export default class UserSqlApply extends Component {
                         footer={false}
                         width={1240}
                     >
-                        <EditableTable></EditableTable>
+                        <Table dataSource={this.state.data} pagination={false} columns={this.columns} rowKey={(row) => row.name} size={"small"}/>
+                        <Button type={"primary"} onClick={this.handleUpdateInceptionVariable.bind(this)}>提交更改</Button>
                     </Modal>
                 </div>
                 </div>

@@ -5,8 +5,6 @@ from django.db import connection
 import uuid
 from time import gmtime, strftime
 import os
-import sys
-
 
 # 页面获取所有工单列表
 def get_submit_sql_info_func(request):
@@ -29,7 +27,7 @@ def get_submit_sql_info_func(request):
                 dba_execute_user_name,
                 ctime,
                 utime
-            FROM sql_execute order by utime desc
+            FROM sql_execute order by ctime desc, utime desc
         """
     try:
         cursor.execute("%s" % sql)
@@ -54,6 +52,31 @@ def get_apply_sql_by_uuid_func(request):
     status = ""
     message = ""
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
+    # sql = """
+    #     select title,
+    #            submit_sql_user,
+    #            leader_user_name,
+    #            qa_user_name,
+    #            dba_check_user_name,
+    #            dba_execute_user_name,
+    #            case leader_check  when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as leader_check,
+    #            case qa_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as qa_check,
+    #            case dba_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as dba_check,
+    #            case dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,
+    #            case execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' end as execute_status,
+    #            master_ip,
+    #            master_port,
+    #            comment_info,
+    #            submit_sql_uuid,
+    #            (select count(*) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_rows,
+    #            (select sum(inception_affected_rows) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_affect_rows,
+    #            (select sum(inception_execute_time) from sql_execute_results where submit_sql_uuid='{}') as inception_execute_time,
+    #            submit_sql_execute_type,
+    #            comment_info,
+    #            submit_sql_file_path
+    #     from sql_execute
+    #     where submit_sql_uuid='{}'
+    # """.format(submit_sql_uuid,submit_sql_uuid,submit_sql_uuid,submit_sql_uuid)
     sql = """
         select title,
                submit_sql_user,
@@ -76,8 +99,30 @@ def get_apply_sql_by_uuid_func(request):
                submit_sql_execute_type,
                comment_info,
                submit_sql_file_path
-        from sql_execute 
+        from sql_execute
         where submit_sql_uuid='{}'
+    """.format(submit_sql_uuid,submit_sql_uuid,submit_sql_uuid,submit_sql_uuid)
+    split_sql = """
+         select 
+            a.title,                
+            a.submit_sql_user,                
+            a.leader_user_name,                
+            a.qa_user_name,                
+            a.dba_check_user_name,                
+            a.dba_execute_user_name,                
+            case a.leader_check  when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as leader_check,                
+            case a.qa_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as qa_check,                
+            case a.dba_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as dba_check,                
+            case a.dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,                
+            case a.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' end as execute_status,                a.master_ip,                
+            a.master_port,                
+            a.comment_info,                
+            a.submit_sql_uuid,                
+            (select count(*) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_rows,                
+            (select sum(inception_affected_rows) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_affect_rows,                
+            (select sum(inception_execute_time) from sql_execute_results where submit_sql_uuid='{}') as inception_execute_time,                a.submit_sql_execute_type,                             
+            b.split_sql_file_path         
+            from sql_execute a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where a.submit_sql_uuid='{}'
     """.format(submit_sql_uuid,submit_sql_uuid,submit_sql_uuid,submit_sql_uuid)
     cursor = connection.cursor()
     try:
@@ -224,10 +269,10 @@ def submit_sql_func(request):
 # 页面预览指定工单提交的SQL
 def get_submit_sql_by_uuid_func(request):
     to_str = str(request.body, encoding="utf-8")
-    data = json.loads(to_str)
+    request_body = json.loads(to_str)
     status = ""
     message = ""
-    submit_sql_uuid = data['params']['submit_sql_uuid']
+    submit_sql_uuid = request_body['params']['submit_sql_uuid']
     sql = "select submit_sql_file_path from sql_execute where submit_sql_uuid='{}'".format(submit_sql_uuid)
     cursor = connection.cursor()
     try:
@@ -279,26 +324,30 @@ def get_check_sql_results_by_uuid_func(request):
     return HttpResponse(json.dumps(content,default=str), content_type='application/json')
 
 
-# 审核通过
+# 审核通过并拆分SQL
 def pass_submit_sql_by_uuid_func(request):
     to_str = str(request.body, encoding="utf-8")
-    data = json.loads(to_str)
+    request_body = json.loads(to_str)
     status = ""
     message = ""
-    submit_sql_uuid = data['params']['submit_sql_uuid']
-    apply_results = data['params']['apply_results']
+    ret = ""
+    submit_sql_uuid = request_body['params']['submit_sql_uuid']
+    apply_results = request_body['params']['apply_results']
     if apply_results == "通过":
         sql = "update sql_execute set leader_check=2,qa_check=2,dba_check=2 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+        #拆分SQL
+        ret = split_sql_func(submit_sql_uuid)
+        print(8888888)
     elif apply_results == "不通过":
         sql = "update sql_execute set leader_check=3,qa_check=3,dba_check=3 where submit_sql_uuid='{}'".format(submit_sql_uuid)
     cursor = connection.cursor()
     try:
         cursor.execute("%s" % sql)
         status = "ok"
-        message = "执行成功"
+        message = "审核成功," + ret
     except Exception as e:
         status = "error"
-        message = e
+        message = str(e) + ",+" + ret
         print(e)
     finally:
         cursor.close()
@@ -343,9 +392,9 @@ def update_inception_variable_func(request):
     cursor = connection.cursor()
     try:
         cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
+        # rows = cursor.fetchall()
         status = "ok"
-        message = "ok"
+        message = "修改inception osc参数成功"
     except Exception as e:
         status = "error"
         message = e
@@ -406,26 +455,19 @@ def execute_sql_func(cursor,submit_sql_uuid, target_db_ip, target_db_port, execu
 # 获取SQL文件路径,调用inception执行
 def execute_submit_sql_by_uuid_func(request):
     to_str = str(request.body, encoding="utf-8")
-    data = json.loads(to_str)
+    request_body = json.loads(to_str)
     status = ""
     message = ""
-    submit_sql_uuid = data['params']['submit_sql_uuid']
-    # sql_select = "select master_ip, master_port, submit_sql_file_path ,inception_osc_config from sql_execute where submit_sql_uuid='{}'".format(submit_sql_uuid)
-    # sql_update_executing = "update sql_execute set dba_execute=2,execute_status=2 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    submit_sql_uuid = request_body['params']['submit_sql_uuid']
+    inception_backup = request_body['params']['inception_backup']
+    inception_check_ignore_warning = request_body['params']['inception_check_ignore_warning']
+    inception_execute_ignore_error = request_body['params']['inception_execute_ignore_error']
+    print(inception_backup,inception_check_ignore_warning,inception_execute_ignore_error)
+    sql_update_executing = "update sql_execute set dba_execute=2,execute_status=2 where submit_sql_uuid='{}'".format(submit_sql_uuid)
     cursor = connection.cursor()
     try:
-        # cursor.execute("%s" % sql_select)
-        # rows = cursor.fetchall()
-        # data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        # file_path = data[0]["submit_sql_file_path"]
-        # inception_osc_config = data[0]["inception_osc_config"]
-        # db_ip = data[0]["master_ip"]
-        # db_port = data[0]["master_port"]
-        # if inception_osc_config == "" or inception_osc_config == '{}':
-        #     inception_osc_config = "empty"
-        # cursor.execute("%s" % sql_update_executing)
-        # cmd = "/anaconda2/envs/py35/bin/python3.5 /Users/gaochao/gaochao-git/gaochao_repo/devops/django_backend/scripts/inception_execute.py '{}' '{}' {} '{}' '{}' &".format(submit_sql_uuid, db_ip, db_port, file_path, inception_osc_config)
-        cmd = "/anaconda2/envs/py35/bin/python3.5 /Users/gaochao/gaochao-git/gaochao_repo/devops/django_backend/scripts/inception_execute.py '{}' &".format(submit_sql_uuid)
+        cursor.execute("%s" % sql_update_executing)
+        cmd = "/anaconda2/envs/py35/bin/python3.5 /Users/gaochao/gaochao-git/gaochao_repo/devops/django_backend/scripts/inception_execute.py '{}' {} {} {} &".format(submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error)
         print("调用脚本执行SQL:%s" % cmd)
         ret = os.system(cmd)
         print("调用脚本执行SQL返回值(非0表示调用失败):%s" % ret)
@@ -449,10 +491,10 @@ def execute_submit_sql_by_uuid_func(request):
 # 查看执行结果
 def get_execute_submit_sql_results_by_uuid_func(request):
     to_str = str(request.body, encoding="utf-8")
-    data = json.loads(to_str)
+    request_body = json.loads(to_str)
     status = ""
     message = ""
-    submit_sql_uuid = data['params']['submit_sql_uuid']
+    submit_sql_uuid = request_body['params']['submit_sql_uuid']
     sql = """select inception_id,
                     inception_stage,
                     case inception_error_level  when 0 then '执行成功' when 1 then '执行成功(含警告)' when 2 then '执行失败' end as inception_error_level,
@@ -482,6 +524,8 @@ def get_execute_submit_sql_results_by_uuid_func(request):
 
 # 根据uuid获取sqlsha1,根据sqlsha1连接inception查看执行进度
 def get_execute_process_by_uuid_func(request):
+    status = ''
+    message = ''
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
@@ -524,5 +568,110 @@ def get_execute_process_by_uuid_func(request):
                 print("Mysql Error %d: %s" % (e.args[0], e.args[1]))
         status = 'ok'
         message = 'ok'
-        content = {'status': status, 'message': message, 'data': sql_all_process}
+    content = {'status': status, 'message': message, 'data': sql_all_process}
     return HttpResponse(json.dumps(content), content_type='application/json')
+
+
+# inception拆分SQL
+def split_sql_func(submit_sql_uuid):
+    # 查询工单信息
+    try:
+        cursor = connection.cursor()
+        sql_select = "select master_ip,master_port, submit_sql_file_path from sql_execute where submit_sql_uuid='{}'".format(submit_sql_uuid)
+        cursor.execute("%s" % sql_select)
+        rows = cursor.fetchall()
+        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+        sql_file_path = data[0]["submit_sql_file_path"]
+        master_ip = data[0]["master_ip"]
+        master_port = data[0]["master_port"]
+        with open("./upload/{}".format(sql_file_path), "rb") as f:
+            execute_sql = f.read()
+            execute_sql = execute_sql.decode('utf-8')
+        ret = start_split_sql(cursor,submit_sql_uuid,master_ip, master_port, execute_sql, sql_file_path)
+        if ret == "拆分SQL成功":
+            message = "拆分任务成功"
+        else:
+            message = "拆分任务失败"
+    except Exception as e:
+        message = "拆分任务失败"
+        print(e)
+    finally:
+        cursor.close()
+        connection.close()
+        print(message)
+        return message
+
+
+# 开始拆分
+def start_split_sql(cursor,submit_sql_uuid,master_ip, master_port, execute_sql, sql_file_path):
+    # 拆分SQL
+    sql = """/*--user=wthong;--password=fffjjj;--host={};--port={};--enable-split;*/\
+        inception_magic_start;
+        {}   
+        inception_magic_commit;""".format(master_ip, master_port, execute_sql)
+    try:
+        conn = pymysql.connect(host='39.97.247.142', user='', passwd='', db='', port=6669, charset="utf8")  # inception服务器
+        cur = conn.cursor()
+        cur.execute(sql)
+        sql_tuple = cur.fetchall()
+        ret = write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sql_tuple,sql_file_path)
+        if ret == "拆分后SQL写入新文件成功":
+            message = "拆分SQL成功"
+        else:
+            message = "拆分SQL失败"
+    except Exception as e:
+        message = "拆分SQL失败"
+        print(str(e))
+    finally:
+        cur.close()
+        conn.close()
+        print(message)
+        return message
+
+
+# 将拆分SQL写入拆分文件,并将自任务写入sql_execute_split
+def write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sql_tuple,sql_file_path):
+    try:
+        result = []
+        result_tmp = {}
+        result_copy = {}
+        for tup in sql_tuple:
+            result_tmp['split_seq'] = tup[0]
+            result_tmp['sql'] = tup[1]
+            result_tmp['ddlflag'] = tup[2]
+            result_tmp['sql_num'] = tup[3]
+            result_copy = result_tmp.copy()
+            result.append(result_copy)
+            result_tmp.clear()
+        for i in result:
+            ddlflag = i["ddlflag"]
+            split_seq = i["split_seq"]
+            sql_num = i["sql_num"]
+            sql = i["sql"]
+            dir_name = sql_file_path.split('/')[0]
+            file_name = sql_file_path.split('/')[1]
+            split_file_name = str(split_seq) + '_' + file_name
+            upfile = './upload/' + dir_name + '/' + split_file_name
+            split_sql_file_path = dir_name + '/' + split_file_name
+            with open(upfile, 'w') as f:
+                f.write(sql)
+            print(9999999)
+            insert_split_sql = """insert into sql_execute_split(
+                                    submit_sql_uuid,
+                                    split_seq,
+                                    split_sql_file_path,
+                                    sql_num,
+                                    ddlflag,
+                                    master_ip,
+                                    master_port
+                                    ) values('{}',{},'{}',{},{},'{}',{})
+                                """.format(submit_sql_uuid,split_seq,split_sql_file_path,sql_num,ddlflag,master_ip, master_port)
+            cursor.execute(insert_split_sql)
+            print(insert_split_sql)
+        message = "拆分后SQL写入新文件成功"
+    except Exception as e:
+        message = "拆分后SQL写入新文件失败"
+        print(e)
+    finally:
+        print(message)
+        return message

@@ -1,3 +1,5 @@
+/*sdfsf*/
+use test;
 CREATE TABLE `sql_check_results` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `submit_sql_uuid` varchar(50) NOT NULL COMMENT '请求uuid',

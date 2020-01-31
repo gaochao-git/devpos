@@ -225,7 +225,6 @@ class UserSqlCheckSubmit extends Component {
                     <div>
                         <TextArea rows={10} placeholder="SQL"  onChange={e => this.handleSqlChange(e.target.value)}/>
                         <Button type="primary" onClick={()=>{this.handleSqlCheck()}}>检测SQL</Button>
-                        {/*<Button disabled={this.state.submit_sql_button_disabled} style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>*/}
                         {this.state.submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>:null}
                     </div>
                     <Table
