@@ -14,6 +14,7 @@ urlpatterns = [
     path('get_execute_submit_sql_results_by_uuid/', inception.get_execute_submit_sql_results_by_uuid_func),
     path('execute_submit_sql_by_uuid/', inception.execute_submit_sql_by_uuid_func),
     path('get_execute_process_by_uuid/', inception.get_execute_process_by_uuid_func),
+    path('get_split_sql_by_uuid/', inception.get_split_sql_by_uuid_func),
     path('get_inception_variable_config_info/', inception.get_inception_variable_config_info_func),
     path('update_inception_variable/', inception.update_inception_variable_func),
     path('check_sql/', inception.check_sql_func),

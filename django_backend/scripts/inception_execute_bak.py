@@ -48,9 +48,9 @@ def process_execute_results(results):
                 inception_sql = row[5]
                 inception_affected_rows = row[6]
                 inception_execute_time = row[9]
-                insert_execute_results_sql = """insert into sql_execute_results(submit_sql_uuid,inception_id,inception_stage,inception_error_level,inception_error_message,inception_sql,inception_affected_rows,inception_execute_time,split_sql_file_path) 
-                                                                                values('{}',{},'{}',{},'{}','{}',{},'{}','{}')
-                """.format(submit_sql_uuid, inception_id, inception_stage, inception_error_level,pymysql.escape_string(inception_error_message), pymysql.escape_string(inception_sql),inception_affected_rows, inception_execute_time,split_sql_file_path)
+                insert_execute_results_sql = """insert into sql_execute_results(submit_sql_uuid,inception_id,inception_stage,inception_error_level,inception_error_message,inception_sql,inception_affected_rows,inception_execute_time) 
+                                                                                values('{}',{},'{}',{},'{}','{}',{},'{}')
+                """.format(submit_sql_uuid, inception_id, inception_stage, inception_error_level,pymysql.escape_string(inception_error_message), pymysql.escape_string(inception_sql),inception_affected_rows, inception_execute_time)
                 cursor.execute(insert_execute_results_sql)
             connection.commit()
             print('inception执行结果插入表中成功')
@@ -86,7 +86,7 @@ def main():
                 osc_config_sql_list_str = [str(i) for i in osc_config_sql_list]
                 osc_config_sql = ''.join(osc_config_sql_list_str)
         # 通过sql_file_path获取SQL文件并读取要执行的SQL
-        with open("./upload/{}".format(split_sql_file_path), "rb") as f:
+        with open("./upload/{}".format(sql_file_path), "rb") as f:
             execute_sql = f.read()
             execute_sql = execute_sql.decode('utf-8')
     except Exception as e:
@@ -94,7 +94,7 @@ def main():
 
     # 更新工单状态为执行中
     try:
-        sql_execute_executing = "update sql_execute_split set dba_execute=2,execute_status=2 where split_sql_file_path='{}'".format(split_sql_file_path)
+        sql_execute_executing = "update sql_execute set dba_execute=2,execute_status=2 where submit_sql_uuid='{}'".format(submit_sql_uuid)
         cursor.execute("%s" % sql_execute_executing)
         connection.commit()
     except Exception as e:
@@ -106,16 +106,16 @@ def main():
         ret_process_results = process_execute_results(ret["data"])
         if ret_process_results["status"] == "ok":
             if ret_process_results["inception_return_max_code"] == 2:
-                sql_update_executing = "update sql_execute_split set execute_status=4 where split_sql_file_path='{}'".format(split_sql_file_path)
+                sql_update_executing = "update sql_execute set execute_status=4 where submit_sql_uuid='{}'".format(submit_sql_uuid)
                 print('执行失败')
             elif ret_process_results["inception_return_max_code"] == 1:
-                sql_update_executing = "update sql_execute_split set execute_status=5 where split_sql_file_path='{}'".format(split_sql_file_path)
+                sql_update_executing = "update sql_execute set execute_status=5 where submit_sql_uuid='{}'".format(submit_sql_uuid)
                 print('执行成功含警告')
             elif ret_process_results["inception_return_max_code"] == 0:
-                sql_update_executing = "update sql_execute_split set execute_status=3 where split_sql_file_path='{}'".format(split_sql_file_path)
+                sql_update_executing = "update sql_execute set execute_status=3 where submit_sql_uuid='{}'".format(submit_sql_uuid)
                 print('执行成功')
             else:
-                sql_update_executing = "update sql_execute_split set execute_status=999 where split_sql_file_path='{}'".format(split_sql_file_path)
+                sql_update_executing = "update sql_execute set execute_status=999 where submit_sql_uuid='{}'".format(submit_sql_uuid)
                 print("未知")
             try:
                 cursor.execute("%s" % sql_update_executing)

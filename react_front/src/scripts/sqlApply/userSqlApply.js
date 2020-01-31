@@ -57,7 +57,7 @@ export default class UserSqlApply extends Component {
             data :[],
             editingKey:'',
             newClusterCfg:{},
-            newConfig:{}
+            newConfig:{},
         }
         this.cacheData = this.state.data.map(item => ({ ...item }));
     }
@@ -68,9 +68,6 @@ export default class UserSqlApply extends Component {
         this.GetSqlApplyByUuid(submit_sql_uuid)
         this.GetInceptionVariableConfig();
     };
-    // componentWillUnmount() {
-    //     clearInterval(this.timerId);
-    // }
     //获取提交SQL的详细信息
     async GetSqlApplyByUuid(sql_uuid) {
         let params = {
@@ -84,6 +81,7 @@ export default class UserSqlApply extends Component {
              console.log("SQL执行中，定时id为:",this.timerId);
         }
         let res = await axios.post(`${backendServerApiRoot}/get_apply_sql_by_uuid/`,{params});
+        let res_split_sql = await axios.post(`${backendServerApiRoot}/get_split_sql_by_uuid/`,{params});
         console.log(res.data.data);
         this.setState({
             submit_sql_title: res.data.data[0]["title"],
@@ -104,7 +102,7 @@ export default class UserSqlApply extends Component {
             submit_sql_affect_rows:res.data.data[0]["submit_sql_affect_rows"],
             submit_sql_execute_type:res.data.data[0]["submit_sql_execute_type"],
             comment_info:res.data.data[0]["comment_info"],
-            view_submit_sql_info:res.data.data,
+            view_submit_sql_info:res_split_sql.data.data,
         })
     };
     //预览SQL
@@ -141,7 +139,8 @@ export default class UserSqlApply extends Component {
         console.log(res.data.data);
         alert(res.data.message);
         this.setState({
-        ApplyModalVisible: false,
+            ApplyModalVisible: false,
+            view_submit_sql_info:res.data.data
         });
         this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
     };
@@ -150,7 +149,7 @@ export default class UserSqlApply extends Component {
          this.timerProcessId = window.setInterval(this.getExecuteProcessByUuidTimeInterval.bind(this),1000);
     }
     //执行SQL
-    async ExecuteSubmitSqlByUuid(value) {
+    async ExecuteSubmitSqlByUuid(split_sql_file_path) {
         this.setState({
             execute_status: ""
         });
@@ -159,6 +158,7 @@ export default class UserSqlApply extends Component {
             inception_backup: this.state.inception_backup,
             inception_check_ignore_warning: this.state.inception_check_ignore_warning,
             inception_execute_ignore_error: this.state.inception_execute_ignore_error,
+            split_sql_file_path:split_sql_file_path
         };
         console.log(this.state.execute_sql_flag);
         if(this.state.execute_sql_flag === "未提交"){
@@ -181,9 +181,11 @@ export default class UserSqlApply extends Component {
         });
     }
     //查看执行SQL结果
-    async ViewExecuteSubmitSqlResultsByUuid() {
+    async ViewExecuteSubmitSqlResultsByUuid(split_sql_file_path) {
+        console.log(split_sql_file_path)
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
+            split_sql_file_path:split_sql_file_path
         };
         let res = await axios.post(`${backendServerApiRoot}/get_execute_submit_sql_results_by_uuid/`,{params});
         this.setState({
@@ -244,9 +246,11 @@ export default class UserSqlApply extends Component {
     }
 
     //查看进度
-    async getExecuteProcessByUuid() {
+    async getExecuteProcessByUuid(split_sql_file_path) {
+        console.log(split_sql_file_path)
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
+            split_sql_file_path:split_sql_file_path
         };
         let res = await axios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,{params});
         console.log(res)
@@ -305,7 +309,7 @@ export default class UserSqlApply extends Component {
         });
     }
 
-  columns = [{
+  inception_varialbes_columns = [{
     title: '参数名称',
     dataIndex: 'name',
     width: '25%',
@@ -527,8 +531,10 @@ export default class UserSqlApply extends Component {
                             dataIndex="master_ip"/>
                         <Column title="master_port"
                             dataIndex="master_port"/>
+                        <Column title="split_number"
+                            dataIndex="split_seq"/>
                          <Column title="SQL路径"
-                            dataIndex="submit_sql_file_path"
+                            dataIndex="split_sql_file_path"
                             width={300}
                          />
                         <Column title="OSC配置"
@@ -536,16 +542,25 @@ export default class UserSqlApply extends Component {
                             render = {() => this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && this.state.execute_status === '未执行' ? <button className="link-button" onClick={()=>{this.ShowInceptionVariableConfigModal()}}>OSC配置</button>: null}
                         />
                         <Column title="执行SQL"
-                            render = {
-                                () => this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && this.state.execute_status === '未执行' ? <button className="link-button" onClick={()=>{this.ExecuteSubmitSqlByUuid()}}>执行SQL</button>: null}
+                            render={(text, row) => {
+                                if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '未执行')  {
+                                    return (<button className="link-button" onClick={()=>{this.ExecuteSubmitSqlByUuid(row.split_sql_file_path)}}>执行SQL</button>)
+                                }
+                            }}
                         />
                         <Column title="查看进度"
-                            render = {
-                                () => this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && this.state.execute_status === '执行中' ? <button className="link-button" onClick={()=>{this.getExecuteProcessByUuid()}}>查看进度</button>: null}
+                            render={(text, row) => {
+                                if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '执行中')  {
+                                    return (<button className="link-button" onClick={()=>{this.getExecuteProcessByUuid(row.split_sql_file_path)}}>查看进度</button>)
+                                }
+                            }}
                         />
                         <Column title="查看结果"
-                            render = {
-                                () => this.state.execute_status === '执行成功' || this.state.execute_status === '执行失败' ? <button className="link-button" onClick={()=>{this.ViewExecuteSubmitSqlResultsByUuid()}}>查看执行结果</button>: null}
+                            render={(text, row) => {
+                                if (row.execute_status === '执行成功' || row.execute_status === '执行失败')  {
+                                    return (<button className="link-button" onClick={()=>{this.ViewExecuteSubmitSqlResultsByUuid(row.split_sql_file_path)}}>查看执行结果</button>)
+                                }
+                            }}
                         />
                         <Column title="执行结果"
                             dataIndex="execute_status"/>
@@ -634,7 +649,7 @@ export default class UserSqlApply extends Component {
                         footer={false}
                         width={1240}
                     >
-                        <Table dataSource={this.state.data} pagination={false} columns={this.columns} rowKey={(row) => row.name} size={"small"}/>
+                        <Table dataSource={this.state.data} pagination={false} columns={this.inception_varialbes_columns} rowKey={(row) => row.name} size={"small"}/>
                         <Button type={"primary"} onClick={this.handleUpdateInceptionVariable.bind(this)}>提交更改</Button>
                     </Modal>
                 </div>
