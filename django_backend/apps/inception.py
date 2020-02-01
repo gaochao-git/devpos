@@ -88,7 +88,7 @@ def get_apply_sql_by_uuid_func(request):
                case qa_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as qa_check,
                case dba_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as dba_check,
                case dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,
-               case execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' end as execute_status,
+               case execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功(含警告)' end as execute_status,
                master_ip,
                master_port,
                comment_info,
@@ -257,6 +257,37 @@ def get_submit_sql_by_uuid_func(request):
         cursor.execute("%s" % sql)
         rows = cursor.fetchall()
         file_path = rows[0][0]
+        with open("./upload/{}".format(file_path), "rb") as f:
+            data = f.read()
+            data = data.decode('utf-8')
+        status = "ok"
+        message = "获取SQL成功"
+    except Exception as e:
+        status = "error"
+        message = e
+        print(e)
+    finally:
+        cursor.close()
+        connection.close()
+        f.close()
+    content = {'status': status, 'message': message,'data': data}
+    print(content)
+    return HttpResponse(json.dumps(content,default=str), content_type='text/xml')
+
+
+# 页面预览指定的拆分SQL
+def get_submit_split_sql_by_file_path_func(request):
+    to_str = str(request.body, encoding="utf-8")
+    request_body = json.loads(to_str)
+    status = ""
+    message = ""
+    split_sql_file_path = request_body['params']['split_sql_file_path']
+    sql = "select split_sql_file_path from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
+    cursor = connection.cursor()
+    try:
+        cursor.execute("%s" % sql)
+        rows = cursor.fetchall()
+        file_path = split_sql_file_path
         with open("./upload/{}".format(file_path), "rb") as f:
             data = f.read()
             data = data.decode('utf-8')
@@ -469,12 +500,8 @@ def execute_submit_sql_by_uuid_func(request):
     inception_check_ignore_warning = request_body['params']['inception_check_ignore_warning']
     inception_execute_ignore_error = request_body['params']['inception_execute_ignore_error']
     print(inception_backup,inception_check_ignore_warning,inception_execute_ignore_error)
-    sql_update_executing = "update sql_execute set dba_execute=2,execute_status=2 where submit_sql_uuid='{}'".format(submit_sql_uuid)
-    sql_update_split_executing = "update sql_execute_split set dba_execute=2,execute_status=2 where split_sql_file_path='{}'".format(split_sql_file_path)
     cursor = connection.cursor()
     try:
-        cursor.execute("%s" % sql_update_executing)
-        cursor.execute("%s" % sql_update_split_executing)
         cmd = "/anaconda2/envs/py35/bin/python3.5 /Users/gaochao/gaochao-git/gaochao_repo/devops/django_backend/scripts/inception_execute.py '{}' {} {} {} '{}' &".format(submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path)
         print("调用脚本执行SQL:%s" % cmd)
         ret = os.system(cmd)
@@ -538,9 +565,10 @@ def get_execute_process_by_uuid_func(request):
     message = ''
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
+    print(request_body)
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
     split_sql_file_path = request_body['params']['split_sql_file_path']
-    get_sqlsha1_sql = "select inception_sqlsha1,inception_sql from sql_check_results where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    get_sqlsha1_sql = "select inception_sqlsha1,inception_sql from sql_check_results where submit_sql_uuid='{}' and inception_sqlsha1!=''".format(submit_sql_uuid)
     cursor = connection.cursor()
     try:
         cursor.execute("%s" % get_sqlsha1_sql)
@@ -571,7 +599,7 @@ def get_execute_process_by_uuid_func(request):
                     data = [dict(zip([col[0] for col in cur.description], row)) for row in result]
                     sql_sigle_process['inception_execute_percent'] = data[0]['Percent']
                 else:
-                    sql_sigle_process['inception_execute_percent'] = 100
+                    sql_sigle_process['inception_execute_percent'] = 0
                 cur.close()
                 conn.close()
                 sql_all_process.append(sql_sigle_process)
@@ -688,7 +716,7 @@ def write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sq
         return message
 
 
-# 页面拆分SQL
+# 获取页面拆分SQL
 def get_split_sql_by_uuid_func(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
@@ -696,15 +724,16 @@ def get_split_sql_by_uuid_func(request):
     message = ""
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
     split_sql = """
-         select               
-            a.master_ip,                
-            a.master_port,                              
-            a.submit_sql_uuid, 
-            b.split_seq,                                                    
+        select
+            a.master_ip,
+            a.master_port,
+            a.submit_sql_uuid,
+            b.split_seq,
             b.split_sql_file_path,
-            case b.dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,                
-            case b.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' end as execute_status       
-            from sql_execute a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where a.submit_sql_uuid='{}' order by b.split_seq
+            case b.dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,
+            case b.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功(含警告)' end as execute_status,
+            sum(c.inception_execute_time) inception_execute_time
+            from sql_execute a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid left join sql_execute_results c on b.split_sql_file_path=c.split_sql_file_path where a.submit_sql_uuid='{}' group by b.split_sql_file_path order by b.split_seq
     """.format(submit_sql_uuid)
     cursor = connection.cursor()
     print(split_sql)

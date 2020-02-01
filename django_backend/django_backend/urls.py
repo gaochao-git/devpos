@@ -10,6 +10,7 @@ urlpatterns = [
     path('get_submit_sql_info/', inception.get_submit_sql_info_func),
     path('get_apply_sql_by_uuid/', inception.get_apply_sql_by_uuid_func),
     path('get_submit_sql_by_uuid/', inception.get_submit_sql_by_uuid_func),
+    path('get_submit_split_sql_by_file_path/', inception.get_submit_split_sql_by_file_path_func),
     path('get_check_sql_results_by_uuid/', inception.get_check_sql_results_by_uuid_func),
     path('get_execute_submit_sql_results_by_uuid/', inception.get_execute_submit_sql_results_by_uuid_func),
     path('execute_submit_sql_by_uuid/', inception.execute_submit_sql_by_uuid_func),

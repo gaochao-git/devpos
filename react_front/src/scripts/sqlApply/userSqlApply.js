@@ -7,9 +7,6 @@ import {backendServerApiRoot} from "../common/util";
 
 const Column = Table.Column;
 const TextArea = Input.TextArea;
-// const CheckboxGroup = Checkbox.Group;
-// const plainOptions = ['备份', '忽略inception警告', '忽略inception错误强制执行'];
-// const defaultCheckedList = ['备份'];
 const EditableCell = ({ editable, value, onChange }) => (
     <div>
         {editable
@@ -41,6 +38,7 @@ export default class UserSqlApply extends Component {
             check_sql_results:[],
             view_check_sql_result:[],
             view_submit_sql_info:[],
+            view_submit_split_sql_info:[],
             submit_sql_uuid:"",
             showSubmitSqlViewVisible:false,
             showSubmitSqlResultsVisible:false,
@@ -58,6 +56,10 @@ export default class UserSqlApply extends Component {
             editingKey:'',
             newClusterCfg:{},
             newConfig:{},
+            split_sql_file_path:"",
+            submit_split_sql:"",
+            SplitSQLModalVisible:false,
+            sql_check_max_code:"",
         }
         this.cacheData = this.state.data.map(item => ({ ...item }));
     }
@@ -67,22 +69,23 @@ export default class UserSqlApply extends Component {
         let submit_sql_uuid = this.props.match.params["submit_sql_uuid"];
         this.GetSqlApplyByUuid(submit_sql_uuid)
         this.GetInceptionVariableConfig();
+        this.GetSqlCheckResultsByUuid(submit_sql_uuid);
     };
     //获取提交SQL的详细信息
     async GetSqlApplyByUuid(sql_uuid) {
         let params = {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
-        if( this.state.execute_status === "执行成功" || this.state.execute_status === "执行失败"){
+        if( this.state.execute_status === "执行成功" || this.state.execute_status === "执行失败"  || this.state.execute_status === "执行成功(含警告)"){
             window.clearInterval(this.timerId);
             window.clearInterval(this.timerProcessId);
             console.log("SQL执完毕，关闭定时器");
         } else{
              console.log("SQL执行中，定时id为:",this.timerId);
+             console.log("SQL执行状态:",this.state.execute_status);
         }
         let res = await axios.post(`${backendServerApiRoot}/get_apply_sql_by_uuid/`,{params});
         let res_split_sql = await axios.post(`${backendServerApiRoot}/get_split_sql_by_uuid/`,{params});
-        console.log(res.data.data);
         this.setState({
             submit_sql_title: res.data.data[0]["title"],
             master_ip: res.data.data[0]["master_ip"],
@@ -102,7 +105,7 @@ export default class UserSqlApply extends Component {
             submit_sql_affect_rows:res.data.data[0]["submit_sql_affect_rows"],
             submit_sql_execute_type:res.data.data[0]["submit_sql_execute_type"],
             comment_info:res.data.data[0]["comment_info"],
-            view_submit_sql_info:res_split_sql.data.data,
+            view_submit_split_sql_info:res_split_sql.data.data,
         })
     };
     //预览SQL
@@ -117,16 +120,34 @@ export default class UserSqlApply extends Component {
             submit_sql:res.data.data,
         })
     };
+    //预览数据 modal弹出按钮
+    showCheckSqlResultModalHandle = (e) => {
+        this.setState({
+        showSubmitSqlResultsVisible: true,
+        });
+    }
+    //查看SQL审核结果
     async GetSqlCheckResultsByUuid(uuid) {
+        console.log(44444)
         let params = {
-            submit_sql_uuid: this.state.submit_sql_uuid,
+            submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
         let res = await axios.post(`${backendServerApiRoot}/get_check_sql_results_by_uuid/`,{params});
+        console.log(this.props.match.params["submit_sql_uuid"])
+        console.log(res.data.data)
+        let inception_error_level_rray=[];
+        for(var i=0;i<res.data.data.length;i++){
+            console.log(res.data.data[i]["inception_error_level"])
+            inception_error_level_rray.push(res.data.data[i]["inception_error_level"])
+            console.log(inception_error_level_rray)
+            console.log(678)
+            console.log(Math.max.apply(null,inception_error_level_rray))
+        };
         console.log(res.data.data);
         this.setState({
-            showSubmitSqlResultsVisible: true,
             view_check_sql_result:res.data.data,
-        })
+            sql_check_max_code: Math.max.apply(null,inception_error_level_rray)
+        });
     };
     //审核通过
     async PassSubmitSqlByUuid(value) {
@@ -137,14 +158,14 @@ export default class UserSqlApply extends Component {
         console.log(value)
         let res = await axios.post(`${backendServerApiRoot}/pass_submit_sql_by_uuid/`,{params});
         console.log(res.data.data);
-        alert(res.data.message);
+        message.success(res.data.message);
         this.setState({
             ApplyModalVisible: false,
             view_submit_sql_info:res.data.data
         });
         this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
     };
-    setInterVal = (e) => {
+    setInterVal = () => {
          this.timerId = window.setInterval(this.GetSqlApplyByUuid.bind(this),1000);
          this.timerProcessId = window.setInterval(this.getExecuteProcessByUuidTimeInterval.bind(this),1000);
     }
@@ -160,16 +181,30 @@ export default class UserSqlApply extends Component {
             inception_execute_ignore_error: this.state.inception_execute_ignore_error,
             split_sql_file_path:split_sql_file_path
         };
+        let inception_error_level_rray=[];
+        for(var i=0;i<this.state.view_check_sql_result.length;i++){
+            console.log(this.state.view_check_sql_result[i]["inception_error_level"])
+            inception_error_level_rray.push(this.state.view_check_sql_result[i]["inception_error_level"])
+            console.log(inception_error_level_rray)
+        };
         console.log(this.state.execute_sql_flag);
-        if(this.state.execute_sql_flag === "未提交"){
-            this.setState({
-                execute_sql_flag: "工单已提交正在处理，不允许多次提交"
-            });
-            await axios.post(`${backendServerApiRoot}/execute_submit_sql_by_uuid/`,{params}).then(
-                res => {res.data.status==="ok"? this.setInterVal() : message.error(res.data.message)}
-            );
-        } else{
-             message.error(this.state.execute_sql_flag);
+        if (this.state.sql_check_max_code === 2){
+           message.error("审核存在错误,请先处理错误")
+        }else if (this.state.inception_check_ignore_warning === 0 && this.state.sql_check_max_code === 1){
+            message.error("审核存在警告,请处理警告或忽略警告执行")
+        }else {
+            if (this.state.execute_sql_flag === "未提交") {
+                this.setState({
+                    execute_sql_flag: "工单已提交正在处理，不允许多次提交"
+                });
+                await axios.post(`${backendServerApiRoot}/execute_submit_sql_by_uuid/`, {params}).then(
+                    res => {
+                        res.data.status === "ok" ? this.setInterVal() : message.error(res.data.message)
+                    }
+                );
+            } else {
+                message.error(this.state.execute_sql_flag);
+            }
         }
     };
 
@@ -180,6 +215,18 @@ export default class UserSqlApply extends Component {
             InceptionVariableConfigModalVisible: true,
         });
     }
+    //拆分SQL预览
+    async ViewSplitSQL(split_sql_file_path){
+        let params = {
+            split_sql_file_path:split_sql_file_path
+        };
+        let res = await axios.post(`${backendServerApiRoot}/get_submit_split_sql_by_file_path/`,{params});
+        this.setState({
+            SplitSQLModalVisible: true,
+            submit_split_sql:res.data.data
+        });
+    }
+
     //查看执行SQL结果
     async ViewExecuteSubmitSqlResultsByUuid(split_sql_file_path) {
         console.log(split_sql_file_path)
@@ -232,6 +279,11 @@ export default class UserSqlApply extends Component {
             InceptionVariableConfigModalVisible: false,
         })
     };
+    closeSplitSqlModal = () => {
+        this.setState({
+            SplitSQLModalVisible: false,
+        })
+    };
     handleApplyContentChange = (value) => {
         console.log(value)
         this.setState({
@@ -257,11 +309,13 @@ export default class UserSqlApply extends Component {
         this.setState({
             execute_sql_process_results: res.data.data,
             ViewExecuteSubmitSqlProcessModalVisible:true,
+            split_sql_file_path:split_sql_file_path
         });
     }
     //定时查看进度，并更新进度到表里
     async getExecuteProcessByUuidTimeInterval() {
         let params = {
+            split_sql_file_path:this.state.split_sql_file_path,
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
         let res = await axios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,{params});
@@ -487,11 +541,14 @@ export default class UserSqlApply extends Component {
                             <Row gutter={8}><Col style={{padding:5}} span={8}>主题:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_title}</Col></Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={8}>SQL预览:</Col>
-                                <Button className="link-button" onClick={this.GetSubmitSqlByUuid.bind(this)} style={{padding:5}} span={16}>预览</Button>
+                                <Button className="link-button" onClick={this.GetSubmitSqlByUuid.bind(this)} style={{padding:5}} span={16}>查看</Button>
                             </Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={8}>SQL审核结果:</Col>
-                                <Button className="link-button" onClick={this.GetSqlCheckResultsByUuid.bind(this)} style={{padding:5}} span={16}>结果</Button>
+                                <Col >
+                                    <Button style={{padding:5}} span={16} className="link-button" onClick={this.showCheckSqlResultModalHandle.bind(this)} >查看</Button>
+                                    {this.state.sql_check_max_code !== 0 ? <span style={{color:"red"}}>[异常]</span>:<span  style={{color:"green"}}>[正常]</span>}
+                                </Col>
                             </Row>
                             <Row gutter={8}><Col style={{padding:5}} span={8}>SQL总条数:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_rows}</Col></Row>
                             <Row gutter={8}><Col style={{padding:5}} span={8}>SQL预计影响总行数:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_affect_rows}</Col></Row>
@@ -523,20 +580,20 @@ export default class UserSqlApply extends Component {
                     <h3>执行操作</h3>
                     <Table
                         pagination={false}
-                        dataSource={this.state.view_submit_sql_info}
+                        dataSource={this.state.view_submit_split_sql_info}
                         rowKey={(row ,index) => index}
                         size="small"
+                        bordered
                     >
-                        <Column title="master_ip"
-                            dataIndex="master_ip"/>
-                        <Column title="master_port"
-                            dataIndex="master_port"/>
-                        <Column title="split_number"
+                        <Column title="split_id"
                             dataIndex="split_seq"/>
-                         <Column title="SQL路径"
+                        <Column title="SQL路径"
                             dataIndex="split_sql_file_path"
                             width={300}
-                         />
+                        />
+                        <Column title="SQL"
+                            render={(text, row) => <button className="link-button" onClick={()=>{this.ViewSplitSQL(row.split_sql_file_path)}}>查看</button>}
+                        />
                         <Column title="OSC配置"
                             dataIndex="inception_osc_config"
                             render = {() => this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && this.state.execute_status === '未执行' ? <button className="link-button" onClick={()=>{this.ShowInceptionVariableConfigModal()}}>OSC配置</button>: null}
@@ -551,19 +608,31 @@ export default class UserSqlApply extends Component {
                         <Column title="查看进度"
                             render={(text, row) => {
                                 if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '执行中')  {
-                                    return (<button className="link-button" onClick={()=>{this.getExecuteProcessByUuid(row.split_sql_file_path)}}>查看进度</button>)
+                                    return (<button className="link-button" onClick={()=>{this.getExecuteProcessByUuid(row.split_sql_file_path)}}>查看</button>)
                                 }
                             }}
                         />
                         <Column title="查看结果"
                             render={(text, row) => {
-                                if (row.execute_status === '执行成功' || row.execute_status === '执行失败')  {
-                                    return (<button className="link-button" onClick={()=>{this.ViewExecuteSubmitSqlResultsByUuid(row.split_sql_file_path)}}>查看执行结果</button>)
+                                if (row.execute_status === '执行成功' || row.execute_status === '执行失败' || row.execute_status === '执行成功(含警告)')  {
+                                    return (<button className="link-button" onClick={()=>{this.ViewExecuteSubmitSqlResultsByUuid(row.split_sql_file_path)}}>查看</button>)
                                 }
                             }}
                         />
                         <Column title="执行结果"
-                            dataIndex="execute_status"/>
+                            dataIndex="execute_status"
+                            render={val => {
+                                if (val === "执行成功"){
+                                     return <span style={{color:"#52c41a"}}>{val}</span>
+                                }else if (val === "执行失败"){
+                                    return <span style={{color:"#fa541c"}}>{val}</span>
+                                }else if (val === '执行成功(含警告)'){
+                                    return <span style={{color:"#ffbb96"}}>{val}</span>
+                                }else {
+                                    return <span style={{color:"#bfbfbf"}}>{val}</span>
+                                }
+                            }}
+                        />
                         <Column title="执行方式"
                             dataIndex="execute_role"/>
                         <Column title="耗时(秒)"
@@ -581,20 +650,38 @@ export default class UserSqlApply extends Component {
                         onCancel={this.closeSubmitSqlResultsModal}
                         title="SQL审核结果"
                         footer={false}
-                        width={960}
+                        width={1200}
                     >
                         <Table
                             dataSource={this.state.view_check_sql_result}
                             rowKey={(row ,index) => index}
+                                                    rowClassName={(record, index) => {
+                                                let className = 'row-detail-default ';
+                                                if (record.inception_error_level === 2) {
+                                                    className = 'row-detail-error';
+                                                    return className;
+                                                }else if (record.inception_error_level  === 0){
+                                                    className = 'row-detail-success';
+                                                    return className;
+                                                }else if (record.inception_error_level  === 1){
+                                                    className = 'row-detail-warning';
+                                                    return className;
+                                                }else {
+                                                    return className;
+                                                }
+                                    }}
                             pagination={true}
                             size="small"
                         >
                             <Column title="SQL"
-                                dataIndex="inception_sql"/>
+                                dataIndex="inception_sql"
+                                width={600}
+                            />
                             <Column title="状态"
                                 dataIndex="inception_stage_status"/>
                             <Column title="错误代码"
-                                dataIndex="inception_error_level"/>
+                                dataIndex="inception_error_level"
+                            />
                             <Column title="错误信息"
                                 dataIndex="inception_error_message"/>
                             <Column title="影响行数"
@@ -625,8 +712,19 @@ export default class UserSqlApply extends Component {
                         rowKey={(row ,index) => index}
                         rowClassName={(record, index) => {
                                                 let className = 'row-detail-default ';
-                                                if (record.inception_error_level  !== "执行成功") className = 'row-detail-red';
-                                                return className;}}
+                                                if (record.inception_error_level === "执行失败") {
+                                                    className = 'row-detail-error';
+                                                    return className;
+                                                }else if (record.inception_error_level  === "执行成功"){
+                                                    className = 'row-detail-success';
+                                                    return className;
+                                                }else if (record.inception_error_level  === "执行成功(含警告)"){
+                                                    className = 'row-detail-warning';
+                                                    return className;
+                                                }else {
+                                                    return className;
+                                                }
+                        }}
                         size="small"
                     />
                     </Modal>
@@ -651,6 +749,14 @@ export default class UserSqlApply extends Component {
                     >
                         <Table dataSource={this.state.data} pagination={false} columns={this.inception_varialbes_columns} rowKey={(row) => row.name} size={"small"}/>
                         <Button type={"primary"} onClick={this.handleUpdateInceptionVariable.bind(this)}>提交更改</Button>
+                    </Modal>
+                    <Modal visible={this.state.SplitSQLModalVisible}
+                        onCancel={this.closeSplitSqlModal}
+                        title="SQL预览"
+                        footer={false}
+                        width={960}
+                    >
+                        <TextArea wrap="off" style={{minHeight:300,overflow:"scroll"}} value={this.state.submit_split_sql}/>
                     </Modal>
                 </div>
                 </div>
