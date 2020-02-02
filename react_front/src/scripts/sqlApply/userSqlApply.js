@@ -547,7 +547,7 @@ export default class UserSqlApply extends Component {
                                 <Col style={{padding:5}} span={8}>SQL审核结果:</Col>
                                 <Col >
                                     <Button style={{padding:5}} span={16} className="link-button" onClick={this.showCheckSqlResultModalHandle.bind(this)} >查看</Button>
-                                    {this.state.sql_check_max_code !== 0 ? <span style={{color:"red"}}>[异常]</span>:<span  style={{color:"green"}}>[正常]</span>}
+                                    {this.state.sql_check_max_code !== 0 ? <span style={{color:"red"}}>[异常]</span>:<span  style={{color:"#00FF00"}}>[正常]</span>}
                                 </Col>
                             </Row>
                             <Row gutter={8}><Col style={{padding:5}} span={8}>SQL总条数:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_rows}</Col></Row>
@@ -559,10 +559,34 @@ export default class UserSqlApply extends Component {
                             <Row gutter={8}><Col style={{padding:5}} span={6}>集群主库ip:</Col><Col style={{padding:5}} span={18}>{this.state.master_ip}</Col></Row>
                             <Row gutter={8}><Col style={{padding:5}} span={6}>集群主库port:</Col><Col style={{padding:5}} span={18}>{this.state.master_port}</Col></Row>
                             <Row gutter={8}><Col style={{padding:5}} span={6}>申请者:</Col><Col style={{padding:5}} span={18}>{this.state.submit_sql_user}</Col></Row>
-                            <Row gutter={8}><Col style={{padding:5}} span={6}>Leader:</Col><Col style={{padding:5}} span={18}>[{this.state.leader_user_name}] <span style={{color:"red"}}>[{this.state.leader_check}]</span></Col></Row>
-                            <Row gutter={8}><Col style={{padding:5}} span={6}>QA:</Col><Col style={{padding:5}} span={18}>[{this.state.qa_user_name}] <span style={{color:"red"}}>[{this.state.qa_check}]</span></Col></Row>
-                            <Row gutter={8}><Col style={{padding:5}} span={6}>审核DBA:</Col><Col style={{padding:5}} span={18}>[{this.state.dba_check_user_name}] <span style={{color:"red"}}>[{this.state.dba_check}]</span></Col></Row>
-                            <Row gutter={8}><Col style={{padding:5}} span={6}>执行DBA:</Col><Col style={{padding:5}} span={18}>[{this.state.dba_execute_user_name}] <span style={{color:"red"}}>[{this.state.dba_execute}]</span></Col></Row>
+                            <Row gutter={8}>
+                                <Col style={{padding:5}} span={6}>Leader:</Col>
+                                <Col style={{padding:5}} span={18}>
+                                    [{this.state.leader_user_name}]
+                                    {this.state.leader_check==="通过" ? <span style={{color:"#00FF00"}}>[{this.state.leader_check}]</span>:<span  style={{color:"red"}}>[{this.state.leader_check}]</span>}
+                                </Col>
+                            </Row>
+                            <Row gutter={8}>
+                                <Col style={{padding:5}} span={6}>QA:</Col>
+                                <Col style={{padding:5}} span={18}>
+                                    [{this.state.qa_user_name}]
+                                    {this.state.qa_check === "通过" ? <span style={{color:"#00FF00"}}>[{this.state.qa_check}]</span>:<span  style={{color:"red"}}>[{this.state.qa_check}]</span>}
+                                </Col>
+                            </Row>
+                            <Row gutter={8}>
+                                <Col style={{padding:5}} span={6}>审核DBA:</Col>
+                                <Col style={{padding:5}} span={18}>
+                                    [{this.state.dba_check_user_name}]
+                                    {this.state.dba_check === "通过" ? <span style={{color:"#00FF00"}}>[{this.state.dba_check}]</span>:<span  style={{color:"red"}}>[{this.state.dba_check}]</span>}
+                                </Col>
+                            </Row>
+                            <Row gutter={8}>
+                                <Col style={{padding:5}} span={6}>执行DBA:</Col>
+                                <Col style={{padding:5}} span={18}>
+                                    [{this.state.dba_execute_user_name}]
+                                    {this.state.dba_execute === "已执行" ? <span style={{color:"#00FF00"}}>[{this.state.dba_execute}]</span>:<span  style={{color:"red"}}>[{this.state.dba_execute}]</span>}
+                                </Col>
+                            </Row>
                         </Col>
                     </Row>
                     <br/>
