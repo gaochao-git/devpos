@@ -67,11 +67,11 @@ def process_execute_results(results):
 def main():
     try:
         #获取工单详情
-        sql_select = "select master_ip,master_port, submit_sql_file_path ,inception_osc_config from sql_execute where submit_sql_uuid='{}'".format(submit_sql_uuid)
+        sql_select = "select a.master_ip,a.master_port, b.inception_osc_config from sql_execute a inner join sql_execute_split b on a.submit_sql_uuid =b.submit_sql_uuid where split_sql_file_path='{}'".format(split_sql_file_path)
         cursor.execute("%s" % sql_select)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        sql_file_path = data[0]["submit_sql_file_path"]
+        # sql_file_path = data[0]["submit_sql_file_path"]
         inception_osc_config = data[0]["inception_osc_config"]
         master_ip = data[0]["master_ip"]
         master_port = data[0]["master_port"]

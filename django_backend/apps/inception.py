@@ -395,14 +395,35 @@ def pass_submit_sql_by_uuid_func(request):
 
 # 页面查看inception变量配置
 def get_inception_variable_config_info_func(request):
+    to_str = str(request.body, encoding="utf-8")
+    request_body = json.loads(to_str)
+    split_sql_file_path = request_body['params']['split_sql_file_path']
     status = ""
     message = ""
     sql = "select variable_name name,variable_value value,variable_description,editable from inception_variable_config"
+    sql_split_osc_config="select inception_osc_config from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
     cursor = connection.cursor()
     try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+        cursor.execute("%s" % sql_split_osc_config)
+        sql_split_osc_config_row = cursor.fetchall()
+        if sql_split_osc_config_row[0][0] == "" or sql_split_osc_config_row[0][0]=="{}":
+            cursor.execute("%s" % sql)
+            rows = cursor.fetchall()
+            new_data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+        else:
+            cursor.execute("%s" % sql)
+            rows = cursor.fetchall()
+            data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+            new_data = []
+            for i in sql_split_osc_config_row:
+                osc_config_variable_dict = json.loads(i[0])
+                print(osc_config_variable_dict)
+                for j in data:
+                    if j["name"] in osc_config_variable_dict:
+                        j["value"] = osc_config_variable_dict[j["name"]]
+                        new_data.append(j)
+                    else:
+                        new_data.append(j)
         status = "ok"
         message = "ok"
     except Exception as e:
@@ -412,19 +433,21 @@ def get_inception_variable_config_info_func(request):
     finally:
         cursor.close()
         connection.close()
-    content = {'status': status, 'message': message,'data': data}
+    content = {'status': status, 'message': message,'data': new_data}
     print(content)
     return HttpResponse(json.dumps(content,default=str), content_type='application/json')
+
 
 # 页面修改inception变量配置
 def update_inception_variable_func(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
+    split_sql_file_path = request_body['params']['split_sql_file_path']
     new_config = request_body["params"]["new_config_json"]
     request_body_json = json.dumps(new_config)
     status = ""
     message = ""
-    sql = "update sql_execute set inception_osc_config='{}'".format(request_body_json)
+    sql = "update sql_execute_split set inception_osc_config='{}' where split_sql_file_path='{}'".format(request_body_json,split_sql_file_path)
     cursor = connection.cursor()
     try:
         cursor.execute("%s" % sql)
@@ -441,6 +464,8 @@ def update_inception_variable_func(request):
     content = {'status': status, 'message': message}
     print(content)
     return HttpResponse(json.dumps(content,default=str), content_type='application/json')
+
+
 # 执行SQL并将执行结果插入表中,django http请求超过30s收不到请求就会断开,inception执行SQL需要异步来处理
 def execute_sql_func(cursor,submit_sql_uuid, target_db_ip, target_db_port, execute_sql):
     sql = """/*--user=wthong;--password=fffjjj;--host={};--execute=1;--port={};*/\

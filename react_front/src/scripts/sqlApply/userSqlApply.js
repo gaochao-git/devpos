@@ -68,7 +68,7 @@ export default class UserSqlApply extends Component {
         console.log(this.props.match.params["submit_sql_uuid"]);
         let submit_sql_uuid = this.props.match.params["submit_sql_uuid"];
         this.GetSqlApplyByUuid(submit_sql_uuid)
-        this.GetInceptionVariableConfig();
+        // this.GetInceptionVariableConfig();
         this.GetSqlCheckResultsByUuid(submit_sql_uuid);
     };
     //获取提交SQL的详细信息
@@ -210,9 +210,19 @@ export default class UserSqlApply extends Component {
 
 
     //inception变量配置Modal显示
-    ShowInceptionVariableConfigModal = (e) => {
+    async ShowInceptionVariableConfigModal(split_sql_file_path) {
+        let params = {
+            split_sql_file_path:split_sql_file_path
+        };
+        let res = await axios.post(`${backendServerApiRoot}/get_inception_variable_config_info/`,{params});
+        console.log(res.data);
+        this.setState({
+            data: res.data.data,
+        });
+        this.cacheData = this.state.data.map(item => ({ ...item }))
         this.setState({
             InceptionVariableConfigModalVisible: true,
+            split_sql_file_path:split_sql_file_path
         });
     }
     //拆分SQL预览
@@ -343,6 +353,7 @@ export default class UserSqlApply extends Component {
         e.target.checked ? console.log("忽略inception错误继续执行选择框") : console.log("不忽略inception错误继续执行选择框")
         e.target.checked ? this.setState({inception_execute_ignore_error:1}) : this.setState({inception_execute_ignore_error:0})
     }
+    //获取inception变量配置
     async GetInceptionVariableConfig() {
         let res = await axios.get(`${backendServerApiRoot}/get_inception_variable_config_info/`);
         console.log(res.data);
@@ -353,6 +364,7 @@ export default class UserSqlApply extends Component {
     }
     async handleUpdateInceptionVariable() {
         let params = {
+            split_sql_file_path: this.state.split_sql_file_path,
             new_config_json: this.state.newConfig,
         };
         axios.post(`${backendServerApiRoot}/update_inception_variable/`,{params}).then(
@@ -620,7 +632,7 @@ export default class UserSqlApply extends Component {
                         />
                         <Column title="OSC配置"
                             dataIndex="inception_osc_config"
-                            render = {() => this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && this.state.execute_status === '未执行' ? <button className="link-button" onClick={()=>{this.ShowInceptionVariableConfigModal()}}>OSC配置</button>: null}
+                            render = {(text, row) => this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && this.state.execute_status !== '执行中' ? <button className="link-button" onClick={()=>{this.ShowInceptionVariableConfigModal(row.split_sql_file_path)}}>OSC配置</button>: null}
                         />
                         <Column title="执行SQL"
                             render={(text, row) => {
