@@ -10,6 +10,8 @@ import UserSqlApply from './scripts/sqlApply/userSqlApply'
 import publicManage from "./scripts/publicUserManage/pubicUserPrivilegeManage"
 import privilegesApply from "./scripts/privilegesApply/userGrant";
 import OrderInformation from './scripts/privilegesApply/orderInformation'
+import commonUser from "./scripts/commonUser/commonUserCharge";
+import Cloud from "./scripts/Cloud/CloudInstance";
 
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
@@ -35,7 +37,9 @@ class App extends Component {
                              <Sider width={200} style={{ background: '#fff' }}>
                                 <Menu mode="inline" defaultSelectedKeys={['1']} defaultOpenKeys={['sub1']} style={{ height: '100%' }}>
                                      <SubMenu key="sub1" title={<span><Icon type="cloud-server" />server</span>}>
-                                        <Menu.Item key="1">云主机</Menu.Item>
+                                        <Menu.Item key="1">
+                                            <Link to="/Cloud">云主机</Link>
+                                        </Menu.Item>
                                         <Menu.Item key="2">物理机</Menu.Item>
                                      </SubMenu>
                                      <SubMenu key="sub2" title={<span><Icon type="database" />MySQL</span>}>
@@ -78,7 +82,7 @@ class App extends Component {
                                      </SubMenu>
                                      <SubMenu key="sub7" title={<span><Icon type="robot" />自助服务</span>}>
                                        <Menu.Item key="1">
-                                           <Link to="/publicManage">公共账号管理</Link>
+                                           <Link to="/commonUser">公共账号管理</Link>
                                        </Menu.Item>
                                        <Menu.Item key="2">备份</Menu.Item>
                                        <Menu.Item key="3">归档</Menu.Item>
@@ -86,12 +90,14 @@ class App extends Component {
                                 </Menu>
                              </Sider>
                              <Content>
+                                 <Route exact path="/Cloud" component={Cloud} />
                                  <Route exact path="/mysqlCluster" component={mysqlCluster} />
                                  <Route exact path="/publicManage" component={publicManage} />
                                  <Route exact path="/checkSummitSql" component={UserSqlCheckSubmit} />
                                  <Route exact path="/viewApplySqlByUuid/:submit_sql_uuid" component={UserSqlApply} />
                                  <Route exact path="/privilegesApply" component={privilegesApply} />
                                  <Route exact path="/viewPrivilegeInfoByUuid/:order_uuid" component={OrderInformation} />
+                                 <Route exact path="/commonUser" component={commonUser} />
                              </Content>
                          </Layout>
                              <Footer >Footer</Footer>
