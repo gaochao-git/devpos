@@ -105,11 +105,11 @@ WSGI_APPLICATION = 'django_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': '10.90.171.31',
-        'PORT': '3309',
-        'USER': 'wth',
-        'PASSWORD': 'YLAZ6IQw5NGSmjyh',
-        'NAME': 'test',
+        'HOST': '39.97.247.142',
+        'PORT': '3306',
+        'USER': 'wthong',
+        'PASSWORD': 'fffjjj',
+        'NAME': 'devops',
         'cursorclass':pymysql.cursors.DictCursor,
     }
 }
