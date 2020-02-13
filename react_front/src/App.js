@@ -8,8 +8,12 @@ import mysqlCluster from './scripts/mysqlCluster/cluster'
 import UserSqlCheckSubmit from './scripts/sqlApply/userSqlCheckSubmit'
 import UserSqlApply from './scripts/sqlApply/userSqlApply'
 import publicManage from "./scripts/publicUserManage/pubicUserPrivilegeManage"
+import privilegesApply from "./scripts/privilegesApply/userGrant";
+import OrderInformation from './scripts/privilegesApply/orderInformation'
+
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
+
 
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
@@ -60,7 +64,9 @@ class App extends Component {
                                        <Menu.Item key="1">
                                            <Link to="/checkSummitSql">SQL审核</Link>
                                        </Menu.Item>
-                                       <Menu.Item key="2">权限申请</Menu.Item>
+                                       <Menu.Item key="2">
+                                           <Link to="/privilegesApply">权限申请</Link>
+                                       </Menu.Item>
                                      </SubMenu>
                                      <SubMenu key="sub5" title={<span><Icon type="code" />控制台</span>}>
                                        <Menu.Item key="1">MySQL</Menu.Item>
@@ -84,6 +90,8 @@ class App extends Component {
                                  <Route exact path="/publicManage" component={publicManage} />
                                  <Route exact path="/checkSummitSql" component={UserSqlCheckSubmit} />
                                  <Route exact path="/viewApplySqlByUuid/:submit_sql_uuid" component={UserSqlApply} />
+                                 <Route exact path="/privilegesApply" component={privilegesApply} />
+                                 <Route exact path="/viewPrivilegeInfoByUuid/:order_uuid" component={OrderInformation} />
                              </Content>
                          </Layout>
                              <Footer >Footer</Footer>
