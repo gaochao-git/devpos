@@ -161,7 +161,7 @@ def main():
 
 
 if __name__ == "__main__":
-    connection = pymysql.connect(host='10.90.171.31', port=3309, user='wth', password='YLAZ6IQw5NGSmjyh',database="test", charset="utf8")
+    connection = pymysql.connect(host='39.97.247.142', port=3306, user='wthong', password='fffjjj',database='devops', charset='utf8')
     cursor = connection.cursor()
     submit_sql_uuid = sys.argv[1]
     inception_backup = sys.argv[2]

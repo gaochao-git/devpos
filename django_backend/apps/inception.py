@@ -527,7 +527,7 @@ def execute_submit_sql_by_uuid_func(request):
     print(inception_backup,inception_check_ignore_warning,inception_execute_ignore_error)
     cursor = connection.cursor()
     try:
-        cmd = "/anaconda2/envs/py35/bin/python3.5 /Users/gaochao/gaochao-git/gaochao_repo/devops/django_backend/scripts/inception_execute.py '{}' {} {} {} '{}' &".format(submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path)
+        cmd = "python3.5 {}/scripts/inception_execute.py '{}' {} {} {} '{}' &".format(os.getcwd(), submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path)
         print("调用脚本执行SQL:%s" % cmd)
         ret = os.system(cmd)
         print("调用脚本执行SQL返回值(非0表示调用失败):%s" % ret)
