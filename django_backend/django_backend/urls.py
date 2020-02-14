@@ -1,12 +1,12 @@
 from django.contrib import admin
 from django.urls import path
-from apps import views
-from apps import inception
+from apps.cluster import cluster
+from apps.sql import inception
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('get_cluster_info/', views.get_cluster_info_func),
-    path('get_search_cluster_info/', views.get_search_cluster_info_func),
+    path('get_cluster_info/', cluster.get_cluster_info_func),
+    path('get_search_cluster_info/', cluster.get_search_cluster_info_func),
     path('get_submit_sql_info/', inception.get_submit_sql_info_func),
     path('get_apply_sql_by_uuid/', inception.get_apply_sql_by_uuid_func),
     path('get_submit_sql_by_uuid/', inception.get_submit_sql_by_uuid_func),
