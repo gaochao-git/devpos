@@ -179,6 +179,7 @@ def submit_sql_func(request):
         check_sql_results = request_body['params']['check_sql_results']
         submit_sql_execute_type = request_body['params']['submit_sql_execute_type']
         comment_info = request_body['params']['comment_info']
+        login_user = request_body['params']['login_user']
         sql = """insert into sql_execute(submit_sql_user,
                                          title,
                                          master_ip,
@@ -194,8 +195,8 @@ def submit_sql_func(request):
                                          dba_execute_user_name,
                                          comment_info,
                                          submit_sql_uuid) 
-                 values('gaochao','{}','{}',{},'{}','{}',1,'{}',1,'gaochao',1,'{}','gaochao','{}','{}')
-        """.format(sql_title, db_ip, db_port, file_path, leader, qa, submit_sql_execute_type, comment_info, uuid_str)
+                 values('{}','{}','{}',{},'{}','{}',1,'{}',1,'gaochao',1,'{}','gaochao','{}','{}')
+        """.format(login_user,sql_title, db_ip, db_port, file_path, leader, qa, submit_sql_execute_type, comment_info, uuid_str)
         # 提交的SQL写入文件
         with open(upfile,'w') as f:
             f.write(check_sql)

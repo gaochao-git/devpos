@@ -6,6 +6,7 @@ from apps.common import create_common_user
 from apps.common import migrate_common_user
 from apps.privilege import create_private_user
 from apps.server import cloud_instance
+from apps.login import login
 
 
 urlpatterns = [
@@ -37,7 +38,6 @@ urlpatterns = [
     path('privileges_original_info/', create_private_user.privileges_original_info_func),                # 查看用户原始权限信息
     path('check_order/', create_private_user.check_order_func),                                          # 审核工单
     path('execute_order/', create_private_user.execute_order_func),                                      # 执行工单
-
+    path('login/', login.login_func),
 
 ]
-
