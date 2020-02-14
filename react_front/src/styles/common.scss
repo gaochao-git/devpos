@@ -38,11 +38,13 @@
   }
 }
 .sub-title-input {
-  padding: 15px 0px;
+  padding-top: 15px;
+  padding-bottom: 15px;
+  padding-left: 15px;
+  padding-right: 400px;
   background: #f6f6f6;
   display: flex;
   justify-content: space-between;
-  max-width: 400px;
 
   .title-text {
     margin: 0 5px;
