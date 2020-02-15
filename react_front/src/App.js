@@ -17,8 +17,8 @@ import home from "./scripts/home/home"
 import _ from 'lodash';
 // import login, {InvalidCredentialsException} from "./util/Auth"
 import {backendServerApiRoot} from "./scripts/common/util";
-import store from "./store";
-import {setToken} from "./actions";
+import store from "./scripts/login/store";
+import {setToken} from "./scripts/login";
 
 
 const { Header, Footer, Sider, Content } = Layout;
@@ -58,7 +58,7 @@ class App extends Component {
         let params = {
             token: window.localStorage.getItem('token')
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_user_name_by_token/`,{params});
+        let res = await axios.post(`${backendServerApiRoot}/get_login_user_name_by_token/`,{params});
         console.log("SQL预览:",res.data);
         // res.data.message==="验证成功" ? {this.setState({user_name:res.data.data[0]["username"],})}:null
         if (res.data.message==="验证成功"){

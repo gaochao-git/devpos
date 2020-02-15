@@ -5,6 +5,7 @@ from django.db import connection
 import uuid
 from time import gmtime, strftime
 import os
+from apps import utils
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework.views import exception_handler
 from rest_framework_jwt.utils import jwt_decode_handler
@@ -159,6 +160,8 @@ def check_sql_func(request):
 
 # 页面提交SQL工单
 def submit_sql_func(request):
+    token = request.META.get('HTTP_AUTHORIZATION')
+    login_user_name = utils.get_login_user(token)["username"]
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     status = ""
@@ -168,7 +171,7 @@ def submit_sql_func(request):
     if not os.path.isdir(upload_path):
         os.makedirs(upload_path)
     uuid_str = str(uuid.uuid4())
-    file_name = "%s_%s.sql" % ('gaochao', uuid_str)
+    file_name = "%s_%s.sql" % (login_user_name, uuid_str)
     file_path = now_date + '/' + file_name
     upfile = os.path.join(upload_path, file_name)
     cursor = connection.cursor()
@@ -182,7 +185,6 @@ def submit_sql_func(request):
         check_sql_results = request_body['params']['check_sql_results']
         submit_sql_execute_type = request_body['params']['submit_sql_execute_type']
         comment_info = request_body['params']['comment_info']
-        login_user = request_body['params']['login_user']
         sql = """insert into sql_execute(submit_sql_user,
                                          title,
                                          master_ip,
@@ -199,7 +201,7 @@ def submit_sql_func(request):
                                          comment_info,
                                          submit_sql_uuid) 
                  values('{}','{}','{}',{},'{}','{}',1,'{}',1,'gaochao',1,'{}','gaochao','{}','{}')
-        """.format(login_user,sql_title, db_ip, db_port, file_path, leader, qa, submit_sql_execute_type, comment_info, uuid_str)
+        """.format(login_user_name,sql_title, db_ip, db_port, file_path, leader, qa, submit_sql_execute_type, comment_info, uuid_str)
         # 提交的SQL写入文件
         with open(upfile,'w') as f:
             f.write(check_sql)
@@ -250,13 +252,6 @@ def submit_sql_func(request):
 
 # 页面预览指定工单提交的SQL
 def get_submit_sql_by_uuid_func(request):
-    token1 = request.META.get('HTTP_AUTHORIZATION')
-    print(token1)
-    auth = get_authorization_header(request)
-    token_user = jwt_decode_handler(token1)
-    print(token_user)
-    #print(request.META.items())
-    print(111)
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     status = ""

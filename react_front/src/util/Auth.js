@@ -1,7 +1,7 @@
 import axios from 'axios';
 import _ from 'lodash';
-import store from '../store';
-import { setToken } from '../actions';
+import store from '../scripts/login/store';
+import { setToken } from '../scripts/login';
 import { URL, LOGIN } from '../config/Api';
 
 export function InvalidCredentialsException(message) {
