@@ -2,6 +2,7 @@ import React from 'react';
 import {Table} from 'antd';
 import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
+const server = 'http://192.168.0.104:8000';
 export default class ExecuteSqlResults extends React.Component {
     constructor(props) {
         super(props);
@@ -16,7 +17,7 @@ export default class ExecuteSqlResults extends React.Component {
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_execute_submit_sql_results_by_uuid/`,{params},{withCredentials: true});
+        let res = await axios.post(`${server}/get_execute_submit_sql_results_by_uuid/`,{params},{withCredentials: true});
         this.setState({
             execute_sql_results: res.data.data,
             ViewExecuteSubmitSqlModalVisible:true,

@@ -11,6 +11,7 @@ const { TextArea } = Input
 const { TabPane } = Tabs;
 const Column = Table.Column;
 const FormItem = Form.Item;
+const server = 'http://192.168.0.104:8000';
 // function callback(key) {
 //   console.log(key);
 // }
@@ -39,7 +40,7 @@ class UserSqlCheckSubmit extends Component {
     }
     //获取已经提交的SQL列表
     async GetSubmitSqlInfo() {
-        let res = await axios.get(`${backendServerApiRoot}/get_submit_sql_info/`,);
+        let res = await axios.get(`${server}/get_submit_sql_info/`,);
         console.log(res.data);
         this.setState({
             submit_sql_info: res.data.data,
@@ -58,7 +59,7 @@ class UserSqlCheckSubmit extends Component {
         });
         console.log(params);
         // let res = await axios.post(`${backendServerApiRoot}/check_sql/`,{params});
-        await axios.post(`${backendServerApiRoot}/check_sql/`,{params}).then(
+        await axios.post(`${server}/check_sql/`,{params}).then(
             res => {res.data.status==="ok"?
                     this.setState({
                         check_sql_results: res.data.data,
@@ -100,7 +101,7 @@ class UserSqlCheckSubmit extends Component {
             login_user:"小黑"
         };
         console.log(params)
-        let res = await axios.post(`${backendServerApiRoot}/submit_sql/`,{params});
+        let res = await axios.post(`${server}/submit_sql/`,{params});
         if( res.data.status === 'ok')
             window.location.reload();
         else

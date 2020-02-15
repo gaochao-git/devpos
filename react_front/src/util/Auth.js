@@ -11,7 +11,7 @@ export function InvalidCredentialsException(message) {
 
 export function login(username, password) {
     console.log(99999)
-    return axios.post("http://localhost:8000" + "/auth/", {
+    return axios.post("http://92.168.0.104:8000" + "/auth/", {
         admin,
         fffjjj
     })

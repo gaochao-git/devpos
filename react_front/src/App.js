@@ -19,13 +19,12 @@ import _ from 'lodash';
 import {backendServerApiRoot} from "./scripts/common/util";
 import store from "./scripts/login/store";
 import {setToken} from "./scripts/login";
-
+const server = 'http://192.168.0.104:8000';
 
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
 const FormItem = Form.Item;
 const { Option } = Select;
-
 export function InvalidCredentialsException(message) {
     this.message = message;
     this.name = 'InvalidCredentialsException';
@@ -58,7 +57,7 @@ class App extends Component {
         let params = {
             token: window.localStorage.getItem('token')
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_login_user_name_by_token/`,{params});
+        let res = await axios.post(`${server}/get_login_user_name_by_token/`,{params});
         console.log("SQL预览:",res.data);
         // res.data.message==="验证成功" ? {this.setState({user_name:res.data.data[0]["username"],})}:null
         if (res.data.message==="验证成功"){
@@ -192,7 +191,8 @@ const Home = Form.create()(
             });
         };
         async login(username, password) {
-            return axios.post(`${backendServerApiRoot}/auth/`, {
+            console.log("kkkkkkkkkk")
+            return axios.post(`${server}/auth/`, {
                 username,
                 password
             })

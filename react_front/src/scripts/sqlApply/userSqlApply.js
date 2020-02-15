@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import axios from "axios";
 import {backendServerApiRoot,setCookie,getCookie,clearCookie} from "../common/util";
 
-
+const server = 'http://192.168.0.104:8000';
 const Column = Table.Column;
 const TextArea = Input.TextArea;
 const EditableCell = ({ editable, value, onChange }) => (
@@ -84,8 +84,8 @@ export default class UserSqlApply extends Component {
              console.log("SQL执行中，定时id为:",this.timerId);
              console.log("SQL执行状态:",this.state.execute_status);
         }
-        let res = await axios.post(`${backendServerApiRoot}/get_apply_sql_by_uuid/`,{params});
-        let res_split_sql = await axios.post(`${backendServerApiRoot}/get_split_sql_by_uuid/`,{params});
+        let res = await axios.post(`${server}/get_apply_sql_by_uuid/`,{params});
+        let res_split_sql = await axios.post(`${server}/get_split_sql_by_uuid/`,{params});
         this.setState({
             submit_sql_title: res.data.data[0]["title"],
             master_ip: res.data.data[0]["master_ip"],
@@ -113,7 +113,7 @@ export default class UserSqlApply extends Component {
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_submit_sql_by_uuid/`,{params});
+        let res = await axios.post(`${server}/get_submit_sql_by_uuid/`,{params});
         console.log(res.data.data);
         console.log(window.localStorage.getItem('token'))
         console.log(1111)
@@ -136,7 +136,7 @@ export default class UserSqlApply extends Component {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
         //axios.defaults.headers.common['Authorization'] = token ;
-        let res = await axios.post(`${backendServerApiRoot}/get_check_sql_results_by_uuid/`,{params});
+        let res = await axios.post(`${server}/get_check_sql_results_by_uuid/`,{params});
         console.log(this.props.match.params["submit_sql_uuid"])
         console.log(res.data.data)
         let inception_error_level_rray=[];
@@ -160,7 +160,7 @@ export default class UserSqlApply extends Component {
             apply_results:value,
         };
         console.log(value)
-        let res = await axios.post(`${backendServerApiRoot}/pass_submit_sql_by_uuid/`,{params});
+        let res = await axios.post(`${server}/pass_submit_sql_by_uuid/`,{params});
         console.log(res.data.data);
         message.success(res.data.message);
         this.setState({
@@ -201,7 +201,7 @@ export default class UserSqlApply extends Component {
                 this.setState({
                     execute_sql_flag: "工单已提交正在处理，不允许多次提交"
                 });
-                await axios.post(`${backendServerApiRoot}/execute_submit_sql_by_uuid/`, {params}).then(
+                await axios.post(`${server}/execute_submit_sql_by_uuid/`, {params}).then(
                     res => {
                         res.data.status === "ok" ? this.setInterVal() : message.error(res.data.message)
                     }
@@ -218,7 +218,7 @@ export default class UserSqlApply extends Component {
         let params = {
             split_sql_file_path:split_sql_file_path
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_inception_variable_config_info/`,{params});
+        let res = await axios.post(`${server}/get_inception_variable_config_info/`,{params});
         console.log(res.data);
         this.setState({
             data: res.data.data,
@@ -234,7 +234,7 @@ export default class UserSqlApply extends Component {
         let params = {
             split_sql_file_path:split_sql_file_path
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_submit_split_sql_by_file_path/`,{params});
+        let res = await axios.post(`${server}/get_submit_split_sql_by_file_path/`,{params});
         this.setState({
             SplitSQLModalVisible: true,
             submit_split_sql:res.data.data
@@ -248,7 +248,7 @@ export default class UserSqlApply extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_execute_submit_sql_results_by_uuid/`,{params});
+        let res = await axios.post(`${server}/get_execute_submit_sql_results_by_uuid/`,{params});
         this.setState({
             execute_sql_results: res.data.data,
             ViewExecuteSubmitSqlModalVisible:true,
@@ -318,7 +318,7 @@ export default class UserSqlApply extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,{params});
+        let res = await axios.post(`${server}/get_execute_process_by_uuid/`,{params});
         console.log(res)
         this.setState({
             execute_sql_process_results: res.data.data,
@@ -332,7 +332,7 @@ export default class UserSqlApply extends Component {
             split_sql_file_path:this.state.split_sql_file_path,
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,{params});
+        let res = await axios.post(`${server}/get_execute_process_by_uuid/`,{params});
         console.log(res)
         this.setState({
             execute_sql_process_results: res.data.data
@@ -359,7 +359,7 @@ export default class UserSqlApply extends Component {
     }
     //获取inception变量配置
     async GetInceptionVariableConfig() {
-        let res = await axios.get(`${backendServerApiRoot}/get_inception_variable_config_info/`);
+        let res = await axios.get(`${server}/get_inception_variable_config_info/`);
         console.log(res.data);
         this.setState({
             data: res.data.data,
@@ -371,7 +371,7 @@ export default class UserSqlApply extends Component {
             split_sql_file_path: this.state.split_sql_file_path,
             new_config_json: this.state.newConfig,
         };
-        axios.post(`${backendServerApiRoot}/update_inception_variable/`,{params}).then(
+        axios.post(`${server}/update_inception_variable/`,{params}).then(
            res => {res.data.status==="ok" ? message.success(res.data.message) : message.error(res.data.message)}
         ).catch(err => {message.error(err.message)})
         this.setState({
