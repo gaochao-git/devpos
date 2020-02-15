@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 
 import os
 import pymysql
+import datetime
 pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -34,6 +35,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'apps',
     'corsheaders',  #解决跨域失败
+    'rest_framework',
+    'rest_framework.authtoken'
 ]
 
 
@@ -134,6 +137,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated', #必须有
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+    )
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/

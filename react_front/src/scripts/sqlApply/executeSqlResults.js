@@ -16,7 +16,7 @@ export default class ExecuteSqlResults extends React.Component {
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_execute_submit_sql_results_by_uuid/`,{params});
+        let res = await axios.post(`${backendServerApiRoot}/get_execute_submit_sql_results_by_uuid/`,{params},{withCredentials: true});
         this.setState({
             execute_sql_results: res.data.data,
             ViewExecuteSubmitSqlModalVisible:true,

@@ -30,7 +30,8 @@ class UserSqlCheckSubmit extends Component {
             showDataVisible: false,
             submit_sql_info:[],
             submit_sql_button_disabled:"hide",
-            submit_sql_flag:"未提交"
+            submit_sql_flag:"未提交",
+            login_user:"",
         }
     }
     componentDidMount() {
@@ -38,11 +39,11 @@ class UserSqlCheckSubmit extends Component {
     }
     //获取已经提交的SQL列表
     async GetSubmitSqlInfo() {
-        let res = await axios.get(`${backendServerApiRoot}/get_submit_sql_info/`);
+        let res = await axios.get(`${backendServerApiRoot}/get_submit_sql_info/`,);
         console.log(res.data);
         this.setState({
             submit_sql_info: res.data.data,
-        })
+        });
     }
     //检测SQL
     async handleSqlCheck() {
@@ -96,6 +97,7 @@ class UserSqlCheckSubmit extends Component {
             check_sql_results: value["check_sql_results"],
             submit_sql_execute_type: value["执行类型"],
             comment_info: value["INFO"],
+            login_user:"小黑"
         };
         console.log(params)
         let res = await axios.post(`${backendServerApiRoot}/submit_sql/`,{params});
