@@ -7,6 +7,15 @@ from apps.common import migrate_common_user
 from apps.privilege import create_private_user
 from apps.server import cloud_instance
 from apps.login import login
+from rest_framework_jwt.views import obtain_jwt_token
+import datetime
+from rest_framework.authtoken import views as drf_views
+from django.conf.urls import url
+
+JWT_AUTH = {
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
+    'JWT_AUTH_HEADER_PREFIX': 'JWT',
+}
 
 
 urlpatterns = [
@@ -38,6 +47,8 @@ urlpatterns = [
     path('privileges_original_info/', create_private_user.privileges_original_info_func),                # 查看用户原始权限信息
     path('check_order/', create_private_user.check_order_func),                                          # 审核工单
     path('execute_order/', create_private_user.execute_order_func),                                      # 执行工单
-    path('login/', login.login_func),
-
+    path('login/', drf_views.obtain_auth_token),
+    path('auth/', drf_views.obtain_auth_token),
+    path('get_user_name_by_token/', login.get_user_name_by_token_func),
 ]
+

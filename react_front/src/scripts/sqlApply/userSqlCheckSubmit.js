@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import { backendServerApiRoot } from "../common/util"
-import {setCookie,getCookie,clearCookie} from "../common/util"
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { TextArea } = Input
@@ -40,13 +39,11 @@ class UserSqlCheckSubmit extends Component {
     }
     //获取已经提交的SQL列表
     async GetSubmitSqlInfo() {
-        let res = await axios.get(`${backendServerApiRoot}/get_submit_sql_info/`);
+        let res = await axios.get(`${backendServerApiRoot}/get_submit_sql_info/`,);
         console.log(res.data);
         this.setState({
             submit_sql_info: res.data.data,
-            login_user:getCookie('userlogin_username')
         });
-        console.log(getCookie('userlogin_username'))
     }
     //检测SQL
     async handleSqlCheck() {
@@ -100,7 +97,7 @@ class UserSqlCheckSubmit extends Component {
             check_sql_results: value["check_sql_results"],
             submit_sql_execute_type: value["执行类型"],
             comment_info: value["INFO"],
-            login_user:this.state.login_user
+            login_user:"小黑"
         };
         console.log(params)
         let res = await axios.post(`${backendServerApiRoot}/submit_sql/`,{params});

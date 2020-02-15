@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm, } from 'antd';
 import { Link } from 'react-router-dom';
 import axios from "axios";
-import {backendServerApiRoot} from "../common/util";
+import {backendServerApiRoot,setCookie,getCookie,clearCookie} from "../common/util";
 
 
 const Column = Table.Column;
@@ -115,6 +115,8 @@ export default class UserSqlApply extends Component {
         };
         let res = await axios.post(`${backendServerApiRoot}/get_submit_sql_by_uuid/`,{params});
         console.log(res.data.data);
+        console.log(window.localStorage.getItem('token'))
+        console.log(1111)
         this.setState({
             showSubmitSqlViewVisible: true,
             submit_sql:res.data.data,
@@ -128,10 +130,12 @@ export default class UserSqlApply extends Component {
     }
     //查看SQL审核结果
     async GetSqlCheckResultsByUuid(uuid) {
+        let token = window.localStorage.getItem('token')
         console.log(44444)
         let params = {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
+        //axios.defaults.headers.common['Authorization'] = token ;
         let res = await axios.post(`${backendServerApiRoot}/get_check_sql_results_by_uuid/`,{params});
         console.log(this.props.match.params["submit_sql_uuid"])
         console.log(res.data.data)

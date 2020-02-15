@@ -5,7 +5,10 @@ from django.db import connection
 import uuid
 from time import gmtime, strftime
 import os
-
+from rest_framework_jwt.authentication import JSONWebTokenAuthentication
+from rest_framework.views import exception_handler
+from rest_framework_jwt.utils import jwt_decode_handler
+from rest_framework_jwt.authentication import get_authorization_header
 # 页面获取所有工单列表
 def get_submit_sql_info_func(request):
     status = ""
@@ -247,6 +250,13 @@ def submit_sql_func(request):
 
 # 页面预览指定工单提交的SQL
 def get_submit_sql_by_uuid_func(request):
+    token1 = request.META.get('HTTP_AUTHORIZATION')
+    print(token1)
+    auth = get_authorization_header(request)
+    token_user = jwt_decode_handler(token1)
+    print(token_user)
+    #print(request.META.items())
+    print(111)
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     status = ""

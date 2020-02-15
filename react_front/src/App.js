@@ -14,61 +14,77 @@ import OrderInformation from './scripts/privilegesApply/orderInformation'
 import commonUser from "./scripts/commonUser/commonUserCharge";
 import Cloud from "./scripts/Cloud/CloudInstance";
 import home from "./scripts/home/home"
+import _ from 'lodash';
+// import login, {InvalidCredentialsException} from "./util/Auth"
 import {backendServerApiRoot} from "./scripts/common/util";
+import store from "./store";
+import {setToken} from "./actions";
+
 
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
 const FormItem = Form.Item;
 const { Option } = Select;
 
-// 设置cookie
-function setCookie(name, value, seconds) {
-    seconds = seconds || 0;   //seconds有值就直接赋值，没有为0，这个根php不一样。
-    var expires = "";
-    if (seconds != 0 ) {      //设置cookie生存时间
-        var date = new Date();
-        date.setTime(date.getTime()+(seconds*1000));
-        expires = "; expires="+date.toGMTString();
-    }
-    document.cookie = name+"="+escape(value)+expires+"; path=/";   //转码并赋值
+export function InvalidCredentialsException(message) {
+    this.message = message;
+    this.name = 'InvalidCredentialsException';
 }
-// 清除cookie
-function clearCookie(name) {
-    setCookie(name, "", -1);
+
+export function LoginOut(){
+    console.log("退出登陆");
+    window.localStorage.clear()
+    window.location.reload()
 }
-// 取得cookie
-function getCookie(name) {
-    var nameEQ = name + '='
-    var ca = document.cookie.split(';') // 把cookie分割成组
-    for (var i = 0; i < ca.length; i++) {
-        var c = ca[i] // 取得字符串
-        while (c.charAt(0) == ' ') { // 判断一下字符串有没有前导空格
-            c = c.substring(1, c.length) // 有的话，从第二位开始取
-        }
-        if (c.indexOf(nameEQ) == 0) { // 如果含有我们要的name
-            return unescape(c.substring(nameEQ.length, c.length)) // 解码并截取我们要值
-        }
-    }
-    return false
-}
+
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
+axios.defaults.headers.common['Authorization'] = window.localStorage.getItem('token') ;
+
 
 class App extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            login:"false",
-            name:"gaochao"
+            user_name:"帝君"
         }
     }
+    componentDidMount() {
+        console.log("Token:",window.localStorage.getItem('token'))
+        this.GetUserName()
+    }
+    //预览SQL
+    async GetUserName() {
+        let params = {
+            token: window.localStorage.getItem('token')
+        };
+        let res = await axios.post(`${backendServerApiRoot}/get_user_name_by_token/`,{params});
+        console.log("SQL预览:",res.data);
+        // res.data.message==="验证成功" ? {this.setState({user_name:res.data.data[0]["username"],})}:null
+        if (res.data.message==="验证成功"){
+            this.setState({user_name:res.data.data[0]["username"]})
+        }else{
+            console.log("未登陆")
+        }
+    };
     render() {
-        if (getCookie('userlogin_username')) {
+        if (window.localStorage.getItem('token')) {
             return(
                 <div className="App">
                     <HashRouter>
                         <Layout>
-                            <Header>Header</Header>
+                            <Header className="header">
+                                <div onClick={() => window.location.href = `/page`}>DBA</div>
+                                <div>
+                                    {this.state.user_name}
+                                    {
+                                        window.localStorage.getItem('token') ?
+                                        <Button type="primary" style={{marginLeft: 5}} onClick={LoginOut}>注销</Button>
+                                        :<Button type="primary" onClick={LoginOut}>登录</Button>
+                                    }
+
+                                </div>
+                            </Header>
                             <Layout>
                                 <Sider width={200} style={{ background: '#fff' }}>
                                     <Menu mode="inline" defaultSelectedKeys={['1']} defaultOpenKeys={['sub1']} style={{ height: '100%' }}>
@@ -149,8 +165,8 @@ class App extends Component {
             return (
                 <div>
                     <Layout className="layout">
-                        <Header style={{background:"#00d9ff"}}>
-                            <span>头部</span>
+                        <Header className="header">
+                            <span>devops</span>
                         </Header>
                         <Content style={{ margin: '0 auto',padding:'50px 50px' }}>
                             <Home></Home>
@@ -167,34 +183,32 @@ const Home = Form.create()(
         constructor(props) {
             super(props);
         }
-        async handleLoginSubmit(values) {
-            let params = {
-                user_name: values["username"],
-                password: values["password"]
-            };
-            console.log(params)
-            let res = await axios.post(`${backendServerApiRoot}/login/`,{params});
-            if( res.data.status === 'ok'){
-                this.setState({
-                    login:"true"
-                });
-                console.log(this.state.login);
-                console.log(this.state.name);
-                setCookie('userlogin_username',values["username"],36000);
-                console.log(getCookie('userlogin_username'));
-                window.location.reload();
-            }
-
-            else
-                alert(res.data.message);
-        }
         handleSubmit = e => {
             e.preventDefault();
             this.props.form.validateFields((err, values) => {
                 console.log('Received values of form: ', values);
-                this.handleLoginSubmit(values)
+                //this.handleLoginSubmit(values)
+                this.login(values["username"],values["password"]);
             });
         };
+        async login(username, password) {
+            return axios.post("http://localhost:8000" + "/auth/", {
+                username,
+                password
+            })
+                .then(function (response) {
+                    store.dispatch(setToken(response.data.token));
+                    window.localStorage.setItem('token', response.data.token)
+                    window.location.reload()
+                })
+                .catch(function (error) {
+                    // raise different exception if due to invalid credentials
+                    if (_.get(error, 'response.status') === 400) {
+                        throw new InvalidCredentialsException(error);
+                    }
+                    throw error;
+                });
+        }
 
         render() {
             const { editItem, form, visible } = this.props;
