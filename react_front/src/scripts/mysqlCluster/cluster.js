@@ -113,7 +113,12 @@ export default class mysqlCluster extends Component  {
                 </div>
             <div>
             </div>
-                <Table dataSource={this.state.cluster_info} columns={columns} bordered />
+                <Table
+                    dataSource={this.state.cluster_info}
+                    columns={columns}
+                    bordered
+                    size="small"
+                />
             </div>
         )
     }

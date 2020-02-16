@@ -3,7 +3,7 @@ import {Table} from 'antd';
 import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
 const Column = Table.Column;
-const server = 'http://192.168.0.104:8000';
+//const server = 'http://192.168.0.104:8000';
 
 export default class ViewCheckSqlResult extends React.Component {
     constructor(props) {
@@ -20,7 +20,7 @@ export default class ViewCheckSqlResult extends React.Component {
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
-        let res = await axios.post(`${server}/get_check_sql_results_by_uuid/`,{params});
+        let res = await axios.post(`${backendServerApiRoot}/get_check_sql_results_by_uuid/`,{params});
         console.log("SQL审核结果:",res.data.data);
         this.setState({
             view_check_sql_result:res.data.data,

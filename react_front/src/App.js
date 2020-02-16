@@ -1,7 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Layout, Menu, Icon, Table, Button, Input, Select, Col, Modal, Form, Popconfirm, message, Checkbox} from "antd";
-
+import {Layout, Menu, Icon, Button } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import {HashRouter,Route} from 'react-router-dom';
@@ -13,33 +12,21 @@ import privilegesApply from "./scripts/privilegesApply/userGrant";
 import OrderInformation from './scripts/privilegesApply/orderInformation'
 import commonUser from "./scripts/commonUser/commonUserCharge";
 import Cloud from "./scripts/Cloud/CloudInstance";
-import home from "./scripts/home/home"
-import _ from 'lodash';
-// import login, {InvalidCredentialsException} from "./util/Auth"
-import {backendServerApiRoot} from "./scripts/common/util";
-import store from "./scripts/login/store";
-import {setToken} from "./scripts/login";
-const server = 'http://192.168.0.104:8000';
+import Home from "./scripts/login/login"
+import {backendServerApiRoot} from './scripts/common/util'
+//const server = 'http://192.168.0.104:8000';
 
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
-const FormItem = Form.Item;
-const { Option } = Select;
-export function InvalidCredentialsException(message) {
-    this.message = message;
-    this.name = 'InvalidCredentialsException';
-}
-
-export function LoginOut(){
-    console.log("退出登陆");
-    window.localStorage.clear()
-    window.location.reload()
-}
-
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 axios.defaults.headers.common['Authorization'] = window.localStorage.getItem('token') ;
 
+function LoginOut(){
+    console.log("退出登陆");
+    window.localStorage.clear()
+    window.location.reload()
+}
 
 class App extends Component {
     constructor(props) {
@@ -57,9 +44,7 @@ class App extends Component {
         let params = {
             token: window.localStorage.getItem('token')
         };
-        let res = await axios.post(`${server}/get_login_user_name_by_token/`,{params});
-        console.log("SQL预览:",res.data);
-        // res.data.message==="验证成功" ? {this.setState({user_name:res.data.data[0]["username"],})}:null
+        let res = await axios.post(`${backendServerApiRoot}/get_login_user_name_by_token/`,{params});
         if (res.data.message==="验证成功"){
             this.setState({user_name:res.data.data[0]["username"]})
         }else{
@@ -75,13 +60,17 @@ class App extends Component {
                             <Header className="header">
                                 <div onClick={() => window.location.href = `/page`}>DBA</div>
                                 <div>
-                                    {this.state.user_name}
-                                    {
-                                        window.localStorage.getItem('token') ?
-                                        <Button type="primary" style={{marginLeft: 5}} onClick={LoginOut}>注销</Button>
-                                        :<Button type="primary" onClick={LoginOut}>登录</Button>
-                                    }
-
+                                    <span>
+                                        {this.state.user_name}
+                                    </span>
+                                    <Button
+                                        icon="poweroff"
+                                        type="default"
+                                        style={{marginLeft: 5}}
+                                        onClick={LoginOut}
+                                    >
+                                        注销
+                                    </Button>
                                 </div>
                             </Header>
                             <Layout>
@@ -152,10 +141,10 @@ class App extends Component {
                                     <Route exact path="/privilegesApply" component={privilegesApply} />
                                     <Route exact path="/viewPrivilegeInfoByUuid/:order_uuid" component={OrderInformation} />
                                     <Route exact path="/commonUser" component={commonUser} />
-                                    <Route exact path="/home" component={home} />
+                                    <Route exact path="/home" component={Home} />
                                 </Content>
                             </Layout>
-                            <Footer >Footer</Footer>
+                            <Footer style={{ textAlign: 'center' }}>devpos Design ©2020 Created by me</Footer>
                         </Layout>
                     </HashRouter>
                 </div>
@@ -165,7 +154,7 @@ class App extends Component {
                 <div>
                     <Layout className="layout">
                         <Header className="header">
-                            <span>devops</span>
+                            <span>请先登陆</span>
                         </Header>
                         <Content style={{ margin: '0 auto',padding:'50px 50px' }}>
                             <Home></Home>
@@ -177,80 +166,4 @@ class App extends Component {
         }
     }
 }
-const Home = Form.create()(
-    class extends React.Component {
-        constructor(props) {
-            super(props);
-        }
-        handleSubmit = e => {
-            e.preventDefault();
-            this.props.form.validateFields((err, values) => {
-                console.log('Received values of form: ', values);
-                //this.handleLoginSubmit(values)
-                this.login(values["username"],values["password"]);
-            });
-        };
-        async login(username, password) {
-            console.log("kkkkkkkkkk")
-            return axios.post(`${server}/auth/`, {
-                username,
-                password
-            })
-                .then(function (response) {
-                    store.dispatch(setToken(response.data.token));
-                    window.localStorage.setItem('token', response.data.token)
-                    window.location.reload()
-                })
-                .catch(function (error) {
-                    // raise different exception if due to invalid credentials
-                    if (_.get(error, 'response.status') === 400) {
-                        throw new InvalidCredentialsException(error);
-                    }
-                    throw error;
-                });
-        }
-
-        render() {
-            const { editItem, form, visible } = this.props;
-            const { getFieldDecorator } = form;
-            return (
-                <div>
-                    <Form onSubmit={this.handleSubmit} className="login-form">
-                        <Form.Item>
-                            {getFieldDecorator('username', {
-                                rules: [{ required: true, message: 'Please input your username!' }],
-                            })(
-                                <Input
-                                    prefix={<Icon type="user" style={{ color: 'rgba(0,0,0,.25)' }} />}
-                                    placeholder="Username"
-                                />,
-                            )}
-                        </Form.Item>
-                        <Form.Item>
-                            {getFieldDecorator('password', {
-                                rules: [{ required: true, message: 'Please input your Password!' }],
-                            })(
-                                <Input
-                                    prefix={<Icon type="lock" style={{ color: 'rgba(0,0,0,.25)' }} />}
-                                    type="password"
-                                    placeholder="Password"
-                                />,
-                            )}
-                        </Form.Item>
-                        <Form.Item>
-                            <Button
-                                type="primary"
-                                htmlType="submit"
-                                className="login-form-button"
-                            >
-                                Log in
-                            </Button>
-                        </Form.Item>
-                    </Form>
-                </div>
-            )
-        }
-    }
-)
-
 export default App;

@@ -7,4 +7,6 @@ if(hostname === 'localhost') {
   backendHost = 'http://192.168.0.104:8000';
 }
 
-export const backendServerApiRoot = `${backendHost}`;
+//export const backendServerApiRoot = `${backendHost}`;
+
+export const backendServerApiRoot = 'http://192.168.0.104:8000'
