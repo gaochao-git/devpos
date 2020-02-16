@@ -9,6 +9,8 @@ gaochao@localhost:~ # git clone https://github.com/gaochao-git/devpos.git
 1.启动后端(建议安装anaconda管理python多版本环境)
     1)安装python相关模块
         pip3.5 install django==2.1.1
+        pip3.5 install djangorestframework
+        pip3.5 install djangorestframework-jwt
         pip3.5 install pymysql
         pip3.5 install django-cors-headers
     2)$yourpath/devpos/django_backend/django_backend/settings.py修改mysql连接信息
