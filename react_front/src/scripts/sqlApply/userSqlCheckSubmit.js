@@ -276,9 +276,9 @@ class UserSqlCheckSubmit extends Component {
                                             </Select>
                                         )}
                                     </FormItem>
-                                    <FormItem  label='INFO'>
-                                        {getFieldDecorator('INFO', {rules: [{required: true, message: '请输入info'}],})(
-                                            <Input placeholder='请输入info'/>
+                                    <FormItem  label='备注'>
+                                        {getFieldDecorator('备注', {rules: [{required: true, message: '请输入info'}],})(
+                                            <Input placeholder='请输入备注'/>
                                         )}
                                     </FormItem>
                                 </Card>

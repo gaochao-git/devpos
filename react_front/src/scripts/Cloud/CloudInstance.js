@@ -55,49 +55,73 @@ export default class CloudInstance extends Component  {
         };
         const columns = [
           {
-            title: 'instance_name',
-            dataIndex: 'instance_name',
-            key: 'instance_name',
-            render: (text, record) => {
-              const obj = {
-                children: text,
-                props: {},
-              };
-              obj.props.rowSpan = mergeCells(record.instance_name, cloud_instance_info, 'instance_name');
-              return obj;
+            title: '主机名',
+            dataIndex: 'server_hostname',
+            key: 'server_hostname',
+          },
+          {
+              title: '公网ip',
+              colSpan: 1,
+              dataIndex: 'server_public_ip',
+          },
+          {
+                title: '内网ip',
+                colSpan: 1,
+                dataIndex: 'server_private_ip',
             },
+            {
+                title: '网络类型',
+                colSpan: 1,
+                dataIndex: 'network_type',
+            },
+            {
+                title: '公网带宽',
+                colSpan: 1,
+                dataIndex: 'public_network_bandwidth',
+            },
+            {
+                title: '内网带宽',
+                colSpan: 1,
+                dataIndex: 'private_network_bandwidth',
+            },
+          {
+              title: '内存',
+              colSpan: 1,
+              dataIndex: 'memory',
           },
           {
-            title: 'instance_host',
-            colSpan: 1,
-            dataIndex: 'instance_host',
+              title: '磁盘容量',
+              colSpan: 1,
+              dataIndex: 'disk_capacity',
           },
+         {
+             title: '磁盘类型',
+             colSpan: 1,
+             dataIndex: 'disk_type',
+         },
           {
-            title: 'instance_password',
-            dataIndex: 'instance_password',
-          },
-          {
-            title: 'instance_status',
-            colSpan: 1,
-            dataIndex: 'instance_status',
-          },
-          {
-            title: 'network',
-            colSpan: 1,
-            dataIndex: 'network',
-          },
-          {
-            title: 'cpu_size',
+            title: 'cpu',
             colSpan: 1,
             dataIndex: 'cpu_size',
           },
           {
-            title: 'disk_size',
-            dataIndex: 'disk_size',
-          },
-          {
             title: 'deadline',
             dataIndex: 'deadline',
+          },
+          {
+              title: '类型',
+              colSpan: 1,
+              dataIndex: 'server_type',
+          },
+          {
+              title: '用途',
+              colSpan: 1,
+              dataIndex: 'server_usage',
+          },
+          {
+              title: '是否可用',
+              colSpan: 1,
+              dataIndex: 'status',
           },
 
         ];
@@ -126,7 +150,12 @@ export default class CloudInstance extends Component  {
                 </div>
             <div>
             </div>
-                <Table dataSource={this.state.cloud_instance_info} columns={columns} bordered />
+                <Table
+                    dataSource={this.state.cloud_instance_info}
+                    columns={columns}
+                    bordered
+                    size="small"
+                />
             </div>
         )
     }

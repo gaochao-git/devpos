@@ -78,9 +78,8 @@ class App extends Component {
                                     <Menu mode="inline" defaultSelectedKeys={['1']} defaultOpenKeys={['sub1']} style={{ height: '100%' }}>
                                         <SubMenu key="sub1" title={<span><Icon type="cloud-server" />server</span>}>
                                             <Menu.Item key="1">
-                                                <Link to="/Cloud">云主机</Link>
+                                                <Link to="/Cloud">主机</Link>
                                             </Menu.Item>
-                                            <Menu.Item key="2">物理机</Menu.Item>
                                         </SubMenu>
                                         <SubMenu key="sub2" title={<span><Icon type="database" />MySQL</span>}>
                                             <Menu.Item key="1">
@@ -144,7 +143,7 @@ class App extends Component {
                                     <Route exact path="/home" component={Login} />
                                 </Content>
                             </Layout>
-                            <Footer style={{ textAlign: 'center' }}>devpos Design ©2020 Created by me</Footer>
+                            <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>
                         </Layout>
                     </HashRouter>
                 </div>
@@ -159,7 +158,7 @@ class App extends Component {
                         <Content style={{ margin: '0 auto',padding:'50px 50px' }}>
                             <Login></Login>
                         </Content>
-                        <Footer style={{ textAlign: 'center' }}>devpos Design ©2020 Created by me</Footer>
+                        <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>
                     </Layout>,
                 </div>
             )
