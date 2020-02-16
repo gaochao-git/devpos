@@ -12,7 +12,7 @@ import privilegesApply from "./scripts/privilegesApply/userGrant";
 import OrderInformation from './scripts/privilegesApply/orderInformation'
 import commonUser from "./scripts/commonUser/commonUserCharge";
 import Cloud from "./scripts/Cloud/CloudInstance";
-import Home from "./scripts/login/login"
+import Login from "./scripts/login/login"
 import {backendServerApiRoot} from './scripts/common/util'
 //const server = 'http://192.168.0.104:8000';
 
@@ -46,7 +46,7 @@ class App extends Component {
         };
         let res = await axios.post(`${backendServerApiRoot}/get_login_user_name_by_token/`,{params});
         if (res.data.message==="验证成功"){
-            this.setState({user_name:res.data.data[0]["username"]})
+            this.setState({user_name:res.data.data})
         }else{
             console.log("未登陆")
         }
@@ -141,7 +141,7 @@ class App extends Component {
                                     <Route exact path="/privilegesApply" component={privilegesApply} />
                                     <Route exact path="/viewPrivilegeInfoByUuid/:order_uuid" component={OrderInformation} />
                                     <Route exact path="/commonUser" component={commonUser} />
-                                    <Route exact path="/home" component={Home} />
+                                    <Route exact path="/home" component={Login} />
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>devpos Design ©2020 Created by me</Footer>
@@ -157,7 +157,7 @@ class App extends Component {
                             <span>请先登陆</span>
                         </Header>
                         <Content style={{ margin: '0 auto',padding:'50px 50px' }}>
-                            <Home></Home>
+                            <Login></Login>
                         </Content>
                         <Footer style={{ textAlign: 'center' }}>devpos Design ©2020 Created by me</Footer>
                     </Layout>,

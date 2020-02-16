@@ -6,7 +6,7 @@ from apps.common import create_common_user
 from apps.common import migrate_common_user
 from apps.privilege import create_private_user
 from apps.server import cloud_instance
-from apps import utils
+from apps.login import login
 from rest_framework_jwt.views import obtain_jwt_token
 import datetime
 from rest_framework.authtoken import views as drf_views
@@ -49,6 +49,6 @@ urlpatterns = [
     path('execute_order/', create_private_user.execute_order_func),                                      # 执行工单
     path('login/', drf_views.obtain_auth_token),
     path('auth/', drf_views.obtain_auth_token),
-    path('get_login_user_name_by_token/', utils.get_login_user_name_by_token_func),
+    path('get_login_user_name_by_token/', login.get_login_user_name_by_token_func),
 ]
 
