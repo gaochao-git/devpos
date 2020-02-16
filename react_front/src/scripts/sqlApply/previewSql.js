@@ -3,6 +3,7 @@ import { Input } from 'antd';
 import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
 const TextArea = Input.TextArea;
+//const server = 'http://192.168.0.104:8000';
 export default class PreviewSQL extends React.Component {
     constructor(props) {
         super(props);

@@ -8,7 +8,7 @@ import {backendServerApiRoot} from "../common/util"
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { Search } = Input;
-
+const server = 'http://192.168.0.104:8000';
 
 
 export default class mysqlCluster extends Component  {
@@ -24,7 +24,7 @@ export default class mysqlCluster extends Component  {
     }
     //获取所有集群信息
     async GetClusterInfo() {
-        let res = await axios.get(`${backendServerApiRoot}/get_cluster_info/`);
+        let res = await axios.get(`${server}/get_cluster_info/`);
         console.log(res.data);
         console.log(window && window.location && window.location.hostname);
         this.setState({
@@ -36,7 +36,7 @@ export default class mysqlCluster extends Component  {
         this.setState({
             cluster_info: []
         })
-        let res = await axios.post(`${backendServerApiRoot}/get_search_cluster_info/`,{cluster_name});
+        let res = await axios.post(`${server}/get_search_cluster_info/`,{cluster_name});
         console.log(res.data);
         this.setState({
             cluster_info: res.data.data
@@ -113,7 +113,12 @@ export default class mysqlCluster extends Component  {
                 </div>
             <div>
             </div>
-                <Table dataSource={this.state.cluster_info} columns={columns} bordered />
+                <Table
+                    dataSource={this.state.cluster_info}
+                    columns={columns}
+                    bordered
+                    size="small"
+                />
             </div>
         )
     }

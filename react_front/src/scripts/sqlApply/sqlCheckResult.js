@@ -3,6 +3,7 @@ import {Table} from 'antd';
 import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
 const Column = Table.Column;
+//const server = 'http://192.168.0.104:8000';
 
 export default class ViewCheckSqlResult extends React.Component {
     constructor(props) {
