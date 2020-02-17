@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Layout, Menu, Icon, Button } from "antd";
+import {Layout, Menu, Icon, Button,message } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import {HashRouter,Route} from 'react-router-dom';
@@ -13,7 +13,7 @@ import OrderInformation from './scripts/privilegesApply/orderInformation'
 import commonUser from "./scripts/commonUser/commonUserCharge";
 import Cloud from "./scripts/Cloud/CloudInstance";
 import Login from "./scripts/login/login"
-import {backendServerApiRoot} from './scripts/common/util'
+import {backendServerApiRoot,getUser} from './scripts/common/util'
 //const server = 'http://192.168.0.104:8000';
 
 const { Header, Footer, Sider, Content } = Layout;
@@ -32,25 +32,22 @@ class App extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            user_name:"帝君"
+            login_user_name:"",
+            login_user_name_role:""
         }
     }
     componentDidMount() {
         console.log("Token:",window.localStorage.getItem('token'))
-        this.GetUserName()
+        getUser().then(res => {
+            this.setState({
+                login_user_name: res.data.username,
+                login_user_name_role: res.data.title
+            })
+        }).catch(error=>{
+            console.log(error)
+        })
     }
-    //预览SQL
-    async GetUserName() {
-        let params = {
-            token: window.localStorage.getItem('token')
-        };
-        let res = await axios.post(`${backendServerApiRoot}/get_login_user_name_by_token/`,{params});
-        if (res.data.message==="验证成功"){
-            this.setState({user_name:res.data.data})
-        }else{
-            console.log("未登陆")
-        }
-    };
+
     render() {
         if (window.localStorage.getItem('token')) {
             return(
@@ -58,10 +55,10 @@ class App extends Component {
                     <HashRouter>
                         <Layout>
                             <Header className="header">
-                                <div onClick={() => window.location.href = `/page`}>DBA</div>
+                                <div onClick={() => window.location.href = `/page`}>{this.state.login_user_name_role}</div>
                                 <div>
                                     <span>
-                                        {this.state.user_name}
+                                        {this.state.login_user_name}
                                     </span>
                                     <Button
                                         icon="poweroff"

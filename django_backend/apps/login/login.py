@@ -7,9 +7,9 @@ from apps import utils
 def get_login_user_name_by_token_func(request):
     token = request.META.get('HTTP_AUTHORIZATION')
     try:
-        login_user_name = utils.get_login_user(token)["username"]
-        if login_user_name:
-            content = {'status': "ok", 'message': "验证成功", "data": login_user_name}
+        data = utils.get_login_user(token)
+        if data:
+            content = {'status': "ok", 'message': "验证成功", "data": data}
         else:
             content = {'status': "ok", 'message': "验证失败"}
     except Exception as e:

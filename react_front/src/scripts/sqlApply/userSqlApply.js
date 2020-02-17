@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm, } from 'antd';
 import { Link } from 'react-router-dom';
 import axios from "axios";
-import {backendServerApiRoot,setCookie,getCookie,clearCookie} from "../common/util";
+import {backendServerApiRoot, getUser} from "../common/util";
 
 //const server = 'http://192.168.0.104:8000';
 const Column = Table.Column;
@@ -60,6 +60,8 @@ export default class UserSqlApply extends Component {
             submit_split_sql:"",
             SplitSQLModalVisible:false,
             sql_check_max_code:"",
+            login_user_name:"",
+            login_user_name_role:""
         }
         this.cacheData = this.state.data.map(item => ({ ...item }));
     }
@@ -68,8 +70,15 @@ export default class UserSqlApply extends Component {
         console.log(this.props.match.params["submit_sql_uuid"]);
         let submit_sql_uuid = this.props.match.params["submit_sql_uuid"];
         this.GetSqlApplyByUuid(submit_sql_uuid)
-        // this.GetInceptionVariableConfig();
         this.GetSqlCheckResultsByUuid(submit_sql_uuid);
+        getUser().then(res => {
+            this.setState({
+                login_user_name: res.data.username,
+                login_user_name_role: res.data.title
+            })
+        }).catch(error=>{
+            console.log(error)
+        })
     };
     //获取提交SQL的详细信息
     async GetSqlApplyByUuid(sql_uuid) {
@@ -114,9 +123,6 @@ export default class UserSqlApply extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
         let res = await axios.post(`${backendServerApiRoot}/get_submit_sql_by_uuid/`,{params});
-        console.log(res.data.data);
-        console.log(window.localStorage.getItem('token'))
-        console.log(1111)
         this.setState({
             showSubmitSqlViewVisible: true,
             submit_sql:res.data.data,
@@ -131,14 +137,10 @@ export default class UserSqlApply extends Component {
     //查看SQL审核结果
     async GetSqlCheckResultsByUuid(uuid) {
         let token = window.localStorage.getItem('token')
-        console.log(44444)
         let params = {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
-        //axios.defaults.headers.common['Authorization'] = token ;
         let res = await axios.post(`${backendServerApiRoot}/get_check_sql_results_by_uuid/`,{params});
-        console.log(this.props.match.params["submit_sql_uuid"])
-        console.log(res.data.data)
         let inception_error_level_rray=[];
         for(var i=0;i<res.data.data.length;i++){
             console.log(res.data.data[i]["inception_error_level"])
@@ -147,7 +149,6 @@ export default class UserSqlApply extends Component {
             console.log(678)
             console.log(Math.max.apply(null,inception_error_level_rray))
         };
-        console.log(res.data.data);
         this.setState({
             view_check_sql_result:res.data.data,
             sql_check_max_code: Math.max.apply(null,inception_error_level_rray)
@@ -159,9 +160,7 @@ export default class UserSqlApply extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
             apply_results:value,
         };
-        console.log(value)
         let res = await axios.post(`${backendServerApiRoot}/pass_submit_sql_by_uuid/`,{params});
-        console.log(res.data.data);
         message.success(res.data.message);
         this.setState({
             ApplyModalVisible: false,
@@ -610,74 +609,73 @@ export default class UserSqlApply extends Component {
                         { this.state.leader_check==="未审核" && this.state.qa_check === '未审核' && this.state.dba_check ==="未审核" ? <Button type="primary" style={{marginLeft:16}} onClick={this.showApplySqlModalHandle}>审核</Button>:null}
                     </div>
                     <br/>
-                    <div>
-                        <h3>执行选项</h3>
-                        <Checkbox defaultChecked onChange={this.inceptionBackupCheckBoxOnChange.bind(this)}>备份</Checkbox>
-                        <Checkbox onChange={this.inceptionIgnoreWarningCheckBoxOnChange.bind(this)}>忽略inception警告</Checkbox>
-                        <Checkbox onChange={this.inceptionIgnoreErrorCheckBoxOnChange.bind(this)}>忽略inception错误强制执行</Checkbox>
-                    </div>
                     <br/>
-                    <h3>执行操作</h3>
-                    <Table
-                        pagination={false}
-                        dataSource={this.state.view_submit_split_sql_info}
-                        rowKey={(row ,index) => index}
-                        size="small"
-                        bordered
-                    >
-                        <Column title="split_id"
-                            dataIndex="split_seq"/>
-                        <Column title="SQL路径"
-                            dataIndex="split_sql_file_path"
-                            width={300}
-                        />
-                        <Column title="SQL"
-                            render={(text, row) => <button className="link-button" onClick={()=>{this.ViewSplitSQL(row.split_sql_file_path)}}>查看</button>}
-                        />
-                        <Column title="OSC配置"
-                            dataIndex="inception_osc_config"
-                            render = {(text, row) => this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && this.state.execute_status !== '执行中' ? <button className="link-button" onClick={()=>{this.ShowInceptionVariableConfigModal(row.split_sql_file_path)}}>OSC配置</button>: null}
-                        />
-                        <Column title="执行SQL"
-                            render={(text, row) => {
-                                if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '未执行')  {
-                                    return (<button className="link-button" onClick={()=>{this.ExecuteSubmitSqlByUuid(row.split_sql_file_path)}}>执行SQL</button>)
-                                }
-                            }}
-                        />
-                        <Column title="查看进度"
-                            render={(text, row) => {
-                                if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '执行中')  {
-                                    return (<button className="link-button" onClick={()=>{this.getExecuteProcessByUuid(row.split_sql_file_path)}}>查看</button>)
-                                }
-                            }}
-                        />
-                        <Column title="查看结果"
-                            render={(text, row) => {
-                                if (row.execute_status === '执行成功' || row.execute_status === '执行失败' || row.execute_status === '执行成功(含警告)')  {
-                                    return (<button className="link-button" onClick={()=>{this.ViewExecuteSubmitSqlResultsByUuid(row.split_sql_file_path)}}>查看</button>)
-                                }
-                            }}
-                        />
-                        <Column title="执行结果"
-                            dataIndex="execute_status"
-                            render={val => {
-                                if (val === "执行成功"){
-                                     return <span style={{color:"#52c41a"}}>{val}</span>
-                                }else if (val === "执行失败"){
-                                    return <span style={{color:"#fa541c"}}>{val}</span>
-                                }else if (val === '执行成功(含警告)'){
-                                    return <span style={{color:"#ffbb96"}}>{val}</span>
-                                }else {
-                                    return <span style={{color:"#bfbfbf"}}>{val}</span>
-                                }
-                            }}
-                        />
-                        <Column title="执行方式"
-                            dataIndex="execute_role"/>
-                        <Column title="耗时(秒)"
-                            dataIndex="inception_execute_time"/>
-                    </Table>
+                    {this.state.login_user_name_role==="dba" ?
+                        <div>
+                            <h3>执行操作</h3>
+                            <div>
+                                <h3>执行选项</h3>
+                                <Checkbox defaultChecked onChange={this.inceptionBackupCheckBoxOnChange.bind(this)}>备份</Checkbox>
+                                <Checkbox onChange={this.inceptionIgnoreWarningCheckBoxOnChange.bind(this)}>忽略inception警告</Checkbox>
+                                <Checkbox onChange={this.inceptionIgnoreErrorCheckBoxOnChange.bind(this)}>忽略inception错误强制执行</Checkbox>
+                            </div>
+                            <Table
+                                pagination={false}
+                                dataSource={this.state.view_submit_split_sql_info}
+                                rowKey={(row ,index) => index}
+                                size="small"
+                                bordered
+                            >
+                                <Column title="split_id" dataIndex="split_seq"/>
+                                <Column title="SQL路径" dataIndex="split_sql_file_path" width={300}/>
+                                <Column title="SQL"
+                                        render={(text, row) => <button className="link-button" onClick={()=>{this.ViewSplitSQL(row.split_sql_file_path)}}>查看</button>}
+                                />
+                                <Column title="OSC配置"
+                                        dataIndex="inception_osc_config"
+                                        render = {(text, row) => this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && this.state.execute_status !== '执行中' ? <button className="link-button" onClick={()=>{this.ShowInceptionVariableConfigModal(row.split_sql_file_path)}}>OSC配置</button>: null}
+                                />
+                                <Column title="执行SQL"
+                                        render={(text, row) => {
+                                            if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '未执行')  {
+                                                return (<button className="link-button" onClick={()=>{this.ExecuteSubmitSqlByUuid(row.split_sql_file_path)}}>执行SQL</button>)
+                                            }
+                                        }}
+                                />
+                                <Column title="查看进度"
+                                        render={(text, row) => {
+                                            if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '执行中')  {
+                                                return (<button className="link-button" onClick={()=>{this.getExecuteProcessByUuid(row.split_sql_file_path)}}>查看</button>)
+                                            }
+                                        }}
+                                />
+                                <Column title="查看结果"
+                                        render={(text, row) => {
+                                            if (row.execute_status === '执行成功' || row.execute_status === '执行失败' || row.execute_status === '执行成功(含警告)')  {
+                                                return (<button className="link-button" onClick={()=>{this.ViewExecuteSubmitSqlResultsByUuid(row.split_sql_file_path)}}>查看</button>)
+                                            }
+                                        }}
+                                />
+                                <Column title="执行结果"
+                                        dataIndex="execute_status"
+                                        render={val => {
+                                            if (val === "执行成功"){
+                                                return <span style={{color:"#52c41a"}}>{val}</span>
+                                            }else if (val === "执行失败"){
+                                                return <span style={{color:"#fa541c"}}>{val}</span>
+                                            }else if (val === '执行成功(含警告)'){
+                                                return <span style={{color:"#ffbb96"}}>{val}</span>
+                                            }else {
+                                                return <span style={{color:"#bfbfbf"}}>{val}</span>
+                                            }
+                                        }}
+                                />
+                                <Column title="执行方式" dataIndex="execute_role"/>
+                                <Column title="耗时(秒)" dataIndex="inception_execute_time"/>
+                            </Table>
+                        </div>
+
+                        :null}
                     <Modal visible={this.state.showSubmitSqlViewVisible}
                         onCancel={this.closeSubmitSqlViewModal}
                         title="SQL预览"
