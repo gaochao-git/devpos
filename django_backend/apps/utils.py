@@ -5,7 +5,6 @@ from django.db import connection
 def get_login_user(token):
     sql="select username,email from auth_user a inner join authtoken_token b on a.id=b.user_id where `key`='{}'".format(token)
     cursor = connection.cursor()
-
     try:
         cursor.execute("%s" % sql)
         rows = cursor.fetchall()

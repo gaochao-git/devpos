@@ -1,15 +1,6 @@
 from django.http import HttpResponse
 import json
-from django.db import connection
 from apps import utils
-
-"""
-自定义jwt认证成功返回数据
-:token  返回的jwt
-:user   当前登录的用户信息[对象]
-:request 当前本次客户端提交过来的数据
-:role 角色
-"""
 
 
 # 登陆验证获取用户信息

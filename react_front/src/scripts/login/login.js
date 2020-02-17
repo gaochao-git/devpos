@@ -3,40 +3,25 @@ import React, {Component, } from "react";
 import axios from "axios";
 import store from "./store";
 import {setToken} from "./index";
-const server = 'http://192.168.0.104:8000';
+import {backendServerApiRoot} from "../common/util";
+//const server = 'http://192.168.0.104:8000';
 
-function InvalidCredentialsException(message) {
-    this.message = message;
-    this.name = 'InvalidCredentialsException';
-}
-
+// 登陆
 class Login extends Component  {
     constructor(props) {
         super(props);
     }
+    // 点击Login提交
     handleLoginSubmit = e => {
         e.preventDefault();
         this.props.form.validateFields((err, values) => {
             console.log('Received values of form: ', values);
-            //this.handleLoginSubmit(values)
             this.login(values["username"],values["password"]);
         });
     };
-    // async login(username, password) {
-    //     return axios.post(`${server}/auth/`, {username, password}).then(function (response) {
-    //         store.dispatch(setToken(response.data.token));
-    //         window.localStorage.setItem('token', response.data.token)
-    //         window.location.reload()
-    //     }).catch(function (error) {
-    //         if (_.get(error, 'response.status') === 400) {
-    //             throw new InvalidCredentialsException(error);
-    //         }
-    //         throw error;
-    //     });
-    // }
-
+    // 登陆验证
     async login(username, password) {
-        axios.post(`${server}/auth/`, {username, password}).then(function(res){
+        axios.post(`${backendServerApiRoot}/auth/`, {username, password}).then(function(res){
             console.log(res)
             store.dispatch(setToken(res.data.token));
             window.localStorage.setItem('token', res.data.token)
@@ -45,16 +30,6 @@ class Login extends Component  {
             message.error("登陆失败")
             console.log(error)
         })
-
-       // if (res.data.status==="ok" && res.data.message==="验证成功"){
-       //     store.dispatch(setToken(res.data.token));
-       //     window.localStorage.setItem('token', res.data.token)
-       //     window.location.reload()
-       // }else if (res.data.status==="ok" && res.data.message==="验证失败"){
-       //     message.error("验证失败")
-       // }else if (res.data.status==="error"){
-       //     message.error(res.data.message)
-       // }
     }
 
     render() {
