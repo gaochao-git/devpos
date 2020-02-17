@@ -605,14 +605,13 @@ export default class UserSqlApply extends Component {
                         </Col>
                     </Row>
                     <br/>
-                    <div className="input-padding">
-                        { this.state.leader_check==="未审核" && this.state.qa_check === '未审核' && this.state.dba_check ==="未审核" ? <Button type="primary" style={{marginLeft:16}} onClick={this.showApplySqlModalHandle}>审核</Button>:null}
-                    </div>
-                    <br/>
-                    <br/>
                     {this.state.login_user_name_role==="dba" ?
                         <div>
-                            <h3>执行操作</h3>
+                            <h3>审核操作</h3>
+                            <div className="input-padding">
+                                { this.state.leader_check==="未审核" && this.state.qa_check === '未审核' && this.state.dba_check ==="未审核" ? <Button type="primary" style={{marginLeft:16}} onClick={this.showApplySqlModalHandle}>审核</Button>:null}
+                            </div>
+                            <br/>
                             <div>
                                 <h3>执行选项</h3>
                                 <Checkbox defaultChecked onChange={this.inceptionBackupCheckBoxOnChange.bind(this)}>备份</Checkbox>

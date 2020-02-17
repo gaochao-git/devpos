@@ -69,7 +69,7 @@ class UserSqlCheckSubmit extends Component {
                     message.error(res.data.message)
             }
         ).catch(err => {
-            message.error('SQL输入有误,SQL之间用;分割', 3);
+            message.error('SQL输入有误,请检查语法', 3);
         })
     }
     //组装提交SQL信息,防止多次提交
@@ -97,7 +97,7 @@ class UserSqlCheckSubmit extends Component {
             info:value["INFO"],
             check_sql_results: value["check_sql_results"],
             submit_sql_execute_type: value["执行类型"],
-            comment_info: value["INFO"],
+            comment_info: value["comment_info"],
             login_user:"小黑"
         };
         console.log(params)
@@ -277,7 +277,7 @@ class UserSqlCheckSubmit extends Component {
                                         )}
                                     </FormItem>
                                     <FormItem  label='备注'>
-                                        {getFieldDecorator('备注', {rules: [{required: true, message: '请输入info'}],})(
+                                        {getFieldDecorator('comment_info', {rules: [{required: true, message: '请输入comment_info'}],})(
                                             <Input placeholder='请输入备注'/>
                                         )}
                                     </FormItem>
