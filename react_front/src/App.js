@@ -13,8 +13,7 @@ import OrderInformation from './scripts/privilegesApply/orderInformation'
 import commonUser from "./scripts/commonUser/commonUserCharge";
 import Cloud from "./scripts/Cloud/CloudInstance";
 import Login from "./scripts/login/login"
-import {backendServerApiRoot,getUser} from './scripts/common/util'
-//const server = 'http://192.168.0.104:8000';
+import {getUser} from './scripts/common/util'
 
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
@@ -24,7 +23,7 @@ axios.defaults.headers.common['Authorization'] = window.localStorage.getItem('to
 
 function LoginOut(){
     console.log("退出登陆");
-    window.localStorage.clear()
+    window.localStorage.removeItem("token")
     window.location.reload()
 }
 

@@ -23,7 +23,6 @@ class Login extends Component  {
     async login(username, password) {
         axios.post(`${backendServerApiRoot}/auth/`, {username, password}).then(function(res){
             console.log(res)
-            store.dispatch(setToken(res.data.token));
             window.localStorage.setItem('token', res.data.token)
             window.location.reload()
         }).catch(function (error) {
