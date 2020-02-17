@@ -61,7 +61,12 @@ export default class UserSqlApply extends Component {
             SplitSQLModalVisible:false,
             sql_check_max_code:"",
             login_user_name:"",
-            login_user_name_role:""
+            login_user_name_role:"",
+            sql_view_loading:false,
+            sql_check_results_loading:false,
+            sql_check_pass_loading:false,
+            sql_execute_loading:false,
+            sql_check_code_explain:""
         }
         this.cacheData = this.state.data.map(item => ({ ...item }));
     }
@@ -119,6 +124,9 @@ export default class UserSqlApply extends Component {
     };
     //预览SQL
     async GetSubmitSqlByUuid(uuid) {
+        this.setState({
+            sql_view_loading:true,
+        })
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
@@ -126,6 +134,7 @@ export default class UserSqlApply extends Component {
         this.setState({
             showSubmitSqlViewVisible: true,
             submit_sql:res.data.data,
+            sql_view_loading:false,
         })
     };
     //预览数据 modal弹出按钮
@@ -136,6 +145,9 @@ export default class UserSqlApply extends Component {
     }
     //查看SQL审核结果
     async GetSqlCheckResultsByUuid(uuid) {
+        this.setState({
+            sql_check_results_loading:true
+        })
         let token = window.localStorage.getItem('token')
         let params = {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
@@ -143,19 +155,21 @@ export default class UserSqlApply extends Component {
         let res = await axios.post(`${backendServerApiRoot}/get_check_sql_results_by_uuid/`,{params});
         let inception_error_level_rray=[];
         for(var i=0;i<res.data.data.length;i++){
-            console.log(res.data.data[i]["inception_error_level"])
+            //console.log(res.data.data[i]["inception_error_level"])
             inception_error_level_rray.push(res.data.data[i]["inception_error_level"])
-            console.log(inception_error_level_rray)
-            console.log(678)
-            console.log(Math.max.apply(null,inception_error_level_rray))
         };
         this.setState({
             view_check_sql_result:res.data.data,
-            sql_check_max_code: Math.max.apply(null,inception_error_level_rray)
+            sql_check_max_code: Math.max.apply(null,inception_error_level_rray),
+            sql_check_code_explain: Math.max.apply(null,inception_error_level_rray)!==0 ? "异常":"正常",
+            sql_check_results_loading:false
         });
     };
     //审核通过
     async PassSubmitSqlByUuid(value) {
+        this.setState({
+            sql_check_pass_loading:true
+        });
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
             apply_results:value,
@@ -164,7 +178,8 @@ export default class UserSqlApply extends Component {
         message.success(res.data.message);
         this.setState({
             ApplyModalVisible: false,
-            view_submit_sql_info:res.data.data
+            view_submit_sql_info:res.data.data,
+            sql_check_pass_loading:false
         });
         this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
     };
@@ -175,7 +190,9 @@ export default class UserSqlApply extends Component {
     //执行SQL
     async ExecuteSubmitSqlByUuid(split_sql_file_path) {
         this.setState({
-            execute_status: ""
+            sql_execute_loading:true,
+            execute_status: "执行中"
+
         });
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
@@ -186,9 +203,9 @@ export default class UserSqlApply extends Component {
         };
         let inception_error_level_rray=[];
         for(var i=0;i<this.state.view_check_sql_result.length;i++){
-            console.log(this.state.view_check_sql_result[i]["inception_error_level"])
+            //console.log(this.state.view_check_sql_result[i]["inception_error_level"])
             inception_error_level_rray.push(this.state.view_check_sql_result[i]["inception_error_level"])
-            console.log(inception_error_level_rray)
+            //console.log(inception_error_level_rray)
         };
         console.log(this.state.execute_sql_flag);
         if (this.state.sql_check_max_code === 2){
@@ -202,7 +219,7 @@ export default class UserSqlApply extends Component {
                 });
                 await axios.post(`${backendServerApiRoot}/execute_submit_sql_by_uuid/`, {params}).then(
                     res => {
-                        res.data.status === "ok" ? this.setInterVal() : message.error(res.data.message)
+                        res.data.status === "ok" ? this.setInterVal() : message.error(res.data.message);
                     }
                 );
             } else {
@@ -556,13 +573,13 @@ export default class UserSqlApply extends Component {
                             <Row gutter={8}><Col style={{padding:5}} span={8}>主题:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_title}</Col></Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={8}>SQL预览:</Col>
-                                <Button className="link-button" onClick={this.GetSubmitSqlByUuid.bind(this)} style={{padding:5}} span={16}>查看</Button>
+                                <Button className="link-button" loading={this.state.sql_view_loading} onClick={this.GetSubmitSqlByUuid.bind(this)} style={{padding:5}} span={16}>查看</Button>
                             </Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={8}>SQL审核结果:</Col>
                                 <Col >
-                                    <Button style={{padding:5}} span={16} className="link-button" onClick={this.showCheckSqlResultModalHandle.bind(this)} >查看</Button>
-                                    {this.state.sql_check_max_code !== 0 ? <span style={{color:"red"}}>[异常]</span>:<span  style={{color:"#00FF00"}}>[正常]</span>}
+                                    <Button style={{padding:5}} span={16} className="link-button" loading={this.state.sql_check_results_loading} onClick={this.showCheckSqlResultModalHandle.bind(this)} >查看</Button>
+                                    {this.state.sql_check_max_code !== 0 ? <span style={{color:"red"}}>{[this.state.sql_check_code_explain]}</span>:<span  style={{color:"#00FF00"}}>[正常]</span>}
                                 </Col>
                             </Row>
                             <Row gutter={8}><Col style={{padding:5}} span={8}>SQL总条数:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_rows}</Col></Row>
@@ -605,7 +622,7 @@ export default class UserSqlApply extends Component {
                         </Col>
                     </Row>
                     <br/>
-                    {this.state.login_user_name_role==="dba" ?
+                    {this.state.login_user_name_role==="dba" && this.state.sql_check_results_loading===false ?
                         <div>
                             <h3>审核操作</h3>
                             <div className="input-padding">
@@ -637,7 +654,7 @@ export default class UserSqlApply extends Component {
                                 <Column title="执行SQL"
                                         render={(text, row) => {
                                             if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '未执行')  {
-                                                return (<button className="link-button" onClick={()=>{this.ExecuteSubmitSqlByUuid(row.split_sql_file_path)}}>执行SQL</button>)
+                                                return (<Button className="link-button" loading={this.state.sql_execute_loading} onClick={()=>{this.ExecuteSubmitSqlByUuid(row.split_sql_file_path)}}>执行SQL</Button>)
                                             }
                                         }}
                                 />
@@ -732,7 +749,7 @@ export default class UserSqlApply extends Component {
                     >
                         <TextArea rows={6} placeholder="审核说明"  onChange={e => this.handleApplyContentChange(e.target.value)}/>
                         <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
-                            <Button onClick={this.PassSubmitSqlByUuid.bind(this,'通过')} type="primary" style={{ marginRight: '10px' }}>通过</Button>
+                            <Button onClick={this.PassSubmitSqlByUuid.bind(this,'通过')} loading={this.state.sql_check_pass_loading} type="primary" style={{ marginRight: '10px' }}>通过</Button>
                             <Button onClick={this.PassSubmitSqlByUuid.bind(this,'不通过')}>不通过</Button>
                         </Row>
                     </Modal>

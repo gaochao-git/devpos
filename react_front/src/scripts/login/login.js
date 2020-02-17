@@ -1,10 +1,7 @@
 import {Button, Form, Icon, Input, message} from "antd";
 import React, {Component, } from "react";
 import axios from "axios";
-import store from "./store";
-import {setToken} from "./index";
 import {backendServerApiRoot} from "../common/util";
-//const server = 'http://192.168.0.104:8000';
 
 // 登陆
 class Login extends Component  {

@@ -532,6 +532,7 @@ def execute_submit_sql_by_uuid_func(request):
     inception_execute_ignore_error = request_body['params']['inception_execute_ignore_error']
     print(inception_backup,inception_check_ignore_warning,inception_execute_ignore_error)
     cursor = connection.cursor()
+    print(11111)
     try:
         cmd = "python3.5 {}/scripts/inception_execute.py '{}' {} {} {} '{}' &".format(os.getcwd(), submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path)
         print("调用脚本执行SQL:%s" % cmd)

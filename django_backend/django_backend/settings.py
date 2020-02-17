@@ -137,14 +137,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# REST_FRAMEWORK = {
-#     'DEFAULT_PERMISSION_CLASSES': (
-#         'rest_framework.permissions.IsAuthenticated', #必须有
-#     ),
-#     'DEFAULT_AUTHENTICATION_CLASSES': (
-#         'rest_framework.authentication.TokenAuthentication',
-#     )
-# }
+#设置django上传数据大小为20M
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20971520
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/

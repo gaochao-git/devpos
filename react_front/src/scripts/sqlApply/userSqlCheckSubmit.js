@@ -33,6 +33,8 @@ class UserSqlCheckSubmit extends Component {
             submit_sql_button_disabled:"hide",
             submit_sql_flag:"未提交",
             login_user:"",
+            sql_check_loading:false,
+            sql_submit_loading:false,
         }
     }
     componentDidMount() {
@@ -55,6 +57,7 @@ class UserSqlCheckSubmit extends Component {
         };
         this.setState({
             check_sql_results: [],
+            sql_check_loading:true,
             submit_sql_button_disabled:"hide"
         });
         console.log(params);
@@ -63,13 +66,18 @@ class UserSqlCheckSubmit extends Component {
             res => {res.data.status==="ok"?
                     this.setState({
                         check_sql_results: res.data.data,
-                        submit_sql_button_disabled:"show"
+                        submit_sql_button_disabled:"show",
+                        sql_check_loading:false,
                     })
                     :
                     message.error(res.data.message)
             }
         ).catch(err => {
             message.error('SQL输入有误,请检查语法', 3);
+            this.setState({
+                check_sql_results: [],
+                sql_check_loading:false,
+            });
         })
     }
     //组装提交SQL信息,防止多次提交
@@ -80,12 +88,12 @@ class UserSqlCheckSubmit extends Component {
             values["check_sql_results"] = this.state.check_sql_results;
             this.state.submit_sql_flag === "未提交" ? this.handleSqlSubmit(values) : message.error(this.state.submit_sql_flag)
         });
-        this.setState({
-            submit_sql_flag: "工单已提交正在处理，不允许多次提交"
-        });
     };
     //提交SQL
     async handleSqlSubmit(value) {
+        this.setState({
+            sql_submit_loading:true
+        });
         let params = {
             db_ip: this.state.des_ip,
             db_port: this.state.des_port,
@@ -102,8 +110,12 @@ class UserSqlCheckSubmit extends Component {
         };
         console.log(params)
         let res = await axios.post(`${backendServerApiRoot}/submit_sql/`,{params});
-        if( res.data.status === 'ok')
+        if( res.data.status === 'ok'){
+            this.setState({
+                sql_submit_loading:false
+            });
             window.location.reload();
+        }
         else
             alert(res.data.message);
     }
@@ -129,7 +141,7 @@ class UserSqlCheckSubmit extends Component {
     //预览数据 modal弹出按钮
     showDataModalHandle = (e) => {
         this.setState({
-        showDataVisible: true,
+        showDataVisible: true
         });
     }
     //预览数据 modal返回按钮
@@ -227,7 +239,7 @@ class UserSqlCheckSubmit extends Component {
                     </div>
                     <div>
                         <TextArea rows={10} placeholder="SQL"  onChange={e => this.handleSqlChange(e.target.value)}/>
-                        <Button type="primary" onClick={()=>{this.handleSqlCheck()}}>检测SQL</Button>
+                        <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.handleSqlCheck()}}>检测SQL</Button>
                         {this.state.submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>:null}
                     </div>
                     <Table
@@ -282,7 +294,7 @@ class UserSqlCheckSubmit extends Component {
                                         )}
                                     </FormItem>
                                 </Card>
-                                <Button type="primary" htmlType="submit">submit</Button>
+                                <Button type="primary" loading={this.state.sql_submit_loading} htmlType="submit">submit</Button>
                             </Row>
                         </Form>
                     </Modal>
