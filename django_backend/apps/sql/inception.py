@@ -5,6 +5,7 @@ from django.db import connection
 import uuid
 from time import gmtime, strftime
 import os
+import re
 from apps import utils
 
 # 页面获取所有工单列表
@@ -108,7 +109,12 @@ def check_sql_func(request):
         content = {'status': "ok", 'inception审核完成': "ok",'data': data}
     except Exception as e:
         print("inception审核失败",str(e))
-        content = {'status': "error", 'message': str(e)}
+        message = str(e)
+        if re.findall('1875', str(e)):
+            message = "语法错误"
+        elif re.findall('2003', str(e)):
+            message = "语法检测器无法连接"
+        content = {'status': "error", 'message': message}
     return HttpResponse(json.dumps(content), content_type='application/json')
 
 

@@ -70,10 +70,10 @@ class UserSqlCheckSubmit extends Component {
                         sql_check_loading:false,
                     })
                     :
-                    message.error(res.data.message)
+                    message.error(res.data.message,3) && this.setState({check_sql_results: [],sql_check_loading:false,})
             }
         ).catch(err => {
-            message.error('SQL输入有误,请检查语法', 3);
+            message.error(err, 3);
             this.setState({
                 check_sql_results: [],
                 sql_check_loading:false,
@@ -238,7 +238,7 @@ class UserSqlCheckSubmit extends Component {
                         <Input size="large" style={{marginLeft:10}} placeholder="数据库端口" onChange={e => this.handleHostPortChange(e.target.value)}/>
                     </div>
                     <div>
-                        <TextArea rows={10} placeholder="SQL"  onChange={e => this.handleSqlChange(e.target.value)}/>
+                        <TextArea rows={10} placeholder="输入SQL,每条SQL以;结尾"  onChange={e => this.handleSqlChange(e.target.value)}/>
                         <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.handleSqlCheck()}}>检测SQL</Button>
                         {this.state.submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>:null}
                     </div>
