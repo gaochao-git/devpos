@@ -95,9 +95,11 @@ def main():
     # 更新工单状态为执行中
     try:
         sql_update_executing = "update sql_execute set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1 where submit_sql_uuid='{}'".format(submit_sql_uuid)
-        sql_execute_executing = "update sql_execute_split set dba_execute=2,execute_status=2 submit_sql_execute_plat_or_manual=1 where split_sql_file_path='{}'".format(split_sql_file_path)
+        sql_execute_executing = "update sql_execute_split set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1 where split_sql_file_path='{}'".format(split_sql_file_path)
         cursor.execute("%s" % sql_update_executing)
         cursor.execute("%s" % sql_execute_executing)
+        print(sql_update_executing)
+        print(sql_execute_executing)
         connection.commit()
     except Exception as e:
         print(e)
