@@ -105,7 +105,7 @@ export default class CloudInstance extends Component  {
             dataIndex: 'cpu_size',
           },
           {
-            title: 'deadline',
+            title: '到期时间',
             dataIndex: 'deadline',
           },
           {
