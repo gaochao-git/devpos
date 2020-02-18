@@ -31,7 +31,7 @@ def get_submit_sql_info_func(request):
                 dba_execute_user_name,
                 ctime,
                 utime
-            FROM sql_execute order by ctime desc, utime desc
+            FROM sql_submit_info order by ctime desc, utime desc
         """
     try:
         cursor.execute("%s" % sql)
@@ -56,31 +56,6 @@ def get_apply_sql_by_uuid_func(request):
     status = ""
     message = ""
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    # sql = """
-    #     select title,
-    #            submit_sql_user,
-    #            leader_user_name,
-    #            qa_user_name,
-    #            dba_check_user_name,
-    #            dba_execute_user_name,
-    #            case leader_check  when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as leader_check,
-    #            case qa_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as qa_check,
-    #            case dba_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as dba_check,
-    #            case dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,
-    #            case execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' end as execute_status,
-    #            master_ip,
-    #            master_port,
-    #            comment_info,
-    #            submit_sql_uuid,
-    #            (select count(*) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_rows,
-    #            (select sum(inception_affected_rows) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_affect_rows,
-    #            (select sum(inception_execute_time) from sql_execute_results where submit_sql_uuid='{}') as inception_execute_time,
-    #            submit_sql_execute_type,
-    #            comment_info,
-    #            submit_sql_file_path
-    #     from sql_execute
-    #     where submit_sql_uuid='{}'
-    # """.format(submit_sql_uuid,submit_sql_uuid,submit_sql_uuid,submit_sql_uuid)
     sql = """
         select title,
                submit_sql_user,
@@ -103,7 +78,7 @@ def get_apply_sql_by_uuid_func(request):
                submit_sql_execute_type,
                comment_info,
                submit_sql_file_path
-        from sql_execute
+        from sql_submit_info
         where submit_sql_uuid='{}'
     """.format(submit_sql_uuid,submit_sql_uuid,submit_sql_uuid,submit_sql_uuid)
     print(sql)
@@ -186,7 +161,7 @@ def submit_sql_func(request):
         check_sql_results = request_body['params']['check_sql_results']
         submit_sql_execute_type = request_body['params']['submit_sql_execute_type']
         comment_info = request_body['params']['comment_info']
-        sql = """insert into sql_execute(submit_sql_user,
+        sql = """insert into sql_submit_info(submit_sql_user,
                                          title,
                                          master_ip,
                                          master_port,
@@ -258,7 +233,7 @@ def get_submit_sql_by_uuid_func(request):
     status = ""
     message = ""
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    sql = "select submit_sql_file_path from sql_execute where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    sql = "select submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
     cursor = connection.cursor()
     try:
         cursor.execute("%s" % sql)
@@ -350,7 +325,7 @@ def pass_submit_sql_by_uuid_func(request):
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
     apply_results = request_body['params']['apply_results']
     if apply_results == "通过":
-        sql = "update sql_execute set leader_check=2,qa_check=2,dba_check=2 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+        sql = "update sql_submit_info set leader_check=2,qa_check=2,dba_check=2 where submit_sql_uuid='{}'".format(submit_sql_uuid)
         split_sql = """
              select 
                 a.title,                
@@ -373,13 +348,13 @@ def pass_submit_sql_by_uuid_func(request):
                 (select sum(inception_execute_time) from sql_execute_results where submit_sql_uuid='{}') as inception_execute_time,                
                 a.submit_sql_execute_type,                             
                 b.split_sql_file_path         
-                from sql_execute a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where a.submit_sql_uuid='{}'
+                from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where a.submit_sql_uuid='{}'
         """.format(submit_sql_uuid, submit_sql_uuid, submit_sql_uuid, submit_sql_uuid)
         #拆分SQL
         ret = split_sql_func(submit_sql_uuid)
         print(8888888)
     elif apply_results == "不通过":
-        sql = "update sql_execute set leader_check=3,qa_check=3,dba_check=3 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+        sql = "update sql_submit_info set leader_check=3,qa_check=3,dba_check=3 where submit_sql_uuid='{}'".format(submit_sql_uuid)
     cursor = connection.cursor()
     try:
         cursor.execute("%s" % sql)
@@ -407,7 +382,7 @@ def get_inception_variable_config_info_func(request):
     split_sql_file_path = request_body['params']['split_sql_file_path']
     status = ""
     message = ""
-    sql = "select variable_name name,variable_value value,variable_description,editable from inception_variable_config"
+    sql = "select variable_name name,variable_value value,variable_description,editable from sql_inception_osc_config"
     sql_split_osc_config="select inception_osc_config from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
     cursor = connection.cursor()
     try:
@@ -564,7 +539,7 @@ def execute_submit_sql_by_file_path_manual_func(request):
     split_sql_file_path = request_body['params']['split_sql_file_path']
     sql1 = "update sql_execute_split set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2 where split_sql_file_path='{}'".format(split_sql_file_path)
     sql2 = "select id,submit_sql_uuid,split_sql_file_path from sql_execute_split where submit_sql_uuid='{}' and dba_execute=1".format(submit_sql_uuid)
-    sql3 = "update sql_execute set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    sql3 = "update sql_submit_info set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2 where submit_sql_uuid='{}'".format(submit_sql_uuid)
     cursor = connection.cursor()
     #如果所有的拆分文件均执行完在将工单文件状态改了
     try:
@@ -676,7 +651,7 @@ def split_sql_func(submit_sql_uuid):
     # 查询工单信息
     try:
         cursor = connection.cursor()
-        sql_select = "select master_ip,master_port, submit_sql_file_path from sql_execute where submit_sql_uuid='{}'".format(submit_sql_uuid)
+        sql_select = "select master_ip,master_port, submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
         cursor.execute("%s" % sql_select)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
@@ -794,7 +769,7 @@ def get_split_sql_by_uuid_func(request):
             case b.submit_sql_execute_plat_or_manual when 1 then '平台执行' when 2 then '手动执行' end as submit_sql_execute_plat_or_manual,
             case b.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功(含警告)' end as execute_status,
             sum(c.inception_execute_time) inception_execute_time
-            from sql_execute a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid left join sql_execute_results c on b.split_sql_file_path=c.split_sql_file_path where a.submit_sql_uuid='{}' group by b.split_sql_file_path order by b.split_seq
+            from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid left join sql_execute_results c on b.split_sql_file_path=c.split_sql_file_path where a.submit_sql_uuid='{}' group by b.split_sql_file_path order by b.split_seq
     """.format(submit_sql_uuid)
     cursor = connection.cursor()
     print(split_sql)

@@ -67,7 +67,7 @@ def process_execute_results(results):
 def main():
     try:
         #获取工单详情
-        sql_select = "select a.master_ip,a.master_port, b.inception_osc_config from sql_execute a inner join sql_execute_split b on a.submit_sql_uuid =b.submit_sql_uuid where split_sql_file_path='{}'".format(split_sql_file_path)
+        sql_select = "select a.master_ip,a.master_port, b.inception_osc_config from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid =b.submit_sql_uuid where split_sql_file_path='{}'".format(split_sql_file_path)
         cursor.execute("%s" % sql_select)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
@@ -94,7 +94,7 @@ def main():
 
     # 更新工单状态为执行中
     try:
-        sql_update_executing = "update sql_execute set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+        sql_update_executing = "update sql_submit_info set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1 where submit_sql_uuid='{}'".format(submit_sql_uuid)
         sql_execute_executing = "update sql_execute_split set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1 where split_sql_file_path='{}'".format(split_sql_file_path)
         cursor.execute("%s" % sql_update_executing)
         cursor.execute("%s" % sql_execute_executing)
@@ -134,7 +134,7 @@ def main():
     else:
         # 更新工单状态为失败
         try:
-            sql_execute_error = "update sql_execute set execute_status=4 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+            sql_execute_error = "update sql_submit_info set execute_status=4 where submit_sql_uuid='{}'".format(submit_sql_uuid)
             sql_update_executing_error = "update sql_execute_split set execute_status=4 where split_sql_file_path='{}'".format(split_sql_file_path)
             cursor.execute("%s" % sql_execute_error)
             cursor.execute("%s" % sql_update_executing_error)
@@ -152,7 +152,7 @@ def main():
         for row in rows:
             sql_split_status_list.append(row[0])
         max_code = max(sql_split_status_list)
-        sql_update_execute_max_code = "update sql_execute set execute_status={} where submit_sql_uuid='{}'".format(max_code, submit_sql_uuid)
+        sql_update_execute_max_code = "update sql_submit_info set execute_status={} where submit_sql_uuid='{}'".format(max_code, submit_sql_uuid)
         cursor.execute("%s" % sql_update_execute_max_code)
         connection.commit()
     except Exception as e:
