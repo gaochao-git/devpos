@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import { Button,Table, Input, Modal, Tabs, Form, Row, Select, message, Card } from "antd";
+import { Button,Table, Input, Modal, Tabs, Form, Row, Select, message, Card, AutoComplete} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -15,6 +15,7 @@ const FormItem = Form.Item;
 // function callback(key) {
 //   console.log(key);
 // }
+
 
 class UserSqlCheckSubmit extends Component {
     constructor(props) {
@@ -35,6 +36,7 @@ class UserSqlCheckSubmit extends Component {
             login_user:"",
             sql_check_loading:false,
             sql_submit_loading:false,
+            des_ip_list:[],
         }
     }
     componentDidMount() {
@@ -119,13 +121,47 @@ class UserSqlCheckSubmit extends Component {
         else
             alert(res.data.message);
     }
+    //master ip输入框捕获
+    // handleHostIpChange = (value) => {
+    //     console.log(value)
+    //     this.setState({
+    //         des_ip: value
+    //     })
+    // }
 
-    handleHostIpChange = (value) => {
-        console.log(value)
+    //master ip输入框
+    onSearch = searchText => {
+        this.handleGetMasterIp(searchText)
+    };
+    //根据master ip输入框自动补全ip
+    async handleGetMasterIp(value) {
+        let params = {
+            db_master_ip: value
+        };
+        console.log(params)
+        let res = await axios.post(`${backendServerApiRoot}/get_master_ip/`,{params});
+        if( res.data.status === 'ok'){
+            console.log(res.data.data)
+            this.setState({
+                des_ip_list: res.data.data.length===0 ? []:res.data.data,
+            });
+        } else{
+            console.log("get_master_ip接口错误")
+        }
+    }
+
+    async onSelect(value) {
+        console.log('onSelect', value);
         this.setState({
-            des_ip: value
+            des_ip:value
         })
     }
+    onSelect = select => {
+        this.setState({
+            des_ip:select
+        })
+    };
+    //master port输入框捕获
     handleHostPortChange = (value) => {
         console.log(value)
         this.setState({
@@ -160,7 +196,6 @@ class UserSqlCheckSubmit extends Component {
       const { expand } = this.state;
       this.setState({ expand: !expand });
     };
-
     render() {
         const {form} = this.props;
         const {getFieldDecorator} = form;
@@ -234,7 +269,14 @@ class UserSqlCheckSubmit extends Component {
                 </TabPane>
                 <TabPane tab="SQL新建工单" key="2">
                     <div className="sub-title-input">
-                        <Input size="large" placeholder="数据库主库地址ip" onChange={e => this.handleHostIpChange(e.target.value)}/>
+                        <AutoComplete
+                            dataSource={this.state.des_ip_list}
+                            style={{ width: 200 }}
+                            onSelect={this.onSelect}
+                            onSearch={this.onSearch}
+                            placeholder="input here"
+                        />
+                        {/*<Input size="large" value={this.state.des_ip} placeholder="数据库主库地址ip" onChange={e => this.handleGetMasterIp(e.target.value)}/>*/}
                         <Input size="large" style={{marginLeft:10}} placeholder="数据库端口" onChange={e => this.handleHostPortChange(e.target.value)}/>
                     </div>
                     <div>
