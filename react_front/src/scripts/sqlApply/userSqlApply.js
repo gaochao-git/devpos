@@ -187,8 +187,8 @@ export default class UserSqlApply extends Component {
          this.timerId = window.setInterval(this.GetSqlApplyByUuid.bind(this),1000);
          this.timerProcessId = window.setInterval(this.getExecuteProcessByUuidTimeInterval.bind(this),1000);
     }
-    //执行SQL
-    async ExecuteSubmitSqlByUuid(split_sql_file_path) {
+    //平台自动执行SQL
+    async ExecuteBySplitSqlFilePath(split_sql_file_path) {
         this.setState({
             sql_execute_loading:true,
             execute_status: "执行中"
@@ -203,9 +203,7 @@ export default class UserSqlApply extends Component {
         };
         let inception_error_level_rray=[];
         for(var i=0;i<this.state.view_check_sql_result.length;i++){
-            //console.log(this.state.view_check_sql_result[i]["inception_error_level"])
             inception_error_level_rray.push(this.state.view_check_sql_result[i]["inception_error_level"])
-            //console.log(inception_error_level_rray)
         };
         console.log(this.state.execute_sql_flag);
         if (this.state.sql_check_max_code === 2){
@@ -217,7 +215,7 @@ export default class UserSqlApply extends Component {
                 this.setState({
                     execute_sql_flag: "工单已提交正在处理，不允许多次提交"
                 });
-                await axios.post(`${backendServerApiRoot}/execute_submit_sql_by_uuid/`, {params}).then(
+                await axios.post(`${backendServerApiRoot}/execute_submit_sql_by_file_path/`, {params}).then(
                     res => {
                         res.data.status === "ok" ? this.setInterVal() : message.error(res.data.message);
                     }
@@ -227,7 +225,20 @@ export default class UserSqlApply extends Component {
             }
         }
     };
-
+    //手动执行SQL
+    async ExecuteBySplitSqlFilePathManual(split_sql_file_path) {
+        this.setState({
+            execute_status: "执行中"
+        });
+        let params = {
+            submit_sql_uuid: this.state.submit_sql_uuid,
+            split_sql_file_path:split_sql_file_path
+        };
+        await axios.post(`${backendServerApiRoot}/execute_submit_sql_by_file_path_manual/`, {params}).then(
+            res => {
+                res.data.status === "ok" ? this.GetSqlApplyByUuid(this.state.submit_sql_uuid) && message.success(res.data.message) : message.error(res.data.message);
+            })
+    };
 
     //inception变量配置Modal显示
     async ShowInceptionVariableConfigModal(split_sql_file_path) {
@@ -654,7 +665,13 @@ export default class UserSqlApply extends Component {
                                 <Column title="执行SQL"
                                         render={(text, row) => {
                                             if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '未执行')  {
-                                                return (<Button className="link-button" loading={this.state.sql_execute_loading} onClick={()=>{this.ExecuteSubmitSqlByUuid(row.split_sql_file_path)}}>执行SQL</Button>)
+                                                return (
+                                                    <div>
+                                                        <Button className="link-button" loading={this.state.sql_execute_loading} onClick={()=>{this.ExecuteBySplitSqlFilePath(row.split_sql_file_path)}}>平台执行</Button>
+                                                        <Button className="link-button" style={{marginLeft:15}} loading={this.state.sql_execute_loading} onClick={()=>{this.ExecuteBySplitSqlFilePathManual(row.split_sql_file_path)}}>手动执行</Button>
+                                                    </div>
+
+                                                )
                                             }
                                         }}
                                 />
@@ -686,7 +703,7 @@ export default class UserSqlApply extends Component {
                                             }
                                         }}
                                 />
-                                <Column title="执行方式" dataIndex="execute_role"/>
+                                <Column title="执行方式" dataIndex="submit_sql_execute_plat_or_manual"/>
                                 <Column title="耗时(秒)" dataIndex="inception_execute_time"/>
                             </Table>
                         </div>

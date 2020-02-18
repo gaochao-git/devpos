@@ -92,7 +92,7 @@ def get_apply_sql_by_uuid_func(request):
                case qa_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as qa_check,
                case dba_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as dba_check,
                case dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,
-               case execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功(含警告)' end as execute_status,
+               case execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功(含警告)' when 6 then '手动执行' end as execute_status,
                master_ip,
                master_port,
                comment_info,
@@ -106,6 +106,7 @@ def get_apply_sql_by_uuid_func(request):
         from sql_execute
         where submit_sql_uuid='{}'
     """.format(submit_sql_uuid,submit_sql_uuid,submit_sql_uuid,submit_sql_uuid)
+    print(sql)
     cursor = connection.cursor()
     try:
         cursor.execute("%s" % sql)
@@ -362,7 +363,7 @@ def pass_submit_sql_by_uuid_func(request):
                 case a.qa_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as qa_check,                
                 case a.dba_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as dba_check,                
                 case a.dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,                
-                case a.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' end as execute_status,                
+                case a.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功含警告' when 6 then '手动执行' end as execute_status,                
                 a.master_ip,                
                 a.master_port,                
                 a.comment_info,                
@@ -520,7 +521,7 @@ def execute_sql_func(cursor,submit_sql_uuid, target_db_ip, target_db_port, execu
 
 
 # 获取SQL文件路径,调用inception执行
-def execute_submit_sql_by_uuid_func(request):
+def execute_submit_sql_by_file_path_func(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     status = ""
@@ -554,6 +555,33 @@ def execute_submit_sql_by_uuid_func(request):
     content = {'status': status, 'message': message}
     return HttpResponse(json.dumps(content,default=str), content_type='text/xml')
 
+
+# 手动执行SQL更改工单状态
+def execute_submit_sql_by_file_path_manual_func(request):
+    to_str = str(request.body, encoding="utf-8")
+    request_body = json.loads(to_str)
+    submit_sql_uuid = request_body['params']['submit_sql_uuid']
+    split_sql_file_path = request_body['params']['split_sql_file_path']
+    sql1 = "update sql_execute_split set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2 where split_sql_file_path='{}'".format(split_sql_file_path)
+    sql2 = "select id,submit_sql_uuid,split_sql_file_path from sql_execute_split where submit_sql_uuid='{}' and dba_execute=1".format(submit_sql_uuid)
+    sql3 = "update sql_execute set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    cursor = connection.cursor()
+    #如果所有的拆分文件均执行完在将工单文件状态改了
+    try:
+        cursor.execute("%s" % sql1)
+        cursor.execute("%s" % sql2)
+        rows = cursor.fetchall()
+        if not rows:
+            cursor.execute("%s" % sql3)
+        content = {'status': "ok", 'message': "状态更改成功"}
+    except Exception as e:
+        content = {'status': "error", 'message': "状态更改失败"}
+        print(e)
+    finally:
+        cursor.close()
+        connection.close()
+    print(content)
+    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
 
 # 查看执行结果
 def get_execute_submit_sql_results_by_uuid_func(request):
@@ -763,6 +791,7 @@ def get_split_sql_by_uuid_func(request):
             b.split_seq,
             b.split_sql_file_path,
             case b.dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,
+            case b.submit_sql_execute_plat_or_manual when 1 then '平台执行' when 2 then '手动执行' end as submit_sql_execute_plat_or_manual,
             case b.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功(含警告)' end as execute_status,
             sum(c.inception_execute_time) inception_execute_time
             from sql_execute a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid left join sql_execute_results c on b.split_sql_file_path=c.split_sql_file_path where a.submit_sql_uuid='{}' group by b.split_sql_file_path order by b.split_seq

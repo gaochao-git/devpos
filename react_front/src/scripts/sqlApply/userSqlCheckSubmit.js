@@ -200,7 +200,7 @@ class UserSqlCheckSubmit extends Component {
                         rowKey={(row ,index) => index}
                         rowClassName={(record, index) => {
                             let className = 'row-detail-default ';
-                            if (record.leader_check === "未审核") className = 'row-detail-error';
+                            if (record.leader_check === "未审核"|| record.qa_check === "未审核"||record.dba_check === "未审核"||record.dba_execute === "未执行") className = 'row-detail-error';
                             return className;}}
                         size="small"
                     >
