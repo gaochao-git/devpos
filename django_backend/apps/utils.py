@@ -31,8 +31,11 @@ def get_login_user(token):
 def get_master_ip_func(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    db_master_ip_or_hostname = request_body['params']['db_master_ip']
-    sql = "select server_public_ip from server where server_hostname='{}'".format(db_master_ip_or_hostname)
+    db_master_ip_or_hostname = request_body['params']['db_master_ip_or_hostname']
+    if db_master_ip_or_hostname.strip('.').isdigit():
+        sql = "select server_public_ip from server where server_public_ip like '{}%' limit 5".format(db_master_ip_or_hostname)
+    else:
+        sql = "select server_public_ip from server where server_hostname like '{}%' limit 5".format(db_master_ip_or_hostname)
     cursor = connection.cursor()
     try:
         cursor.execute("%s" % sql)

@@ -219,6 +219,7 @@ def get_submit_sql_by_uuid_func(request):
         with open("./upload/{}".format(file_path), "rb") as f:
             data = f.read()
             data = data.decode('utf-8')
+        #f.close()
         content = {'status': "ok", 'message': "获取SQL成功",'data': data}
     except Exception as e:
         content = {'status': "error", 'message': str(e)}
@@ -226,7 +227,6 @@ def get_submit_sql_by_uuid_func(request):
     finally:
         cursor.close()
         connection.close()
-        f.close()
     return HttpResponse(json.dumps(content,default=str), content_type='text/xml')
 
 
@@ -239,7 +239,7 @@ def get_submit_split_sql_by_file_path_func(request):
     cursor = connection.cursor()
     try:
         cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
+        #rows = cursor.fetchall()
         file_path = split_sql_file_path
         with open("./upload/{}".format(file_path), "rb") as f:
             data = f.read()
@@ -251,7 +251,6 @@ def get_submit_split_sql_by_file_path_func(request):
     finally:
         cursor.close()
         connection.close()
-        f.close()
     return HttpResponse(json.dumps(content,default=str), content_type='text/xml')
 
 

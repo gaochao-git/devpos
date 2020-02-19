@@ -131,11 +131,20 @@ export default class UserSqlApply extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
         let res = await axios.post(`${backendServerApiRoot}/get_submit_sql_by_uuid/`,{params});
-        this.setState({
-            showSubmitSqlViewVisible: true,
-            submit_sql:res.data.data,
-            sql_view_loading:false,
-        })
+        if (res.data.status==="ok"){
+            this.setState({
+                showSubmitSqlViewVisible: true,
+                submit_sql:res.data.data,
+                sql_view_loading:false,
+            })
+        }else{
+            message.error(res.data.message)
+            this.setState({
+                sql_view_loading:false,
+            })
+        }
+
+
     };
     //预览数据 modal弹出按钮
     showCheckSqlResultModalHandle = (e) => {
@@ -262,10 +271,15 @@ export default class UserSqlApply extends Component {
             split_sql_file_path:split_sql_file_path
         };
         let res = await axios.post(`${backendServerApiRoot}/get_submit_split_sql_by_file_path/`,{params});
-        this.setState({
-            SplitSQLModalVisible: true,
-            submit_split_sql:res.data.data
-        });
+        if (res.data.status==="ok"){
+            this.setState({
+                SplitSQLModalVisible: true,
+                submit_split_sql:res.data.data
+            });
+        }else {
+            message.error(res.data.message)
+        }
+
     }
 
     //查看执行SQL结果
