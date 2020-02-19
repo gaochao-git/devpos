@@ -50,5 +50,6 @@ urlpatterns = [
     path('auth/', drf_views.obtain_auth_token),
     path('get_login_user_name_by_token/', login.get_login_user_name_by_token_func),
     path('get_master_ip/', utils.get_master_ip_func),
+    path('get_cluster_name/', utils.get_cluster_name_func),
 ]
 
