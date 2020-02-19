@@ -27,7 +27,7 @@ def get_cloud_instance_func(request):
                 server_hostname,
                 case server_usage when 1 then 'MySQL' when 2 then 'Redis' when 3 then '混合' end server_usage,
                 case server_type when 1 then '云主机' when 2 then '物理机' end server_type,
-                memory,
+                memory/1024 as memory,
                 server_os,
                 disk_capacity,
                 case disk_type when 'system' then '系统盘' when 'data' then '数据盘' end disk_type,
