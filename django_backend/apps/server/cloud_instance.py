@@ -28,8 +28,9 @@ def get_cloud_instance_func(request):
                 case server_usage when 1 then 'MySQL' when 2 then 'Redis' when 3 then '混合' end server_usage,
                 case server_type when 1 then '云主机' when 2 then '物理机' end server_type,
                 memory,
+                server_os,
                 disk_capacity,
-                disk_type,
+                case disk_type when 'system' then '系统盘' when 'data' then '数据盘' end disk_type,
                 network_type,
                 public_network_bandwidth,
                 private_network_bandwidth,
@@ -42,7 +43,15 @@ def get_cloud_instance_func(request):
         instance_name = json.loads(to_str)['instance_name'].strip()
         where_instance_name_conditin = 'and instance_name like "{}%"'.format(instance_name)
         print(where_instance_name_conditin)
-        sql = "select id as 'key',instance_name,instance_host,instance_password,instance_status,network,cpu_size,disk_size,deadline from cloud where 1=1 {} order by instance_name".format(where_instance_name_conditin)
+        sql = """"select id as 'key',
+                    instance_name,
+                    instance_host,
+                    instance_password,
+                    instance_status,
+                    network,
+                    cpu_size,
+                    disk_size,
+                    deadline from cloud where 1=1 {} order by instance_name""".format(where_instance_name_conditin)
     cursor.execute(sql)
     rows = cursor.fetchall()
     data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
