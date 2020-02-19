@@ -75,22 +75,22 @@ export default class CloudInstance extends Component  {
                 dataIndex: 'network_type',
             },
             {
-                title: '公网带宽',
+                title: '公网带宽(Mbps)',
                 colSpan: 1,
                 dataIndex: 'public_network_bandwidth',
             },
             {
-                title: '内网带宽',
+                title: '内网带宽(Mbps)',
                 colSpan: 1,
                 dataIndex: 'private_network_bandwidth',
             },
           {
-              title: '内存',
+              title: '内存(M)',
               colSpan: 1,
               dataIndex: 'memory',
           },
           {
-              title: '磁盘容量',
+              title: '磁盘容量(G)',
               colSpan: 1,
               dataIndex: 'disk_capacity',
           },
@@ -100,13 +100,13 @@ export default class CloudInstance extends Component  {
              dataIndex: 'disk_type',
          },
           {
-            title: 'cpu',
+            title: 'cpu(核数)',
             colSpan: 1,
             dataIndex: 'cpu_size',
           },
           {
-            title: '到期时间',
-            dataIndex: 'deadline',
+            title: '操作系统',
+            dataIndex: 'server_os',
           },
           {
               title: '类型',
@@ -123,6 +123,10 @@ export default class CloudInstance extends Component  {
               colSpan: 1,
               dataIndex: 'status',
           },
+          {
+            title: '到期时间',
+            dataIndex: 'deadline',
+          }
 
         ];
         return (
