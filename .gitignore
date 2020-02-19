@@ -1,3 +1,4 @@
 /react_front/node_modules
 /django_backend/upload
 *.pyc
+*.log

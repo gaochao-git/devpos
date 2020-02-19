@@ -268,14 +268,19 @@ class UserSqlCheckSubmit extends Component {
     handleSqlChange = (value) => {
         console.log(value)
         this.setState({
-            check_sql: value
+            check_sql: value,
+            check_sql_results:[],
         })
     }
     //预览数据 modal弹出按钮
     showDataModalHandle = (e) => {
-        this.setState({
-        showDataVisible: true
-        });
+        if (this.state.check_sql.length===0|| this.state.check_sql_results.length===0){
+            message.error("提交所需参数不满足要求")
+        }else {
+            this.setState({
+                showDataVisible: true
+            });
+        }
     }
     //预览数据 modal返回按钮
     showDataHandleCancel = (e) => {
