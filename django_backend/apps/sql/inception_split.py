@@ -7,7 +7,7 @@ def split_sql_func(submit_sql_uuid):
     # 查询工单信息
     try:
         cursor = connection.cursor()
-        sql_select = "select master_ip,master_port, submit_sql_file_path from sql_execute where submit_sql_uuid='{}'".format(submit_sql_uuid)
+        sql_select = "select master_ip,master_port, submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
         cursor.execute("%s" % sql_select)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]

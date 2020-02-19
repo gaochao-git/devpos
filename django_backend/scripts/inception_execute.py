@@ -2,12 +2,19 @@
 #-\*-coding: utf-8-\*-
 
 import pymysql
-import sys
 import json
+import sys
+import logging
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    filename='./scripts/inception_execute.log',
+                    filemode='a+'
+)
 
 
 # inception执行SQL
-def execute_sql_func(master_ip, master_port, osc_config_sql, execute_sql):
+def execute_sql_func(master_ip,master_port,osc_config_sql,execute_sql):
     print("inception_prepare_sql:{}".format(osc_config_sql))
     sql = """/*--user=wthong;--password=fffjjj;--host={};--port={};--execute=1;--enable-remote-backup={};--enable-ignore-warnings={};--enable-force={};*/\
         inception_magic_start;
@@ -26,8 +33,10 @@ def execute_sql_func(master_ip, master_port, osc_config_sql, execute_sql):
         content = {"status": "ok", "message": "ok", "data":results}
         cur.close()
         conn.close()
+        logging.info("工单:%s,inception执行SQL成功",submit_sql_uuid)
     except Exception as e:
         content = {"status":"error", "message":e}
+        logging.info("inception执行SQL失败:%s",str(e))
         print(e)
     finally:
         return content
@@ -67,14 +76,23 @@ def process_execute_results(results):
 def main():
     try:
         #获取工单详情
-        sql_select = "select a.master_ip,a.master_port, b.inception_osc_config from sql_execute a inner join sql_execute_split b on a.submit_sql_uuid =b.submit_sql_uuid where split_sql_file_path='{}'".format(split_sql_file_path)
+        sql_select = "select a.master_ip,a.master_port,a.cluster_name,b.inception_osc_config from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid =b.submit_sql_uuid where split_sql_file_path='{}'".format(split_sql_file_path)
         cursor.execute("%s" % sql_select)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        # sql_file_path = data[0]["submit_sql_file_path"]
         inception_osc_config = data[0]["inception_osc_config"]
-        master_ip = data[0]["master_ip"]
-        master_port = data[0]["master_port"]
+        cluster_name = data[0]["cluster_name"]
+        if cluster_name:
+            sql_get_write_node = 'select instance_name from mysql_cluster where cluster_name="{}" and role="write" limit 1'.format(cluster_name)
+            cursor.execute("%s" % sql_get_write_node)
+            rows = cursor.fetchall()
+            if rows:
+                master_ip = rows[0][0].split("_")[0]
+                master_port = rows[0][0].split("_")[1]
+        else:
+            master_ip = data[0]["master_ip"]
+            master_port = data[0]["master_port"]
+        logging.info("master_ip_master_port:%s_%s",(master_ip,master_port))
         if inception_osc_config == "" or inception_osc_config == '{}':
             osc_config_sql = "show databases;"
         else:
@@ -89,19 +107,23 @@ def main():
         with open("./upload/{}".format(split_sql_file_path), "rb") as f:
             execute_sql = f.read()
             execute_sql = execute_sql.decode('utf-8')
+        logging.info("工单:%s,获取待执行SQL成功",submit_sql_uuid)
     except Exception as e:
+        logging.error(str(e))
         print(e)
 
     # 更新工单状态为执行中
     try:
-        sql_update_executing = "update sql_execute set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1 where submit_sql_uuid='{}'".format(submit_sql_uuid)
-        sql_execute_executing = "update sql_execute_split set dba_execute=2,execute_status=2 submit_sql_execute_plat_or_manual=1 where split_sql_file_path='{}'".format(split_sql_file_path)
+        sql_update_executing = "update sql_submit_info set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+        sql_execute_executing = "update sql_execute_split set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1 where split_sql_file_path='{}'".format(split_sql_file_path)
         cursor.execute("%s" % sql_update_executing)
         cursor.execute("%s" % sql_execute_executing)
         connection.commit()
+        logging.info("工单:%s,状态更改为已执行成功",submit_sql_uuid)
     except Exception as e:
         print(e)
         connection.rollback()
+        logging.error("更改:%s,更改工单状态为已执行失败",submit_sql_uuid)
     # 执行工单
     ret = execute_sql_func(master_ip, master_port, osc_config_sql, execute_sql)
     if ret["status"] == "ok":
@@ -132,7 +154,7 @@ def main():
     else:
         # 更新工单状态为失败
         try:
-            sql_execute_error = "update sql_execute set execute_status=4 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+            sql_execute_error = "update sql_submit_info set execute_status=4 where submit_sql_uuid='{}'".format(submit_sql_uuid)
             sql_update_executing_error = "update sql_execute_split set execute_status=4 where split_sql_file_path='{}'".format(split_sql_file_path)
             cursor.execute("%s" % sql_execute_error)
             cursor.execute("%s" % sql_update_executing_error)
@@ -146,16 +168,15 @@ def main():
         cursor.execute("%s" % get_all_sql_split_status)
         rows = cursor.fetchall()
         sql_split_status_list = []
-        print(100000000000000)
         for row in rows:
             sql_split_status_list.append(row[0])
         max_code = max(sql_split_status_list)
-        sql_update_execute_max_code = "update sql_execute set execute_status={} where submit_sql_uuid='{}'".format(max_code, submit_sql_uuid)
+        sql_update_execute_max_code = "update sql_submit_info set execute_status={} where submit_sql_uuid='{}'".format(max_code, submit_sql_uuid)
         cursor.execute("%s" % sql_update_execute_max_code)
         connection.commit()
     except Exception as e:
         connection.rollback()
-        print(e)
+        logging.error("工单:%s,get_all_sql_split_status错误:%s",(submit_sql_uuid,str(e)))
 
 
 
@@ -169,8 +190,11 @@ if __name__ == "__main__":
     inception_execute_ignore_error = sys.argv[4]
     split_sql_file_path = sys.argv[5]
     try:
+        logging.info("工单:%s,开始执行...",submit_sql_uuid)
         main()
+        logging.info("工单:%s,执行完成...",submit_sql_uuid)
     except Exception as e:
+        logging.error("工单:%s,执行错误...",submit_sql_uuid)
         print(e)
     finally:
         cursor.close()

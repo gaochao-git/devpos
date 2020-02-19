@@ -7,15 +7,10 @@ gaochao@localhost:~ # git clone https://github.com/gaochao-git/devpos.git
 ## 启动项目
 ```
 1.启动后端(建议安装anaconda管理python多版本环境)
-    1)安装python相关模块
-        pip3.5 install django==2.1.1
-        pip3.5 install djangorestframework
-        pip3.5 install djangorestframework-jwt
-        pip3.5 install pymysql
-        pip3.5 install django-cors-headers
+    1)进入django_backend目录,安装python相关模块
+        pip3.5 install -r requriements.txt
     2)$yourpath/devpos/django_backend/django_backend/settings.py修改mysql连接信息
     3)启动后端django
-        cd $yourpath/devepos/django_backend
         python3.5 manage.py runserver 0.0.0.0:8000
 2.启动前端
     1)安装nodejs

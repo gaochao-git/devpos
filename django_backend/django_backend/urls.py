@@ -7,6 +7,7 @@ from apps.common import migrate_common_user
 from apps.privilege import create_private_user
 from apps.server import cloud_instance
 from apps.login import login
+from apps import utils
 import datetime
 from rest_framework.authtoken import views as drf_views
 
@@ -48,5 +49,7 @@ urlpatterns = [
     path('execute_order/', create_private_user.execute_order_func),                                      # 执行工单
     path('auth/', drf_views.obtain_auth_token),
     path('get_login_user_name_by_token/', login.get_login_user_name_by_token_func),
+    path('get_master_ip/', utils.get_master_ip_func),
+    path('get_cluster_name/', utils.get_cluster_name_func),
 ]
 
