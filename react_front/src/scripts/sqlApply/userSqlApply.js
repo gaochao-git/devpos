@@ -66,7 +66,8 @@ export default class UserSqlApply extends Component {
             sql_check_results_loading:false,
             sql_check_pass_loading:false,
             sql_execute_loading:false,
-            sql_check_code_explain:""
+            sql_check_code_explain:"",
+            cluster_name:"",
         }
         this.cacheData = this.state.data.map(item => ({ ...item }));
     }
@@ -100,10 +101,18 @@ export default class UserSqlApply extends Component {
         }
         let res = await axios.post(`${backendServerApiRoot}/get_apply_sql_by_uuid/`,{params});
         let res_split_sql = await axios.post(`${backendServerApiRoot}/get_split_sql_by_uuid/`,{params});
+        if (res.data.data[0]["cluster_name"].length>0){
+            this.setState({
+                cluster_name:res.data.data[0]["cluster_name"]
+            })
+        }else{
+            this.setState({
+                master_ip: res.data.data[0]["master_ip"],
+                master_port: res.data.data[0]["master_port"],
+            })
+        }
         this.setState({
             submit_sql_title: res.data.data[0]["title"],
-            master_ip: res.data.data[0]["master_ip"],
-            master_port: res.data.data[0]["master_port"],
             submit_sql_user: res.data.data[0]["submit_sql_user"],
             leader_user_name: res.data.data[0]["leader_user_name"],
             qa_user_name: res.data.data[0]["qa_user_name"],
@@ -613,8 +622,9 @@ export default class UserSqlApply extends Component {
                             <Row gutter={8}><Col style={{padding:5}} span={8}>执行类型:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_execute_type}</Col></Row>
                         </Col>
                         <Col span={11} className="col-detail">
-                            <Row gutter={8}><Col style={{padding:5}} span={6}>集群主库ip:</Col><Col style={{padding:5}} span={18}>{this.state.master_ip}</Col></Row>
-                            <Row gutter={8}><Col style={{padding:5}} span={6}>集群主库port:</Col><Col style={{padding:5}} span={18}>{this.state.master_port}</Col></Row>
+                            {!this.state.cluster_name ? <Row gutter={8}><Col style={{padding:5}} span={6}>集群主库ip:</Col><Col style={{padding:5}} span={18}>{this.state.master_ip}</Col></Row>:null}
+                            {!this.state.cluster_name ? <Row gutter={8}><Col style={{padding:5}} span={6}>集群主库port:</Col><Col style={{padding:5}} span={18}>{this.state.master_port}</Col></Row>:null}
+                            {this.state.cluster_name ? <Row gutter={8}><Col style={{padding:5}} span={6}>集群名:</Col><Col style={{padding:5}} span={18}>{this.state.cluster_name}</Col></Row>:null}
                             <Row gutter={8}><Col style={{padding:5}} span={6}>申请者:</Col><Col style={{padding:5}} span={18}>{this.state.submit_sql_user}</Col></Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={6}>Leader:</Col>

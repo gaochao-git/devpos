@@ -2,12 +2,18 @@
 #-\*-coding: utf-8-\*-
 
 import pymysql
-import sys
 import json
+import sys
+import logging
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    filename='./execute.log',
+                    filemode='a+')
 
 
 # inception执行SQL
-def execute_sql_func(master_ip, master_port, osc_config_sql, execute_sql):
+def execute_sql_func(master_ip,master_port,osc_config_sql,execute_sql):
     print("inception_prepare_sql:{}".format(osc_config_sql))
     sql = """/*--user=wthong;--password=fffjjj;--host={};--port={};--execute=1;--enable-remote-backup={};--enable-ignore-warnings={};--enable-force={};*/\
         inception_magic_start;
@@ -67,14 +73,23 @@ def process_execute_results(results):
 def main():
     try:
         #获取工单详情
-        sql_select = "select a.master_ip,a.master_port, b.inception_osc_config from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid =b.submit_sql_uuid where split_sql_file_path='{}'".format(split_sql_file_path)
+        sql_select = "select a.master_ip,a.master_port,a.cluster_name,b.inception_osc_config from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid =b.submit_sql_uuid where split_sql_file_path='{}'".format(split_sql_file_path)
         cursor.execute("%s" % sql_select)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        # sql_file_path = data[0]["submit_sql_file_path"]
         inception_osc_config = data[0]["inception_osc_config"]
-        master_ip = data[0]["master_ip"]
-        master_port = data[0]["master_port"]
+        cluster_name = data[0]["cluster_name"]
+        print(cluster_name)
+        if cluster_name:
+            sql_get_write_node = 'select instance_name from mysql_cluster where cluster_name="{}" and role="write" limit 1'.format(cluster_name)
+            cursor.execute("%s" % sql_get_write_node)
+            rows = cursor.fetchall()
+            if rows:
+                master_ip = rows[0][0].split("_")[0]
+                master_port = rows[0][0].split("_")[1]
+        else:
+            master_ip = data[0]["master_ip"]
+            master_port = data[0]["master_port"]
         if inception_osc_config == "" or inception_osc_config == '{}':
             osc_config_sql = "show databases;"
         else:
@@ -171,6 +186,7 @@ if __name__ == "__main__":
     inception_execute_ignore_error = sys.argv[4]
     split_sql_file_path = sys.argv[5]
     try:
+        logging.info(1111)
         main()
     except Exception as e:
         print(e)

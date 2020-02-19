@@ -60,6 +60,7 @@ def get_apply_sql_by_uuid_func(request):
                case execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功(含警告)' when 6 then '手动执行' end as execute_status,
                master_ip,
                master_port,
+               cluster_name,
                comment_info,
                submit_sql_uuid,
                (select count(*) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_rows,
@@ -87,12 +88,28 @@ def get_apply_sql_by_uuid_func(request):
     return HttpResponse(json.dumps(content,default=str), content_type='application/json')
 
 
-# 页面调用inception检测SQL
+# 页面调用inception检测SQL,如果根据cluster_name则需要先获取到对应的master_ip、master_port
 def check_sql_func(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    db_ip = request_body['params']['db_ip'].strip()
-    db_port = request_body['params']['db_port'].strip()
+    if (request_body['params']['submit_source_db_type'] == "cluster"):
+        cluster_name = request_body['params']['cluster_name']
+        sql_get_write_node = 'select instance_name from mysql_cluster where cluster_name="{}" and role="write" limit 1'.format(cluster_name)
+        cursor = connection.cursor()
+        try:
+            cursor.execute("%s" % sql_get_write_node)
+            rows = cursor.fetchall()
+            if rows:
+                db_ip = rows[0][0].split("_")[0]
+                db_port = rows[0][0].split("_")[1]
+        except Exception as e:
+            print(e)
+        finally:
+            cursor.close()
+            connection.close()
+    else:
+        db_ip = request_body['params']['db_ip'].strip()
+        db_port = request_body['params']['db_port'].strip()
     check_sql_info = request_body['params']['check_sql_info']
     sql = """/*--user=wthong;--password=fffjjj;--host={};--check=1;--port={};*/\
         inception_magic_start;
@@ -132,38 +149,60 @@ def submit_sql_func(request):
     file_name = "%s_%s.sql" % (login_user_name, uuid_str)
     file_path = now_date + '/' + file_name
     upfile = os.path.join(upload_path, file_name)
-    cursor = connection.cursor()
-    if request.method == 'POST':
-        sql_title = request_body['params']['title']
+    sql_title = request_body['params']['title']
+    leader = request_body['params']['leader']
+    qa = request_body['params']['qa']
+    check_sql = request_body['params']['check_sql']
+    check_sql_results = request_body['params']['check_sql_results']
+    submit_sql_execute_type = request_body['params']['submit_sql_execute_type']
+    comment_info = request_body['params']['comment_info']
+    print(request_body['params'])
+    if (request_body['params']['submit_source_db_type'] == "cluster"):
+        cluster_name = request_body['params']['cluster_name']
+        print(cluster_name)
+        sql = """insert into sql_submit_info(submit_sql_user,
+                                     title,
+                                     cluster_name,
+                                     submit_sql_file_path,
+                                     leader_user_name,
+                                     leader_check,
+                                     qa_user_name,
+                                     qa_check,
+                                     dba_check_user_name,
+                                     dba_check,
+                                     submit_sql_execute_type,
+                                     dba_execute_user_name,
+                                     comment_info,
+                                     submit_sql_uuid) 
+             values('{}','{}','{}','{}','{}',1,'{}',1,'gaochao',1,'{}','gaochao','{}','{}')
+        """.format(login_user_name,sql_title, cluster_name, file_path, leader, qa, submit_sql_execute_type, comment_info, uuid_str)
+        print(sql)
+    else:
         db_ip = request_body['params']['db_ip'].strip()
         db_port = request_body['params']['db_port'].strip()
-        leader = request_body['params']['leader']
-        qa = request_body['params']['qa']
-        check_sql = request_body['params']['check_sql']
-        check_sql_results = request_body['params']['check_sql_results']
-        submit_sql_execute_type = request_body['params']['submit_sql_execute_type']
-        comment_info = request_body['params']['comment_info']
         sql = """insert into sql_submit_info(submit_sql_user,
-                                         title,
-                                         master_ip,
-                                         master_port,
-                                         submit_sql_file_path,
-                                         leader_user_name,
-                                         leader_check,
-                                         qa_user_name,
-                                         qa_check,
-                                         dba_check_user_name,
-                                         dba_check,
-                                         submit_sql_execute_type,
-                                         dba_execute_user_name,
-                                         comment_info,
-                                         submit_sql_uuid) 
-                 values('{}','{}','{}',{},'{}','{}',1,'{}',1,'gaochao',1,'{}','gaochao','{}','{}')
-        """.format(login_user_name,sql_title, db_ip, db_port, file_path, leader, qa, submit_sql_execute_type, comment_info, uuid_str)
-        # 提交的SQL写入文件
-        with open(upfile,'w') as f:
-            f.write(check_sql)
-            f.close()
+                                     title,
+                                     master_ip,
+                                     master_port,
+                                     submit_sql_file_path,
+                                     leader_user_name,
+                                     leader_check,
+                                     qa_user_name,
+                                     qa_check,
+                                     dba_check_user_name,
+                                     dba_check,
+                                     submit_sql_execute_type,
+                                     dba_execute_user_name,
+                                     comment_info,
+                                     submit_sql_uuid) 
+             values('{}','{}','{}',{},'{}','{}',1,'{}',1,'gaochao',1,'{}','gaochao','{}','{}')
+    """.format(login_user_name,sql_title, db_ip, db_port, file_path, leader, qa, submit_sql_execute_type, comment_info, uuid_str)
+
+    # 提交的SQL写入文件
+    with open(upfile,'w') as f:
+        f.write(check_sql)
+        f.close()
+    cursor = connection.cursor()
     try:
         cursor.execute("%s" % sql)
         for check_sql_result in check_sql_results:
@@ -309,6 +348,7 @@ def pass_submit_sql_by_uuid_func(request):
                 from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where a.submit_sql_uuid='{}'
         """.format(submit_sql_uuid, submit_sql_uuid, submit_sql_uuid, submit_sql_uuid)
         #拆分SQL
+        print(10000)
         ret = split_sql_func(submit_sql_uuid)
     elif apply_results == "不通过":
         sql = "update sql_submit_info set leader_check=3,qa_check=3,dba_check=3 where submit_sql_uuid='{}'".format(submit_sql_uuid)
@@ -581,17 +621,26 @@ def split_sql_func(submit_sql_uuid):
     # 查询工单信息
     try:
         cursor = connection.cursor()
-        sql_select = "select master_ip,master_port, submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
+        sql_select = "select master_ip,master_port,cluster_name,submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
         cursor.execute("%s" % sql_select)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+        print(data)
         sql_file_path = data[0]["submit_sql_file_path"]
-        master_ip = data[0]["master_ip"]
-        master_port = data[0]["master_port"]
+        cluster_name = data[0]["cluster_name"]
+        print(20000)
+        print(cluster_name)
+        if cluster_name:
+            ret = utils.get_cluster_write_node_info(cluster_name)
+            master_ip = ret[0]
+            master_port = ret[1]
+        else:
+            master_ip = data[0]["master_ip"]
+            master_port = data[0]["master_port"]
         with open("./upload/{}".format(sql_file_path), "rb") as f:
             execute_sql = f.read()
             execute_sql = execute_sql.decode('utf-8')
-        ret = start_split_sql(cursor,submit_sql_uuid,master_ip, master_port, execute_sql, sql_file_path)
+        ret = start_split_sql(cursor,submit_sql_uuid,master_ip, master_port, execute_sql, sql_file_path,cluster_name)
         if ret == "拆分SQL成功":
             message = "拆分任务成功"
         else:
@@ -607,7 +656,7 @@ def split_sql_func(submit_sql_uuid):
 
 
 # 开始拆分
-def start_split_sql(cursor,submit_sql_uuid,master_ip, master_port, execute_sql, sql_file_path):
+def start_split_sql(cursor,submit_sql_uuid,master_ip, master_port, execute_sql, sql_file_path,cluster_name):
     # 拆分SQL
     sql = """/*--user=wthong;--password=fffjjj;--host={};--port={};--enable-split;*/\
         inception_magic_start;
@@ -618,7 +667,7 @@ def start_split_sql(cursor,submit_sql_uuid,master_ip, master_port, execute_sql, 
         cur = conn.cursor()
         cur.execute(sql)
         sql_tuple = cur.fetchall()
-        ret = write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sql_tuple,sql_file_path)
+        ret = write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sql_tuple,sql_file_path,cluster_name)
         if ret == "拆分后SQL写入新文件成功":
             message = "拆分SQL成功"
         else:
@@ -634,7 +683,7 @@ def start_split_sql(cursor,submit_sql_uuid,master_ip, master_port, execute_sql, 
 
 
 # 将拆分SQL写入拆分文件,并将自任务写入sql_execute_split
-def write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sql_tuple,sql_file_path):
+def write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sql_tuple,sql_file_path,cluster_name):
     try:
         result = []
         result_tmp = {}
@@ -667,11 +716,12 @@ def write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sq
                                     sql_num,
                                     ddlflag,
                                     master_ip,
-                                    master_port
-                                    ) values('{}',{},'{}',{},{},'{}',{})
-                                """.format(submit_sql_uuid,split_seq,split_sql_file_path,sql_num,ddlflag,master_ip, master_port)
-            cursor.execute(insert_split_sql)
+                                    master_port,
+                                    cluster_name
+                                    ) values('{}',{},'{}',{},{},'{}',{},'{}')
+                                """.format(submit_sql_uuid,split_seq,split_sql_file_path,sql_num,ddlflag,master_ip, master_port,cluster_name)
             print(insert_split_sql)
+            cursor.execute(insert_split_sql)
         message = "拆分后SQL写入新文件成功"
     except Exception as e:
         message = "拆分后SQL写入新文件失败"
