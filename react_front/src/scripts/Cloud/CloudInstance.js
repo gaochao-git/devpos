@@ -75,7 +75,7 @@ export default class CloudInstance extends Component  {
                 dataIndex: 'network_type',
             },
             {
-                title: '公网带宽',
+                title: '公网带宽(Mbps)',
                 colSpan: 1,
                 dataIndex: 'public_network_bandwidth',
             },
