@@ -191,6 +191,8 @@ export default class UserSqlApply extends Component {
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
             apply_results:value,
+            check_user_name:this.state.login_user_name,
+            check_user_name_role:this.state.login_user_name_role,
         };
         let res = await axios.post(`${backendServerApiRoot}/pass_submit_sql_by_uuid/`,{params});
         message.success(res.data.message);
@@ -217,8 +219,10 @@ export default class UserSqlApply extends Component {
             inception_backup: this.state.inception_backup,
             inception_check_ignore_warning: this.state.inception_check_ignore_warning,
             inception_execute_ignore_error: this.state.inception_execute_ignore_error,
-            split_sql_file_path:split_sql_file_path
+            split_sql_file_path:split_sql_file_path,
+            execute_user_name:this.state.login_user_name
         };
+        console.log(params)
         let inception_error_level_rray=[];
         for(var i=0;i<this.state.view_check_sql_result.length;i++){
             inception_error_level_rray.push(this.state.view_check_sql_result[i]["inception_error_level"])
@@ -613,7 +617,7 @@ export default class UserSqlApply extends Component {
                                 <Col style={{padding:5}} span={8}>SQL审核结果:</Col>
                                 <Col >
                                     <Button style={{padding:5}} span={16} className="link-button" loading={this.state.sql_check_results_loading} onClick={this.showCheckSqlResultModalHandle.bind(this)} >查看</Button>
-                                    {this.state.sql_check_max_code !== 0 ? <span style={{color:"red"}}>{[this.state.sql_check_code_explain]}</span>:<span  style={{color:"#00FF00"}}>[正常]</span>}
+                                    {this.state.sql_check_max_code !== 0 ? <span style={{color:"red"}}>{[this.state.sql_check_code_explain]}</span>:<span  style={{color:"#52c41a"}}>[正常]</span>}
                                 </Col>
                             </Row>
                             <Row gutter={8}><Col style={{padding:5}} span={8}>SQL总条数:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_rows}</Col></Row>
@@ -630,38 +634,41 @@ export default class UserSqlApply extends Component {
                                 <Col style={{padding:5}} span={6}>Leader:</Col>
                                 <Col style={{padding:5}} span={18}>
                                     [{this.state.leader_user_name}]
-                                    {this.state.leader_check==="通过" ? <span style={{color:"#00FF00"}}>[{this.state.leader_check}]</span>:<span  style={{color:"red"}}>[{this.state.leader_check}]</span>}
+                                        {this.state.leader_check==="通过" ? <span style={{color:"#52c41a"}}>[{this.state.leader_check}]</span>:<span  style={{color:"red"}}>[{this.state.leader_check}]</span>}
                                 </Col>
                             </Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={6}>QA:</Col>
                                 <Col style={{padding:5}} span={18}>
                                     [{this.state.qa_user_name}]
-                                    {this.state.qa_check === "通过" ? <span style={{color:"#00FF00"}}>[{this.state.qa_check}]</span>:<span  style={{color:"red"}}>[{this.state.qa_check}]</span>}
+                                    {this.state.qa_check === "通过" ? <span style={{color:"#52c41a"}}>[{this.state.qa_check}]</span>:<span  style={{color:"red"}}>[{this.state.qa_check}]</span>}
                                 </Col>
                             </Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={6}>审核DBA:</Col>
                                 <Col style={{padding:5}} span={18}>
                                     [{this.state.dba_check_user_name}]
-                                    {this.state.dba_check === "通过" ? <span style={{color:"#00FF00"}}>[{this.state.dba_check}]</span>:<span  style={{color:"red"}}>[{this.state.dba_check}]</span>}
+                                    {this.state.dba_check === "通过" ? <span style={{color:"#52c41a"}}>[{this.state.dba_check}]</span>:<span  style={{color:"red"}}>[{this.state.dba_check}]</span>}
                                 </Col>
                             </Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={6}>执行DBA:</Col>
                                 <Col style={{padding:5}} span={18}>
                                     [{this.state.dba_execute_user_name}]
-                                    {this.state.dba_execute === "已执行" ? <span style={{color:"#00FF00"}}>[{this.state.dba_execute}]</span>:<span  style={{color:"red"}}>[{this.state.dba_execute}]</span>}
+                                    {this.state.dba_execute === "已执行" ? <span style={{color:"#52c41a"}}>[{this.state.dba_execute}]</span>:<span  style={{color:"red"}}>[{this.state.dba_execute}]</span>}
                                 </Col>
                             </Row>
                         </Col>
                     </Row>
                     <br/>
-                    {this.state.login_user_name_role==="dba" && this.state.sql_check_results_loading===false ?
+                    {(this.state.login_user_name_role==="dba" || this.state.login_user_name_role==="leader" || this.state.login_user_name_role==="qa") && this.state.sql_check_results_loading===false ?
                         <div>
                             <h3>审核操作</h3>
                             <div className="input-padding">
-                                { this.state.leader_check==="未审核" && this.state.qa_check === '未审核' && this.state.dba_check ==="未审核" ? <Button type="primary" style={{marginLeft:16}} onClick={this.showApplySqlModalHandle}>审核</Button>:null}
+                                { (this.state.leader_check==="未审核" && this.state.login_user_name_role==="leader") ? <Button type="primary" style={{marginLeft:16}} onClick={this.showApplySqlModalHandle}>审核</Button>:null}
+                                { (this.state.qa_check === '未审核' && this.state.login_user_name_role==="qa") ? <Button type="primary" style={{marginLeft:16}} onClick={this.showApplySqlModalHandle}>审核</Button>:null}
+                                { (this.state.dba_check === '未审核' && this.state.login_user_name_role==="dba") ? <Button type="primary" style={{marginLeft:16}} onClick={this.showApplySqlModalHandle}>审核</Button>:null}
+
                             </div>
                             <br/>
                             <div>
@@ -688,7 +695,7 @@ export default class UserSqlApply extends Component {
                                 />
                                 <Column title="执行SQL"
                                         render={(text, row) => {
-                                            if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '未执行')  {
+                                            if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '未执行' && this.state.login_user_name_role==="dba")  {
                                                 return (
                                                     <div>
                                                         <Button className="link-button" loading={this.state.sql_execute_loading} onClick={()=>{this.ExecuteBySplitSqlFilePath(row.split_sql_file_path)}}>平台执行</Button>
