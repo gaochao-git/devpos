@@ -3,6 +3,8 @@ import axios from 'axios'
 import { Button, Input,Form,Row,Card,Checkbox,message} from "antd";
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
+import {backendServerApiRoot, getUser} from "../common/util";
+
 
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
@@ -22,8 +24,23 @@ export default class CreatePrivateUser extends React.Component  {
             confirmLoading: false,
             checkedList: defaultCheckedList,
             indeterminate: true,
+            login_user_name:"",
+            login_user_name_role:"",
         }
     }
+
+    componentDidMount() {
+        getUser().then(res => {
+            this.setState({
+                login_user_name: res.data.username,
+                login_user_name_role: res.data.title,
+            })
+        }).catch(error=>{
+            console.log(error)
+        })
+
+    };
+
 
     handleSubmit = e => {
         e.preventDefault();
@@ -36,7 +53,7 @@ export default class CreatePrivateUser extends React.Component  {
                 grant_user_host: values["User_ip"],
                 grant_database: values["Database"],
                 grant_table: values["Table"],
-                grant_person_name: values["dev_user"],
+                grant_dev_name: this.state.login_user_name,
                 grant_privileges : this.state.checkedList.join(",")
             };
             axios.post(`${server}/privileges_create_user_info/`,{params}).then(
@@ -79,9 +96,6 @@ export default class CreatePrivateUser extends React.Component  {
                     <Form className="ant-advanced-search-form" labelCol={{ span: 4 }} onSubmit={this.handleSubmit}>
                         <Row gutter={20}>
                             <Card>
-                                <FormItem  label='dev_user'>
-                                    {getFieldDecorator('dev_user', {rules: [{required: true, message: '请输入申请人名字'}]})(<Input style={{ width: '20%' }} placeholder='请输入申请人名字'/>)}
-                                </FormItem>
                                 <FormItem  label='DB_master_ip'>
                                     {getFieldDecorator('DB_master_ip', {rules: [{required: true, message: '请输入DB_master_ip'}],})(<Input style={{ width: '20%' }} placeholder='请输入DB_master_ip'/>)}
                                 </FormItem>

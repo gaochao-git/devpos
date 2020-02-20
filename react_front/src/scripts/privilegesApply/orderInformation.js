@@ -4,6 +4,7 @@ import {Button, Col, Form, Row, Card, Table, message,Modal,Input} from "antd";
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import {Link} from "react-router-dom";
+import {backendServerApiRoot, getUser} from "../common/util";
 
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
@@ -18,38 +19,58 @@ export default class OrderInformation extends React.Component  {
         this.state = {
             showDataVisible: false,
             checkOrderVisible:false,
+            checkDbaOrderVisible:false,
             confirmLoading: false,
             indeterminate: true,
-            person_name:"",  //申请人
-            request_type:"",   //工单类型
-            department:"",     //部门
-            leader:"",        //业务leader
-            dba:"",           //DBA
-            leader_check_result:"",     //业务Leader审核结果
-            dba_check_result:"",        //DBA审核结果
-            db_master_ip:"",                   //数据库地址
-            db_master_port:"",                  //数据库port
-            user_host:"",                  //用户host
-            db_name:"",                    //库名
-            tb_name:"",                    //表名
-            user_name:"",                  //用户
+            dev_name:"",            //申请人
+            request_type:"",           //工单类型
+            department:"",             //部门
+            leader:"",                 //业务leader
+            dba:"",                    //DBA
+            leader_check_result:"",    //业务Leader审核结果
+            dba_check_result:"",       //DBA审核结果
+            db_master_ip:"",           //数据库地址
+            db_master_port:"",         //数据库port
+            user_host:"",              //用户host
+            db_name:"",                //库名
+            tb_name:"",                //表名
+            user_name:"",              //用户
             ctime:"",                  //工单创建时间
             utime:"",                  //工单更新时间
             order_info:[],
+            login_user_name:"",
+            login_user_name_role:"",
 
         }
     }
 
-    showModal = () => {
+    showCheckModal = () => {
         this.setState({
           checkOrderVisible: true,
         });
       };
 
+    showDbaCheckModal = () => {
+        this.setState({
+          checkDbaOrderVisible: true,
+        });
+      };
+
     componentDidMount() {
         this.GetUserInfo();
+        getUser().then(res => {
+            this.setState({
+                login_user_name: res.data.username,
+                //login_user_name_role: res.data.title,
+                login_user_name_role: res.data.title,
+            })
+        }).catch(error=>{
+            console.log(error)
+        })
 
     }
+
+
     //获取所有用户信息
     async GetUserInfo() {
         console.log(this.props.match.params["order_uuid"]);
@@ -59,7 +80,7 @@ export default class OrderInformation extends React.Component  {
         let res = await axios.post(`${server}/get_order_info/`,{params});
         console.log(res.data);
         this.setState({
-            person_name: res.data[0]["person_name"],
+            dev_name: res.data[0]["person_name"],
             leader: res.data[0]["leader"],
             dba: res.data[0]["dba"],
             department: res.data[0]["department"],
@@ -82,7 +103,8 @@ export default class OrderInformation extends React.Component  {
         console.log(this.props.match.params["order_uuid"]);
         let params = {
           order_uuid: this.props.match.params["order_uuid"],
-          leader_check_result:"通过"
+          check_result:"通过",
+          login_user_name_role: this.state.login_user_name_role
         };
         console.log(params);
         axios.post(`${server}/check_order/`,{params}).then(
@@ -99,7 +121,8 @@ export default class OrderInformation extends React.Component  {
         console.log(this.props.match.params["order_uuid"]);
         let params = {
           order_uuid: this.props.match.params["order_uuid"],
-          leader_check_result:"不通过"
+          check_result:"不通过",
+          login_user_name_role: this.state.login_user_name_role
         };
         console.log(params);
         axios.post(`${server}/check_order/`,{params}).then(
@@ -135,6 +158,7 @@ export default class OrderInformation extends React.Component  {
 
 
 
+
     render() {
         const {form} = this.props;
         const {getFieldDecorator} = this.props.form;
@@ -144,7 +168,7 @@ export default class OrderInformation extends React.Component  {
                     <Row gutter={20}>
                         <Card title="申请基础信息" bordered={false}>
                             <Col span={8}>
-                                <p>申请人: {this.state.person_name}</p>
+                                <p>申请人: {this.state.dev_name}</p>
                                 <p>
                                     leader: {this.state.leader}
                                     [{this.state.leader_check_result}]
@@ -181,22 +205,23 @@ export default class OrderInformation extends React.Component  {
                     </Row>
                 </div>
                 <div>
-                    {this.state.leader_check_result==="未审核" ? <Button type="primary" onClick={()=>{this.showModal()}}>审核</Button>:null}
-                    {this.state.leader_check_result==="通过" && this.state.execute_status==="未执行" ? <Button type="primary" onClick={()=>{this.handleSqlSubmit()}}>执行</Button>:null}
+                    {this.state.login_user_name_role==="leader" && this.state.leader_check_result==="未审核" ? <Button type="primary" onClick={()=>{this.showCheckModal()}}>审核</Button>:null}
+                    {this.state.login_user_name_role==="dba" && this.state.dba_check_result==="未审核" && this.state.leader_check_result==="通过" ? <Button type="primary" onClick={()=>{this.showCheckModal()}}>审核</Button>:null}
+                    {this.state.login_user_name_role==="dba" && this.state.dba_check_result==="通过" && this.state.execute_status==="未执行" ? <Button type="primary" onClick={()=>{this.handleSqlSubmit()}}>执行</Button>:null}
                 </div>
-                  <Modal
-                      title="工单审核"
-                      visible={this.state.checkOrderVisible}
-                      //onOk={this.handleCheckSubmit.bind(this)}
-                      onCancel={this.handleCancel}
-                      okText= "通过"
-                      cancelText= "不通过"
-                      footer={null}
-                  >
+                <Modal
+                    title="工单审核"
+                    visible={this.state.checkOrderVisible}
+                    onCancel={this.handleCancel}
+                    okText= "通过"
+                    cancelText= "不通过"
+                    footer={null}
+                >
                     <TextArea></TextArea>
-                      <Button type="primary" onClick={()=>{this.handleCheckSubmitPass()}}>通过</Button>
-                      <Button type="primary" onClick={()=>{this.handleCheckSubmitNoPass()}}>不通过</Button>
-                  </Modal>
+                        <Button type="primary" onClick={()=>{this.handleCheckSubmitPass()}}>通过</Button>
+                        <Button type="primary" onClick={()=>{this.handleCheckSubmitNoPass()}}>不通过</Button>
+                </Modal>
+
 
             </div>
         )
