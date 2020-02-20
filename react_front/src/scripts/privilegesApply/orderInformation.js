@@ -1,6 +1,6 @@
 import React from 'react';
 import axios from 'axios'
-import {Button, Col, Form, Row, Card, Table, message,Modal,Input} from "antd";
+import {Button, Col, Form, Row, Card, Table, message,Modal,Input,} from "antd";
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import {Link} from "react-router-dom";
@@ -18,11 +18,10 @@ export default class OrderInformation extends React.Component  {
         super(props);
         this.state = {
             showDataVisible: false,
-            checkOrderVisible:false,
-            checkDbaOrderVisible:false,
+            checkOrderVisible:false,   //审核modal是否可见
             confirmLoading: false,
             indeterminate: true,
-            dev_name:"",            //申请人
+            dev_name:"",               //申请人
             request_type:"",           //工单类型
             department:"",             //部门
             leader:"",                 //业务leader
@@ -37,9 +36,9 @@ export default class OrderInformation extends React.Component  {
             user_name:"",              //用户
             ctime:"",                  //工单创建时间
             utime:"",                  //工单更新时间
-            order_info:[],
-            login_user_name:"",
-            login_user_name_role:"",
+            order_info:[],             //工单信息
+            login_user_name:"",        //当前登录用户名
+            login_user_name_role:"",   //当前登录用户角色
 
         }
     }
@@ -50,18 +49,13 @@ export default class OrderInformation extends React.Component  {
         });
       };
 
-    showDbaCheckModal = () => {
-        this.setState({
-          checkDbaOrderVisible: true,
-        });
-      };
+
 
     componentDidMount() {
         this.GetUserInfo();
         getUser().then(res => {
             this.setState({
                 login_user_name: res.data.username,
-                //login_user_name_role: res.data.title,
                 login_user_name_role: res.data.title,
             })
         }).catch(error=>{
@@ -108,8 +102,8 @@ export default class OrderInformation extends React.Component  {
         };
         console.log(params);
         axios.post(`${server}/check_order/`,{params}).then(
-                res => {res.data.status==="ok" ? message.success(res.data.message) && this.GetUserInfo() : message.error(res.data.message) && this.GetUserInfo()}
-        ).catch(err => {message.error(err.message)});
+                res => {res.data.status==="ok" ? message.success(res.data.message,3) && this.GetUserInfo() : message.error(res.data.message) && this.GetUserInfo()}
+        ).catch(err => {message.error(err.message,3)});
         this.setState({
             checkOrderVisible: false
         });
@@ -126,8 +120,8 @@ export default class OrderInformation extends React.Component  {
         };
         console.log(params);
         axios.post(`${server}/check_order/`,{params}).then(
-                res => {res.data.status==="ok" ? message.success(res.data.message) && this.GetUserInfo() : message.error(res.data.message) && this.GetUserInfo()}
-        ).catch(err => {message.error(err.message)});
+                res => {res.data.status==="ok" ? message.success(res.data.message,3) && this.GetUserInfo() : message.error(res.data.message) && this.GetUserInfo()}
+        ).catch(err => {message.error(err.message,3)});
         this.setState({
             checkOrderVisible: false
         });
@@ -164,6 +158,19 @@ export default class OrderInformation extends React.Component  {
         const {getFieldDecorator} = this.props.form;
         return (
             <div className="server-list">
+                <div className="sub-title">
+                    <div>
+                        <Link className="title-text" to="/">
+                            Home
+                        </Link>
+                        >>
+                        <Link className="title-text" to="/privilegesApply">
+                            用户权限申请
+                        </Link>
+                    </div>
+                </div>
+
+
                 <div>
                     <Row gutter={20}>
                         <Card title="申请基础信息" bordered={false}>
