@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import { Button,Table, Input, Modal, Tabs, Form, Row, Select, message, Card, AutoComplete} from "antd";
+import { Button,Table, Input, Modal, Tabs, Form, Row, Select, message, Card, AutoComplete } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -12,6 +12,7 @@ const { TabPane } = Tabs;
 const Column = Table.Column;
 const FormItem = Form.Item;
 const { Option } = Select;
+const { Search } = Input;
 //const server = 'http://192.168.0.104:8000';
 // function callback(key) {
 //   console.log(key);
@@ -158,8 +159,8 @@ class UserSqlCheckSubmit extends Component {
             db_port: this.state.des_port,
             check_sql: this.state.check_sql,
             title:value["Title"],
-            leader:value["LEADER"],
-            qa:value["QA"],
+            // leader:value["LEADER"],
+            // qa:value["QA"],
             env:value["ENV"],
             info:value["INFO"],
             check_sql_results: value["check_sql_results"],
@@ -347,18 +348,18 @@ class UserSqlCheckSubmit extends Component {
                             return className;}}
                         size="small"
                     >
-                        <Column title="申请人"
-                            dataIndex="submit_sql_user"/>
                         <Column title="标题"
                             dataIndex="title"/>
-                        <Column title="Leader审核"
-                            dataIndex="leader_check"/>
-                        <Column title="Leader姓名"
+                        <Column title="申请人"
+                                dataIndex="submit_sql_user"/>
+                        <Column title="TL姓名"
                             dataIndex="leader_user_name"/>
-                        <Column title="QA审核"
-                            dataIndex="qa_check"/>
                         <Column title="QA姓名"
                             dataIndex="qa_user_name"/>
+                        <Column title="TL审核"
+                                dataIndex="leader_check"/>
+                        <Column title="QA审核"
+                                dataIndex="qa_check"/>
                         <Column title="DBA审核"
                             dataIndex="dba_check"/>
                         <Column title="DBA执行"
@@ -436,16 +437,16 @@ class UserSqlCheckSubmit extends Component {
                                             <Input placeholder='请输入title'/>
                                         )}
                                     </FormItem>
-                                    <FormItem  label='LEADER'>
-                                        {getFieldDecorator('LEADER', {rules: [{required: true, message: '请输入leader名字'}],})(
-                                            <Input placeholder='请输入leader名字'/>
-                                        )}
-                                    </FormItem>
-                                    <FormItem  label='QA'>
-                                        {getFieldDecorator('QA', {rules: [{required: true, message: '请输入qa姓名'}]})(
-                                          <Input placeholder='请输入qa姓名'/>
-                                        )}
-                                    </FormItem>
+                                    {/*<FormItem  label='LEADER'>*/}
+                                    {/*    {getFieldDecorator('LEADER', {rules: [{required: true, message: '请输入leader名字'}],})(*/}
+                                    {/*        <Input placeholder='请输入leader名字'/>*/}
+                                    {/*    )}*/}
+                                    {/*</FormItem>*/}
+                                    {/*<FormItem  label='QA'>*/}
+                                    {/*    {getFieldDecorator('QA', {rules: [{required: true, message: '请输入qa姓名'}]})(*/}
+                                    {/*      <Input placeholder='请输入qa姓名'/>*/}
+                                    {/*    )}*/}
+                                    {/*</FormItem>*/}
                                     <FormItem  label='ENV'>
                                         {getFieldDecorator('ENV', {rules: [{required: true, message: '请输入环境'}],})(
                                             <Select>

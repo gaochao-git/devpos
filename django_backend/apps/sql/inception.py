@@ -150,8 +150,15 @@ def submit_sql_func(request):
     file_path = now_date + '/' + file_name
     upfile = os.path.join(upload_path, file_name)
     sql_title = request_body['params']['title']
-    leader = request_body['params']['leader']
-    qa = request_body['params']['qa']
+    sql_get_leader_qa_dba = "select b.qa_name,b.leader_name,b.dba_name from team_user a inner join team_check_role b on a.gid=b.gid where a.uname='{}'".format(login_user_name)
+    cursor = connection.cursor()
+    cursor.execute("%s" % sql_get_leader_qa_dba)
+    rows = cursor.fetchall()
+    qa_name = rows[0][0]
+    leader_name = rows[0][1]
+    dba_name = rows[0][2]
+    # leader = request_body['params']['leader']
+    # qa = request_body['params']['qa']
     check_sql = request_body['params']['check_sql']
     check_sql_results = request_body['params']['check_sql_results']
     submit_sql_execute_type = request_body['params']['submit_sql_execute_type']
@@ -171,11 +178,10 @@ def submit_sql_func(request):
                                      dba_check_user_name,
                                      dba_check,
                                      submit_sql_execute_type,
-                                     dba_execute_user_name,
                                      comment_info,
                                      submit_sql_uuid) 
-             values('{}','{}','{}','{}','{}',1,'{}',1,'gaochao',1,'{}','gaochao','{}','{}')
-        """.format(login_user_name,sql_title, cluster_name, file_path, leader, qa, submit_sql_execute_type, comment_info, uuid_str)
+             values('{}','{}','{}','{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
+        """.format(login_user_name,sql_title, cluster_name, file_path, leader_name, qa_name,dba_name,submit_sql_execute_type, comment_info, uuid_str)
         print(sql)
     else:
         db_ip = request_body['params']['db_ip'].strip()
@@ -316,13 +322,22 @@ def get_check_sql_results_by_uuid_func(request):
 
 # 审核通过并拆分SQL
 def pass_submit_sql_by_uuid_func(request):
+    token = request.META.get('HTTP_AUTHORIZATION')
+    check_user_name = utils.get_login_user(token)["username"]
+    check_user_name_role = utils.get_login_user(token)["title"]
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     ret = ""
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
     apply_results = request_body['params']['apply_results']
+    if check_user_name_role=="leader":
+        sql = "update sql_submit_info set leader_check=2,leader_user_name='{}' where submit_sql_uuid='{}'".format(check_user_name,submit_sql_uuid)
+    elif check_user_name_role=="qa":
+        sql = "update sql_submit_info set qa_check=2,qa_user_name='{}' where submit_sql_uuid='{}'".format(check_user_name,submit_sql_uuid)
+    elif check_user_name_role=="dba":
+        sql = "update sql_submit_info set dba_check=2,dba_check_user_name='{}' where submit_sql_uuid='{}'".format(check_user_name,submit_sql_uuid)
     if apply_results == "通过":
-        sql = "update sql_submit_info set leader_check=2,qa_check=2,dba_check=2 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+        #sql = "update sql_submit_info set leader_check=2,qa_check=2,dba_check=2, where submit_sql_uuid='{}'".format(submit_sql_uuid)
         split_sql = """
              select 
                 a.title,                
@@ -348,8 +363,8 @@ def pass_submit_sql_by_uuid_func(request):
                 from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where a.submit_sql_uuid='{}'
         """.format(submit_sql_uuid, submit_sql_uuid, submit_sql_uuid, submit_sql_uuid)
         #拆分SQL
-        print(10000)
-        ret = split_sql_func(submit_sql_uuid)
+        if check_user_name_role=="dba":
+            ret = split_sql_func(submit_sql_uuid)
     elif apply_results == "不通过":
         sql = "update sql_submit_info set leader_check=3,qa_check=3,dba_check=3 where submit_sql_uuid='{}'".format(submit_sql_uuid)
     cursor = connection.cursor()
@@ -484,9 +499,10 @@ def execute_submit_sql_by_file_path_func(request):
     inception_backup = request_body['params']['inception_backup']
     inception_check_ignore_warning = request_body['params']['inception_check_ignore_warning']
     inception_execute_ignore_error = request_body['params']['inception_execute_ignore_error']
+    execute_user_name = request_body['params']["execute_user_name"]
     cursor = connection.cursor()
     try:
-        cmd = "python3.5 {}/scripts/inception_execute.py '{}' {} {} {} '{}' &".format(os.getcwd(), submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path)
+        cmd = "python3.5 {}/scripts/inception_execute.py '{}' {} {} {} '{}' '{}' &".format(os.getcwd(), submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path,execute_user_name)
         print("调用脚本执行SQL:%s" % cmd)
         ret = os.system(cmd)
         print("调用脚本执行SQL返回值(非0表示调用失败):%s" % ret)

@@ -171,7 +171,7 @@ def main():
         for row in rows:
             sql_split_status_list.append(row[0])
         max_code = max(sql_split_status_list)
-        sql_update_execute_max_code = "update sql_submit_info set execute_status={} where submit_sql_uuid='{}'".format(max_code, submit_sql_uuid)
+        sql_update_execute_max_code = "update sql_submit_info set execute_status={},dba_execute_user_name='{}' where submit_sql_uuid='{}'".format(max_code, execute_user_name, submit_sql_uuid)
         cursor.execute("%s" % sql_update_execute_max_code)
         connection.commit()
     except Exception as e:
@@ -189,6 +189,7 @@ if __name__ == "__main__":
     inception_check_ignore_warning = sys.argv[3]
     inception_execute_ignore_error = sys.argv[4]
     split_sql_file_path = sys.argv[5]
+    execute_user_name = sys.argv[6]
     try:
         logging.info("工单:%s,开始执行...",submit_sql_uuid)
         main()
