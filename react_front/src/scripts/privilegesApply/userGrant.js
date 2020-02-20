@@ -6,7 +6,8 @@ import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import CreatePrivateUser from "./createPrivateUser";
 import PrivilegesExtend from "./privilegesExtend";
-import OrderInformation from "./orderInformation";
+
+
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { Search } = Input;
@@ -28,21 +29,11 @@ class privateUser extends Component  {
             confirmLoading: false,
         }
     }
-    //预览数据 modal弹出按钮
-    showDataModalHandle = (e) => {
-        this.setState({
-        showDataVisible: true,
-        });
-    }
-    //预览数据 modal返回按钮
-    showDataHandleCancel = (e) => {
-        this.setState({
-            showDataVisible: false,
-        });
-    };
+
 
     componentDidMount() {
         this.GetUserInfo()
+
     }
     //获取所有用户信息
     async GetUserInfo() {
@@ -52,23 +43,6 @@ class privateUser extends Component  {
             user_info: res.data
         })
     }
-
-   //submit提交组件
-    handleSubmit = e => {
-            e.preventDefault();
-            this.props.form.validateFields((err, values) => {
-                console.log('Received values of form: ', values);
-                let params = {
-                  grant_user_name: values["User_name"],
-                  grant_user_host: values["Host"],
-                  grant_database: values["Database"],
-                  grant_table: values["Table"],
-                  grant_privileges: values["Privileges"],
-                };
-                let res = axios.post(`${server}/grant_user_info/`,{params});
-                //alert(params["values"])
-            });
-        };
 
     //模糊搜索
     async GetSearchUserInfo(user_name) {

@@ -85,7 +85,7 @@ export default class CloudInstance extends Component  {
                 dataIndex: 'private_network_bandwidth',
             },
           {
-              title: '内存(M)',
+              title: '内存(G)',
               colSpan: 1,
               dataIndex: 'memory',
           },
