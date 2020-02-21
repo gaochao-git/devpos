@@ -25,7 +25,7 @@ class UserSqlCheckSubmit extends Component {
         this.state = {
             expand:false,
             selectEnvOptionData:['生产','测试'],
-            selectExecuteTyoeOptionData:['立即执行','暂缓执行'],
+            selectExecuteTypeOptionData:['立即执行','暂缓执行'],
             des_ip:"",
             des_port:"",
             check_sql:"",
@@ -39,11 +39,14 @@ class UserSqlCheckSubmit extends Component {
             sql_check_loading:false,
             sql_submit_loading:false,
             des_ip_list:[],
+            cluster_name_list:[],
             submit_source_db_type:"cluster",
             cluster_name:"",
-            cluster_name_list:[],
+
         }
     }
+
+
     componentDidMount() {
         this.GetSubmitSqlInfo()
     }
@@ -55,6 +58,8 @@ class UserSqlCheckSubmit extends Component {
             submit_sql_info: res.data.data,
         });
     }
+
+
     //检测SQL
     async handleSqlCheck() {
         this.state.submit_source_db_type==="cluster" ? this.handleClusterNameSqlCheck(): this.handleMasterIpPortSqlCheck()
@@ -411,7 +416,7 @@ class UserSqlCheckSubmit extends Component {
                         }
                     </div>
                     <div>
-                        <TextArea rows={10} placeholder="输入SQL,每条SQL以;结尾"  onChange={e => this.handleSqlChange(e.target.value)}/>
+                        <TextArea rows={10} placeholder="输入SQL,每条SQL以 ; 结尾"  onChange={e => this.handleSqlChange(e.target.value)}/>
                         <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.handleSqlCheck()}}>检测SQL</Button>
                         {this.state.submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>:null}
                     </div>
@@ -457,7 +462,7 @@ class UserSqlCheckSubmit extends Component {
                                     <FormItem  label='执行类型'>
                                         {getFieldDecorator('执行类型', {rules: [{required: true, message: '请输入执行类型'}],})(
                                             <Select>
-                                                {this.state.selectExecuteTyoeOptionData.map((record,index) => <Select.Option key={index} value={record}>{record}</Select.Option>)}
+                                                {this.state.selectExecuteTypeOptionData.map((record,index) => <Select.Option key={index} value={record}>{record}</Select.Option>)}
                                             </Select>
                                         )}
                                     </FormItem>

@@ -1,15 +1,16 @@
 from django.db import connection
 import json
 from django.http import HttpResponse
+
+
 # 根据登陆token获取用户信息
 def get_login_user(token):
     sql="""select a.username,
-	              a.email,
-	              case c.title when 0 then '前端开发' when 1 then '后端开发' when 2 then 'qa' when 3 then 'leader' when 4 then 'dba' end title
-	           from auth_user a inner join authtoken_token b on a.id=b.user_id 
-	           inner join team_user c on a.username=c.uname
-               where `key`='{}'
-    """.format(token)
+                 a.email,
+                  case c.title when 0 then '前端开发' when 1 then '后端开发' when 2 then 'qa' when 3 then 'leader' when 4 then 'dba' end title
+               from auth_user a inner join authtoken_token b on a.id=b.user_id 
+               inner join team_user c on a.username=c.uname
+               where `key`='{}'""".format(token)
     print(sql)
     cursor = connection.cursor()
     try:
@@ -51,7 +52,7 @@ def get_master_ip_func(request):
         connection.close()
     return HttpResponse(json.dumps(content,default=str), content_type='application/json')
 
-# 获取master ip
+# 根据输入的集群名模糊匹配已有集群名
 def get_cluster_name_func(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)

@@ -67,8 +67,8 @@ def privileges_create_user_info_func(request):
         grant_request_type = 0  # 工单类型为创建新用户
 
         #查询出当前用户的所在部门、领导和DBA信息
-        user_info_sql = "select department,leader_name,dba_name from devops.team_user where uname='{}'".format(grant_dev_name)
-        cursor.execute(user_info_sql)
+        sql_get_leader_qa_dba = "select a.department,b.qa_name,b.leader_name,b.dba_name from team_user a inner join team_check_role b on a.gid=b.gid where a.uname='{}'".format(grant_dev_name)
+        cursor.execute(sql_get_leader_qa_dba)
         user_info = cursor.fetchall()
 
         grant_department = user_info[0][0]  # 部门
@@ -275,8 +275,8 @@ def privileges_extend_info_func(request):
         grant_request_type = 1                                                                    # 工单类型为扩展权限
 
         # 查询出当前用户的所在部门、领导和DBA信息
-        user_info_sql = "select department,leader_name,dba_name from devops.team_user where uname='{}'".format(grant_dev_name)
-        cursor.execute(user_info_sql)
+        sql_get_leader_qa_dba = "select a.department,b.qa_name,b.leader_name,b.dba_name from team_user a inner join team_check_role b on a.gid=b.gid where a.uname='{}'".format(grant_dev_name)
+        cursor.execute(sql_get_leader_qa_dba)
         user_info = cursor.fetchall()
 
         grant_department = user_info[0][0]                                                         # 部门
