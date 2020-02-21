@@ -367,13 +367,11 @@ export default class UserSqlApply extends Component {
 
     //查看进度
     async getExecuteProcessByUuid(split_sql_file_path) {
-        console.log(split_sql_file_path)
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path
         };
         let res = await axios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,{params});
-        console.log(res)
         this.setState({
             execute_sql_process_results: res.data.data,
             ViewExecuteSubmitSqlProcessModalVisible:true,
@@ -387,10 +385,17 @@ export default class UserSqlApply extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
         let res = await axios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,{params});
-        console.log(res)
-        this.setState({
-            execute_sql_process_results: res.data.data
-        });
+        console.log(res.data.data)
+        console.log(res.data.data[0]["inception_execute_percent"])
+        if (res.data.data[0]["inception_execute_percent"]!==0){
+            this.setState({
+                execute_sql_process_results: res.data.data
+            });
+        }else {
+            this.setState({
+                ViewExecuteSubmitSqlProcessModalVisible:false
+            });
+        }
     }
 
      //是否备份选择框
@@ -670,7 +675,12 @@ export default class UserSqlApply extends Component {
                                 { (this.state.dba_check === '未审核' && this.state.login_user_name_role==="dba") ? <Button type="primary" style={{marginLeft:16}} onClick={this.showApplySqlModalHandle}>审核</Button>:null}
 
                             </div>
-                            <br/>
+                        </div>
+                        :null
+                    }
+                    <br/>
+                    {this.state.login_user_name_role==="dba" && this.state.sql_check_results_loading===false ?
+                        <div>
                             <div>
                                 <h3>执行选项</h3>
                                 <Checkbox defaultChecked onChange={this.inceptionBackupCheckBoxOnChange.bind(this)}>备份</Checkbox>
@@ -739,7 +749,8 @@ export default class UserSqlApply extends Component {
                             </Table>
                         </div>
 
-                        :null}
+                        :null
+                    }
                     <Modal visible={this.state.showSubmitSqlViewVisible}
                         onCancel={this.closeSubmitSqlViewModal}
                         title="SQL预览"
