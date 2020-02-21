@@ -329,14 +329,16 @@ def pass_submit_sql_by_uuid_func(request):
     ret = ""
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
     apply_results = request_body['params']['apply_results']
-    if check_user_name_role=="leader":
-        sql = "update sql_submit_info set leader_check=2,leader_user_name='{}' where submit_sql_uuid='{}'".format(check_user_name,submit_sql_uuid)
-    elif check_user_name_role=="qa":
-        sql = "update sql_submit_info set qa_check=2,qa_user_name='{}' where submit_sql_uuid='{}'".format(check_user_name,submit_sql_uuid)
-    elif check_user_name_role=="dba":
-        sql = "update sql_submit_info set dba_check=2,dba_check_user_name='{}' where submit_sql_uuid='{}'".format(check_user_name,submit_sql_uuid)
+    check_comment = request_body['params']['check_comment']
+    check_status = 2 if apply_results == "通过" else 3
+    if check_user_name_role == "leader":
+        sql = "update sql_submit_info set leader_check={},leader_user_name='{}',leader_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,check_user_name,check_comment,submit_sql_uuid)
+    elif check_user_name_role == "qa":
+        sql = "update sql_submit_info set qa_check={},qa_user_name='{}',qa_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,check_user_name,check_comment,submit_sql_uuid)
+    elif check_user_name_role == "dba":
+        sql = "update sql_submit_info set dba_check={},dba_check_user_name='{}',dba_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,check_user_name,check_comment,submit_sql_uuid)
+    cursor = connection.cursor()
     if apply_results == "通过":
-        #sql = "update sql_submit_info set leader_check=2,qa_check=2,dba_check=2, where submit_sql_uuid='{}'".format(submit_sql_uuid)
         split_sql = """
              select 
                 a.title,                
@@ -364,26 +366,32 @@ def pass_submit_sql_by_uuid_func(request):
         #拆分SQL
         if check_user_name_role=="dba":
             ret = split_sql_func(submit_sql_uuid)
+        try:
+            cursor.execute("%s" % sql)
+            cursor.execute("%s" % split_sql)
+            rows = cursor.fetchall()
+            data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+            status = "ok"
+            message = "审核成功," + ret
+        except Exception as e:
+            status = "error"
+            message = str(e) + ",+" + ret
+            print(e)
+        finally:
+            cursor.close()
+            connection.close()
+        content = {'status': status, 'message': message,"data": data}
     elif apply_results == "不通过":
-        sql = "update sql_submit_info set leader_check=3,qa_check=3,dba_check=3 where submit_sql_uuid='{}'".format(submit_sql_uuid)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % sql)
-        cursor.execute("%s" % split_sql)
-        rows = cursor.fetchall()
-        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        status = "ok"
-        message = "审核成功," + ret
-    except Exception as e:
-        status = "error"
-        message = str(e) + ",+" + ret
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    content = {'status': status, 'message': message,"data":data}
+        try:
+            cursor.execute("%s" % sql)
+            content = {'status': "ok", 'message': "审核不通过"}
+        except Exception as e:
+            content = {'status': "error", 'message': str(e)}
+        finally:
+            cursor.close()
+            connection.close()
     print(content)
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
+    return HttpResponse(json.dumps(content, default=str), content_type='application/json')
 
 
 # 页面查看inception变量配置
