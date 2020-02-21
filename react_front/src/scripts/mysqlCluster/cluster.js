@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import { Table, Input } from "antd";
+import { Table, Input,Badge } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -75,13 +75,13 @@ export default class mysqlCluster extends Component  {
           {
             title: 'cluster_type',
             dataIndex: 'cluster_type',
-            render: (text, record) => {
-                return text;
-            },
           },
           {
             title: 'instance_status',
             dataIndex: 'instance_status',
+            render:(val) => {
+                return <span>{val==="正常服务" ? <Badge status="success"/>:<Badge status="error"/>}{val}</span>
+            }
           },
           {
             title: 'instance_name',
