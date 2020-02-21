@@ -79,6 +79,11 @@ export default class mysqlCluster extends Component  {
           {
             title: '实例状态',
             dataIndex: 'instance_status',
+              render: (text, record) => {
+                record.instance_status!==1 ? return text:null
+                  obj.props.rowSpan = mergeCells(record.cluster_name, cluster_info, 'cluster_name');
+                  return obj;
+              },
           },
           {
             title: '实例名',
