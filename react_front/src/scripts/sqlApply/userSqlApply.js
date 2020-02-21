@@ -3,8 +3,6 @@ import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm, } 
 import { Link } from 'react-router-dom';
 import axios from "axios";
 import {backendServerApiRoot, getUser} from "../common/util";
-
-//const server = 'http://192.168.0.104:8000';
 const Column = Table.Column;
 const TextArea = Input.TextArea;
 const EditableCell = ({ editable, value, onChange }) => (
@@ -73,7 +71,6 @@ export default class UserSqlApply extends Component {
     }
 
     componentDidMount() {
-        console.log(this.props.match.params["submit_sql_uuid"]);
         let submit_sql_uuid = this.props.match.params["submit_sql_uuid"];
         this.GetSqlApplyByUuid(submit_sql_uuid)
         this.GetSqlCheckResultsByUuid(submit_sql_uuid);
@@ -131,7 +128,7 @@ export default class UserSqlApply extends Component {
             view_submit_split_sql_info:res_split_sql.data.data,
         })
     };
-    //预览SQL
+    //提交预览SQL
     async GetSubmitSqlByUuid(uuid) {
         this.setState({
             sql_view_loading:true,
@@ -173,7 +170,6 @@ export default class UserSqlApply extends Component {
         let res = await axios.post(`${backendServerApiRoot}/get_check_sql_results_by_uuid/`,{params});
         let inception_error_level_rray=[];
         for(var i=0;i<res.data.data.length;i++){
-            //console.log(res.data.data[i]["inception_error_level"])
             inception_error_level_rray.push(res.data.data[i]["inception_error_level"])
         };
         this.setState({
@@ -222,12 +218,10 @@ export default class UserSqlApply extends Component {
             split_sql_file_path:split_sql_file_path,
             execute_user_name:this.state.login_user_name
         };
-        console.log(params)
         let inception_error_level_rray=[];
         for(var i=0;i<this.state.view_check_sql_result.length;i++){
             inception_error_level_rray.push(this.state.view_check_sql_result[i]["inception_error_level"])
         };
-        console.log(this.state.execute_sql_flag);
         if (this.state.sql_check_max_code === 2){
            message.error("审核存在错误,请先处理错误")
         }else if (this.state.inception_check_ignore_warning === 0 && this.state.sql_check_max_code === 1){
@@ -308,50 +302,49 @@ export default class UserSqlApply extends Component {
             ViewExecuteSubmitSqlModalVisible:true,
         });
     };
-
-    onButtonClick = (title) => {
-        this.setState({
-            commitType: title,
-            modalVisible: true
-        })
-    };
-
+    //SQL预览关闭modal
     closeSubmitSqlViewModal = () => {
         this.setState({
             showSubmitSqlViewVisible: false,
         })
     };
-
+    //sql检查结果modal关闭
     closeSubmitSqlResultsModal = () => {
         this.setState({
             showSubmitSqlResultsVisible: false,
         })
     };
+
     closeApplyModal = () => {
         this.setState({
             ApplyModalVisible: false,
         })
     };
+
     closeViewExecuteSubmitSqlModal = () => {
         this.setState({
             ViewExecuteSubmitSqlModalVisible: false,
         })
     };
+    //关闭查看SQL进度modal
     closeViewExecuteSubmitSqlProcessModal = () => {
         this.setState({
             ViewExecuteSubmitSqlProcessModalVisible: false,
         })
     };
+    //关闭inception设置modal
     closeInceptionVariableConfigModal = () => {
         this.setState({
             InceptionVariableConfigModalVisible: false,
         })
     };
+    //关闭split sql  modal
     closeSplitSqlModal = () => {
         this.setState({
             SplitSQLModalVisible: false,
         })
     };
+    //
     handleApplyContentChange = (value) => {
         console.log(value)
         this.setState({
@@ -425,6 +418,7 @@ export default class UserSqlApply extends Component {
         });
         this.cacheData = this.state.data.map(item => ({ ...item }))
     }
+    //更新inception osc变量
     async handleUpdateInceptionVariable() {
         let params = {
             split_sql_file_path: this.state.split_sql_file_path,
@@ -603,14 +597,9 @@ export default class UserSqlApply extends Component {
                             SQL审核
                         </Link>
                     </div>
-                    <div style={{display: 'flex'}}>
-                        {/* <Button className="title-text" type="primary" onClick={() => this.handleFilterChange('', 'search_content')}>清空</Button> */}
-                        {/* <Input.Search className="title-text" placeholder="集群/实例/namespace" onSearch={value => this.handleFilterChange(value, 'search_content')} /> */}
-                    </div>
                 </div>
                 <div className="padding-container">
                     <h3>申请基础信息</h3>
-                    {/* <Row gutter={8}> */}
                     <Row type='flex' justify="space-around">
                         <Col span={11} className="col-detail">
                             <Row gutter={8}><Col style={{padding:5}} span={8}>主题:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_title}</Col></Row>
