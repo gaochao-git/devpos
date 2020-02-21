@@ -8,7 +8,7 @@ import {backendServerApiRoot} from "../common/util"
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { Search } = Input;
-const server = 'http://192.168.0.104:8000';
+const server = 'http://127.0.0.1:8000';
 
 
 export default class mysqlCluster extends Component  {
