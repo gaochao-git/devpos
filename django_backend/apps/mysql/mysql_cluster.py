@@ -15,7 +15,8 @@ def get_cluster_info_func(request):
                         b.cluster_type,
                         case b.instance_status when 0 then '不可用' when 1 then '正常服务' when 2 then '已下线' end as instance_status,
                         b.instance_name,
-                        b.role 
+                        b.role,
+                        b.host_name 
                  from mysql_cluster a inner join mysql_instance b 
                  on a.cluster_name=b.cluster_name order by b.cluster_name"""
     try:

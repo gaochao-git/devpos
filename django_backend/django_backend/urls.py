@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import path
-from apps.cluster import cluster
+from apps.mysql import mysql_cluster
+from apps.mysql import mysql_instance
 from apps.sql import inception
 from apps.common import create_common_user
 from apps.common import migrate_common_user
@@ -19,8 +20,8 @@ JWT_AUTH = {
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('get_cluster_info/', cluster.get_cluster_info_func),
-    path('get_search_cluster_info/', cluster.get_search_cluster_info_func),
+    path('get_cluster_info/', mysql_cluster.get_cluster_info_func),
+    path('get_search_cluster_info/', mysql_cluster.get_search_cluster_info_func),
     path('get_submit_sql_info/', inception.get_submit_sql_info_func),
     path('get_apply_sql_by_uuid/', inception.get_apply_sql_by_uuid_func),
     path('get_submit_sql_by_uuid/', inception.get_submit_sql_by_uuid_func),
@@ -35,6 +36,7 @@ urlpatterns = [
     path('update_inception_variable/', inception.update_inception_variable_func),
     path('check_sql/', inception.check_sql_func),                                                        # 检测sql
     path('submit_sql/', inception.submit_sql_func),
+<<<<<<< HEAD
     path('pass_submit_sql_by_uuid/', inception.pass_submit_sql_by_uuid_func),                            #
     path('get_cloud_info/', cloud_instance.get_cloud_instance_func),                                     # server--查看主机信息
     path('get_user_info/', create_common_user.get_user_info_func),                                       # 公共账号管理--查看已有账号信息
@@ -52,6 +54,27 @@ urlpatterns = [
     path('get_master_ip/', utils.get_master_ip_func),                                                    # sql审核--获取主库ip
     path('get_cluster_name/', utils.get_cluster_name_func),                                              # sql审核--根据cluster_name输入框自动补全
     path('privilege_view_user/', create_private_user.privilege_view_user_func),                          # 权限申请--查看用户已有权限
+=======
+    path('pass_submit_sql_by_uuid/', inception.pass_submit_sql_by_uuid_func),
+    path('get_cloud_info/', cloud_instance.get_cloud_instance_func),                                     # 查看云主机信息
+    path('get_user_info/', create_common_user.get_user_info_func),                                       # 公共账号管理
+    path('grant_user_info/', create_common_user.create_and_grant_func),                                  # 创建用户申请权限
+    path('migrate_common_user/', migrate_common_user.migrate_common_user_func),                          # 同步公共账号
+    path('get_private_user_info/', create_private_user.get_private_user_info_func),                      # 查看私有账号信息
+    path('privileges_extend_info/', create_private_user.privileges_extend_info_func),                    # 权限扩展
+    path('get_order_info/', create_private_user.get_order_info_func),                                    # 查看工单信息
+    path('privileges_create_user_info/', create_private_user.privileges_create_user_info_func),          # 新建用户工单提交
+    path('privileges_original_info/', create_private_user.privileges_original_info_func),                # 查看用户原始权限信息
+    path('check_order/', create_private_user.check_order_func),                                          # 审核工单
+    path('execute_order/', create_private_user.execute_order_func),                                      # 执行工单
+    path('auth/', drf_views.obtain_auth_token),
+    path('get_login_user_name_by_token/', login.get_login_user_name_by_token_func),
+    path('get_master_ip/', utils.get_master_ip_func),
+    path('get_cluster_name/', utils.get_cluster_name_func),
+    path('privilege_view_user/', create_private_user.privilege_view_user_func),
+    path('get_mysql_instance_info/', mysql_instance.get_mysql_instance_info_func),
+    path('get_search_mysql_instance_info/', mysql_instance.get_search_mysql_instance_info_func),
+>>>>>>> gaochao
 
 ]
 
