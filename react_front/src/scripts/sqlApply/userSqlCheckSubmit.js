@@ -171,9 +171,9 @@ class UserSqlCheckSubmit extends Component {
         console.log(params)
         let res = await axios.post(`${backendServerApiRoot}/submit_sql/`,{params});
         if( res.data.status === 'ok'){
-            this.setState({
-                sql_submit_loading:false
-            });
+            // this.setState({
+            //     sql_submit_loading:false
+            // });
             window.location.reload();
         }
         else
