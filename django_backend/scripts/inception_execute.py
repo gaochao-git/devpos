@@ -83,7 +83,7 @@ def main():
         inception_osc_config = data[0]["inception_osc_config"]
         cluster_name = data[0]["cluster_name"]
         if cluster_name:
-            sql_get_write_node = 'select instance_name from mysql_cluster where cluster_name="{}" and role="write" limit 1'.format(cluster_name)
+            sql_get_write_node = 'select instance_name from mysql_instance where cluster_name="{}" and role="write" and instance_status=1 limit 1'.format(cluster_name)
             cursor.execute("%s" % sql_get_write_node)
             rows = cursor.fetchall()
             if rows:

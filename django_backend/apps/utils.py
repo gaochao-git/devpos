@@ -74,7 +74,7 @@ def get_cluster_name_func(request):
 
 # 根据集群名获取write_ip,write_portget_cluster_name_func
 def get_cluster_write_node_info(cluster_name):
-    sql_get_write_node = 'select instance_name from mysql_cluster where cluster_name="{}" and role="write" limit 1'.format(cluster_name)
+    sql_get_write_node = 'select instance_name from mysql_instance where cluster_name="{}" and role="write" and instance_status=1 limit 1'.format(cluster_name)
     cursor = connection.cursor()
     try:
         cursor.execute("%s" % sql_get_write_node)
