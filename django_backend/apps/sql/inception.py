@@ -94,7 +94,7 @@ def check_sql_func(request):
     request_body = json.loads(to_str)
     if (request_body['params']['submit_source_db_type'] == "cluster"):
         cluster_name = request_body['params']['cluster_name']
-        sql_get_write_node = 'select instance_name from mysql_cluster where cluster_name="{}" and role="write" limit 1'.format(cluster_name)
+        sql_get_write_node = 'select instance_name from mysql_instance where cluster_name="{}" and role="write" limit 1'.format(cluster_name)
         cursor = connection.cursor()
         try:
             cursor.execute("%s" % sql_get_write_node)

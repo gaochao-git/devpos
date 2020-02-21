@@ -60,7 +60,7 @@ export default class mysqlCluster extends Component  {
         };
         const columns = [
           {
-            title: 'cluster_name',
+            title: '集群名',
             dataIndex: 'cluster_name',
             key: 'cluster_name',
             render: (text, record) => {
@@ -73,20 +73,20 @@ export default class mysqlCluster extends Component  {
             },
           },
           {
-            title: 'cluster_type',
+            title: '集群类型',
             dataIndex: 'cluster_type',
           },
           {
-            title: 'instance_status',
+            title: '实例状态',
             dataIndex: 'instance_status',
           },
           {
-            title: 'instance_name',
+            title: '实例名',
             colSpan: 1,
             dataIndex: 'instance_name',
           },
           {
-            title: 'role',
+            title: '实例角色',
             dataIndex: 'role',
           },
         ];
