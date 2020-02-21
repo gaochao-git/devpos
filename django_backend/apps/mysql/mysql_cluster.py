@@ -3,7 +3,7 @@ import json
 from django.db import connection
 
 
-def get_cluster_info_func(request):
+def get_mysql_cluster_info_func(request):
     sql = ""
     status = ""
     message = ""

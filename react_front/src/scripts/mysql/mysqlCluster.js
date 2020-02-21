@@ -8,11 +8,6 @@ import {backendServerApiRoot} from "../common/util"
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { Search } = Input;
-<<<<<<< HEAD:react_front/src/scripts/mysqlCluster/cluster.js
-const server = 'http://127.0.0.1:8000';
-=======
->>>>>>> gaochao:react_front/src/scripts/mysql/mysqlCluster.js
-
 
 export default class mysqlCluster extends Component  {
     constructor(props) {
@@ -27,7 +22,7 @@ export default class mysqlCluster extends Component  {
     }
     //获取所有集群信息
     async GetClusterInfo() {
-        let res = await axios.get(`${backendServerApiRoot}/get_cluster_info/`);
+        let res = await axios.get(`${backendServerApiRoot}/get_mysql_cluster_info/`);
         console.log(res.data);
         console.log(window && window.location && window.location.hostname);
         this.setState({
@@ -39,7 +34,7 @@ export default class mysqlCluster extends Component  {
         this.setState({
             cluster_info: []
         })
-        let res = await axios.post(`${backendServerApiRoot}/get_search_cluster_info/`,{cluster_name});
+        let res = await axios.post(`${backendServerApiRoot}/get_search_mysql_cluster_info/`,{cluster_name});
         console.log(res.data);
         this.setState({
             cluster_info: res.data.data
