@@ -94,7 +94,11 @@ def check_sql_func(request):
     request_body = json.loads(to_str)
     if (request_body['params']['submit_source_db_type'] == "cluster"):
         cluster_name = request_body['params']['cluster_name']
+<<<<<<< HEAD
         sql_get_write_node = 'select instance_name from mysql_instance where cluster_name="{}" and role="write" limit 1'.format(cluster_name)
+=======
+        sql_get_write_node = 'select instance_name from mysql_instance where cluster_name="{}" and role="write" and instance_status=1 limit 1'.format(cluster_name)
+>>>>>>> gaochao
         cursor = connection.cursor()
         try:
             cursor.execute("%s" % sql_get_write_node)
@@ -198,11 +202,10 @@ def submit_sql_func(request):
                                      dba_check_user_name,
                                      dba_check,
                                      submit_sql_execute_type,
-                                     dba_execute_user_name,
                                      comment_info,
                                      submit_sql_uuid) 
-             values('{}','{}','{}',{},'{}','{}',1,'{}',1,'gaochao',1,'{}','gaochao','{}','{}')
-    """.format(login_user_name,sql_title, db_ip, db_port, file_path, leader, qa, submit_sql_execute_type, comment_info, uuid_str)
+             values('{}','{}','{}',{},'{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
+    """.format(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str)
 
     # 提交的SQL写入文件
     with open(upfile,'w') as f:
