@@ -75,9 +75,6 @@ export default class mysqlCluster extends Component  {
             dataIndex: 'cluster_type',
           },
           {
-<<<<<<< HEAD:react_front/src/scripts/mysqlCluster/cluster.js
-            title: '实例状态',
-=======
               title: 'instance_name',
               colSpan: 1,
               dataIndex: 'instance_name',
@@ -88,23 +85,18 @@ export default class mysqlCluster extends Component  {
           },
           {
             title: 'instance_status',
->>>>>>> gaochao:react_front/src/scripts/mysql/mysqlCluster.js
             dataIndex: 'instance_status',
             render:(val) => {
                 return <span>{val==="正常服务" ? <Badge status="success"/>:<Badge status="error"/>}{val}</span>
             }
           },
           {
-<<<<<<< HEAD:react_front/src/scripts/mysqlCluster/cluster.js
             title: '实例名',
             colSpan: 1,
             dataIndex: 'instance_name',
           },
           {
             title: '实例角色',
-=======
-            title: 'role',
->>>>>>> gaochao:react_front/src/scripts/mysql/mysqlCluster.js
             dataIndex: 'role',
           },
         ];

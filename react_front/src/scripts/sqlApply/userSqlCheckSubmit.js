@@ -52,13 +52,7 @@ class UserSqlCheckSubmit extends Component {
             submit_sql_info: res.data.data,
         });
     }
-<<<<<<< HEAD
-
-
-    //检测SQL
-=======
     //检测SQL,cluster_name或者master_ip_port使用不同的方法
->>>>>>> gaochao
     async handleSqlCheck() {
         this.state.submit_source_db_type==="cluster" ? this.handleClusterNameSqlCheck(): this.handleMasterIpPortSqlCheck()
     }
