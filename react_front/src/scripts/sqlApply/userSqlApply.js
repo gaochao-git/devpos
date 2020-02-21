@@ -66,6 +66,7 @@ export default class UserSqlApply extends Component {
             sql_execute_loading:false,
             sql_check_code_explain:"",
             cluster_name:"",
+            check_comment:"",
         }
         this.cacheData = this.state.data.map(item => ({ ...item }));
     }
@@ -179,7 +180,7 @@ export default class UserSqlApply extends Component {
             sql_check_results_loading:false
         });
     };
-    //审核通过
+    //审核通过或不通过
     async PassSubmitSqlByUuid(value) {
         this.setState({
             sql_check_pass_loading:true
@@ -189,6 +190,7 @@ export default class UserSqlApply extends Component {
             apply_results:value,
             check_user_name:this.state.login_user_name,
             check_user_name_role:this.state.login_user_name_role,
+            check_comment:this.state.check_comment,
         };
         let res = await axios.post(`${backendServerApiRoot}/pass_submit_sql_by_uuid/`,{params});
         message.success(res.data.message);
@@ -344,11 +346,11 @@ export default class UserSqlApply extends Component {
             SplitSQLModalVisible: false,
         })
     };
-    //
+    //审核备注
     handleApplyContentChange = (value) => {
         console.log(value)
         this.setState({
-            check_sql: value
+            check_comment: value
         })
     }
     //审核 modal弹出按钮
@@ -798,7 +800,7 @@ export default class UserSqlApply extends Component {
                         <TextArea rows={6} placeholder="审核说明"  onChange={e => this.handleApplyContentChange(e.target.value)}/>
                         <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
                             <Button onClick={this.PassSubmitSqlByUuid.bind(this,'通过')} loading={this.state.sql_check_pass_loading} type="primary" style={{ marginRight: '10px' }}>通过</Button>
-                            <Button onClick={this.PassSubmitSqlByUuid.bind(this,'不通过')}>不通过</Button>
+                            <Button onClick={this.PassSubmitSqlByUuid.bind(this,'不通过')} loading={this.state.sql_check_pass_loading} type="primary">不通过</Button>
                         </Row>
                     </Modal>
                     <Modal visible={this.state.ViewExecuteSubmitSqlModalVisible}
