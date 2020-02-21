@@ -198,11 +198,10 @@ def submit_sql_func(request):
                                      dba_check_user_name,
                                      dba_check,
                                      submit_sql_execute_type,
-                                     dba_execute_user_name,
                                      comment_info,
                                      submit_sql_uuid) 
-             values('{}','{}','{}',{},'{}','{}',1,'{}',1,'gaochao',1,'{}','gaochao','{}','{}')
-    """.format(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name, submit_sql_execute_type, comment_info, uuid_str)
+             values('{}','{}','{}',{},'{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
+    """.format(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str)
 
     # 提交的SQL写入文件
     with open(upfile,'w') as f:
