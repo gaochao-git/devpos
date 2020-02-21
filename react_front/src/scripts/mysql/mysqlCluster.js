@@ -75,25 +75,20 @@ export default class mysqlCluster extends Component  {
             dataIndex: 'cluster_type',
           },
           {
-              title: 'instance_name',
-              colSpan: 1,
-              dataIndex: 'instance_name',
-          },
-          {
               title: '主机名',
               dataIndex: 'host_name',
           },
           {
-            title: 'instance_status',
+              title: '实例名',
+              colSpan: 1,
+              dataIndex: 'instance_name',
+          },
+          {
+            title: '实例状态',
             dataIndex: 'instance_status',
             render:(val) => {
                 return <span>{val==="正常服务" ? <Badge status="success"/>:<Badge status="error"/>}{val}</span>
             }
-          },
-          {
-            title: '实例名',
-            colSpan: 1,
-            dataIndex: 'instance_name',
           },
           {
             title: '实例角色',
