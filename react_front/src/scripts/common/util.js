@@ -1,6 +1,7 @@
 import axios from "axios";
 //后端服务器
 export const backendServerApiRoot = 'http://127.0.0.1:8000'
+//export const backendServerApiRoot = 'http://192.168.0.109:8000'
 //根据token获取登陆信息
 let login_user_info = null
 export async function getUser() {

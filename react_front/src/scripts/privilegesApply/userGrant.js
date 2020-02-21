@@ -131,8 +131,12 @@ class privateUser extends Component  {
                             <Table
                                 dataSource={this.state.user_info}
                                 pagination={{ pageSize: 10 }}
-                                scroll={{ y: 400 }}
+                                //scroll={{ y: 500 }}     添加滚动条的参数
                                 rowKey={(row ,index) => index}
+                                rowClassName={(record, index) => {
+                                let className = 'row-detail-default ';
+                                if (record.leader_check_result === "未审核"||record.dba_check_result === "未审核"||record.status === "未执行"||record.status === "执行失败") className = 'row-detail-error';
+                                return className;}}
                                 size="small"
                             >
                                 <Column title = '申请人' dataIndex = 'person_name'/>
