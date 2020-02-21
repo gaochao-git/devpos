@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import path
-from apps.cluster import cluster
+from apps.mysql import mysql_cluster
+from apps.mysql import mysql_instance
 from apps.sql import inception
 from apps.common import create_common_user
 from apps.common import migrate_common_user
@@ -19,8 +20,8 @@ JWT_AUTH = {
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('get_cluster_info/', cluster.get_cluster_info_func),
-    path('get_search_cluster_info/', cluster.get_search_cluster_info_func),
+    path('get_cluster_info/', mysql_cluster.get_cluster_info_func),
+    path('get_search_cluster_info/', mysql_cluster.get_search_cluster_info_func),
     path('get_submit_sql_info/', inception.get_submit_sql_info_func),
     path('get_apply_sql_by_uuid/', inception.get_apply_sql_by_uuid_func),
     path('get_submit_sql_by_uuid/', inception.get_submit_sql_by_uuid_func),
@@ -52,6 +53,8 @@ urlpatterns = [
     path('get_master_ip/', utils.get_master_ip_func),
     path('get_cluster_name/', utils.get_cluster_name_func),
     path('privilege_view_user/', create_private_user.privilege_view_user_func),
+    path('get_mysql_instance_info/', mysql_instance.get_mysql_instance_info_func),
+    path('get_search_mysql_instance_info/', mysql_instance.get_search_mysql_instance_info_func),
 
 ]
 

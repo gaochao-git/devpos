@@ -4,7 +4,7 @@ import {Layout, Menu, Icon, Button,message } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import {HashRouter,Route} from 'react-router-dom';
-import mysqlCluster from './scripts/mysqlCluster/cluster'
+import mysqlCluster from './scripts/mysql/mysqlCluster'
 import UserSqlCheckSubmit from './scripts/sqlApply/userSqlCheckSubmit'
 import UserSqlApply from './scripts/sqlApply/userSqlApply'
 import publicManage from "./scripts/publicUserManage/pubicUserPrivilegeManage"
@@ -14,6 +14,7 @@ import commonUser from "./scripts/commonUser/commonUserCharge";
 import Cloud from "./scripts/Cloud/CloudInstance";
 import Login from "./scripts/login/login"
 import {getUser} from './scripts/common/util'
+import mysqlInstance from './scripts/mysql/mysqlInstance'
 
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
@@ -82,7 +83,7 @@ class App extends Component {
                                                 <Link to="#">主机</Link>
                                             </Menu.Item>
                                             <Menu.Item key="2">
-                                                <Link to="#">实例</Link>
+                                                <Link to="/mysqlInstance">实例</Link>
                                             </Menu.Item>
                                             <Menu.Item key="3">
                                                 <Link to="/mysqlCluster">集群</Link >
@@ -130,6 +131,7 @@ class App extends Component {
                                 <Content>
                                     <Route exact path="/Cloud" component={Cloud} />
                                     <Route exact path="/mysqlCluster" component={mysqlCluster} />
+                                    <Route exact path="/mysqlInstance" component={mysqlInstance} />
                                     <Route exact path="/publicManage" component={publicManage} />
                                     <Route exact path="/checkSummitSql" component={UserSqlCheckSubmit} />
                                     <Route exact path="/viewApplySqlByUuid/:submit_sql_uuid" component={UserSqlApply} />
