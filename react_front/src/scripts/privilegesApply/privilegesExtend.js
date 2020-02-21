@@ -174,9 +174,8 @@ export default class PrivilegesExtend extends React.Component  {
                             >
                                 <Column title = '用户名' dataIndex = 'user'/>
                                 <Column title = 'IP' dataIndex = 'host'/>
-                                <Column title = '权限' dataIndex = 'privilege'/>
-                                <Column title = '库名' dataIndex = 'db'/>
-                                <Column title = '表名' dataIndex = 'dba'/>
+                                <Column title = '已有权限' dataIndex = 'privilege'/>
+                                <Column title = '数据库' dataIndex = 'db'/>
                             </Table>
                     </Form>
                 </div>
