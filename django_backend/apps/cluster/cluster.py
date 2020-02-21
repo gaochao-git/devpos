@@ -10,7 +10,14 @@ def get_cluster_info_func(request):
     data = []
     cursor = connection.cursor()
     if request.method == 'GET':
-        sql = "select id as 'key',cluster_name,cluster_type,cluster_status,instance_name,role from mysql_cluster order by cluster_name"
+        sql = """select b.id as 'key',
+                        b.cluster_name,
+                        b.cluster_type,
+                        case b.instance_status when 0 then '不可用' when 1 then '正常服务' when 2 then '已下线' end as instance_status,
+                        b.instance_name,
+                        b.role 
+                 from mysql_cluster a inner join mysql_instance b 
+                 on a.cluster_name=b.cluster_name order by b.cluster_name"""
     try:
         cursor.execute("%s" % sql)
         rows = cursor.fetchall()

@@ -77,8 +77,8 @@ export default class mysqlCluster extends Component  {
             dataIndex: 'cluster_type',
           },
           {
-            title: 'cluster_status',
-            dataIndex: 'cluster_status',
+            title: 'instance_status',
+            dataIndex: 'instance_status',
           },
           {
             title: 'instance_name',
