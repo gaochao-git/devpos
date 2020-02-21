@@ -75,6 +75,9 @@ export default class mysqlCluster extends Component  {
           {
             title: 'cluster_type',
             dataIndex: 'cluster_type',
+            render: (text, record) => {
+                return text;
+            },
           },
           {
             title: 'instance_status',
