@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import { Button,Table, Input, Modal, Tabs, Form, Row, Select, message, Card, AutoComplete } from "antd";
+import {Button, Table, Input, Modal, Tabs, Form, Row, Select, message, Card, AutoComplete, Badge} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -30,7 +30,6 @@ class UserSqlCheckSubmit extends Component {
             submit_sql_info:[],
             submit_sql_button_disabled:"hide",
             submit_sql_flag:"未提交",
-            login_user:"",
             sql_check_loading:false,
             sql_submit_loading:false,
             des_ip_list:[],
@@ -155,7 +154,6 @@ class UserSqlCheckSubmit extends Component {
             check_sql_results: value["check_sql_results"],
             submit_sql_execute_type: value["执行类型"],
             comment_info: value["comment_info"],
-            login_user:"",
         };
         let res = await axios.post(`${backendServerApiRoot}/submit_sql/`,{params});
         if( res.data.status === 'ok'){
@@ -312,30 +310,52 @@ class UserSqlCheckSubmit extends Component {
                     <Table
                         dataSource={this.state.submit_sql_info}
                         rowKey={(row ,index) => index}
-                        rowClassName={(record, index) => {
-                            let className = 'row-detail-default ';
-                            if (record.leader_check === "未审核"|| record.qa_check === "未审核"||record.dba_check === "未审核"||record.dba_execute === "未执行") className = 'row-detail-error';
-                            return className;}}
+                        // rowClassName={(record, index) => {
+                        //     let className = 'row-detail-default ';
+                        //     if (record.leader_check === "未审核"|| record.qa_check === "未审核"||record.dba_check === "未审核"||record.dba_execute === "未执行") className = 'row-detail-error';
+                        //     return className;}}
                         size="small"
                     >
                         <Column title="标题"
                             dataIndex="title"/>
                         <Column title="申请人"
                                 dataIndex="submit_sql_user"/>
-                        <Column title="TL姓名"
+                        <Column title="TL"
                             dataIndex="leader_user_name"/>
-                        <Column title="QA姓名"
+                        <Column title="QA"
                             dataIndex="qa_user_name"/>
                         <Column title="TL审核"
-                                dataIndex="leader_check"/>
+                                dataIndex="leader_check"
+                                render={(val) => {
+                                return <span>{val==="审核通过" ? <span style={{color:"green"}}>{val}</span>:<span style={{color:"red"}}>{val}</span>}</span>
+                                }}
+                        />
                         <Column title="QA审核"
-                                dataIndex="qa_check"/>
+                                dataIndex="qa_check"
+                                render={(val) => {
+                                    return <span>{val==="审核通过" ? <span style={{color:"green"}}>{val}</span>:<span style={{color:"red"}}>{val}</span>}</span>
+                                }}
+                        />
                         <Column title="DBA审核"
-                            dataIndex="dba_check"/>
+                                dataIndex="dba_check"
+                                render={(val) => {
+                                    return <span>{val==="审核通过" ? <span style={{color:"green"}}>{val}</span>:<span style={{color:"red"}}>{val}</span>}</span>
+                                }}
+                        />
                         <Column title="DBA执行"
-                            dataIndex="dba_execute"/>
-                        <Column title="DBA执行人员"
-                            dataIndex="dba_execute_user_name"/>
+                                dataIndex="dba_execute"
+                                render={(val) => {
+                                    return <span>{val==="已执行" ? <span style={{color:"green"}}>{val}</span>:<span>{val}</span>}</span>
+                                }}
+                        />
+                        <Column title="执行人员"
+                                dataIndex="dba_execute_user_name"/>
+                        <Column title="执行结果"
+                                dataIndex="execute_status"
+                                render={(val) => {
+                                    return <span>{val==="执行成功" || val==="未执行"? <span>{val}</span>:<span  style={{color:"red"}}>{val}</span>}</span>
+                                }}
+                        />
                         <Column title="工单创建时间"
                             dataIndex="ctime"/>
                         <Column title="工单修改时间"

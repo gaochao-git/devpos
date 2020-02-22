@@ -8,26 +8,37 @@ import os
 import re
 from apps import utils
 
+
 # 页面获取所有工单列表
 def get_submit_sql_info_func(request):
+    token = request.META.get('HTTP_AUTHORIZATION')
+    login_user_name = utils.get_login_user(token)["username"]
+    login_user_name_role = utils.get_login_user(token)["title"]
+    if login_user_name_role == 'dba':
+        where_condition = ""
+    elif login_user_name_role == 'leader' or login_user_name_role == 'qa':
+        where_condition = "and b.title!=4"            #DBA提交的SQL,不用暴露给其他人,DBA经常需要维护数据库例如清理表碎片,不需要别人审核
+    else:
+        where_condition = "and submit_sql_user='{}'".format(login_user_name)
     cursor = connection.cursor()
-    if request.method == 'GET':
-        sql = """
-            SELECT submit_sql_user,
-                submit_sql_uuid,
-                title,
-                case leader_check  when 1 then '未审核' when 2 then '审核通过' when 3 then '审核不通过' end as leader_check,
-                leader_user_name,
-                case qa_check when 1 then '未审核' when 2 then '审核通过' when 3 then '审核不通过' end as qa_check,
-                case dba_check when 1 then '未审核' when 2 then '审核通过' when 3 then '审核不通过' end as dba_check,
-                case dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,
-                qa_user_name,
-                dba_check_user_name,
-                dba_execute_user_name,
-                ctime,
-                utime
-            FROM sql_submit_info order by ctime desc, utime desc
-        """
+    sql = """
+        SELECT 
+            a.submit_sql_user,
+            a.submit_sql_uuid,
+            a.title,
+            case a.leader_check  when 1 then '未审核' when 2 then '审核通过' when 3 then '审核不通过' end as leader_check,
+            a.leader_user_name,
+            case a.qa_check when 1 then '未审核' when 2 then '审核通过' when 3 then '审核不通过' end as qa_check,
+            case a.dba_check when 1 then '未审核' when 2 then '审核通过' when 3 then '审核不通过' end as dba_check,
+            case a.dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,
+            case a.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功含警告' end as execute_status,
+            a.qa_user_name,
+            a.dba_check_user_name,
+            a.dba_execute_user_name,
+            a.ctime,
+            a.utime
+        FROM sql_submit_info a inner join team_user b on a.submit_sql_user=b.uname where 1=1 {} order by a.ctime desc, a.utime desc
+    """.format(where_condition)
     try:
         cursor.execute("%s" % sql)
         rows = cursor.fetchall()
@@ -337,7 +348,6 @@ def pass_submit_sql_by_uuid_func(request):
         sql = "update sql_submit_info set qa_check={},qa_user_name='{}',qa_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,check_user_name,check_comment,submit_sql_uuid)
     elif check_user_name_role == "dba":
         sql = "update sql_submit_info set dba_check={},dba_check_user_name='{}',dba_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,check_user_name,check_comment,submit_sql_uuid)
-    cursor = connection.cursor()
     if apply_results == "通过":
         split_sql = """
              select 
@@ -364,8 +374,9 @@ def pass_submit_sql_by_uuid_func(request):
                 from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where a.submit_sql_uuid='{}'
         """.format(submit_sql_uuid, submit_sql_uuid, submit_sql_uuid, submit_sql_uuid)
         #拆分SQL
-        if check_user_name_role=="dba":
+        if check_user_name_role == "dba":
             ret = split_sql_func(submit_sql_uuid)
+        cursor = connection.cursor()
         try:
             cursor.execute("%s" % sql)
             cursor.execute("%s" % split_sql)
@@ -373,15 +384,17 @@ def pass_submit_sql_by_uuid_func(request):
             data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
             status = "ok"
             message = "审核成功," + ret
+            content = {'status': status, 'message': message,"data": data}
         except Exception as e:
             status = "error"
             message = str(e) + ",+" + ret
+            content = {'status': status, 'message': message}
             print(e)
         finally:
             cursor.close()
             connection.close()
-        content = {'status': status, 'message': message,"data": data}
     elif apply_results == "不通过":
+        cursor = connection.cursor()
         try:
             cursor.execute("%s" % sql)
             content = {'status': "ok", 'message': "审核不通过"}

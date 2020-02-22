@@ -667,7 +667,8 @@ export default class UserSqlApply extends Component {
 
                             </div>
                         </div>
-                        :null
+                        :
+                        null
                     }
                     <br/>
                     {this.state.login_user_name_role==="dba" && this.state.sql_check_results_loading===false ?
@@ -692,11 +693,11 @@ export default class UserSqlApply extends Component {
                                 />
                                 <Column title="OSC配置"
                                         dataIndex="inception_osc_config"
-                                        render = {(text, row) => this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && this.state.execute_status !== '执行中' ? <button className="link-button" onClick={()=>{this.ShowInceptionVariableConfigModal(row.split_sql_file_path)}}>OSC配置</button>: null}
+                                        render = {(text, row) => this.state.dba_check ==="通过" && this.state.execute_status !== '执行中' ? <button className="link-button" onClick={()=>{this.ShowInceptionVariableConfigModal(row.split_sql_file_path)}}>OSC配置</button>: null}
                                 />
                                 <Column title="执行SQL"
                                         render={(text, row) => {
-                                            if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '未执行' && this.state.login_user_name_role==="dba")  {
+                                            if (this.state.dba_check ==="通过" && row.execute_status === '未执行' && this.state.login_user_name_role==="dba")  {
                                                 return (
                                                     <div>
                                                         <Button className="link-button" loading={this.state.sql_execute_loading} onClick={()=>{this.ExecuteBySplitSqlFilePath(row.split_sql_file_path)}}>平台执行</Button>
@@ -709,7 +710,7 @@ export default class UserSqlApply extends Component {
                                 />
                                 <Column title="查看进度"
                                         render={(text, row) => {
-                                            if (this.state.leader_check==="通过" && this.state.qa_check === '通过' && this.state.dba_check ==="通过" && row.execute_status === '执行中')  {
+                                            if (this.state.dba_check ==="通过" && row.execute_status === '执行中')  {
                                                 return (<button className="link-button" onClick={()=>{this.getExecuteProcessByUuid(row.split_sql_file_path)}}>查看</button>)
                                             }
                                         }}
