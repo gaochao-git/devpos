@@ -114,7 +114,7 @@ def main():
 
     # 更新工单状态为执行中
     try:
-        sql_update_executing = "update sql_submit_info set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+        sql_update_executing = "update sql_submit_info set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1,dba_execute_user_name='{}' where submit_sql_uuid='{}'".format(execute_user_name, submit_sql_uuid)
         sql_execute_executing = "update sql_execute_split set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1 where split_sql_file_path='{}'".format(split_sql_file_path)
         cursor.execute("%s" % sql_update_executing)
         cursor.execute("%s" % sql_execute_executing)
@@ -171,7 +171,7 @@ def main():
         for row in rows:
             sql_split_status_list.append(row[0])
         max_code = max(sql_split_status_list)
-        sql_update_execute_max_code = "update sql_submit_info set execute_status={},dba_execute_user_name='{}' where submit_sql_uuid='{}'".format(max_code, execute_user_name, submit_sql_uuid)
+        sql_update_execute_max_code = "update sql_submit_info set execute_status={} where submit_sql_uuid='{}'".format(max_code, submit_sql_uuid)
         cursor.execute("%s" % sql_update_execute_max_code)
         connection.commit()
     except Exception as e:

@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Button, Table, Input, Modal, Tabs, Form, Row, Select, message, Card, AutoComplete, Badge} from "antd";
+import {Button, Table, Input, Modal, Tabs, Form, Row, Select, message, Card, AutoComplete, Tooltip} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -317,7 +317,17 @@ class UserSqlCheckSubmit extends Component {
                         size="small"
                     >
                         <Column title="标题"
-                            dataIndex="title"/>
+                            dataIndex="title"
+                            render={(text) => {
+                                return (
+                                    text.length>5 ?
+                                    <Tooltip placement="topLeft" title={text}>
+                                        <span>{text.slice(0,5)}...</span>
+                                    </Tooltip>
+                                        :<span>{text}</span>
+                                )
+                            }}
+                        />
                         <Column title="申请人"
                                 dataIndex="submit_sql_user"/>
                         <Column title="TL"
@@ -327,19 +337,19 @@ class UserSqlCheckSubmit extends Component {
                         <Column title="TL审核"
                                 dataIndex="leader_check"
                                 render={(val) => {
-                                return <span>{val==="审核通过" ? <span style={{color:"green"}}>{val}</span>:<span style={{color:"red"}}>{val}</span>}</span>
+                                return <span>{val==="通过" ? <span style={{color:"green"}}>{val}</span>:<span style={{color:"red"}}>{val}</span>}</span>
                                 }}
                         />
                         <Column title="QA审核"
                                 dataIndex="qa_check"
                                 render={(val) => {
-                                    return <span>{val==="审核通过" ? <span style={{color:"green"}}>{val}</span>:<span style={{color:"red"}}>{val}</span>}</span>
+                                    return <span>{val==="通过" ? <span style={{color:"green"}}>{val}</span>:<span style={{color:"red"}}>{val}</span>}</span>
                                 }}
                         />
                         <Column title="DBA审核"
                                 dataIndex="dba_check"
                                 render={(val) => {
-                                    return <span>{val==="审核通过" ? <span style={{color:"green"}}>{val}</span>:<span style={{color:"red"}}>{val}</span>}</span>
+                                    return <span>{val==="通过" ? <span style={{color:"green"}}>{val}</span>:<span style={{color:"red"}}>{val}</span>}</span>
                                 }}
                         />
                         <Column title="DBA执行"

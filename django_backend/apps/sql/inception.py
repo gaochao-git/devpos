@@ -26,12 +26,12 @@ def get_submit_sql_info_func(request):
             a.submit_sql_user,
             a.submit_sql_uuid,
             a.title,
-            case a.leader_check  when 1 then '未审核' when 2 then '审核通过' when 3 then '审核不通过' end as leader_check,
+            case a.leader_check  when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as leader_check,
             a.leader_user_name,
-            case a.qa_check when 1 then '未审核' when 2 then '审核通过' when 3 then '审核不通过' end as qa_check,
-            case a.dba_check when 1 then '未审核' when 2 then '审核通过' when 3 then '审核不通过' end as dba_check,
+            case a.qa_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as qa_check,
+            case a.dba_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as dba_check,
             case a.dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,
-            case a.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功含警告' end as execute_status,
+            case a.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功含警告' when 6 then '手动执行' end as execute_status,
             a.qa_user_name,
             a.dba_check_user_name,
             a.dba_execute_user_name,
@@ -545,13 +545,15 @@ def execute_submit_sql_by_file_path_func(request):
 
 # 手动执行SQL更改工单状态
 def execute_submit_sql_by_file_path_manual_func(request):
+    token = request.META.get('HTTP_AUTHORIZATION')
+    execute_user_name = utils.get_login_user(token)["username"]
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
     split_sql_file_path = request_body['params']['split_sql_file_path']
     sql1 = "update sql_execute_split set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2 where split_sql_file_path='{}'".format(split_sql_file_path)
     sql2 = "select id,submit_sql_uuid,split_sql_file_path from sql_execute_split where submit_sql_uuid='{}' and dba_execute=1".format(submit_sql_uuid)
-    sql3 = "update sql_submit_info set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    sql3 = "update sql_submit_info set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2,dba_execute_user_name='{}' where submit_sql_uuid='{}'".format(execute_user_name, submit_sql_uuid)
     cursor = connection.cursor()
     #如果所有的拆分文件均执行完在将工单文件状态改了
     try:
