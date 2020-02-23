@@ -90,10 +90,6 @@ export default class mysqlInstance extends Component  {
                 }
             },
             {
-                title: 'role',
-                dataIndex: 'role',
-            },
-            {
                 title: 'read_only',
                 dataIndex: 'read_only',
             },

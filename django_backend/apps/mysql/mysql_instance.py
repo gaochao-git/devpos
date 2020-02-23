@@ -6,10 +6,8 @@ from django.db import connection
 def get_mysql_instance_info_func(request):
     cursor = connection.cursor()
     sql = """select id as 'key',
-                    cluster_type,
                     case instance_status when 0 then '不可用' when 1 then '正常服务' when 2 then '已下线' end as instance_status,
                     instance_name,
-                    role,
                     host_name,
                     host_ip,
                     port,
