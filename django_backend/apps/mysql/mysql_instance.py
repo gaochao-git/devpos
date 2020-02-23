@@ -6,12 +6,19 @@ from django.db import connection
 def get_mysql_instance_info_func(request):
     cursor = connection.cursor()
     sql = """select id as 'key',
-                    cluster_name,
                     cluster_type,
                     case instance_status when 0 then '不可用' when 1 then '正常服务' when 2 then '已下线' end as instance_status,
                     instance_name,
                     role,
-                    host_name 
+                    host_name,
+                    host_ip,
+                    port,
+                    version,
+                    read_only,
+                    bufferpool,
+                    server_charset,
+                    master_ip,
+                    case master_port when 0 then '' else master_port end master_port
              from mysql_instance order by instance_name"""
     try:
         cursor.execute("%s" % sql)
@@ -33,14 +40,20 @@ def get_search_mysql_instance_info_func(request):
     host_name = json.loads(to_str)['host_name']
     where_host_name_conditin = 'and host_name like "{}%"'.format(host_name)
     sql = """select id as 'key',
-                    cluster_name,
                     cluster_type,
                     case instance_status when 0 then '不可用' when 1 then '正常服务' when 2 then '已下线' end as instance_status,
                     instance_name,
                     role,
-                    host_name 
+                    host_name,
+                    host_ip,
+                    port,
+                    version,
+                    read_only,
+                    bufferpool,
+                    server_charset,
+                    master_ip,
+                    case master_port when 0 then '' else master_port end master_port
              from mysql_instance where 1=1 {} order by instance_name""".format(where_host_name_conditin)
-    print (sql)
     try:
         cursor.execute("%s" % sql)
         rows = cursor.fetchall()

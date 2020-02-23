@@ -28,61 +28,21 @@ def get_login_user(token):
         connection.close()
 
 
-# 获取master ip
-def get_master_ip_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    db_master_ip_or_hostname = request_body['params']['db_master_ip_or_hostname']
-    if db_master_ip_or_hostname.strip('.').isdigit():
-        sql = "select server_public_ip from server where server_public_ip like '{}%' limit 5".format(db_master_ip_or_hostname)
-    else:
-        sql = "select server_public_ip from server where server_hostname like '{}%' limit 5".format(db_master_ip_or_hostname)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        host_list = []
-        [host_list.append(i[0]) for i in rows]
-        content = {'status': "ok", 'message': "ok",'data': host_list}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
-
-# 根据输入的集群名模糊匹配已有集群名
-def get_cluster_name_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    cluster_name = request_body['params']['cluster_name']
-    sql = "select cluster_name from mysql_cluster where cluster_name like '{}%' limit 5".format(cluster_name)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        cluster_name_list = []
-        [cluster_name_list.append(i[0]) for i in rows]
-        content = {'status': "ok", 'message': "ok",'data': cluster_name_list}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
-
-# 根据集群名获取write_ip,write_portget_cluster_name_func
+# 根据集群名获取write_ip,write_port
 def get_cluster_write_node_info(cluster_name):
-    sql_get_write_node = 'select instance_name from mysql_instance where cluster_name="{}" and role="write" and instance_status=1 limit 1'.format(cluster_name)
+    sql_get_write_node = """select 
+                                    b.host_ip,b.port 
+                                from mysql_cluster_instance a inner join mysql_instance b 
+                                on a.instance_name=b.instance_name 
+                                where a.cluster_name='{}' and b.read_only='off' and b.instance_status=1 limit 1
+                                """.format(cluster_name)
     cursor = connection.cursor()
     try:
         cursor.execute("%s" % sql_get_write_node)
-        rows = cursor.fetchall()
+        rows = cursor.fetchone()
         if rows:
-            #write_ip = rows[0][0].split("_")[0]
-            #write_port = rows[0][0].split("_")[1]
-            return rows[0][0].split("_")
+            des_master_ip = rows[0]
+            des_master_port = rows[1]
+        return des_master_ip,des_master_port
     except Exception as e:
         print(e)

@@ -103,29 +103,17 @@ def get_apply_sql_by_uuid_func(request):
 def check_sql_func(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    if (request_body['params']['submit_source_db_type'] == "cluster"):
+    if request_body['params']['submit_source_db_type'] == "cluster":
         cluster_name = request_body['params']['cluster_name']
-        sql_get_write_node = 'select instance_name from mysql_instance where cluster_name="{}" and role="write" and instance_status=1 limit 1'.format(cluster_name)
-        cursor = connection.cursor()
-        try:
-            cursor.execute("%s" % sql_get_write_node)
-            rows = cursor.fetchall()
-            if rows:
-                db_ip = rows[0][0].split("_")[0]
-                db_port = rows[0][0].split("_")[1]
-        except Exception as e:
-            print(e)
-        finally:
-            cursor.close()
-            connection.close()
+        des_master_ip, des_master_port = utils.get_cluster_write_node_info(cluster_name)
     else:
-        db_ip = request_body['params']['db_ip'].strip()
-        db_port = request_body['params']['db_port'].strip()
+        des_master_ip = request_body['params']['db_ip'].strip()
+        des_master_port = request_body['params']['db_port'].strip()
     check_sql_info = request_body['params']['check_sql_info']
     sql = """/*--user=wthong;--password=fffjjj;--host={};--check=1;--port={};*/\
         inception_magic_start;
         {}   
-        inception_magic_commit;""".format(db_ip, db_port, check_sql_info)
+        inception_magic_commit;""".format(des_master_ip, des_master_port, check_sql_info)
     try:
         conn = pymysql.connect(host='39.97.247.142', user='', passwd='', db='', port=6669, charset="utf8")  # inception服务器
         cur = conn.cursor()
@@ -145,6 +133,52 @@ def check_sql_func(request):
         content = {'status': "error", 'message': message}
     return HttpResponse(json.dumps(content), content_type='application/json')
 
+
+# 根据输入的集群名模糊匹配已有集群名
+def get_cluster_name_func(request):
+    to_str = str(request.body, encoding="utf-8")
+    request_body = json.loads(to_str)
+    cluster_name = request_body['params']['cluster_name']
+    sql = "select cluster_name from mysql_cluster where cluster_name like '{}%' limit 5".format(cluster_name)
+    cursor = connection.cursor()
+    try:
+        cursor.execute("%s" % sql)
+        rows = cursor.fetchall()
+        cluster_name_list = []
+        [cluster_name_list.append(i[0]) for i in rows]
+        content = {'status': "ok", 'message': "ok",'data': cluster_name_list}
+    except Exception as e:
+        content = {'status': "error", 'message': str(e)}
+        print(e)
+    finally:
+        cursor.close()
+        connection.close()
+    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
+
+
+# 获取master ip
+def get_master_ip_func(request):
+    to_str = str(request.body, encoding="utf-8")
+    request_body = json.loads(to_str)
+    db_master_ip_or_hostname = request_body['params']['db_master_ip_or_hostname']
+    if db_master_ip_or_hostname.strip('.').isdigit():
+        sql = "select server_public_ip from server where server_public_ip like '{}%' limit 5".format(db_master_ip_or_hostname)
+    else:
+        sql = "select server_public_ip from server where server_hostname like '{}%' limit 5".format(db_master_ip_or_hostname)
+    cursor = connection.cursor()
+    try:
+        cursor.execute("%s" % sql)
+        rows = cursor.fetchall()
+        host_list = []
+        [host_list.append(i[0]) for i in rows]
+        content = {'status': "ok", 'message': "ok",'data': host_list}
+    except Exception as e:
+        content = {'status': "error", 'message': str(e)}
+        print(e)
+    finally:
+        cursor.close()
+        connection.close()
+    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
 
 # 页面提交SQL工单
 def submit_sql_func(request):
@@ -669,16 +703,14 @@ def split_sql_func(submit_sql_uuid):
         print(20000)
         print(cluster_name)
         if cluster_name:
-            ret = utils.get_cluster_write_node_info(cluster_name)
-            master_ip = ret[0]
-            master_port = ret[1]
+            des_master_ip, des_master_port = utils.get_cluster_write_node_info(cluster_name)
         else:
-            master_ip = data[0]["master_ip"]
-            master_port = data[0]["master_port"]
+            des_master_ip = data[0]["master_ip"]
+            des_master_port = data[0]["master_port"]
         with open("./upload/{}".format(sql_file_path), "rb") as f:
             execute_sql = f.read()
             execute_sql = execute_sql.decode('utf-8')
-        ret = start_split_sql(cursor,submit_sql_uuid,master_ip, master_port, execute_sql, sql_file_path,cluster_name)
+        ret = start_split_sql(cursor,submit_sql_uuid,des_master_ip, des_master_port, execute_sql, sql_file_path,cluster_name)
         if ret == "拆分SQL成功":
             message = "拆分任务成功"
         else:

@@ -59,22 +59,28 @@ export default class mysqlInstance extends Component  {
         };
         const columns = [
             {
-                title: 'cluster_name',
-                dataIndex: 'cluster_name',
-                key: 'cluster_name',
-            },
-            {
-                title: 'cluster_type',
-                dataIndex: 'cluster_type',
-            },
-            {
-                title: 'instance_name',
-                colSpan: 1,
-                dataIndex: 'instance_name',
-            },
-            {
                 title: '主机名',
                 dataIndex: 'host_name',
+            },
+            {
+                title: 'host_ip',
+                dataIndex: 'host_ip',
+            },
+            {
+                title: 'port',
+                dataIndex: 'port',
+            },
+            {
+                title: 'server_charset',
+                dataIndex: 'server_charset',
+            },
+            {
+                title: 'version',
+                dataIndex: 'version',
+            },
+            {
+                title: 'bufferpool',
+                dataIndex: 'bufferpool',
             },
             {
                 title: 'instance_status',
@@ -86,6 +92,18 @@ export default class mysqlInstance extends Component  {
             {
                 title: 'role',
                 dataIndex: 'role',
+            },
+            {
+                title: 'read_only',
+                dataIndex: 'read_only',
+            },
+            {
+                title: 'master_ip',
+                dataIndex: 'master_ip',
+            },
+            {
+                title: 'master_port',
+                dataIndex: 'master_port',
             },
         ];
         return (

@@ -91,8 +91,24 @@ export default class mysqlCluster extends Component  {
             }
           },
           {
-            title: '实例角色',
-            dataIndex: 'role',
+            title: 'read_only',
+            dataIndex: 'read_only',
+          },
+          {
+              title: '版本',
+              dataIndex: 'version',
+          },
+          {
+              title: '字符集',
+              dataIndex: 'server_charset',
+          },
+          {
+              title: 'master_ip',
+              dataIndex: 'master_ip',
+          },
+          {
+              title: 'master_port',
+              dataIndex: 'master_port',
           },
         ];
         return (

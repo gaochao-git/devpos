@@ -83,16 +83,20 @@ def main():
         inception_osc_config = data[0]["inception_osc_config"]
         cluster_name = data[0]["cluster_name"]
         if cluster_name:
-            sql_get_write_node = 'select instance_name from mysql_instance where cluster_name="{}" and role="write" and instance_status=1 limit 1'.format(cluster_name)
+            sql_get_write_node = """select 
+                                    b.host_ip,b.port 
+                                from mysql_cluster_instance a inner join mysql_instance b 
+                                on a.instance_name=b.instance_name 
+                                where a.cluster_name='{}' and b.read_only='off' and b.instance_status=1 limit 1
+                                """.format(cluster_name)
             cursor.execute("%s" % sql_get_write_node)
-            rows = cursor.fetchall()
+            rows = cursor.fetchone()
             if rows:
-                master_ip = rows[0][0].split("_")[0]
-                master_port = rows[0][0].split("_")[1]
+                des_master_ip = rows[0]
+                des_master_port = rows[1]
         else:
-            master_ip = data[0]["master_ip"]
-            master_port = data[0]["master_port"]
-        logging.info("master_ip_master_port:%s_%s",(master_ip,master_port))
+            des_master_ip = data[0]["master_ip"]
+            des_master_port = data[0]["master_port"]
         if inception_osc_config == "" or inception_osc_config == '{}':
             osc_config_sql = "show databases;"
         else:
@@ -119,13 +123,14 @@ def main():
         cursor.execute("%s" % sql_update_executing)
         cursor.execute("%s" % sql_execute_executing)
         connection.commit()
-        logging.info("工单:%s,状态更改为已执行成功",submit_sql_uuid)
+        logging.info("工单:%s,状态更改为已执行成功", submit_sql_uuid)
     except Exception as e:
         print(e)
         connection.rollback()
-        logging.error("更改:%s,更改工单状态为已执行失败",submit_sql_uuid)
+        logging.error("工单:%s,更改工单状态为已执行失败", submit_sql_uuid)
     # 执行工单
-    ret = execute_sql_func(master_ip, master_port, osc_config_sql, execute_sql)
+    logging.info("工单:%s,master信息为%s_%s", submit_sql_uuid, des_master_ip, des_master_port)
+    ret = execute_sql_func(des_master_ip, des_master_port, osc_config_sql, execute_sql)
     if ret["status"] == "ok":
         ret_process_results = process_execute_results(ret["data"])
         if ret_process_results["status"] == "ok":
@@ -195,7 +200,7 @@ if __name__ == "__main__":
         main()
         logging.info("工单:%s,执行完成...",submit_sql_uuid)
     except Exception as e:
-        logging.error("工单:%s,执行错误...",submit_sql_uuid)
+        logging.error("工单:%s,执行错误...%s",submit_sql_uuid,str(e))
         print(e)
     finally:
         cursor.close()

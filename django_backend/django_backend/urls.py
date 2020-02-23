@@ -50,8 +50,8 @@ urlpatterns = [
     path('execute_order/', create_private_user.execute_order_func),                                      # 权限申请--执行工单
     path('auth/', drf_views.obtain_auth_token),                                                          # 登录--获取用户的token
     path('get_login_user_name_by_token/', login.get_login_user_name_by_token_func),                      # 登录--根据token获得登录用户名
-    path('get_master_ip/', utils.get_master_ip_func),                                                    # sql审核--获取主库ip
-    path('get_cluster_name/', utils.get_cluster_name_func),                                              # sql审核--根据cluster_name输入框自动补全
+    path('get_master_ip/', inception.get_master_ip_func),                                                # sql审核--获取主库ip
+    path('get_cluster_name/', inception.get_cluster_name_func),                                          # sql审核--根据cluster_name输入框自动补全
     path('privilege_view_user/', create_private_user.privilege_view_user_func),                          # 权限申请--查看用户已有权限
     path('get_mysql_instance_info/', mysql_instance.get_mysql_instance_info_func),                       # 获取mysql实例
     path('get_search_mysql_instance_info/', mysql_instance.get_search_mysql_instance_info_func),         # 根据搜索框获取mysql实例
