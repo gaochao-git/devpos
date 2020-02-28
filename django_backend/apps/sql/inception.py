@@ -105,7 +105,12 @@ def check_sql_func(request):
     request_body = json.loads(to_str)
     if request_body['params']['submit_source_db_type'] == "cluster":
         cluster_name = request_body['params']['cluster_name']
-        des_master_ip, des_master_port = utils.get_cluster_write_node_info(cluster_name)
+        if utils.get_cluster_write_node_info(cluster_name) == "no_write_node":
+            content = {'status': "error", 'message': "没有匹配到合适的写节点"}
+            return HttpResponse(json.dumps(content), content_type='application/json')
+        else:
+            des_master_ip, des_master_port = utils.get_cluster_write_node_info(cluster_name)
+
     else:
         des_master_ip = request_body['params']['db_ip'].strip()
         des_master_port = request_body['params']['db_port'].strip()
