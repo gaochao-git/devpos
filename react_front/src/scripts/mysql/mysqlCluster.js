@@ -451,10 +451,58 @@ export default class mysqlCluster extends Component  {
                                             {/*<Column title="主机名" dataIndex="hostname"/>*/}
                                             {/*<Column title="端口" dataIndex="port"/>*/}
                                             <Column title="实例名" dataIndex="instance_name"/>
-                                            <Column title="Lock_time异常sql数量(>1s)" dataIndex="lock_time_sql_count"/>
-                                            <Column title="Rows_sent异常sql数量(>1万)" dataIndex="rows_sent_sql_count"/>
-                                            <Column title="Rows_examined异常SQL数量(>1万)" dataIndex="rows_examined_sql_count"/>
-                                            <Column title="Rows_affected异常SQL数量(>1万)" dataIndex="rows_affected_sql_count"/>
+                                            {/*<Column title="Lock_time异常sql数量(>1s)" dataIndex="lock_time_sql_count"/>*/}
+                                            <Column title="Lock_time异常sql数量(>1s)"
+                                                render={record => {
+                                                        return (
+                                                            <div>
+                                                                {record.lock_time_sql_count>=24 ? <span className = 'row-detail-error'>{record.lock_time_sql_count}</span>:<span>{record.lock_time_sql_count}</span>}
+                                                                <Button className="link-button" style={{marginLeft:15}}  onClick={()=>{this.viewRunningSqlByInstanceName(record.lock_time_sql_count)}}>查看详情</Button>
+                                                            </div>
+
+                                                        )
+                                                    }
+                                                }
+                                            />
+                                            {/*<Column title="Rows_sent异常sql数量(>1万)" dataIndex="rows_sent_sql_count"/>*/}
+                                            <Column title="Rows_sent异常sql数量(>1万)"
+                                                render={record => {
+                                                        return (
+                                                            <div>
+                                                                {record.rows_sent_sql_count>=24 ? <span className = 'row-detail-error'>{record.rows_sent_sql_count}</span>:<span>{record.rows_sent_sql_count}</span>}
+                                                                <Button className="link-button" style={{marginLeft:15}}  onClick={()=>{this.viewRunningSqlByInstanceName(record.rows_sent_sql_count)}}>查看详情</Button>
+                                                            </div>
+
+                                                        )
+                                                    }
+                                                }
+                                            />
+                                            {/*<Column title="Rows_examined异常SQL数量(>1万)" dataIndex="rows_examined_sql_count"/>*/}
+                                            <Column title="Rows_examined异常SQL数量(>1万)"
+                                                render={record => {
+                                                        return (
+                                                            <div>
+                                                                {record.rows_examined_sql_count>=24 ? <span className = 'row-detail-error'>{record.rows_examined_sql_count}</span>:<span>{record.rows_examined_sql_count}</span>}
+                                                                <Button className="link-button" style={{marginLeft:15}}  onClick={()=>{this.viewRunningSqlByInstanceName(record.rows_examined_sql_count)}}>查看详情</Button>
+                                                            </div>
+
+                                                        )
+                                                    }
+                                                }
+                                            />
+                                            {/*<Column title="Rows_affected异常SQL数量(>1万)" dataIndex="rows_affected_sql_count"/>*/}
+                                            <Column title="Rows_affected异常SQL数量(>1万)"
+                                                render={record => {
+                                                        return (
+                                                            <div>
+                                                                {record.rows_affected_sql_count>=24 ? <span className = 'row-detail-error'>{record.rows_affected_sql_count}</span>:<span>{record.rows_affected_sql_count}</span>}
+                                                                <Button className="link-button" style={{marginLeft:15}}  onClick={()=>{this.viewRunningSqlByInstanceName(record.rows_affected_sql_count)}}>查看详情</Button>
+                                                            </div>
+
+                                                        )
+                                                    }
+                                                }
+                                            />
                                         </Table>
                                     </Card>
                                 </Col>
