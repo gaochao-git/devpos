@@ -3,8 +3,6 @@
 # @Time    : 2019/4/17 3:17 PM
 # @Author  : 高超
 
-from django.http import HttpResponse
-import json
 from apps.utils import db_helper
 import logging
 
@@ -32,7 +30,7 @@ def get_mysql_cluster_dao():
     try:
         rows = db_helper.findall(sql)
     except Exception as e:
-        logger.info(e)
+        logger.error(e)
     finally:
         return rows
 
@@ -58,6 +56,6 @@ def get_mysql_cluster_by_cluster_name_dao(cluster_name):
     try:
         rows = db_helper.findall(sql)
     except Exception as e:
-        logger.info(e)
+        logger.error(e)
     finally:
         return rows

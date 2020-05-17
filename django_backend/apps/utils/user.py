@@ -1,7 +1,7 @@
 from django.db import connection
 import logging
 
-logger = logging.getLogger('sql_logger')
+logger = logging.getLogger('devops')
 
 # 根据集群名获取write_ip,write_port
 def get_cluster_write_node_info(cluster_name):
@@ -23,4 +23,4 @@ def get_cluster_write_node_info(cluster_name):
         else:
             return "no_write_node"
     except Exception as e:
-        print(e)
+        logger.error(e)

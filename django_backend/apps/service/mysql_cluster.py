@@ -3,8 +3,6 @@
 # @Time    : 2019/4/17 3:17 PM
 # @Author  : 高超
 
-from django.http import HttpResponse
-import json
 import logging
 from apps.dao import mysql_cluster_dao
 
@@ -20,7 +18,7 @@ def get_mysql_cluster():
         data = []
         status = "error"
         message = e
-        logger.info(e)
+        logger.error(e)
     finally:
         content = {'status': status, 'message': message,'data': data}
         return content
@@ -36,7 +34,7 @@ def get_mysql_cluster_by_cluster_name(cluster_name):
         data = []
         status = "error"
         message = e
-        logger.info(e)
+        logger.error(e)
     finally:
         content = {'status': status, 'message': message, 'data': data}
-        return HttpResponse(json.dumps(content), content_type='application/json')
+        return content
