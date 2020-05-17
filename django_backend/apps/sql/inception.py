@@ -6,14 +6,14 @@ import uuid
 from time import gmtime, strftime
 import os
 import re
-from apps import utils
+from apps.utils import user
 
 
 # 页面获取所有工单列表
 def get_submit_sql_info_func(request):
     token = request.META.get('HTTP_AUTHORIZATION')
-    login_user_name = utils.get_login_user(token)["username"]
-    login_user_name_role = utils.get_login_user(token)["title"]
+    login_user_name = user.get_login_user(token)["username"]
+    login_user_name_role = user.get_login_user(token)["title"]
     if login_user_name_role == 'dba':
         where_condition = ""
     elif login_user_name_role == 'leader' or login_user_name_role == 'qa':
