@@ -1,13 +1,13 @@
 from django.contrib import admin
 from django.urls import path
-from apps.mysql import mysql_cluster
-from apps.mysql import mysql_instance
+from apps.controller import mysql_cluster_controller
+from apps.controller import mysql_instance_controller
 from apps.sql import inception
-from apps.common import create_common_user
-from apps.common import migrate_common_user
-from apps.privilege import create_private_user
-from apps.server import cloud_instance
-from apps.login import login
+from apps.controller import create_common_user
+from apps.controller import migrate_common_user
+from apps.controller import create_private_user
+from apps.controller import cloud_instance
+from apps.controller import login_controller
 from apps.utils import user
 import datetime
 from rest_framework.authtoken import views as drf_views
@@ -20,8 +20,8 @@ JWT_AUTH = {
 
 urlpatterns = [
     path('admin/', admin.site.urls),                                                                          # django后台登陆
-    path('get_mysql_cluster_info/', mysql_cluster.get_mysql_cluster_info_func),                               # 查看所有mysql集群信息
-    path('get_search_mysql_cluster_info/', mysql_cluster.get_search_cluster_info_func),                       # 根据集群名搜索集群信息
+    path('get_mysql_cluster_info/', mysql_cluster_controller.get_mysql_cluster_handler),                               # 查看所有mysql集群信息
+    path('get_search_mysql_cluster_info/', mysql_cluster_controller.get_mysql_cluster_by_cluster_name_handler),                       # 根据集群名搜索集群信息
     path('get_submit_sql_info/', inception.get_submit_sql_info_func),                                         # 页面获取所有工单列表
     path('get_apply_sql_by_uuid/', inception.get_apply_sql_by_uuid_func),                                     # 查看指定提交工单的详情
     path('get_submit_sql_by_uuid/', inception.get_submit_sql_by_uuid_func),                                   # 页面预览指定工单提交的SQL
@@ -49,11 +49,11 @@ urlpatterns = [
     path('check_order/', create_private_user.check_order_func),                                          # 权限申请--审核工单
     path('execute_order/', create_private_user.execute_order_func),                                      # 权限申请--执行工单
     path('auth/', drf_views.obtain_auth_token),                                                          # 登录--获取用户的token
-    path('get_login_user_name_by_token/', login.get_login_user_name_by_token_func),                      # 登录--根据token获得登录用户名
+    path('get_login_user_name_by_token/', login_controller.get_login_user_name_by_token_handler),                      # 登录--根据token获得登录用户名
     path('get_master_ip/', inception.get_master_ip_func),                                                # sql审核--获取主库ip
     path('get_cluster_name/', inception.get_cluster_name_func),                                          # sql审核--根据cluster_name输入框自动补全
     path('privilege_view_user/', create_private_user.privilege_view_user_func),                          # 权限申请--查看用户已有权限
-    path('get_mysql_instance_info/', mysql_instance.get_mysql_instance_info_func),                       # 获取mysql实例
-    path('get_search_mysql_instance_info/', mysql_instance.get_search_mysql_instance_info_func),         # 根据搜索框获取mysql实例
+    path('get_mysql_instance_info/', mysql_instance_controller.get_mysql_instance_info_handler),                       # 获取mysql实例
+    path('get_search_mysql_instance_info/', mysql_instance_controller.get_search_mysql_instance_info_handler),         # 根据搜索框获取mysql实例
     ]
 

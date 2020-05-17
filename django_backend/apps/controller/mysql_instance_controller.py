@@ -3,7 +3,7 @@ import json
 from django.db import connection
 
 # 获取所有mysql实例
-def get_mysql_instance_info_func(request):
+def get_mysql_instance_info_handler(request):
     cursor = connection.cursor()
     sql = """select id as 'key',
                     case instance_status when 0 then '不可用' when 1 then '正常服务' when 2 then '已下线' end as instance_status,
@@ -32,7 +32,7 @@ def get_mysql_instance_info_func(request):
     return HttpResponse(json.dumps(content), content_type='application/json')
 
 # 根据输入主机名获取对应mysql实例
-def get_search_mysql_instance_info_func(request):
+def get_search_mysql_instance_info_handler(request):
     cursor = connection.cursor()
     to_str = str(request.body, encoding="utf-8")
     host_name = json.loads(to_str)['host_name']

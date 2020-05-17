@@ -17,6 +17,6 @@ def findall(sql):
     except Exception as e:
         logger.error(e)
     finally:
-        logger.info("sql:%s,sql执行耗时:%s" % (sql,time_diff))
+        logger.info("sql:%s,sql执行耗时:%s ms" % (sql,time_diff))
         cursor.close()
         connection.close()
