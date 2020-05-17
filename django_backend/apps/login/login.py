@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 import json
-from apps import utils
+from apps.utils import user
 import logging
 logger = logging.getLogger("devpos")
 
@@ -8,7 +8,7 @@ logger = logging.getLogger("devpos")
 def get_login_user_name_by_token_func(request):
     token = request.META.get('HTTP_AUTHORIZATION')
     try:
-        data = utils.get_login_user(token)
+        data = user.get_login_user(token)
         if data:
             content = {'status': "ok", 'message': "验证成功", "data": data}
             logger.info(content)

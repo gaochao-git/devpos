@@ -8,7 +8,7 @@ from apps.common import migrate_common_user
 from apps.privilege import create_private_user
 from apps.server import cloud_instance
 from apps.login import login
-from apps import utils
+from apps.utils import user
 import datetime
 from rest_framework.authtoken import views as drf_views
 
@@ -20,8 +20,8 @@ JWT_AUTH = {
 
 urlpatterns = [
     path('admin/', admin.site.urls),                                                                          # django后台登陆
-    path('get_mysql_cluster_info/', mysql_cluster.get_mysql_cluster_info_func),                                           # 查看所有mysql集群信息
-    path('get_search_cluster_info/', mysql_cluster.get_search_cluster_info_func),                             # 根据集群名搜索集群信息
+    path('get_mysql_cluster_info/', mysql_cluster.get_mysql_cluster_info_func),                               # 查看所有mysql集群信息
+    path('get_search_mysql_cluster_info/', mysql_cluster.get_search_cluster_info_func),                       # 根据集群名搜索集群信息
     path('get_submit_sql_info/', inception.get_submit_sql_info_func),                                         # 页面获取所有工单列表
     path('get_apply_sql_by_uuid/', inception.get_apply_sql_by_uuid_func),                                     # 查看指定提交工单的详情
     path('get_submit_sql_by_uuid/', inception.get_submit_sql_by_uuid_func),                                   # 页面预览指定工单提交的SQL
