@@ -6,14 +6,16 @@ import uuid
 from time import gmtime, strftime
 import os
 import re
-from apps.utils import user
+from apps.dao import login_dao
+from apps.utils import common
 
 
 # 页面获取所有工单列表
 def get_submit_sql_info_func(request):
     token = request.META.get('HTTP_AUTHORIZATION')
-    login_user_name = user.get_login_user(token)["username"]
-    login_user_name_role = user.get_login_user(token)["title"]
+    data = login_dao.get_login_user_name_by_token_dao(token)
+    login_user_name = data["username"]
+    login_user_name_role = data["title"]
     if login_user_name_role == 'dba':
         where_condition = ""
     elif login_user_name_role == 'leader' or login_user_name_role == 'qa':
@@ -105,11 +107,11 @@ def check_sql_func(request):
     request_body = json.loads(to_str)
     if request_body['params']['submit_source_db_type'] == "cluster":
         cluster_name = request_body['params']['cluster_name']
-        if utils.get_cluster_write_node_info(cluster_name) == "no_write_node":
+        if common.get_cluster_write_node_info(cluster_name) == "no_write_node":
             content = {'status': "error", 'message': "没有匹配到合适的写节点"}
             return HttpResponse(json.dumps(content), content_type='application/json')
         else:
-            des_master_ip, des_master_port = utils.get_cluster_write_node_info(cluster_name)
+            des_master_ip, des_master_port = common.get_cluster_write_node_info(cluster_name)
 
     else:
         des_master_ip = request_body['params']['db_ip'].strip()
@@ -188,7 +190,8 @@ def get_master_ip_func(request):
 # 页面提交SQL工单
 def submit_sql_func(request):
     token = request.META.get('HTTP_AUTHORIZATION')
-    login_user_name = utils.get_login_user(token)["username"]
+    data = login_dao.get_login_user_name_by_token_dao(token)
+    login_user_name = data["username"]
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     now_date = strftime("%Y%m%d", gmtime())
@@ -372,8 +375,9 @@ def get_check_sql_results_by_uuid_func(request):
 # 审核通过并拆分SQL
 def pass_submit_sql_by_uuid_func(request):
     token = request.META.get('HTTP_AUTHORIZATION')
-    check_user_name = utils.get_login_user(token)["username"]
-    check_user_name_role = utils.get_login_user(token)["title"]
+    data = login_dao.get_login_user_name_by_token_dao(token)
+    login_user_name = data["username"]
+    login_user_name_role = data["title"]
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     ret = ""
@@ -381,12 +385,12 @@ def pass_submit_sql_by_uuid_func(request):
     apply_results = request_body['params']['apply_results']
     check_comment = request_body['params']['check_comment']
     check_status = 2 if apply_results == "通过" else 3
-    if check_user_name_role == "leader":
-        sql = "update sql_submit_info set leader_check={},leader_user_name='{}',leader_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,check_user_name,check_comment,submit_sql_uuid)
-    elif check_user_name_role == "qa":
-        sql = "update sql_submit_info set qa_check={},qa_user_name='{}',qa_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,check_user_name,check_comment,submit_sql_uuid)
-    elif check_user_name_role == "dba":
-        sql = "update sql_submit_info set dba_check={},dba_check_user_name='{}',dba_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,check_user_name,check_comment,submit_sql_uuid)
+    if login_user_name_role == "leader":
+        sql = "update sql_submit_info set leader_check={},leader_user_name='{}',leader_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,login_user_name,check_comment,submit_sql_uuid)
+    elif login_user_name_role == "qa":
+        sql = "update sql_submit_info set qa_check={},qa_user_name='{}',qa_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,login_user_name,check_comment,submit_sql_uuid)
+    elif login_user_name_role == "dba":
+        sql = "update sql_submit_info set dba_check={},dba_check_user_name='{}',dba_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,login_user_name,check_comment,submit_sql_uuid)
     if apply_results == "通过":
         split_sql = """
              select 
@@ -413,7 +417,7 @@ def pass_submit_sql_by_uuid_func(request):
                 from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where a.submit_sql_uuid='{}'
         """.format(submit_sql_uuid, submit_sql_uuid, submit_sql_uuid, submit_sql_uuid)
         #拆分SQL
-        if check_user_name_role == "dba":
+        if login_user_name_role == "dba":
             ret = split_sql_func(submit_sql_uuid)
         cursor = connection.cursor()
         try:
@@ -585,14 +589,15 @@ def execute_submit_sql_by_file_path_func(request):
 # 手动执行SQL更改工单状态
 def execute_submit_sql_by_file_path_manual_func(request):
     token = request.META.get('HTTP_AUTHORIZATION')
-    execute_user_name = utils.get_login_user(token)["username"]
+    data = login_dao.get_login_user_name_by_token_dao(token)
+    login_user_name = data["username"]
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
     split_sql_file_path = request_body['params']['split_sql_file_path']
     sql1 = "update sql_execute_split set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2 where split_sql_file_path='{}'".format(split_sql_file_path)
     sql2 = "select id,submit_sql_uuid,split_sql_file_path from sql_execute_split where submit_sql_uuid='{}' and dba_execute=1".format(submit_sql_uuid)
-    sql3 = "update sql_submit_info set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2,dba_execute_user_name='{}' where submit_sql_uuid='{}'".format(execute_user_name, submit_sql_uuid)
+    sql3 = "update sql_submit_info set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2,dba_execute_user_name='{}' where submit_sql_uuid='{}'".format(login_user_name, submit_sql_uuid)
     cursor = connection.cursor()
     #如果所有的拆分文件均执行完在将工单文件状态改了
     try:
@@ -708,7 +713,7 @@ def split_sql_func(submit_sql_uuid):
         print(20000)
         print(cluster_name)
         if cluster_name:
-            des_master_ip, des_master_port = utils.get_cluster_write_node_info(cluster_name)
+            des_master_ip, des_master_port = common.get_cluster_write_node_info(cluster_name)
         else:
             des_master_ip = data[0]["master_ip"]
             des_master_port = data[0]["master_port"]

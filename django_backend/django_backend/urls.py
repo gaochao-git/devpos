@@ -8,7 +8,6 @@ from apps.controller import migrate_common_user
 from apps.controller import create_private_user
 from apps.controller import cloud_instance
 from apps.controller import login_controller
-from apps.utils import user
 import datetime
 from rest_framework.authtoken import views as drf_views
 

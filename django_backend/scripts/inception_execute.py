@@ -8,7 +8,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
-                    filename='./scripts/inception_execute.log',
+                    filename='./logs/inception_execute.log',
                     filemode='a+'
 )
 
