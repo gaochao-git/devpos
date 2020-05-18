@@ -10,12 +10,12 @@ logger = logging.getLogger('devops')
 
 # 获取所有集群信息
 def get_mysql_cluster():
+    data = []
     try:
         data = mysql_cluster_dao.get_mysql_cluster_dao()
         status = "ok"
         message = "ok"
     except Exception as e:
-        data = []
         status = "error"
         message = e
         logger.error(e)
@@ -26,12 +26,12 @@ def get_mysql_cluster():
 
 # 模糊搜索集群名信息
 def get_mysql_cluster_by_cluster_name(cluster_name):
+    data = []
     try:
         data = mysql_cluster_dao.get_mysql_cluster_by_cluster_name_dao(cluster_name)
         status = "ok"
         message = "ok"
     except Exception as e:
-        data = []
         status = "error"
         message = e
         logger.error(e)

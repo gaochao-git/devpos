@@ -6,7 +6,7 @@
 from apps.utils import db_helper
 import logging
 
-logger = logging.getLogger('devops')
+logger = logging.getLogger('sql_logger')
 
 
 # 获取所有集群信息
@@ -27,6 +27,7 @@ def get_mysql_cluster_dao():
                     case b.instance_status when 0 then '不可用' when 1 then '正常服务' when 2 then '已下线' end as instance_status 
              from mysql_cluster_instance a inner join mysql_instance b on a.instance_name=b.instance_name
              """
+    rows = []
     try:
         rows = db_helper.findall(sql)
     except Exception as e:
@@ -53,6 +54,7 @@ def get_mysql_cluster_by_cluster_name_dao(cluster_name):
                         case b.instance_status when 0 then '不可用' when 1 then '正常服务' when 2 then '已下线' end as instance_status 
                  from mysql_cluster_instance a inner join mysql_instance b on a.instance_name=b.instance_name where 1=1 {}
                  """.format(where_cluster_name_conditin)
+    rows = []
     try:
         rows = db_helper.findall(sql)
     except Exception as e:
