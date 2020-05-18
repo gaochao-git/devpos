@@ -164,7 +164,7 @@ export default class UserSqlApply extends Component {
         this.setState({
             sql_check_results_loading:true
         })
-        let token = window.localStorage.getItem('token')
+        // let token = window.localStorage.getItem('token')
         let params = {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
@@ -201,9 +201,11 @@ export default class UserSqlApply extends Component {
         });
         this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
     };
+
+    //间隔执行
     setInterVal = () => {
          this.timerId = window.setInterval(this.GetSqlApplyByUuid.bind(this),1000);
-         this.timerProcessId = window.setInterval(this.getExecuteProcessByUuidTimeInterval.bind(this),1000);
+         // this.timerProcessId = window.setInterval(this.getExecuteProcessByUuidTimeInterval.bind(this),1000);
     }
     //平台自动执行SQL
     async ExecuteBySplitSqlFilePath(split_sql_file_path) {
@@ -333,6 +335,7 @@ export default class UserSqlApply extends Component {
         this.setState({
             ViewExecuteSubmitSqlProcessModalVisible: false,
         })
+        window.clearInterval(this.timerProcessId);
     };
     //关闭inception设置modal
     closeInceptionVariableConfigModal = () => {
@@ -372,9 +375,11 @@ export default class UserSqlApply extends Component {
             ViewExecuteSubmitSqlProcessModalVisible:true,
             split_sql_file_path:split_sql_file_path
         });
+        this.timerProcessId = window.setInterval(this.getExecuteProcessByUuidTimeInterval.bind(this),1000);
     }
     //定时查看进度，并更新进度到表里
     async getExecuteProcessByUuidTimeInterval() {
+        console.log(111111)
         let params = {
             split_sql_file_path:this.state.split_sql_file_path,
             submit_sql_uuid: this.state.submit_sql_uuid,

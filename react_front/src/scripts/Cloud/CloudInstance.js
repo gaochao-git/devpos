@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import { Layout, Button,Table, Menu, Icon, Input } from "antd";
+import { Button,Table, Input } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -39,20 +39,6 @@ export default class CloudInstance extends Component  {
     }
 
     render() {
-        let {cloud_instance_info} = this.state;
-        const temp = {}; // 当前重复的值,支持多列
-        const mergeCells = (text, array, columns) => {
-          let i = 0;
-          if (text !== temp[columns]) {
-            temp[columns] = text;
-            array.forEach((item) => {
-              if (item.instance_name === temp[columns]) {
-                i += 1;
-              }
-            });
-          }
-          return i;
-        };
         const columns = [
           {
             title: '主机名',

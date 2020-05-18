@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Layout, Menu, Icon, Button,message } from "antd";
+import {Layout, Menu, Icon, Button } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import {HashRouter,Route} from 'react-router-dom';

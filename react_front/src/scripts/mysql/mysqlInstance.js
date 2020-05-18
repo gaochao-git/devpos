@@ -43,20 +43,6 @@ export default class mysqlInstance extends Component  {
     }
 
     render() {
-        let {mysql_instance_info} = this.state;
-        const temp = {}; // 当前重复的值,支持多列
-        const mergeCells = (text, array, columns) => {
-            let i = 0;
-            if (text !== temp[columns]) {
-                temp[columns] = text;
-                array.forEach((item) => {
-                    if (item.cluster_name === temp[columns]) {
-                        i += 1;
-                    }
-                });
-            }
-            return i;
-        };
         const columns = [
             {
                 title: '主机名',

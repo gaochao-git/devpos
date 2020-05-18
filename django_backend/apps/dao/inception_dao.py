@@ -116,6 +116,56 @@ def get_master_ip_dao(db_master_ip_or_hostname):
     finally:
         return rows
 
+
+# 页面查看审核结果
+def get_check_sql_results_by_uuid_dao(submit_sql_uuid):
+    sql = "select inception_sql,inception_stage_status,inception_error_level,inception_error_message,inception_affected_rows from sql_check_results where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    rows = []
+    try:
+        rows = db_helper.findall(sql)
+    except Exception as e:
+        logger.error(e)
+    finally:
+        return rows
+
+
+# 页面查看inception变量配置
+def get_inception_variable_config_info_dao(split_sql_file_path):
+    sql = "select variable_name name,variable_value value,variable_description,editable from sql_inception_osc_config"
+    sql_split_osc_config = "select inception_osc_config from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
+    try:
+        sql_split_osc_config_row = db_helper.findall(sql_split_osc_config)
+        if sql_split_osc_config_row[0]["inception_osc_config"] == "" or sql_split_osc_config_row[0]["inception_osc_config"] == "{}":
+            new_data = db_helper.findall(sql)
+        else:
+            data = db_helper.findall(sql)
+            new_data = []
+            for i in sql_split_osc_config_row:
+                osc_config_variable_dict = json.loads(i["inception_osc_config"])
+                for j in data:
+                    if j["name"] in osc_config_variable_dict:
+                        j["value"] = osc_config_variable_dict[j["name"]]
+                        new_data.append(j)
+                    else:
+                        new_data.append(j)
+    except Exception as e:
+        logger.error(e)
+    finally:
+        return new_data
+
+
+# 页面修改inception变量配置
+def update_inception_variable_dao(request_body_json,split_sql_file_path):
+    sql = "update sql_execute_split set inception_osc_config='{}' where split_sql_file_path='{}'".format(request_body_json,split_sql_file_path)
+    try:
+        update_status = db_helper.update(sql)
+    except Exception as e:
+        update_status = "error"
+        logger.error(e)
+    finally:
+        return update_status
+
+
 # 页面提交SQL工单
 def submit_sql_func(request):
     token = request.META.get('HTTP_AUTHORIZATION')
@@ -231,51 +281,6 @@ def submit_sql_func(request):
     return HttpResponse(json.dumps(content), content_type='application/json')
 
 
-# 页面预览指定的拆分SQL
-def get_submit_split_sql_by_file_path_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    split_sql_file_path = request_body['params']['split_sql_file_path']
-    sql = "select split_sql_file_path from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % sql)
-        #rows = cursor.fetchall()
-        file_path = split_sql_file_path
-        with open("./upload/{}".format(file_path), "rb") as f:
-            data = f.read()
-            data = data.decode('utf-8')
-        content = {'status': "ok", 'message': "获取SQL成功",'data': data}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='text/xml')
-
-
-# 页面查看审核结果
-def get_check_sql_results_by_uuid_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    sql = "select inception_sql,inception_stage_status,inception_error_level,inception_error_message,inception_affected_rows from sql_check_results where submit_sql_uuid='{}'".format(submit_sql_uuid)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        content = {'status': "ok", 'message': "ok",'data': data}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
-
-
 # 审核通过并拆分SQL
 def pass_submit_sql_by_uuid_func(request):
     token = request.META.get('HTTP_AUTHORIZATION')
@@ -352,66 +357,6 @@ def pass_submit_sql_by_uuid_func(request):
             connection.close()
     print(content)
     return HttpResponse(json.dumps(content, default=str), content_type='application/json')
-
-
-# 页面查看inception变量配置
-def get_inception_variable_config_info_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    split_sql_file_path = request_body['params']['split_sql_file_path']
-    sql = "select variable_name name,variable_value value,variable_description,editable from sql_inception_osc_config"
-    sql_split_osc_config="select inception_osc_config from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % sql_split_osc_config)
-        sql_split_osc_config_row = cursor.fetchall()
-        if sql_split_osc_config_row[0][0] == "" or sql_split_osc_config_row[0][0]=="{}":
-            cursor.execute("%s" % sql)
-            rows = cursor.fetchall()
-            new_data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        else:
-            cursor.execute("%s" % sql)
-            rows = cursor.fetchall()
-            data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-            new_data = []
-            for i in sql_split_osc_config_row:
-                osc_config_variable_dict = json.loads(i[0])
-                print(osc_config_variable_dict)
-                for j in data:
-                    if j["name"] in osc_config_variable_dict:
-                        j["value"] = osc_config_variable_dict[j["name"]]
-                        new_data.append(j)
-                    else:
-                        new_data.append(j)
-        content = {'status': "ok", 'message': "ok",'data': new_data}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
-
-
-# 页面修改inception变量配置
-def update_inception_variable_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    split_sql_file_path = request_body['params']['split_sql_file_path']
-    new_config = request_body["params"]["new_config_json"]
-    request_body_json = json.dumps(new_config)
-    sql = "update sql_execute_split set inception_osc_config='{}' where split_sql_file_path='{}'".format(request_body_json,split_sql_file_path)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % sql)
-        content = {'status': "ok", 'message': "修改inception osc参数成功"}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
 
 
 # 执行SQL并将执行结果插入表中,django http请求超过30s收不到请求就会断开,inception执行SQL需要异步来处理

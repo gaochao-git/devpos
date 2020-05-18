@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Button, Table, Input, Modal, Checkbox, Form, Row, Card, Tabs} from "antd";
+import {Table, Input, Form, Tabs} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -12,7 +12,6 @@ axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { Search } = Input;
 const server = 'http://127.0.0.1:8000';
-const FormItem = Form.Item;
 const { TabPane } = Tabs;
 const Column = Table.Column;
 
@@ -54,56 +53,6 @@ class privateUser extends Component  {
     }
 
     render() {
-        const {form} = this.props;
-        const {getFieldDecorator} = this.props.form;
-        let {user_info} = this.state;
-
-        // const columns = [
-        //   {
-        //     title: '申请人',
-        //     dataIndex: 'person_name',
-        //     key: 'person_name'
-        //   },
-        //   {
-        //     title: '工单类型',
-        //     dataIndex: 'request_type',
-        //   },
-        //   {
-        //     title: '部门',
-        //     dataIndex: 'department',
-        //     width: 100,
-        // //
-        //   },
-        //   {
-        //     title: '业务leader',
-        //     dataIndex: 'leader',
-        //     width: 100
-        //   },
-        //   {
-        //     title: 'DBA',
-        //     dataIndex: 'dba',
-        //     width: 100
-        //   },
-        // //
-        //   {
-        //     title: '业务Leader审核结果',
-        //     dataIndex: 'leader_check_result',
-        //     width: 100
-        //   },
-        //   {
-        //     title: 'DBA审核结果',
-        //     dataIndex: 'dba_check_result',
-        //     width: 100
-        //   },
-        //   {
-        //     title: '工单状态',
-        //     dataIndex: 'status',
-        //     width: 100,
-        //   }
-        // //
-        // ];
-
-
         return (
             <div className="server-list">
                 <div className="sub-title">

@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import { Layout, Button,Table, Menu, Icon, Input,Modal, Checkbox, Form,Row,Tabs,Card} from "antd";
+import {Button,Table, Input,Modal,Form,Row,Tabs,Card} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -28,20 +28,7 @@ class commonUser extends Component  {
             confirmLoading: false,
         }
     }
-    ////预览添加账户modal弹出按钮
-    //showDataModalHandle = (e) => {
-    //    this.setState({
-    //    showDataVisible: true,
-    //    });
-    //}
-//
-    ////预览同步账号modal弹出按钮
-    //showMigrateAccountModalHandle = (e) => {
-    //    this.setState({
-    //    showMigrateAccountDataVisible: true,
-    //    });
-    //}
-//
+
     //预览添加用户数据 modal返回按钮
     showDataHandleCancel = (e) => {
         this.setState({
@@ -97,7 +84,6 @@ class commonUser extends Component  {
     }
 
     render() {
-        const {form} = this.props;
         const {getFieldDecorator} = this.props.form;
         let {user_info} = this.state;
         const temp = {}; // 当前重复的值,支持多列

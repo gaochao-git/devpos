@@ -66,7 +66,6 @@ export default class CreateCommonUser extends React.Component  {
 
 
     render() {
-        const {form} = this.props;
         const {getFieldDecorator} = this.props.form;
         return (
             <div className="server-list">

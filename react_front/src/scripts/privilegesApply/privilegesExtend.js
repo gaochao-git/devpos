@@ -3,8 +3,7 @@ import axios from 'axios'
 import {Button, Input, Form, Row, Card, Checkbox, message, Table} from "antd";
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
-import {backendServerApiRoot, getUser} from "../common/util";
-import {Link} from "react-router-dom";
+import {getUser} from "../common/util";
 
 
 
@@ -132,7 +131,6 @@ export default class PrivilegesExtend extends React.Component  {
 
 
     render() {
-        const {form} = this.props;
         const {getFieldDecorator} = this.props.form;
         return (
             <div className="server-list">

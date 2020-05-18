@@ -4,7 +4,6 @@ import { Table, Input } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
-import {backendServerApiRoot} from "../common/util"
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { Search } = Input;

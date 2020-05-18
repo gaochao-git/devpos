@@ -36,7 +36,6 @@ export default  class MigrateCommonUser extends React.Component  {
 
 
     render() {
-        const {form} = this.props;
         const {getFieldDecorator} = this.props.form;
 
         return (

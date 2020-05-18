@@ -3,7 +3,7 @@ import axios from 'axios'
 import { Button, Input,Form,Row,Card,Checkbox,message} from "antd";
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
-import {backendServerApiRoot, getUser} from "../common/util";
+import {getUser} from "../common/util";
 
 
 axios.defaults.withCredentials = true;
@@ -88,7 +88,6 @@ export default class CreatePrivateUser extends React.Component  {
 
 
     render() {
-        const {form} = this.props;
         const {getFieldDecorator} = this.props.form;
         return (
             <div className="server-list">

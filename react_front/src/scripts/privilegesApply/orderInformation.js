@@ -4,7 +4,7 @@ import {Button, Col, Form, Row, Card, Table, message,Modal,Input,} from "antd";
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import {Link} from "react-router-dom";
-import {backendServerApiRoot, getUser} from "../common/util";
+import {getUser} from "../common/util";
 
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
@@ -154,8 +154,6 @@ export default class OrderInformation extends React.Component  {
 
 
     render() {
-        const {form} = this.props;
-        const {getFieldDecorator} = this.props.form;
         return (
             <div className="server-list">
                 <div className="sub-title">

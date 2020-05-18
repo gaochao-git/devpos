@@ -5,9 +5,9 @@ import {backendServerApiRoot} from "../common/util";
 
 // 登陆
 class Login extends Component  {
-    constructor(props) {
-        super(props);
-    }
+    // constructor(props) {
+    //     super(props);
+    // }
     // 点击Login提交
     handleLoginSubmit = e => {
         e.preventDefault();
