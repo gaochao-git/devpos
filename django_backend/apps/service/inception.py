@@ -38,69 +38,58 @@ def get_submit_sql_info(token):
         return content
 
 
-# 查看指定提交工单的详情
-def get_apply_sql_by_uuid_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    sql = """
-        select title,
-               submit_sql_user,
-               leader_user_name,
-               qa_user_name,
-               dba_check_user_name,
-               dba_execute_user_name,
-               case leader_check  when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as leader_check,
-               case qa_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as qa_check,
-               case dba_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as dba_check,
-               case dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,
-               case execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功(含警告)' when 6 then '手动执行' end as execute_status,
-               master_ip,
-               master_port,
-               cluster_name,
-               comment_info,
-               submit_sql_uuid,
-               (select count(*) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_rows,
-               (select sum(inception_affected_rows) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_affect_rows,
-               (select sum(inception_execute_time) from sql_execute_results where submit_sql_uuid='{}') as inception_execute_time,
-               submit_sql_execute_type,
-               comment_info,
-               submit_sql_file_path
-        from sql_submit_info
-        where submit_sql_uuid='{}'
-    """.format(submit_sql_uuid,submit_sql_uuid,submit_sql_uuid,submit_sql_uuid)
-    print(sql)
-    cursor = connection.cursor()
+# 页面预览指定工单提交的SQL
+def get_submit_sql_by_uuid(submit_sql_uuid):
+    data = ""
     try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        content = {'status': "ok", 'message': "ok",'data': data}
+        file_path_data = inception_dao.get_submit_sql_by_uuid_dao(submit_sql_uuid)
+        file_path = file_path_data[0]["submit_sql_file_path"]
+        with open("./upload/{}".format(file_path), "rb") as f:
+            data = f.read()
+            data = data.decode('utf-8')
+        content = {'status': "ok", 'message': "获取SQL成功",'data': data}
     except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
+        content = {'status': "error", 'message': str(e), 'data': data}
+        logger.error(e)
     finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
+        return content
+
+
+# 查看指定提交工单的详情
+def get_apply_sql_by_uuid(submit_sql_uuid):
+    data = []
+    try:
+        data = inception_dao.get_apply_sql_by_uuid_dao(submit_sql_uuid)
+        status = "ok"
+        message = "ok"
+    except Exception as e:
+        status = "error"
+        message = e
+        logger.error(e)
+    finally:
+        content = {'status': status, 'message': message, 'data': data}
+        return content
+
+
+# 获取master ip
+def get_master_ip(db_master_ip_or_hostname):
+    ip_list = []
+    try:
+        rows = inception_dao.get_master_ip_dao(db_master_ip_or_hostname)
+        [ip_list.append(i["server_public_ip"]) for i in rows]
+        status = "ok"
+        message = "ok"
+    except Exception as e:
+        status = "error"
+        message = str(e)
+        logger.error(e)
+    finally:
+        content = {'status': status, 'message': message, 'data': ip_list}
+        return content
 
 
 # 页面调用inception检测SQL,如果根据cluster_name则需要先获取到对应的master_ip、master_port
-def check_sql_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    if request_body['params']['submit_source_db_type'] == "cluster":
-        cluster_name = request_body['params']['cluster_name']
-        if common.get_cluster_write_node_info(cluster_name) == "no_write_node":
-            content = {'status': "error", 'message': "没有匹配到合适的写节点"}
-            return HttpResponse(json.dumps(content), content_type='application/json')
-        else:
-            des_master_ip, des_master_port = common.get_cluster_write_node_info(cluster_name)
-
-    else:
-        des_master_ip = request_body['params']['db_ip'].strip()
-        des_master_port = request_body['params']['db_port'].strip()
-    check_sql_info = request_body['params']['check_sql_info']
+def check_sql(des_master_ip, des_master_port, check_sql_info):
     sql = """/*--user=wthong;--password=fffjjj;--host={};--check=1;--port={};*/\
         inception_magic_start;
         {}   
@@ -115,14 +104,14 @@ def check_sql_func(request):
         conn.close()
         content = {'status': "ok", 'inception审核完成': "ok",'data': data}
     except Exception as e:
-        print("inception审核失败",str(e))
+        logger.error("inception审核失败",str(e))
         message = str(e)
         if re.findall('1875', str(e)):
             message = "语法错误"
         elif re.findall('2003', str(e)):
             message = "语法检测器无法连接"
         content = {'status': "error", 'message': message}
-    return HttpResponse(json.dumps(content), content_type='application/json')
+    return content
 
 
 # 根据输入的集群名模糊匹配已有集群名
@@ -139,37 +128,10 @@ def get_cluster_name(cluster_name_patten):
         return content
 
 
-# 获取master ip
-def get_master_ip_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    db_master_ip_or_hostname = request_body['params']['db_master_ip_or_hostname']
-    if db_master_ip_or_hostname.strip('.').isdigit():
-        sql = "select server_public_ip from server where server_public_ip like '{}%' limit 5".format(db_master_ip_or_hostname)
-    else:
-        sql = "select server_public_ip from server where server_hostname like '{}%' limit 5".format(db_master_ip_or_hostname)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        host_list = []
-        [host_list.append(i[0]) for i in rows]
-        content = {'status': "ok", 'message': "ok",'data': host_list}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
-
 # 页面提交SQL工单
-def submit_sql_func(request):
-    token = request.META.get('HTTP_AUTHORIZATION')
+def submit_sql(token, request_body):
     data = login_dao.get_login_user_name_by_token_dao(token)
     login_user_name = data["username"]
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
     now_date = strftime("%Y%m%d", gmtime())
     upload_path = "./upload/" + now_date
     if not os.path.isdir(upload_path):
@@ -179,15 +141,11 @@ def submit_sql_func(request):
     file_path = now_date + '/' + file_name
     upfile = os.path.join(upload_path, file_name)
     sql_title = request_body['params']['title']
-    sql_get_leader_qa_dba = "select b.qa_name,b.leader_name,b.dba_name from team_user a inner join team_check_role b on a.gid=b.gid where a.uname='{}'".format(login_user_name)
-    cursor = connection.cursor()
-    cursor.execute("%s" % sql_get_leader_qa_dba)
-    rows = cursor.fetchall()
-    qa_name = rows[0][0]
-    leader_name = rows[0][1]
-    dba_name = rows[0][2]
-    # leader = request_body['params']['leader']
-    # qa = request_body['params']['qa']
+    login_user_info = common.get_login_user_info(login_user_name)
+    print(login_user_info)
+    qa_name = login_user_info[0]["qa_name"]
+    leader_name = login_user_info[0]["leader_name"]
+    dba_name = login_user_info[0]["dba_name"]
     check_sql = request_body['params']['check_sql']
     check_sql_results = request_body['params']['check_sql_results']
     submit_sql_execute_type = request_body['params']['submit_sql_execute_type']
@@ -232,75 +190,55 @@ def submit_sql_func(request):
              values('{}','{}','{}',{},'{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
     """.format(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str)
 
-    # 提交的SQL写入文件
-    with open(upfile,'w') as f:
-        f.write(check_sql)
-        f.close()
+    for check_sql_result in check_sql_results:
+        inception_id = check_sql_result["ID"]
+        inception_stage = check_sql_result["Stage"]
+        inception_error_level = check_sql_result["Error_Level"]
+        inception_stage_status = check_sql_result["Stage_Status"]
+        inception_error_message = check_sql_result["Error_Message"]
+        inception_sql = check_sql_result["SQL"]
+        inception_affected_rows = check_sql_result["Affected_rows"]
+        inception_sequence = check_sql_result["Sequence"]
+        inception_backup_dbnames = check_sql_result["Backup_Dbnames"]
+        inception_execute_time = check_sql_result["Execute_Time"]
+        inception_sqlsha1 = check_sql_result["sqlsha1"]
+        inception_command = check_sql_result["Command"]
+        sql_results_insert = """
+            insert into sql_check_results(submit_sql_uuid,
+                                          inception_id,
+                                          inception_stage,
+                                          inception_error_level,
+                                          inception_stage_status,
+                                          inception_error_message,
+                                          inception_sql,
+                                          inception_affected_rows,
+                                          inception_sequence,
+                                          inception_backup_dbnames,
+                                          inception_execute_time,
+                                          inception_sqlsha1,
+                                          inception_command)
+            values('{}',{},'{}',{},'{}','{}','{}','{}',{},'{}','{}','{}','{}') 
+        """.format(uuid_str, inception_id, inception_stage, inception_error_level, inception_stage_status,
+                   pymysql.escape_string(inception_error_message), pymysql.escape_string(inception_sql),
+                   inception_affected_rows, inception_sequence, inception_backup_dbnames, inception_execute_time,
+                   inception_sqlsha1, inception_command)
+
     cursor = connection.cursor()
     try:
+        # 提交的SQL写入文件
+        with open(upfile, 'w') as f:
+            f.write(check_sql)
+            f.close()
+        # 提交SQL及审核结果写入数据库
         cursor.execute("%s" % sql)
-        for check_sql_result in check_sql_results:
-            inception_id = check_sql_result["ID"]
-            inception_stage = check_sql_result["Stage"]
-            inception_error_level = check_sql_result["Error_Level"]
-            inception_stage_status = check_sql_result["Stage_Status"]
-            inception_error_message = check_sql_result["Error_Message"]
-            inception_sql = check_sql_result["SQL"]
-            inception_affected_rows = check_sql_result["Affected_rows"]
-            inception_sequence = check_sql_result["Sequence"]
-            inception_backup_dbnames = check_sql_result["Backup_Dbnames"]
-            inception_execute_time = check_sql_result["Execute_Time"]
-            inception_sqlsha1 = check_sql_result["sqlsha1"]
-            inception_command = check_sql_result["Command"]
-            sql_results_insert = """
-                insert into sql_check_results(submit_sql_uuid,
-                                              inception_id,
-                                              inception_stage,
-                                              inception_error_level,
-                                              inception_stage_status,
-                                              inception_error_message,
-                                              inception_sql,
-                                              inception_affected_rows,
-                                              inception_sequence,
-                                              inception_backup_dbnames,
-                                              inception_execute_time,
-                                              inception_sqlsha1,
-                                              inception_command)
-                values('{}',{},'{}',{},'{}','{}','{}','{}',{},'{}','{}','{}','{}') 
-            """.format(uuid_str, inception_id, inception_stage, inception_error_level, inception_stage_status, pymysql.escape_string(inception_error_message), pymysql.escape_string(inception_sql), inception_affected_rows, inception_sequence, inception_backup_dbnames, inception_execute_time ,inception_sqlsha1, inception_command)
-            cursor.execute("%s" % sql_results_insert)
+        cursor.execute("%s" % sql_results_insert)
         content = {'status': "ok", 'message': "提交成功"}
     except Exception as e:
         content = {'status': "error", 'message': str(e)}
     finally:
         cursor.close()
         connection.close()
-    return HttpResponse(json.dumps(content), content_type='application/json')
-
-
-# 页面预览指定工单提交的SQL
-def get_submit_sql_by_uuid_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    sql = "select submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        file_path = rows[0][0]
-        with open("./upload/{}".format(file_path), "rb") as f:
-            data = f.read()
-            data = data.decode('utf-8')
-        #f.close()
-        content = {'status': "ok", 'message': "获取SQL成功",'data': data}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='text/xml')
+    return content
 
 
 # 页面预览指定的拆分SQL

@@ -43,11 +43,19 @@ def get_submit_sql_info_dao(where_condition):
         return rows
 
 
+# 页面预览指定工单提交的SQL
+def get_submit_sql_by_uuid_dao(submit_sql_uuid):
+    sql = "select submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    rows = []
+    try:
+        rows = db_helper.findall(sql)
+    except Exception as e:
+        logger.error(e)
+    finally:
+        return rows
+
 # 查看指定提交工单的详情
-def get_apply_sql_by_uuid_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
+def get_apply_sql_by_uuid_dao(submit_sql_uuid):
     sql = """
         select title,
                submit_sql_user,
@@ -74,60 +82,13 @@ def get_apply_sql_by_uuid_func(request):
         from sql_submit_info
         where submit_sql_uuid='{}'
     """.format(submit_sql_uuid,submit_sql_uuid,submit_sql_uuid,submit_sql_uuid)
-    print(sql)
-    cursor = connection.cursor()
+    rows = []
     try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        content = {'status': "ok", 'message': "ok",'data': data}
+        rows = db_helper.findall(sql)
     except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
+        logger.error(e)
     finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
-
-
-# 页面调用inception检测SQL,如果根据cluster_name则需要先获取到对应的master_ip、master_port
-def check_sql_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    if request_body['params']['submit_source_db_type'] == "cluster":
-        cluster_name = request_body['params']['cluster_name']
-        if common.get_cluster_write_node_info(cluster_name) == "no_write_node":
-            content = {'status': "error", 'message': "没有匹配到合适的写节点"}
-            return HttpResponse(json.dumps(content), content_type='application/json')
-        else:
-            des_master_ip, des_master_port = common.get_cluster_write_node_info(cluster_name)
-
-    else:
-        des_master_ip = request_body['params']['db_ip'].strip()
-        des_master_port = request_body['params']['db_port'].strip()
-    check_sql_info = request_body['params']['check_sql_info']
-    sql = """/*--user=wthong;--password=fffjjj;--host={};--check=1;--port={};*/\
-        inception_magic_start;
-        {}   
-        inception_magic_commit;""".format(des_master_ip, des_master_port, check_sql_info)
-    try:
-        conn = pymysql.connect(host='39.97.247.142', user='', passwd='', db='', port=6669, charset="utf8")  # inception服务器
-        cur = conn.cursor()
-        cur.execute(sql)
-        result = cur.fetchall()
-        data = [dict(zip([col[0] for col in cur.description], row)) for row in result]
-        cur.close()
-        conn.close()
-        content = {'status': "ok", 'inception审核完成': "ok",'data': data}
-    except Exception as e:
-        print("inception审核失败",str(e))
-        message = str(e)
-        if re.findall('1875', str(e)):
-            message = "语法错误"
-        elif re.findall('2003', str(e)):
-            message = "语法检测器无法连接"
-        content = {'status': "error", 'message': message}
-    return HttpResponse(json.dumps(content), content_type='application/json')
+        return rows
 
 
 # 根据输入的集群名模糊匹配已有集群名
@@ -143,28 +104,17 @@ def get_cluster_name_dao(cluster_name_patten):
 
 
 # 获取master ip
-def get_master_ip_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    db_master_ip_or_hostname = request_body['params']['db_master_ip_or_hostname']
+def get_master_ip_dao(db_master_ip_or_hostname):
     if db_master_ip_or_hostname.strip('.').isdigit():
         sql = "select server_public_ip from server where server_public_ip like '{}%' limit 5".format(db_master_ip_or_hostname)
     else:
         sql = "select server_public_ip from server where server_hostname like '{}%' limit 5".format(db_master_ip_or_hostname)
-    cursor = connection.cursor()
     try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        host_list = []
-        [host_list.append(i[0]) for i in rows]
-        content = {'status': "ok", 'message': "ok",'data': host_list}
+        rows = db_helper.findall(sql)
     except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
+        logger.error(e)
     finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
+        return rows
 
 # 页面提交SQL工单
 def submit_sql_func(request):
@@ -279,31 +229,6 @@ def submit_sql_func(request):
         cursor.close()
         connection.close()
     return HttpResponse(json.dumps(content), content_type='application/json')
-
-
-# 页面预览指定工单提交的SQL
-def get_submit_sql_by_uuid_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    sql = "select submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        file_path = rows[0][0]
-        with open("./upload/{}".format(file_path), "rb") as f:
-            data = f.read()
-            data = data.decode('utf-8')
-        #f.close()
-        content = {'status': "ok", 'message': "获取SQL成功",'data': data}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='text/xml')
 
 
 # 页面预览指定的拆分SQL

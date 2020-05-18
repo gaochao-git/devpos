@@ -25,3 +25,13 @@ def get_cluster_write_node_info(cluster_name):
             return "no_write_node"
     except Exception as e:
         logger.error(e)
+
+# 获取登陆用户及leader相关信息
+def get_login_user_info(login_user):
+    sql = "select b.qa_name,b.leader_name,b.dba_name from team_user a inner join team_check_role b on a.gid=b.gid where a.uname='{}'".format(login_user)
+    rows = []
+    try:
+        rows = db_helper.findall(sql)
+    except Exception as e:
+        logger.error(e)
+    return rows
