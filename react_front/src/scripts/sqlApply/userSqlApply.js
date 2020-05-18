@@ -380,9 +380,7 @@ export default class UserSqlApply extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
         let res = await axios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,{params});
-        console.log(res.data.data)
-        console.log(res.data.data[0]["inception_execute_percent"])
-        if (res.data.data[0]["inception_execute_percent"]!==0){
+        if (res.data.data.length>0 && res.data.data[0]["inception_execute_percent"]!==0){
             this.setState({
                 execute_sql_process_results: res.data.data
             });

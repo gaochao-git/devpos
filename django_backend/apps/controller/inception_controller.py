@@ -410,9 +410,8 @@ def get_execute_process_by_uuid_controller(request):
     message = ''
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    print(request_body)
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    split_sql_file_path = request_body['params']['split_sql_file_path']
+    # split_sql_file_path = request_body['params']['split_sql_file_path']
     get_sqlsha1_sql = "select inception_sqlsha1,inception_sql from sql_check_results where submit_sql_uuid='{}' and inception_sqlsha1!=''".format(submit_sql_uuid)
     cursor = connection.cursor()
     try:
@@ -423,35 +422,35 @@ def get_execute_process_by_uuid_controller(request):
     finally:
         cursor.close()
         connection.close()
-
     sql_all_process = []
-    for row in rows:
-        sqlsha1 = row[0]
-        inception_get_osc_percent_sql = "inception get osc_percent '{}'".format(sqlsha1)
-        sql_sigle_process = {}
-        if sqlsha1 == '':
-            sql_sigle_process['inception_execute_percent'] = 100
-            sql_sigle_process['inception_sql'] = row[1]
-            sql_all_process.append(sql_sigle_process)
-        else:
-            sql_sigle_process['inception_sql'] = row[1]
-            try:
-                conn = pymysql.connect(host='39.97.247.142', user='', passwd='', db='', port=6669,charset="utf8")  # inception服务器
-                cur = conn.cursor()
-                cur.execute(inception_get_osc_percent_sql)
-                result = cur.fetchall()
-                if result:
-                    data = [dict(zip([col[0] for col in cur.description], row)) for row in result]
-                    sql_sigle_process['inception_execute_percent'] = data[0]['Percent']
-                else:
-                    sql_sigle_process['inception_execute_percent'] = 0
-                cur.close()
-                conn.close()
+    if rows:
+        for row in rows:
+            sqlsha1 = row[0]
+            inception_get_osc_percent_sql = "inception get osc_percent '{}'".format(sqlsha1)
+            sql_sigle_process = {}
+            if sqlsha1 == '':
+                sql_sigle_process['inception_execute_percent'] = 100
+                sql_sigle_process['inception_sql'] = row[1]
                 sql_all_process.append(sql_sigle_process)
-            except Exception as e:
-                print("Mysql Error %d: %s" % (e.args[0], e.args[1]))
-        status = 'ok'
-        message = 'ok'
+            else:
+                sql_sigle_process['inception_sql'] = row[1]
+                try:
+                    conn = pymysql.connect(host='39.97.247.142', user='', passwd='', db='', port=6669,charset="utf8")  # inception服务器
+                    cur = conn.cursor()
+                    cur.execute(inception_get_osc_percent_sql)
+                    result = cur.fetchall()
+                    if result:
+                        data = [dict(zip([col[0] for col in cur.description], row)) for row in result]
+                        sql_sigle_process['inception_execute_percent'] = data[0]['Percent']
+                    else:
+                        sql_sigle_process['inception_execute_percent'] = 0
+                    cur.close()
+                    conn.close()
+                    sql_all_process.append(sql_sigle_process)
+                except Exception as e:
+                    print("Mysql Error %d: %s" % (e.args[0], e.args[1]))
+            status = 'ok'
+            message = 'ok'
     content = {'status': status, 'message': message, 'data': sql_all_process}
     return HttpResponse(json.dumps(content), content_type='application/json')
 
@@ -468,8 +467,6 @@ def split_sql_func(submit_sql_uuid):
         print(data)
         sql_file_path = data[0]["submit_sql_file_path"]
         cluster_name = data[0]["cluster_name"]
-        print(20000)
-        print(cluster_name)
         if cluster_name:
             des_master_ip, des_master_port = common.get_cluster_write_node_info(cluster_name)
         else:
@@ -478,7 +475,7 @@ def split_sql_func(submit_sql_uuid):
         with open("./upload/{}".format(sql_file_path), "rb") as f:
             execute_sql = f.read()
             execute_sql = execute_sql.decode('utf-8')
-        ret = start_split_sql(cursor,submit_sql_uuid,des_master_ip, des_master_port, execute_sql, sql_file_path,cluster_name)
+        ret = inception.start_split_sql(cursor,submit_sql_uuid,des_master_ip, des_master_port, execute_sql, sql_file_path,cluster_name)
         if ret == "拆分SQL成功":
             message = "拆分任务成功"
         else:
@@ -489,82 +486,6 @@ def split_sql_func(submit_sql_uuid):
     finally:
         cursor.close()
         connection.close()
-        print(message)
-        return message
-
-
-# 开始拆分
-def start_split_sql(cursor,submit_sql_uuid,master_ip, master_port, execute_sql, sql_file_path,cluster_name):
-    # 拆分SQL
-    sql = """/*--user=wthong;--password=fffjjj;--host={};--port={};--enable-split;*/\
-        inception_magic_start;
-        {}   
-        inception_magic_commit;""".format(master_ip, master_port, execute_sql)
-    try:
-        conn = pymysql.connect(host='39.97.247.142', user='', passwd='', db='', port=6669, charset="utf8")  # inception服务器
-        cur = conn.cursor()
-        cur.execute(sql)
-        sql_tuple = cur.fetchall()
-        ret = write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sql_tuple,sql_file_path,cluster_name)
-        if ret == "拆分后SQL写入新文件成功":
-            message = "拆分SQL成功"
-        else:
-            message = "拆分SQL失败"
-    except Exception as e:
-        message = "拆分SQL失败"
-        print(str(e))
-    finally:
-        cur.close()
-        conn.close()
-        print(message)
-        return message
-
-
-# 将拆分SQL写入拆分文件,并将自任务写入sql_execute_split
-def write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sql_tuple,sql_file_path,cluster_name):
-    try:
-        result = []
-        result_tmp = {}
-        result_copy = {}
-        for tup in sql_tuple:
-            result_tmp['split_seq'] = tup[0]
-            result_tmp['sql'] = tup[1]
-            result_tmp['ddlflag'] = tup[2]
-            result_tmp['sql_num'] = tup[3]
-            result_copy = result_tmp.copy()
-            result.append(result_copy)
-            result_tmp.clear()
-        for i in result:
-            ddlflag = i["ddlflag"]
-            split_seq = i["split_seq"]
-            sql_num = i["sql_num"]
-            sql = i["sql"]
-            dir_name = sql_file_path.split('/')[0]
-            file_name = sql_file_path.split('/')[1]
-            split_file_name = str(split_seq) + '_' + file_name
-            upfile = './upload/' + dir_name + '/' + split_file_name
-            split_sql_file_path = dir_name + '/' + split_file_name
-            with open(upfile, 'w') as f:
-                f.write(sql)
-            print(9999999)
-            insert_split_sql = """insert into sql_execute_split(
-                                    submit_sql_uuid,
-                                    split_seq,
-                                    split_sql_file_path,
-                                    sql_num,
-                                    ddlflag,
-                                    master_ip,
-                                    master_port,
-                                    cluster_name
-                                    ) values('{}',{},'{}',{},{},'{}',{},'{}')
-                                """.format(submit_sql_uuid,split_seq,split_sql_file_path,sql_num,ddlflag,master_ip, master_port,cluster_name)
-            print(insert_split_sql)
-            cursor.execute(insert_split_sql)
-        message = "拆分后SQL写入新文件成功"
-    except Exception as e:
-        message = "拆分后SQL写入新文件失败"
-        print(e)
-    finally:
         print(message)
         return message
 

@@ -561,7 +561,7 @@ def get_execute_submit_sql_results_by_uuid_func(request):
     return HttpResponse(json.dumps(content,default=str), content_type='application/json')
 
 # 根据uuid获取sqlsha1,根据sqlsha1连接inception查看执行进度
-def get_execute_process_by_uuid_func(request):
+def get_execute_process_by_uuid_controller(request):
     status = ''
     message = ''
     to_str = str(request.body, encoding="utf-8")
@@ -656,24 +656,19 @@ def start_split_sql(cursor,submit_sql_uuid,master_ip, master_port, execute_sql, 
         inception_magic_start;
         {}   
         inception_magic_commit;""".format(master_ip, master_port, execute_sql)
+    split_sql_ret = ""
     try:
         conn = pymysql.connect(host='39.97.247.142', user='', passwd='', db='', port=6669, charset="utf8")  # inception服务器
         cur = conn.cursor()
         cur.execute(sql)
         sql_tuple = cur.fetchall()
-        ret = write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sql_tuple,sql_file_path,cluster_name)
-        if ret == "拆分后SQL写入新文件成功":
-            message = "拆分SQL成功"
-        else:
-            message = "拆分SQL失败"
+        split_sql_ret = write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sql_tuple,sql_file_path,cluster_name)
     except Exception as e:
-        message = "拆分SQL失败"
-        print(str(e))
+        logger.error(str(e))
     finally:
         cur.close()
         conn.close()
-        print(message)
-        return message
+        return split_sql_ret
 
 
 # 将拆分SQL写入拆分文件,并将自任务写入sql_execute_split
@@ -702,7 +697,6 @@ def write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sq
             split_sql_file_path = dir_name + '/' + split_file_name
             with open(upfile, 'w') as f:
                 f.write(sql)
-            print(9999999)
             insert_split_sql = """insert into sql_execute_split(
                                     submit_sql_uuid,
                                     split_seq,
@@ -716,12 +710,11 @@ def write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sq
                                 """.format(submit_sql_uuid,split_seq,split_sql_file_path,sql_num,ddlflag,master_ip, master_port,cluster_name)
             print(insert_split_sql)
             cursor.execute(insert_split_sql)
-        message = "拆分后SQL写入新文件成功"
+        message = "拆分SQL成功"
     except Exception as e:
-        message = "拆分后SQL写入新文件失败"
-        print(e)
+        message = "拆分SQL失败"
+        logger.error(str(e))
     finally:
-        print(message)
         return message
 
 

@@ -20,7 +20,7 @@ def execute_sql_func(master_ip,master_port,osc_config_sql,execute_sql):
         inception_magic_start;
         {}   
         inception_magic_commit;""".format(master_ip, master_port, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, execute_sql)
-    print(sql)
+    logging.info("工单:%s,inception执行SQL开始", submit_sql_uuid)
     try:
         conn = pymysql.connect(host='39.97.247.142', user='', passwd='', db='', port=6669,charset="utf8")  # inception服务器
         cur = conn.cursor()
@@ -31,14 +31,13 @@ def execute_sql_func(master_ip,master_port,osc_config_sql,execute_sql):
             cur.execute(sql)
         results = cur.fetchall()
         content = {"status": "ok", "message": "ok", "data":results}
-        cur.close()
-        conn.close()
-        logging.info("工单:%s,inception执行SQL成功",submit_sql_uuid)
+        logging.info("工单:%s,inception执行SQL正常结束", submit_sql_uuid)
     except Exception as e:
         content = {"status":"error", "message":e}
-        logging.info("inception执行SQL失败:%s",str(e))
-        print(e)
+        logging.info("工单:%s,inception执行SQL异常结束", submit_sql_uuid)
     finally:
+        cur.close()
+        conn.close()
         return content
 
 
@@ -97,6 +96,8 @@ def main():
         else:
             des_master_ip = data[0]["master_ip"]
             des_master_port = data[0]["master_port"]
+        logging.info("工单:%s,获取master信息成功:%s_%s", submit_sql_uuid, des_master_ip, des_master_port)
+
         if inception_osc_config == "" or inception_osc_config == '{}':
             osc_config_sql = "show databases;"
         else:
@@ -114,7 +115,6 @@ def main():
         logging.info("工单:%s,获取待执行SQL成功",submit_sql_uuid)
     except Exception as e:
         logging.error(str(e))
-        print(e)
 
     # 更新工单状态为执行中
     try:
@@ -123,39 +123,34 @@ def main():
         cursor.execute("%s" % sql_update_executing)
         cursor.execute("%s" % sql_execute_executing)
         connection.commit()
-        logging.info("工单:%s,状态更改为已执行成功", submit_sql_uuid)
+        logging.info("工单:%s,工单状态更改为执行中成功", submit_sql_uuid)
     except Exception as e:
-        print(e)
         connection.rollback()
-        logging.error("工单:%s,更改工单状态为已执行失败", submit_sql_uuid)
+        logging.error("工单:%s,状态更改为执行中失败:%s", submit_sql_uuid,str(e))
     # 执行工单
-    logging.info("工单:%s,master信息为%s_%s", submit_sql_uuid, des_master_ip, des_master_port)
     ret = execute_sql_func(des_master_ip, des_master_port, osc_config_sql, execute_sql)
+
+    # 返回值ok，只能说明inception执行完成没有异常中断，具体执行的每条SQL状态需要单独判断
     if ret["status"] == "ok":
         ret_process_results = process_execute_results(ret["data"])
         if ret_process_results["status"] == "ok":
             if ret_process_results["inception_return_max_code"] == 2:
                 sql_update_executing = "update sql_execute_split set execute_status=4 where split_sql_file_path='{}'".format(split_sql_file_path)
-                print('执行失败')
             elif ret_process_results["inception_return_max_code"] == 1:
                 sql_update_executing = "update sql_execute_split set execute_status=5 where split_sql_file_path='{}'".format(split_sql_file_path)
-                print('执行成功含警告')
             elif ret_process_results["inception_return_max_code"] == 0:
                 sql_update_executing = "update sql_execute_split set execute_status=3 where split_sql_file_path='{}'".format(split_sql_file_path)
-                print('执行成功')
             else:
                 sql_update_executing = "update sql_execute_split set execute_status=999 where split_sql_file_path='{}'".format(split_sql_file_path)
-                print("未知")
             try:
                 cursor.execute("%s" % sql_update_executing)
                 connection.commit()
-                print('inception执行SQL成功,更改数据库状态成功')
+                logging.info('工单:%s,更改工单状态为执行完成，inception返回状态码最大值为:%s',submit_sql_uuid, ret_process_results["inception_return_max_code"])
             except Exception as e:
-                print(e)
-                print('inception执行SQL成功,更改数据库状态失败')
+                logging.error('工单:%s,更改工单状态为执行完成时出现异常，工单状态为:%s',submit_sql_uuid,str(e))
                 connection.rollback()
         else:
-            print(ret_process_results["message"])
+            logging.warning(ret_process_results["message"])
     else:
         # 更新工单状态为失败
         try:
@@ -164,9 +159,10 @@ def main():
             cursor.execute("%s" % sql_execute_error)
             cursor.execute("%s" % sql_update_executing_error)
             connection.commit()
+            logging.info('工单:%s,inception执行SQL异常结束,更改工单状态为失败，更改成功',submit_sql_uuid)
         except Exception as e:
-            print(e)
             connection.rollback()
+            logging.error('工单:%s,inception执行SQL异常结束,更改工单状态为失败时出现异常:%s',submit_sql_uuid,str(e))
 
     try:
         get_all_sql_split_status = "select execute_status from sql_execute_split where submit_sql_uuid='{}'".format(submit_sql_uuid)
@@ -184,8 +180,6 @@ def main():
         logging.error("工单:%s,get_all_sql_split_status错误:%s",(submit_sql_uuid,str(e)))
 
 
-
-
 if __name__ == "__main__":
     connection = pymysql.connect(host='39.97.247.142', port=3306, user='wthong', password='fffjjj',database='devops', charset='utf8')
     cursor = connection.cursor()
@@ -196,11 +190,11 @@ if __name__ == "__main__":
     split_sql_file_path = sys.argv[5]
     execute_user_name = sys.argv[6]
     try:
-        logging.info("工单:%s,开始执行...",submit_sql_uuid)
+        logging.info("工单:%s,执行main方法开始",submit_sql_uuid)
         main()
-        logging.info("工单:%s,执行完成...",submit_sql_uuid)
+        logging.info("工单:%s,执行main方法结束",submit_sql_uuid)
     except Exception as e:
-        logging.error("工单:%s,执行错误...%s",submit_sql_uuid,str(e))
+        logging.error("工单:%s,执行main方法报错，报错信息:%s",submit_sql_uuid,str(e))
         print(e)
     finally:
         cursor.close()
