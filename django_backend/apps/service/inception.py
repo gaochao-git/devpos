@@ -126,25 +126,17 @@ def check_sql_func(request):
 
 
 # 根据输入的集群名模糊匹配已有集群名
-def get_cluster_name_func(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    cluster_name = request_body['params']['cluster_name']
-    sql = "select cluster_name from mysql_cluster where cluster_name like '{}%' limit 5".format(cluster_name)
-    cursor = connection.cursor()
+def get_cluster_name(cluster_name_patten):
+    cluster_name_list = []
     try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        cluster_name_list = []
-        [cluster_name_list.append(i[0]) for i in rows]
+        rows = inception_dao.get_cluster_name_dao(cluster_name_patten)
+        [cluster_name_list.append(i["cluster_name"]) for i in rows]
         content = {'status': "ok", 'message': "ok",'data': cluster_name_list}
     except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
+        content = {'status': "error", 'message': str(e),'data': cluster_name_list}
+        logger.error(e)
     finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
+        return content
 
 
 # 获取master ip

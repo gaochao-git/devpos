@@ -8,6 +8,7 @@ import os
 import re
 from apps.utils import common
 from apps.service import inception
+from apps.service import mysql_cluster
 
 
 # 页面获取所有工单列表
@@ -108,22 +109,9 @@ def check_sql_controller(request):
 def get_cluster_name_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    cluster_name = request_body['params']['cluster_name']
-    sql = "select cluster_name from mysql_cluster where cluster_name like '{}%' limit 5".format(cluster_name)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        cluster_name_list = []
-        [cluster_name_list.append(i[0]) for i in rows]
-        content = {'status': "ok", 'message': "ok",'data': cluster_name_list}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
+    cluster_name_patten = request_body['params']['cluster_name']
+    ret = inception.get_cluster_name(cluster_name_patten)
+    return HttpResponse(json.dumps(ret,default=str), content_type='application/json')
 
 
 # 获取master ip
