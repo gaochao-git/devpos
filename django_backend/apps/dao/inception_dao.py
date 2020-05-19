@@ -166,89 +166,70 @@ def update_inception_variable_dao(request_body_json,split_sql_file_path):
         return update_status
 
 
-# 页面提交SQL工单
-def submit_sql_func(request):
-    token = request.META.get('HTTP_AUTHORIZATION')
-    data = login_dao.get_login_user_name_by_token_dao(token)
-    login_user_name = data["username"]
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    now_date = strftime("%Y%m%d", gmtime())
-    upload_path = "./upload/" + now_date
-    if not os.path.isdir(upload_path):
-        os.makedirs(upload_path)
-    uuid_str = str(uuid.uuid4())
-    file_name = "%s_%s.sql" % (login_user_name, uuid_str)
-    file_path = now_date + '/' + file_name
-    upfile = os.path.join(upload_path, file_name)
-    sql_title = request_body['params']['title']
-    sql_get_leader_qa_dba = "select b.qa_name,b.leader_name,b.dba_name from team_user a inner join team_check_role b on a.gid=b.gid where a.uname='{}'".format(login_user_name)
-    cursor = connection.cursor()
-    cursor.execute("%s" % sql_get_leader_qa_dba)
-    rows = cursor.fetchall()
-    qa_name = rows[0][0]
-    leader_name = rows[0][1]
-    dba_name = rows[0][2]
-    # leader = request_body['params']['leader']
-    # qa = request_body['params']['qa']
-    check_sql = request_body['params']['check_sql']
-    check_sql_results = request_body['params']['check_sql_results']
-    submit_sql_execute_type = request_body['params']['submit_sql_execute_type']
-    comment_info = request_body['params']['comment_info']
-    print(request_body['params'])
-    if (request_body['params']['submit_source_db_type'] == "cluster"):
-        cluster_name = request_body['params']['cluster_name']
-        print(cluster_name)
-        sql = """insert into sql_submit_info(submit_sql_user,
-                                     title,
-                                     cluster_name,
-                                     submit_sql_file_path,
-                                     leader_user_name,
-                                     leader_check,
-                                     qa_user_name,
-                                     qa_check,
-                                     dba_check_user_name,
-                                     dba_check,
-                                     submit_sql_execute_type,
-                                     comment_info,
-                                     submit_sql_uuid) 
-             values('{}','{}','{}','{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
-        """.format(login_user_name,sql_title, cluster_name, file_path, leader_name, qa_name,dba_name,submit_sql_execute_type, comment_info, uuid_str)
-        print(sql)
-    else:
-        db_ip = request_body['params']['db_ip'].strip()
-        db_port = request_body['params']['db_port'].strip()
-        sql = """insert into sql_submit_info(submit_sql_user,
-                                     title,
-                                     master_ip,
-                                     master_port,
-                                     submit_sql_file_path,
-                                     leader_user_name,
-                                     leader_check,
-                                     qa_user_name,
-                                     qa_check,
-                                     dba_check_user_name,
-                                     dba_check,
-                                     submit_sql_execute_type,
-                                     comment_info,
-                                     submit_sql_uuid) 
-             values('{}','{}','{}',{},'{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
-    """.format(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str)
-
-    # 提交的SQL写入文件
-    with open(upfile,'w') as f:
-        f.write(check_sql)
-        f.close()
-    cursor = connection.cursor()
+# 页面提交SQL工单,类型为cluster_name
+def submit_sql_by_cluster_name_dao(login_user_name,sql_title, cluster_name, file_path, leader_name, qa_name,dba_name,submit_sql_execute_type, comment_info, uuid_str):
+    sql = """insert into sql_submit_info(submit_sql_user,
+                                         title,
+                                         cluster_name,
+                                         submit_sql_file_path,
+                                         leader_user_name,
+                                         leader_check,
+                                         qa_user_name,
+                                         qa_check,
+                                         dba_check_user_name,
+                                         dba_check,
+                                         submit_sql_execute_type,
+                                         comment_info,
+                                         submit_sql_uuid) 
+                 values('{}','{}','{}','{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
+            """.format(login_user_name, sql_title, cluster_name, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str)
     try:
-        cursor.execute("%s" % sql)
+        insert_status = db_helper.insert(sql)
+    except Exception as e:
+        insert_status = "error"
+        logger.error(e)
+    finally:
+        return insert_status
+
+
+# 页面提交SQL工单,类型为ip,port
+def submit_sql_by_ip_port_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str):
+    sql = """insert into sql_submit_info(submit_sql_user,
+                                         title,
+                                         master_ip,
+                                         master_port,
+                                         submit_sql_file_path,
+                                         leader_user_name,
+                                         leader_check,
+                                         qa_user_name,
+                                         qa_check,
+                                         dba_check_user_name,
+                                         dba_check,
+                                         submit_sql_execute_type,
+                                         comment_info,
+                                         submit_sql_uuid) 
+                 values('{}','{}','{}',{},'{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
+        """.format(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str)
+    try:
+        insert_status = db_helper.insert(sql)
+    except Exception as e:
+        insert_status = "error"
+        logger.error(e)
+    finally:
+        return insert_status
+
+
+# SQL审核结果写入数据库
+def submit_sql_results(uuid_str, check_sql_results):
+    # SQL审核结果写入数据库
+    try:
         for check_sql_result in check_sql_results:
             inception_id = check_sql_result["ID"]
             inception_stage = check_sql_result["Stage"]
             inception_error_level = check_sql_result["Error_Level"]
             inception_stage_status = check_sql_result["Stage_Status"]
-            inception_error_message = check_sql_result["Error_Message"]
-            inception_sql = check_sql_result["SQL"]
+            inception_error_message = pymysql.escape_string(check_sql_result["Error_Message"])
+            inception_sql = pymysql.escape_string(check_sql_result["SQL"])
             inception_affected_rows = check_sql_result["Affected_rows"]
             inception_sequence = check_sql_result["Sequence"]
             inception_backup_dbnames = check_sql_result["Backup_Dbnames"]
@@ -256,108 +237,81 @@ def submit_sql_func(request):
             inception_sqlsha1 = check_sql_result["sqlsha1"]
             inception_command = check_sql_result["Command"]
             sql_results_insert = """
-                insert into sql_check_results(submit_sql_uuid,
-                                              inception_id,
-                                              inception_stage,
-                                              inception_error_level,
-                                              inception_stage_status,
-                                              inception_error_message,
-                                              inception_sql,
-                                              inception_affected_rows,
-                                              inception_sequence,
-                                              inception_backup_dbnames,
-                                              inception_execute_time,
-                                              inception_sqlsha1,
-                                              inception_command)
-                values('{}',{},'{}',{},'{}','{}','{}','{}',{},'{}','{}','{}','{}') 
-            """.format(uuid_str, inception_id, inception_stage, inception_error_level, inception_stage_status, pymysql.escape_string(inception_error_message), pymysql.escape_string(inception_sql), inception_affected_rows, inception_sequence, inception_backup_dbnames, inception_execute_time ,inception_sqlsha1, inception_command)
-            cursor.execute("%s" % sql_results_insert)
-        content = {'status': "ok", 'message': "提交成功"}
+                    insert into sql_check_results(submit_sql_uuid,
+                                                  inception_id,
+                                                  inception_stage,
+                                                  inception_error_level,
+                                                  inception_stage_status,
+                                                  inception_error_message,
+                                                  inception_sql,
+                                                  inception_affected_rows,
+                                                  inception_sequence,
+                                                  inception_backup_dbnames,
+                                                  inception_execute_time,
+                                                  inception_sqlsha1,
+                                                  inception_command)
+                    values('{}',{},'{}',{},'{}','{}','{}','{}',{},'{}','{}','{}','{}') 
+                """.format(uuid_str, inception_id, inception_stage, inception_error_level, inception_stage_status,
+                           inception_error_message, inception_sql, inception_affected_rows, inception_sequence,
+                           inception_backup_dbnames, inception_execute_time,
+                           inception_sqlsha1, inception_command)
+            db_helper.insert(sql_results_insert)
+        insert_status = "ok"
     except Exception as e:
-        content = {'status': "error", 'message': str(e)}
+        insert_status='error'
     finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content), content_type='application/json')
+        return insert_status
 
 
-# 审核通过并拆分SQL
-def pass_submit_sql_by_uuid_func(request):
-    token = request.META.get('HTTP_AUTHORIZATION')
-    data = login_dao.get_login_user_name_by_token_dao(token)
-    login_user_name = data["username"]
-    login_user_name_role = data["title"]
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    ret = ""
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    apply_results = request_body['params']['apply_results']
-    check_comment = request_body['params']['check_comment']
-    check_status = 2 if apply_results == "通过" else 3
+# 标记工单为审核通过或者不通过
+def pass_submit_sql_by_uuid_dao(submit_sql_uuid,check_comment,check_status,login_user_name,login_user_name_role):
     if login_user_name_role == "leader":
         sql = "update sql_submit_info set leader_check={},leader_user_name='{}',leader_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,login_user_name,check_comment,submit_sql_uuid)
     elif login_user_name_role == "qa":
         sql = "update sql_submit_info set qa_check={},qa_user_name='{}',qa_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,login_user_name,check_comment,submit_sql_uuid)
     elif login_user_name_role == "dba":
         sql = "update sql_submit_info set dba_check={},dba_check_user_name='{}',dba_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,login_user_name,check_comment,submit_sql_uuid)
-    if apply_results == "通过":
-        split_sql = """
-             select 
-                a.title,                
-                a.submit_sql_user,                
-                a.leader_user_name,                
-                a.qa_user_name,                
-                a.dba_check_user_name,                
-                a.dba_execute_user_name,                
-                case a.leader_check  when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as leader_check,                
-                case a.qa_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as qa_check,                
-                case a.dba_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as dba_check,                
-                case a.dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,                
-                case a.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功含警告' when 6 then '手动执行' end as execute_status,                
-                a.master_ip,                
-                a.master_port,                
-                a.comment_info,                
-                a.submit_sql_uuid,                
-                (select count(*) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_rows,                
-                (select sum(inception_affected_rows) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_affect_rows,                
-                (select sum(inception_execute_time) from sql_execute_results where submit_sql_uuid='{}') as inception_execute_time,                
-                a.submit_sql_execute_type,                             
-                b.split_sql_file_path         
-                from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where a.submit_sql_uuid='{}'
-        """.format(submit_sql_uuid, submit_sql_uuid, submit_sql_uuid, submit_sql_uuid)
-        #拆分SQL
-        if login_user_name_role == "dba":
-            ret = split_sql_func(submit_sql_uuid)
-        cursor = connection.cursor()
-        try:
-            cursor.execute("%s" % sql)
-            cursor.execute("%s" % split_sql)
-            rows = cursor.fetchall()
-            data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-            status = "ok"
-            message = "审核成功," + ret
-            content = {'status': status, 'message': message,"data": data}
-        except Exception as e:
-            status = "error"
-            message = str(e) + ",+" + ret
-            content = {'status': status, 'message': message}
-            print(e)
-        finally:
-            cursor.close()
-            connection.close()
-    elif apply_results == "不通过":
-        cursor = connection.cursor()
-        try:
-            cursor.execute("%s" % sql)
-            content = {'status': "ok", 'message': "审核不通过"}
-        except Exception as e:
-            content = {'status': "error", 'message': str(e)}
-        finally:
-            cursor.close()
-            connection.close()
-    print(content)
-    return HttpResponse(json.dumps(content, default=str), content_type='application/json')
+    try:
+        update_status = db_helper.update(sql)
+    except Exception as e:
+        update_status = "error"
+        logger.error(e)
+    finally:
+        return update_status
 
+# 获取拆分后的每条SQL信息
+def get_split_sql_info_dao(submit_sql_uuid):
+    sql = """
+                 select 
+                    a.title,                
+                    a.submit_sql_user,                
+                    a.leader_user_name,                
+                    a.qa_user_name,                
+                    a.dba_check_user_name,                
+                    a.dba_execute_user_name,                
+                    case a.leader_check  when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as leader_check,                
+                    case a.qa_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as qa_check,                
+                    case a.dba_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as dba_check,                
+                    case a.dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,                
+                    case a.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功含警告' when 6 then '手动执行' end as execute_status,                
+                    a.master_ip,                
+                    a.master_port,                
+                    a.comment_info,                
+                    a.submit_sql_uuid,                
+                    (select count(*) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_rows,                
+                    (select sum(inception_affected_rows) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_affect_rows,                
+                    (select sum(inception_execute_time) from sql_execute_results where submit_sql_uuid='{}') as inception_execute_time,                
+                    a.submit_sql_execute_type,                             
+                    b.split_sql_file_path         
+                    from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where a.submit_sql_uuid='{}'
+            """.format(submit_sql_uuid, submit_sql_uuid, submit_sql_uuid, submit_sql_uuid)
+    rows = []
+    try:
+        rows = db_helper.findall(sql)
+    except Exception as e:
+        logger.error(e)
+    finally:
+        return rows
 
 # 执行SQL并将执行结果插入表中,django http请求超过30s收不到请求就会断开,inception执行SQL需要异步来处理
 def execute_sql_func(cursor,submit_sql_uuid, target_db_ip, target_db_port, execute_sql):

@@ -39,3 +39,21 @@ def update(sql):
         cursor.close()
         connection.close()
         return update_status
+
+# 插入数据
+def insert(sql):
+    cursor = connection.cursor()
+    try:
+        start_time = datetime.now()
+        cursor.execute(sql)
+        end_time = datetime.now()
+        time_diff = (end_time - start_time).microseconds / 1000
+        insert_status = "ok"
+    except Exception as e:
+        insert_status = "error"
+        logger.error(e)
+    finally:
+        logger.info("sql:%s,sql执行耗时:%s ms" % (sql,time_diff))
+        cursor.close()
+        connection.close()
+        return insert_status

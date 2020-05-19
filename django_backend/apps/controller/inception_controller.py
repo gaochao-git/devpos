@@ -123,78 +123,14 @@ def get_check_sql_results_by_uuid_controller(request):
 # 审核通过并拆分SQL
 def pass_submit_sql_by_uuid_controller(request):
     token = request.META.get('HTTP_AUTHORIZATION')
-    login_user = login_dao.get_login_user_name_by_token_dao(token)
-    login_user_name = login_user["username"]
-    login_user_name_role = login_user["title"]
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    ret = ""
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
     apply_results = request_body['params']['apply_results']
     check_comment = request_body['params']['check_comment']
     check_status = 2 if apply_results == "通过" else 3
-    if login_user_name_role == "leader":
-        sql = "update sql_submit_info set leader_check={},leader_user_name='{}',leader_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,login_user_name,check_comment,submit_sql_uuid)
-    elif login_user_name_role == "qa":
-        sql = "update sql_submit_info set qa_check={},qa_user_name='{}',qa_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,login_user_name,check_comment,submit_sql_uuid)
-    elif login_user_name_role == "dba":
-        sql = "update sql_submit_info set dba_check={},dba_check_user_name='{}',dba_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,login_user_name,check_comment,submit_sql_uuid)
-    if apply_results == "通过":
-        split_sql = """
-             select 
-                a.title,                
-                a.submit_sql_user,                
-                a.leader_user_name,                
-                a.qa_user_name,                
-                a.dba_check_user_name,                
-                a.dba_execute_user_name,                
-                case a.leader_check  when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as leader_check,                
-                case a.qa_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as qa_check,                
-                case a.dba_check when 1 then '未审核' when 2 then '通过' when 3 then '不通过' end as dba_check,                
-                case a.dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,                
-                case a.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功含警告' when 6 then '手动执行' end as execute_status,                
-                a.master_ip,                
-                a.master_port,                
-                a.comment_info,                
-                a.submit_sql_uuid,                
-                (select count(*) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_rows,                
-                (select sum(inception_affected_rows) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_affect_rows,                
-                (select sum(inception_execute_time) from sql_execute_results where submit_sql_uuid='{}') as inception_execute_time,                
-                a.submit_sql_execute_type,                             
-                b.split_sql_file_path         
-                from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where a.submit_sql_uuid='{}'
-        """.format(submit_sql_uuid, submit_sql_uuid, submit_sql_uuid, submit_sql_uuid)
-        #拆分SQL
-        if login_user_name_role == "dba":
-            ret = split_sql_func(submit_sql_uuid)
-        cursor = connection.cursor()
-        try:
-            cursor.execute("%s" % sql)
-            cursor.execute("%s" % split_sql)
-            rows = cursor.fetchall()
-            data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-            status = "ok"
-            message = "审核成功," + ret
-            content = {'status': status, 'message': message,"data": data}
-        except Exception as e:
-            status = "error"
-            message = str(e) + ",+" + ret
-            content = {'status': status, 'message': message}
-            print(e)
-        finally:
-            cursor.close()
-            connection.close()
-    elif apply_results == "不通过":
-        cursor = connection.cursor()
-        try:
-            cursor.execute("%s" % sql)
-            content = {'status': "ok", 'message': "审核不通过"}
-        except Exception as e:
-            content = {'status': "error", 'message': str(e)}
-        finally:
-            cursor.close()
-            connection.close()
-    return HttpResponse(json.dumps(content, default=str), content_type='application/json')
+    ret = inception.pass_submit_sql_by_uuid(token,submit_sql_uuid,apply_results,check_comment,check_status)
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
 # 执行SQL并将执行结果插入表中,django http请求超过30s收不到请求就会断开,inception执行SQL需要异步来处理
