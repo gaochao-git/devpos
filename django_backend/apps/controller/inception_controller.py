@@ -1,15 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Time    : 2019/4/17 3:17 PM
+# @Author  : 高超
+
 from django.http import HttpResponse
 import json
-import pymysql
 from django.db import connection
-import uuid
-from time import gmtime, strftime
-import os
-import re
 from apps.utils import common
 from apps.service import inception
-from apps.service import mysql_cluster
-from apps.dao import login_dao
 
 
 # 页面获取所有工单列表
@@ -133,191 +131,45 @@ def pass_submit_sql_by_uuid_controller(request):
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
-# 执行SQL并将执行结果插入表中,django http请求超过30s收不到请求就会断开,inception执行SQL需要异步来处理
-def execute_sql_func(cursor,submit_sql_uuid, target_db_ip, target_db_port, execute_sql):
-    sql = """/*--user=wthong;--password=fffjjj;--host={};--execute=1;--port={};*/\
-        inception_magic_start;
-        {}   
-        inception_magic_commit;""".format(target_db_ip, target_db_port, execute_sql)
-    try:
-        conn = pymysql.connect(host='39.97.247.142', user='', passwd='', db='', port=6669,charset="utf8")  # inception服务器
-        cur = conn.cursor()
-        cur.execute(sql)
-        results = cur.fetchall()
-        field_names = [i[0] for i in cur.description]
-        for row in results:
-            inception_id = row[0]
-            inception_stage = row[1]
-            inception_error_level = row[2]
-            inception_error_message = row[4]
-            inception_sql = row[5]
-            inception_affected_rows = row[6]
-            inception_execute_time = row[9]
-            insert_execute_results_sql = """insert into sql_execute_results(submit_sql_uuid,
-                                                                            inception_id,
-                                                                            inception_stage,
-                                                                            inception_error_level,
-                                                                            inception_error_message,
-                                                                            inception_sql,
-                                                                            inception_affected_rows,
-                                                                            inception_execute_time
-                                                                            ) values('{}',{},'{}',{},'{}','{}',{},'{}')
-            """.format(submit_sql_uuid, inception_id, inception_stage, inception_error_level,pymysql.escape_string(inception_error_message), pymysql.escape_string(inception_sql),inception_affected_rows, inception_execute_time)
-            cursor.execute(insert_execute_results_sql)
-        content = {'status': "ok", 'message': "执行完成"}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
-    finally:
-        cur.close()
-        conn.close()
-    return content
-
-
 # 获取SQL文件路径,调用inception执行
 def execute_submit_sql_by_file_path_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    status = ""
-    message = ""
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
     split_sql_file_path = request_body['params']['split_sql_file_path']
     inception_backup = request_body['params']['inception_backup']
     inception_check_ignore_warning = request_body['params']['inception_check_ignore_warning']
     inception_execute_ignore_error = request_body['params']['inception_execute_ignore_error']
     execute_user_name = request_body['params']["execute_user_name"]
-    cursor = connection.cursor()
-    try:
-        cmd = "python3.5 {}/scripts/inception_execute.py '{}' {} {} {} '{}' '{}' &".format(os.getcwd(), submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path,execute_user_name)
-        print("调用脚本执行SQL:%s" % cmd)
-        ret = os.system(cmd)
-        print("调用脚本执行SQL返回值(非0表示调用失败):%s" % ret)
-        if ret == 0:
-            status = "ok"
-            message = "调用脚本成功"
-        elif ret != 0:
-            status = "ok"
-            message = '调用脚本失败'
-    except Exception as e:
-        status = "error"
-        message = e
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    content = {'status': status, 'message': message}
-    return HttpResponse(json.dumps(content,default=str), content_type='text/xml')
+    ret = inception.execute_submit_sql_by_file_path( submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path,execute_user_name)
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
 # 手动执行SQL更改工单状态
 def execute_submit_sql_by_file_path_manual_controller(request):
     token = request.META.get('HTTP_AUTHORIZATION')
-    data = login_dao.get_login_user_name_by_token_dao(token)
-    login_user_name = data["username"]
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
     split_sql_file_path = request_body['params']['split_sql_file_path']
-    sql1 = "update sql_execute_split set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2 where split_sql_file_path='{}'".format(split_sql_file_path)
-    sql2 = "select id,submit_sql_uuid,split_sql_file_path from sql_execute_split where submit_sql_uuid='{}' and dba_execute=1".format(submit_sql_uuid)
-    sql3 = "update sql_submit_info set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2,dba_execute_user_name='{}' where submit_sql_uuid='{}'".format(login_user_name, submit_sql_uuid)
-    cursor = connection.cursor()
-    #如果所有的拆分文件均执行完在将工单文件状态改了
-    try:
-        cursor.execute("%s" % sql1)
-        cursor.execute("%s" % sql2)
-        rows = cursor.fetchall()
-        if not rows:
-            cursor.execute("%s" % sql3)
-        content = {'status': "ok", 'message': "状态更改成功"}
-    except Exception as e:
-        content = {'status': "error", 'message': "状态更改失败"}
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    print(content)
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
+    ret = inception.execute_submit_sql_by_file_path_manual(token,submit_sql_uuid,split_sql_file_path)
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
-# 查看执行结果
-def get_execute_submit_sql_results_by_uuid_controller(request):
+# 根据拆分文件名查看对应执行结果
+def get_execute_results_by_split_sql_file_path_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
     split_sql_file_path = request_body['params']['split_sql_file_path']
-    sql = """select a.inception_id,
-                    a.inception_stage,
-                    case a.inception_error_level  when 0 then '执行成功' when 1 then '执行成功(含警告)' when 2 then '执行失败' end as inception_error_level,
-                    a.inception_affected_rows,
-                    a.inception_error_message,
-                    a.inception_sql,
-                    a.inception_execute_time
-             from sql_execute_results a inner join sql_execute_split b on a.split_sql_file_path=b.split_sql_file_path  where b.split_sql_file_path='{}'
-    """.format(split_sql_file_path)
-    print(sql)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % sql)
-        rows = cursor.fetchall()
-        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        content = {'status': "ok", 'message': "ok",'data': data}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print('get_execute_submit_sql_results_by_uuid_func', e)
-    finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
+    ret = inception.get_execute_results_by_split_sql_file_path(split_sql_file_path)
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 # 根据uuid获取sqlsha1,根据sqlsha1连接inception查看执行进度
 def get_execute_process_by_uuid_controller(request):
-    status = ''
-    message = ''
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    # split_sql_file_path = request_body['params']['split_sql_file_path']
-    get_sqlsha1_sql = "select inception_sqlsha1,inception_sql from sql_check_results where submit_sql_uuid='{}' and inception_sqlsha1!=''".format(submit_sql_uuid)
-    cursor = connection.cursor()
-    try:
-        cursor.execute("%s" % get_sqlsha1_sql)
-        rows = cursor.fetchall()
-    except Exception as e:
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    sql_all_process = []
-    if rows:
-        for row in rows:
-            sqlsha1 = row[0]
-            inception_get_osc_percent_sql = "inception get osc_percent '{}'".format(sqlsha1)
-            sql_sigle_process = {}
-            if sqlsha1 == '':
-                sql_sigle_process['inception_execute_percent'] = 100
-                sql_sigle_process['inception_sql'] = row[1]
-                sql_all_process.append(sql_sigle_process)
-            else:
-                sql_sigle_process['inception_sql'] = row[1]
-                try:
-                    conn = pymysql.connect(host='39.97.247.142', user='', passwd='', db='', port=6669,charset="utf8")  # inception服务器
-                    cur = conn.cursor()
-                    cur.execute(inception_get_osc_percent_sql)
-                    result = cur.fetchall()
-                    if result:
-                        data = [dict(zip([col[0] for col in cur.description], row)) for row in result]
-                        sql_sigle_process['inception_execute_percent'] = data[0]['Percent']
-                    else:
-                        sql_sigle_process['inception_execute_percent'] = 0
-                    cur.close()
-                    conn.close()
-                    sql_all_process.append(sql_sigle_process)
-                except Exception as e:
-                    print("Mysql Error %d: %s" % (e.args[0], e.args[1]))
-            status = 'ok'
-            message = 'ok'
-    content = {'status': status, 'message': message, 'data': sql_all_process}
-    return HttpResponse(json.dumps(content), content_type='application/json')
+    ret = inception.get_execute_process_by_uuid(submit_sql_uuid)
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
 # inception拆分SQL
@@ -360,31 +212,6 @@ def get_split_sql_by_uuid_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    split_sql = """
-        select
-            a.master_ip,
-            a.master_port,
-            a.submit_sql_uuid,
-            b.split_seq,
-            b.split_sql_file_path,
-            case b.dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,
-            case b.submit_sql_execute_plat_or_manual when 1 then '平台执行' when 2 then '手动执行' end as submit_sql_execute_plat_or_manual,
-            case b.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功(含警告)' end as execute_status,
-            sum(c.inception_execute_time) inception_execute_time
-            from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid left join sql_execute_results c on b.split_sql_file_path=c.split_sql_file_path where a.submit_sql_uuid='{}' group by b.split_sql_file_path order by b.split_seq
-    """.format(submit_sql_uuid)
-    cursor = connection.cursor()
-    print(split_sql)
-    try:
-        cursor.execute("%s" % split_sql)
-        rows = cursor.fetchall()
-        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        content = {'status': "ok", 'message': "ok",'data': data}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-    return HttpResponse(json.dumps(content,default=str), content_type='application/json')
+    ret = inception.get_split_sql_by_uuid(submit_sql_uuid)
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 

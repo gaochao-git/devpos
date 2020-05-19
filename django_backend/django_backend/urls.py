@@ -26,11 +26,11 @@ urlpatterns = [
     path('get_submit_sql_by_uuid/', inception_controller.get_submit_sql_by_uuid_controller),                                   # 页面预览指定工单提交的SQL
     path('get_submit_split_sql_by_file_path/', inception_controller.get_submit_split_sql_by_file_path_controller),             # 获取指定拆分SQL
     path('get_check_sql_results_by_uuid/', inception_controller.get_check_sql_results_by_uuid_controller),                     # 获取SQL检查结果
-    path('get_execute_submit_sql_results_by_uuid/', inception_controller.get_execute_submit_sql_results_by_uuid_controller),   # 获取SQL执行结果
+    path('get_execute_results_by_split_sql_file_path/', inception_controller.get_execute_results_by_split_sql_file_path_controller),   # 根据拆分SQL文件获取SQL执行结果
     path('execute_submit_sql_by_file_path/', inception_controller.execute_submit_sql_by_file_path_controller),                 # 平台执行SQL工单
     path('execute_submit_sql_by_file_path_manual/', inception_controller.execute_submit_sql_by_file_path_manual_controller),   # 手动执行SQL工单
     path('get_execute_process_by_uuid/', inception_controller.get_execute_process_by_uuid_controller),                    # 获取SQL执行进度
-    path('get_split_sql_by_uuid/', inception_controller.get_split_sql_by_uuid_controller),                                # 获取拆分SQL
+    path('get_split_sql_by_uuid/', inception_controller.get_split_sql_by_uuid_controller),                                # 获取拆分SQL子文件路径等信息前端展示
     path('get_inception_variable_config_info/', inception_controller.get_inception_variable_config_info_controller),      # 获取osc参数
     path('update_inception_variable/', inception_controller.update_inception_variable_controller),                        # 更新 osc参数
     path('check_sql/', inception_controller.check_sql_controller),                                                        # 检测sql

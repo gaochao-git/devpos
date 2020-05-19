@@ -300,7 +300,7 @@ export default class UserSqlApply extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_execute_submit_sql_results_by_uuid/`,{params});
+        let res = await axios.post(`${backendServerApiRoot}/get_execute_results_by_split_sql_file_path/`,{params});
         this.setState({
             execute_sql_results: res.data.data,
             ViewExecuteSubmitSqlModalVisible:true,

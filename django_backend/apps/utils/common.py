@@ -22,7 +22,7 @@ def get_cluster_write_node_info(cluster_name):
             des_master_port = rows[1]
             return des_master_ip,des_master_port
         else:
-            return "no_write_node"
+            return "no_write_node","no_write_node"
     except Exception as e:
         logger.error(e)
 

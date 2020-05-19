@@ -74,40 +74,6 @@ def process_execute_results(results):
 
 def main():
     try:
-        #获取工单详情
-        sql_select = "select a.master_ip,a.master_port,a.cluster_name,b.inception_osc_config from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid =b.submit_sql_uuid where split_sql_file_path='{}'".format(split_sql_file_path)
-        cursor.execute("%s" % sql_select)
-        rows = cursor.fetchall()
-        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        inception_osc_config = data[0]["inception_osc_config"]
-        cluster_name = data[0]["cluster_name"]
-        if cluster_name:
-            sql_get_write_node = """select 
-                                    b.host_ip,b.port 
-                                from mysql_cluster_instance a inner join mysql_instance b 
-                                on a.instance_name=b.instance_name 
-                                where a.cluster_name='{}' and b.read_only='off' and b.instance_status=1 limit 1
-                                """.format(cluster_name)
-            cursor.execute("%s" % sql_get_write_node)
-            rows = cursor.fetchone()
-            if rows:
-                des_master_ip = rows[0]
-                des_master_port = rows[1]
-        else:
-            des_master_ip = data[0]["master_ip"]
-            des_master_port = data[0]["master_port"]
-        logging.info("工单:%s,获取master信息成功:%s_%s", submit_sql_uuid, des_master_ip, des_master_port)
-
-        if inception_osc_config == "" or inception_osc_config == '{}':
-            osc_config_sql = "show databases;"
-        else:
-            osc_config_dict = json.loads(inception_osc_config)
-            osc_config_sql_list = []
-            for k in osc_config_dict:
-                osc_config_sql = "inception set session {}={};".format(k, osc_config_dict[k])
-                osc_config_sql_list.append(osc_config_sql)
-                osc_config_sql_list_str = [str(i) for i in osc_config_sql_list]
-                osc_config_sql = ''.join(osc_config_sql_list_str)
         # 通过sql_file_path获取SQL文件并读取要执行的SQL
         with open("./upload/{}".format(split_sql_file_path), "rb") as f:
             execute_sql = f.read()
@@ -128,6 +94,7 @@ def main():
         connection.rollback()
         logging.error("工单:%s,状态更改为执行中失败:%s", submit_sql_uuid,str(e))
     # 执行工单
+    logging.error(des_master_ip, des_master_port, osc_config_sql, execute_sql)
     ret = execute_sql_func(des_master_ip, des_master_port, osc_config_sql, execute_sql)
 
     # 返回值ok，只能说明inception执行完成没有异常中断，具体执行的每条SQL状态需要单独判断
@@ -189,6 +156,9 @@ if __name__ == "__main__":
     inception_execute_ignore_error = sys.argv[4]
     split_sql_file_path = sys.argv[5]
     execute_user_name = sys.argv[6]
+    des_master_ip = sys.argv[7]
+    des_master_port = sys.argv[8]
+    osc_config_sql = sys.argv[9]
     try:
         logging.info("工单:%s,执行main方法开始",submit_sql_uuid)
         main()
