@@ -39,7 +39,18 @@ export default class ViewCheckSqlResult extends React.Component {
               <Column title="SQL" dataIndex="inception_sql" width="50%"/>
               <Column title="状态" dataIndex="inception_stage_status" width="10%"/>
               <Column title="错误代码" dataIndex="inception_error_level" width="5%"/>
-              <Column title="错误信息" dataIndex="inception_error_message"/>
+              <Column title="错误信息"
+                      dataIndex="inception_error_message"
+                      render={val => {
+                                            if (val !== "None"){
+                                                return <span style={{color:"#52c41a"}}>{val}</span>
+                                            }else {
+                                                return <span style={{color:"#bfbfbf"}}>{val}</span>
+                                            }
+                                        }
+                      }
+              />
+              {/*<Column title="错误信息" dataIndex="inception_error_message"/>*/}
               <Column title="影响行数" dataIndex="inception_affected_rows" width="5%"/>
           </Table>
       )

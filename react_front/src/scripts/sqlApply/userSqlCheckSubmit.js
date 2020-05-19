@@ -276,34 +276,6 @@ class UserSqlCheckSubmit extends Component {
     render() {
         const {form} = this.props;
         const {getFieldDecorator} = form;
-        const check_results_columns = [
-            {
-              title: 'sql',
-              dataIndex: 'SQL',
-              key:"SQL",
-              width:540
-            },
-            {
-              title: '状态',
-              dataIndex: 'Stage_Status',
-              key:"Stage_Status",
-            },
-            {
-              title: '错误代码',
-              dataIndex: 'Error_Level',
-              key:"Error_Level",
-            },
-            {
-              title: '错误信息',
-              dataIndex: 'Error_Message',
-              key: "Error_Message",
-            },
-            {
-              title: '影响行数',
-              dataIndex: 'Affected_rows',
-              key: "Affected_rows"
-            }
-        ];
         return (
             <Tabs className="container">
                 <TabPane tab="SQL请求列表" key="1">
@@ -414,11 +386,28 @@ class UserSqlCheckSubmit extends Component {
                         {this.state.submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>:null}
                     </div>
                     <Table
-                        dataSource={this.state.check_sql_results}
-                        columns={check_results_columns}
-                        bordered
-                        rowKey={(row ,index) => index}
-                    />
+                          dataSource={this.state.check_sql_results}
+                          rowKey={(row ,index) => index}
+                          pagination={true}
+                          size="small"
+
+                      >
+                          <Column title="SQL" dataIndex="SQL" width={540}/>
+                          <Column title="状态" dataIndex="Stage_Status"/>
+                          <Column title="错误代码" dataIndex="Error_Level"/>
+                          <Column title="错误信息"
+                                  dataIndex="Error_Message"
+                                  render={val => {
+                                                        if (val !== "None"){
+                                                            return <span style={{color:"#fa541c"}}>{val}</span>
+                                                        }else {
+                                                            return <span style={{color:"#52c41a"}}>{val}</span>
+                                                        }
+                                                    }
+                                  }
+                          />
+                          <Column title="影响行数" dataIndex="Affected_rows"/>
+                      </Table>
                     <Modal
                         title="表单提交"
                         visible={this.state.showDataVisible}
