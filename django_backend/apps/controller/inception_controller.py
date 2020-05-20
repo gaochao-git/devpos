@@ -215,3 +215,13 @@ def get_split_sql_by_uuid_controller(request):
     ret = inception.get_split_sql_by_uuid(submit_sql_uuid)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
+
+# 工单执行失败点击生成重做数据
+def recreate_sql_controller(request):
+    to_str = str(request.body, encoding="utf-8")
+    request_body = json.loads(to_str)
+    submit_sql_uuid = request_body['params']['submit_sql_uuid']
+    split_sql_file_path = request_body['params']['split_sql_file_path']
+    recreate_sql_flag = request_body['params']['recreate_sql_flag']
+    ret = inception.recreate_sql(submit_sql_uuid, split_sql_file_path, recreate_sql_flag)
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')

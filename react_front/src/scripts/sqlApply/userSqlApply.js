@@ -306,6 +306,18 @@ export default class UserSqlApply extends Component {
             ViewExecuteSubmitSqlModalVisible:true,
         });
     };
+    //生成重做SQL忽略错误SQL
+    async RecreateSql(split_sql_file_path,flag) {
+        console.log(split_sql_file_path,flag)
+        let params = {
+            submit_sql_uuid: this.state.submit_sql_uuid,
+            split_sql_file_path:split_sql_file_path,
+            recreate_sql_flag: flag
+        };
+        let res = await axios.post(`${backendServerApiRoot}/recreate_sql/`,{params});
+        message.error(res.data.message)
+        console.log(res)
+    };
     //SQL预览关闭modal
     closeSubmitSqlViewModal = () => {
         this.setState({
@@ -727,11 +739,16 @@ export default class UserSqlApply extends Component {
                                 />
                                 <Column title="执行结果"
                                         dataIndex="execute_status"
-                                        render={val => {
+                                        render={(val, row) => {
                                             if (val === "执行成功"){
                                                 return <span style={{color:"#52c41a"}}>{val}</span>
                                             }else if (val === "执行失败"){
-                                                return <span style={{color:"#fa541c"}}>{val}</span>
+                                                //React.Fragment可以包含多个元素,使用div可以实现换行功能
+                                                return <React.Fragment>
+                                                           <div><span style={{color:"#fa541c"}}>{val}</span></div>
+                                                           <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"ignore_error_sql")}}>生成重做SQL忽略错误SQL</button></div>
+                                                           <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"include_error_sql")}}>生成重做SQL含错误SQL</button></div>
+                                                       </React.Fragment>
                                             }else if (val === '执行成功(含警告)'){
                                                 return <span style={{color:"#ffbb96"}}>{val}</span>
                                             }else {

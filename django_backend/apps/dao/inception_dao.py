@@ -451,7 +451,6 @@ def write_split_sql_to_new_file(cursor,master_ip, master_port,submit_sql_uuid,sq
             split_sql_file_path = dir_name + '/' + split_file_name
             with open(upfile, 'w') as f:
                 f.write(sql)
-            print(9999999)
             insert_split_sql = """insert into sql_execute_split(
                                     submit_sql_uuid,
                                     split_seq,
@@ -509,3 +508,31 @@ def get_master_info_by_split_sql_file_path_dao(split_sql_file_path):
         logger.error(e)
     finally:
         return rows
+
+# 工单执行失败点击生成重做数据
+def recreate_sql_dao(submit_sql_uuid, split_sql_file_path, recreate_sql_flag):
+    if recreate_sql_flag == "include_error_sql":
+        sql = "select submit_sql_uuid,inception_id,inception_sql,inception_stage,inception_error_level from sql_execute_results where split_sql_file_path='{}' and (inception_stage !='EXECUTED' or inception_error_level !=0)".format(
+        split_sql_file_path)
+    elif recreate_sql_flag == "ignore_error_sql":
+        sql = "select submit_sql_uuid,inception_id,inception_sql,inception_stage,inception_error_level from sql_execute_results  where split_sql_file_path='{}' and inception_stage !='EXECUTED'".format(
+        split_sql_file_path)
+    rows = []
+    try:
+        rows = db_helper.findall(sql)
+    except Exception as e:
+        logger.error(e)
+    finally:
+        return rows
+
+def reset_execute_status_dao(split_sql_file_path,split_sql_file_path_target):
+    sql_1 = "update sql_execute_split set dba_execute=1,execute_status=1 where split_sql_file_path='{}'".format(split_sql_file_path)
+    sql_2 = "update sql_execute_split set split_sql_file_path='{}' where split_sql_file_path='{}'".format(split_sql_file_path_target, split_sql_file_path)
+    try:
+        update_status = db_helper.update(sql_1)
+        update_status = db_helper.update(sql_2)
+    except Exception as e:
+        update_status = "error"
+        logger.error(e)
+    finally:
+        return update_status

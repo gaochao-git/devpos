@@ -11,9 +11,11 @@ import os
 import re
 import logging
 import json
+import time
 from apps.dao import login_dao
 from apps.utils import common
 from apps.dao import inception_dao
+from shutil import copyfile
 
 logger = logging.getLogger('devops')
 
@@ -543,3 +545,47 @@ def get_split_sql_by_uuid(submit_sql_uuid):
         content = {'status': status, 'message': message, 'data': data}
         return content
 
+
+# 工单执行失败点击生成重做数据
+def recreate_sql(submit_sql_uuid, split_sql_file_path, recreate_sql_flag):
+    # 先备份原始SQL
+    current_timstamp = int(time.time()*1000)
+    split_sql_file_path_target = "{}_bak_{}".format(split_sql_file_path,current_timstamp)
+    source_file = "./upload/{}".format(split_sql_file_path)
+    target_file = "./upload/{}".format(split_sql_file_path_target)
+    copyfile(source_file,target_file)
+    # 将未做的SQL写入文件
+    data = []
+    try:
+        data = inception_dao.recreate_sql_dao(submit_sql_uuid, split_sql_file_path, recreate_sql_flag)
+        with open(target_file, 'w') as f:
+            for row in data:
+                write_sql = row["inception_sql"] + ";" + "\n"
+                logger.info(row["inception_sql"])
+                f.write(write_sql)
+        status = "ok"
+        write_sql_message = "重做SQL写入文件成功"
+    except Exception as e:
+        logger.error(e)
+        status = "error"
+        write_sql_message = "重做SQL写入文件失败"
+        content = {'status': status, 'message': write_sql_message}
+        return content
+
+    #更新数据库状态
+    try:
+        update_status = inception_dao.reset_execute_status_dao(split_sql_file_path,split_sql_file_path_target)
+        if update_status == "ok":
+            update_message = "更改工单执行状态成功"
+        else:
+            update_message = "更改工单执行状态失败"
+        status = "ok"
+        message = write_sql_message + "," + update_message
+    except Exception as e:
+        logger.error(e)
+        status = "error"
+        message = write_sql_message + "," + update_message
+    finally:
+        logger.info(data)
+        content = {'status': status, 'message': message}
+        return content

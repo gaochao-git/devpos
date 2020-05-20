@@ -54,5 +54,6 @@ urlpatterns = [
     path('privilege_view_user/', create_private_user.privilege_view_user_func),                          # 权限申请--查看用户已有权限
     path('get_mysql_instance_info/', mysql_instance_controller.get_mysql_instance_info_handler),                       # 获取mysql实例
     path('get_search_mysql_instance_info/', mysql_instance_controller.get_search_mysql_instance_info_handler),         # 根据搜索框获取mysql实例
+    path('recreate_sql/', inception_controller.recreate_sql_controller),   # 根据拆分SQL文件获取SQL执行结果
     ]
 

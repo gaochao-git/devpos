@@ -1,0 +1,4 @@
+use test;
+alter table emp3 engine=innodb;
+alter table emp engine=innodb;
+insert into emp2(name) values(1);
