@@ -2,3 +2,4 @@
 /django_backend/upload
 *.pyc
 *.log
+*.log.*
