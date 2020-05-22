@@ -3,6 +3,8 @@ import logging
 from datetime import datetime
 logger = logging.getLogger('sql_logger')
 
+# pymysql自动提交默认为False,django会将自动提交改为True,也可以在setting中自己设置,如果某个SQL想单独设置，则需要单独开启事物
+
 # 获取多条数据
 def findall(sql):
     cursor = connection.cursor()
