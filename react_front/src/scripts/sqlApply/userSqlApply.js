@@ -746,8 +746,8 @@ export default class UserSqlApply extends Component {
                                                 //React.Fragment可以包含多个元素,使用div可以实现换行功能
                                                 return <React.Fragment>
                                                            <div><span style={{color:"#fa541c"}}>{val}</span></div>
-                                                           <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"ignore_error_sql")}}>生成重做SQL忽略错误SQL</button></div>
                                                            <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"include_error_sql")}}>生成重做SQL含错误SQL</button></div>
+                                                           <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"ignore_error_sql")}}>生成重做SQL忽略错误SQL</button></div>
                                                        </React.Fragment>
                                             }else if (val === '执行成功(含警告)'){
                                                 return <span style={{color:"#ffbb96"}}>{val}</span>

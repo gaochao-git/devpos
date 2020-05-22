@@ -13,7 +13,6 @@ def get_cluster_write_node_info(cluster_name):
                                 where a.cluster_name='{}' and b.read_only='off' and b.instance_status=1 limit 1
                                 """.format(cluster_name)
     cursor = connection.cursor()
-    print(sql_get_write_node)
     try:
         cursor.execute("%s" % sql_get_write_node)
         rows = cursor.fetchone()
