@@ -168,8 +168,8 @@ def get_execute_results_by_split_sql_file_path_controller(request):
 def get_execute_process_by_uuid_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    ret = audit_sql.get_execute_process_by_uuid(submit_sql_uuid)
+    split_sql_file_path = request_body['params']['split_sql_file_path']
+    ret = audit_sql.get_execute_process_by_uuid(split_sql_file_path)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
@@ -224,5 +224,5 @@ def recreate_sql_controller(request):
     submit_sql_uuid = request_body['params']['submit_sql_uuid']
     split_sql_file_path = request_body['params']['split_sql_file_path']
     recreate_sql_flag = request_body['params']['recreate_sql_flag']
-    ret = audit_sql.recreate_sql(submit_sql_uuid, split_sql_file_path, recreate_sql_flag)
+    ret = audit_sql.recreate_sql(split_sql_file_path, recreate_sql_flag)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')

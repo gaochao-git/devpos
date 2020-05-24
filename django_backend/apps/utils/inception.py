@@ -64,6 +64,7 @@ def get_ddl_process(sqlsha1):
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port,charset="utf8")  # inception服务器
         cur = conn.cursor()
         inception_get_osc_percent_sql = "inception get osc_percent '{}'".format(sqlsha1)
+        logger.info(inception_get_osc_percent_sql)
         cur.execute(inception_get_osc_percent_sql)
         result = cur.fetchall()
         if result:
@@ -74,5 +75,6 @@ def get_ddl_process(sqlsha1):
         cur.close()
         conn.close()
     except Exception as e:
-        print("Mysql Error %d: %s" % (e.args[0], e.args[1]))
+        logger.error(str(e))
+    logger.error(inception_execute_percent)
     return inception_execute_percent

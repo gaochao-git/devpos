@@ -328,9 +328,10 @@ def split_sql_func(submit_sql_uuid):
 
 
 # 根据uuid获取sqlsha1,根据sqlsha1连接inception查看执行进度
-def get_execute_process_by_uuid(submit_sql_uuid):
-    rows = audit_sql_dao.get_sqlsha1_by_uuid_dao(submit_sql_uuid)
+def get_execute_process_by_uuid(split_sql_file_path):
+    rows = audit_sql_dao.get_sqlsha1_by_uuid_dao(split_sql_file_path)
     sql_all_process = []
+    logger.error(rows)
     for row in rows:
         sqlsha1 = row["inception_sqlsha1"]
         sql_sigle_process = {}
@@ -344,17 +345,24 @@ def get_execute_process_by_uuid(submit_sql_uuid):
             sql_all_process.append(sql_sigle_process)
         status = 'ok'
         message = 'ok'
+    logger.error(sql_all_process)
     content = {'status': status, 'message': message, 'data': sql_all_process}
     return content
 
 
-# 获取SQL文件路径,调用inception执行
-def execute_submit_sql_by_file_path(submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path,execute_user_name):
+# 获取SQL文件路径,调用inception执行,执行之前先判断是否已经执行过
+def execute_submit_sql_by_file_path(submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path, execute_user_name):
     # 获取执行SQL对应的master信息与osc信息
     data = audit_sql_dao.get_master_info_by_split_sql_file_path_dao(split_sql_file_path)
     logger.info(data)
     inception_osc_config = data[0]["inception_osc_config"]
     cluster_name = data[0]["cluster_name"]
+    dba_execute = data[0]["dba_execute"]
+    execute_status = data[0]["execute_status"]
+    # 如果该SQL已执行则直接return
+    if dba_execute != 1 or execute_status != 1:
+        content = {'status': "error", 'message': "该工单已执行"}
+        return content
     if cluster_name:
         des_master_ip,des_master_port = common.get_cluster_write_node_info(cluster_name)
         logger.info(des_master_ip)
@@ -440,11 +448,14 @@ def write_split_sql_to_new_file(master_ip, master_port,submit_sql_uuid,sql_tuple
             split_file_name = str(split_seq) + '_' + file_name
             upfile = './upload/' + dir_name + '/' + split_file_name
             split_sql_file_path = dir_name + '/' + split_file_name
+            rerun_sequence = ""
+            rerun_seq = 0
+            inception_osc_config = ""
             # 拆分SQL写入文件
             with open(upfile, 'w') as f:
                 f.write(sql)
             # 拆分SQL详细信息写入数据库
-            audit_sql_dao.write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name)
+            audit_sql_dao.write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence, rerun_seq, inception_osc_config)
         message = "拆分SQL成功"
     except Exception as e:
         message = "拆分SQL失败"
@@ -470,19 +481,26 @@ def get_split_sql_by_uuid(submit_sql_uuid):
 
 
 # 工单执行失败点击生成重做数据
-def recreate_sql(submit_sql_uuid, split_sql_file_path, recreate_sql_flag):
-    # 先备份原始SQL
-    current_timstamp = int(time.time()*1000)
-    split_sql_file_path_target = "{}_bak_{}".format(split_sql_file_path,current_timstamp)
-    source_file = "./upload/{}".format(split_sql_file_path)
-    target_file = "./upload/{}".format(split_sql_file_path_target)
-    copyfile(source_file,target_file)
-    # 将未做的SQL写入文件
-    data = []
+def recreate_sql(split_sql_file_path, recreate_sql_flag):
+    recreate_sql_info = audit_sql_dao.get_recreate_sql_info_dao(split_sql_file_path)
+    submit_sql_uuid = recreate_sql_info[0]['submit_sql_uuid']
+    split_seq = recreate_sql_info[0]['split_seq']
+    sql_num = recreate_sql_info[0]['sql_num']
+    ddlflag = recreate_sql_info[0]['ddlflag']
+    rerun_seq = recreate_sql_info[0]['rerun_seq']
+    new_rerun_seq = int(rerun_seq) + 1
+    master_ip = recreate_sql_info[0]["master_ip"]
+    master_port = recreate_sql_info[0]["master_port"]
+    cluster_name = recreate_sql_info[0]["cluster_name"]
+    inception_osc_config = recreate_sql_info[0]["inception_osc_config"]
+    rerun_sequence = submit_sql_uuid + "_" + str(split_seq) + "_" + str(new_rerun_seq)
+    # 重做SQL写入文件
+    rerun_file = split_sql_file_path.split('.')[0] + ".sql_{}".format(new_rerun_seq)
+    rerun_file_path = "./upload/{}".format(rerun_file)
     try:
-        data = audit_sql_dao.recreate_sql_dao(submit_sql_uuid, split_sql_file_path, recreate_sql_flag)
-        with open(target_file, 'w') as f:
-            for row in data:
+        rerun_sql_list = audit_sql_dao.recreate_sql_dao( split_sql_file_path, recreate_sql_flag)
+        with open(rerun_file_path, 'w') as f:
+            for row in rerun_sql_list:
                 write_sql = row["inception_sql"] + ";" + "\n"
                 logger.info(row["inception_sql"])
                 f.write(write_sql)
@@ -495,20 +513,33 @@ def recreate_sql(submit_sql_uuid, split_sql_file_path, recreate_sql_flag):
         content = {'status': status, 'message': write_sql_message}
         return content
 
-    #更新数据库状态
+    # 重做SQL新工单写入sql_execute_split
+    audit_sql_dao.write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, rerun_file, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,new_rerun_seq, inception_osc_config)
+    # 重做SQL二次检查,详细信息写入数据库sql_check_rerun_results
+    if cluster_name:
+        des_master_ip,des_master_port = common.get_cluster_write_node_info(cluster_name)
+    with open(rerun_file_path, "rb") as f:
+        check_rerun_sql = f.read()
+        check_rerun_sql = check_rerun_sql.decode('utf-8')
+        rerun_sql_check_ret = inception.check_sql(des_master_ip, des_master_port, check_rerun_sql)
+        logger.info(rerun_sql_check_ret['data'])
+        for item in rerun_sql_check_ret['data']:
+            logger.info(item)
+            sql_id = item["ID"]
+            sql_type = item["Command"]
+            sqlsha1 = item["sqlsha1"]
+            sql_detail = item["SQL"]
+            insert_status = audit_sql_dao.write_recreate_sql_check_results_dao(rerun_sequence, sql_id, sql_detail, sql_type, sqlsha1)
+            logger.info(insert_status)
+    # 更新数据库状态
     try:
-        update_status = audit_sql_dao.reset_execute_status_dao(split_sql_file_path,split_sql_file_path_target)
-        if update_status == "ok":
-            update_message = "更改工单执行状态成功"
-        else:
-            update_message = "更改工单执行状态失败"
-        status = "ok"
-        message = write_sql_message + "," + update_message
+        flag = 0
+        update_status = audit_sql_dao.update_recreate_sql_flag_dao(flag, split_sql_file_path)
+        message = write_sql_message + "," + insert_status + "," + update_status
     except Exception as e:
         logger.error(e)
         status = "error"
-        message = write_sql_message + "," + update_message
+        message = write_sql_message + "," + insert_status + "," + update_status
     finally:
-        logger.info(data)
         content = {'status': status, 'message': message}
         return content

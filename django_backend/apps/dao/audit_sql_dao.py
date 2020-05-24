@@ -302,8 +302,9 @@ def get_split_sql_info_dao(submit_sql_uuid):
                     (select sum(inception_affected_rows) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_affect_rows,                
                     (select sum(inception_execute_time) from sql_execute_results where submit_sql_uuid='{}') as inception_execute_time,                
                     a.submit_sql_execute_type,                             
-                    b.split_sql_file_path         
-                    from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where a.submit_sql_uuid='{}'
+                    b.split_sql_file_path      
+                    from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid
+                    where a.submit_sql_uuid='{}'
             """.format(submit_sql_uuid, submit_sql_uuid, submit_sql_uuid, submit_sql_uuid)
     rows = []
     try:
@@ -352,11 +353,19 @@ def get_execute_results_by_split_sql_file_path_dao(split_sql_file_path):
 
 
 # 根据uuid获取sqlsha1
-def get_sqlsha1_by_uuid_dao(submit_sql_uuid):
-    sql = "select inception_sqlsha1,inception_sql from sql_check_results where submit_sql_uuid='{}' and inception_sqlsha1!=''".format(submit_sql_uuid)
+def get_sqlsha1_by_uuid_dao(split_sql_file_path):
+    sql = "select rerun_sequence from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
     rows = []
     try:
-        rows = db_helper.findall(sql)
+        rerun_sequence_ret = db_helper.findall(sql)
+        if not rerun_sequence_ret[0]["rerun_sequence"]:
+            sql_1 = "select inception_sqlsha1,inception_sql from sql_check_results a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid where b.split_sql_file_path='{}' and a.inception_sqlsha1!=''".format(
+                split_sql_file_path)
+        else:
+            rerun_sequence = rerun_sequence_ret[0]["rerun_sequence"]
+            sql_1 = "select inception_sqlsha1,inception_sql from sql_check_rerun_results where rerun_sequence='{}'".format(
+                rerun_sequence)
+        rows = db_helper.findall(sql_1)
     except Exception as e:
         logger.error(e)
     finally:
@@ -375,8 +384,9 @@ def get_split_sql_by_uuid_dao(submit_sql_uuid):
             case b.dba_execute when 1 then '未执行' when 2 then '已执行' end as dba_execute,
             case b.submit_sql_execute_plat_or_manual when 1 then '平台执行' when 2 then '手动执行' end as submit_sql_execute_plat_or_manual,
             case b.execute_status when 1 then '未执行' when 2 then '执行中' when 3 then '执行成功' when 4 then '执行失败' when 5 then '执行成功(含警告)' end as execute_status,
-            sum(c.inception_execute_time) inception_execute_time
-            from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid left join sql_execute_results c on b.split_sql_file_path=c.split_sql_file_path where a.submit_sql_uuid='{}' group by b.split_sql_file_path order by b.split_seq
+            sum(c.inception_execute_time) inception_execute_time,
+            b.rerun_flag
+            from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid left join sql_execute_results c on b.split_sql_file_path=c.split_sql_file_path where a.submit_sql_uuid='{}' group by b.split_sql_file_path order by b.split_seq,b.split_sql_file_path
     """.format(submit_sql_uuid)
     rows = []
     try:
@@ -389,7 +399,7 @@ def get_split_sql_by_uuid_dao(submit_sql_uuid):
 
 # 获取执行SQL需要的目的ip、port、claster_name、osc配置
 def get_master_info_by_split_sql_file_path_dao(split_sql_file_path):
-    sql = "select a.master_ip,a.master_port,a.cluster_name,b.inception_osc_config from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid =b.submit_sql_uuid where split_sql_file_path='{}'".format(
+    sql = "select a.master_ip,a.master_port,a.cluster_name,b.inception_osc_config,b.dba_execute,b.execute_status from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid =b.submit_sql_uuid where split_sql_file_path='{}'".format(
         split_sql_file_path)
     rows = []
     try:
@@ -400,7 +410,7 @@ def get_master_info_by_split_sql_file_path_dao(split_sql_file_path):
         return rows
 
 # 工单执行失败点击生成重做数据
-def recreate_sql_dao(submit_sql_uuid, split_sql_file_path, recreate_sql_flag):
+def recreate_sql_dao(split_sql_file_path, recreate_sql_flag):
     if recreate_sql_flag == "include_error_sql":
         sql = "select submit_sql_uuid,inception_id,inception_sql,inception_stage,inception_error_level from sql_execute_results where split_sql_file_path='{}' and (inception_stage !='EXECUTED' or inception_error_level !=0)".format(
         split_sql_file_path)
@@ -415,21 +425,9 @@ def recreate_sql_dao(submit_sql_uuid, split_sql_file_path, recreate_sql_flag):
     finally:
         return rows
 
-# 重做SQL状态重制
-def reset_execute_status_dao(split_sql_file_path,split_sql_file_path_target):
-    sql_1 = "update sql_execute_split set dba_execute=1,execute_status=1 where split_sql_file_path='{}'".format(split_sql_file_path)
-    sql_2 = "update sql_execute_split set split_sql_file_path='{}' where split_sql_file_path='{}'".format(split_sql_file_path_target, split_sql_file_path)
-    try:
-        update_status = db_helper.update(sql_1)
-        update_status = db_helper.update(sql_2)
-    except Exception as e:
-        update_status = "error"
-        logger.error(e)
-    finally:
-        return update_status
 
 # 拆分SQL结果入库
-def write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name):
+def write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,rerun_seq, inception_osc_config):
     sql = """insert into sql_execute_split(
                                         submit_sql_uuid,
                                         split_seq,
@@ -438,11 +436,14 @@ def write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_p
                                         ddlflag,
                                         master_ip,
                                         master_port,
-                                        cluster_name
-                                        ) values('{}',{},'{}',{},{},'{}',{},'{}')
-                                    """.format(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name)
+                                        cluster_name,
+                                        rerun_sequence,
+                                        rerun_seq,
+                                        inception_osc_config
+                                        ) values('{}',{},'{}',{},{},'{}',{},'{}','{}',{},'{}')
+                                    """.format(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,rerun_seq, inception_osc_config)
     try:
-        insert_status = db_helper.update(sql)
+        insert_status = db_helper.insert(sql)
     except Exception as e:
         insert_status = "error"
         logger.error(e)
@@ -459,3 +460,38 @@ def get_submit_sql_file_path_info_dao(submit_sql_uuid):
         logger.error(e)
     finally:
         return rows
+
+# 获取重做数据需要的信息
+def get_recreate_sql_info_dao(split_sql_file_path):
+    sql = "select submit_sql_uuid,rerun_seq,split_seq,ddlflag,sql_num,submit_source_db_type,cluster_name,master_ip,master_port,inception_osc_config,inception_check_ignore_warning,inception_execute_ignore_error from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
+    rows = []
+    try:
+        rows = db_helper.findall(sql)
+    except Exception as e:
+        logger.error(e)
+    finally:
+        return rows
+
+
+# 重做SQL检查结果写入sql_check_rerun_results
+def write_recreate_sql_check_results_dao(rerun_sequence, sql_id, inception_sql, sql_type, inception_sqlsha1):
+    sql = "insert into sql_check_rerun_results(rerun_sequence, sql_id, inception_sql, sql_type, inception_sqlsha1) values('{}',{},'{}','{}','{}')".format(rerun_sequence, sql_id, inception_sql, sql_type, inception_sqlsha1)
+    try:
+        insert_status = db_helper.update(sql)
+    except Exception as e:
+        insert_status = "error"
+        logger.error(e)
+    finally:
+        return insert_status
+
+# 重做SQL生成是否成功标记
+def update_recreate_sql_flag_dao(flag, split_sql_file_path):
+    sql = "update sql_execute_split set rerun_flag={} where split_sql_file_path='{}'".format(flag, split_sql_file_path)
+    try:
+        update_status = db_helper.update(sql)
+    except Exception as e:
+        update_status = "error"
+        logger.error(e)
+    finally:
+        return update_status
+

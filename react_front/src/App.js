@@ -5,8 +5,8 @@ import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import {HashRouter,Route} from 'react-router-dom';
 import mysqlCluster from './scripts/mysql/mysqlCluster'
-import UserSqlCheckSubmit from './scripts/sqlApply/userSqlCheckSubmit'
-import UserSqlApply from './scripts/sqlApply/userSqlApply'
+import UserSqlCheckSubmit from './scripts/auditSql/userSqlCheckSubmit'
+import UserSqlApply from './scripts/auditSql/userSqlApply'
 import publicManage from "./scripts/publicUserManage/pubicUserPrivilegeManage"
 import privilegesApply from "./scripts/privilegesApply/userGrant";
 import OrderInformation from './scripts/privilegesApply/orderInformation'

@@ -46,7 +46,7 @@ export default class UserSqlApply extends Component {
             InceptionVariableConfigModalVisible:false,
             timerId:null,
             timerProcessId:null,
-            execute_sql_flag:"未提交",
+            execute_sql_flag:"",
             inception_backup:1,
             inception_check_ignore_warning:0,
             inception_execute_ignore_error:0,
@@ -63,7 +63,6 @@ export default class UserSqlApply extends Component {
             sql_view_loading:false,
             sql_check_results_loading:false,
             sql_check_pass_loading:false,
-            sql_execute_loading:false,
             sql_check_code_explain:"",
             cluster_name:"",
             check_comment:"",
@@ -128,6 +127,7 @@ export default class UserSqlApply extends Component {
             comment_info:res.data.data[0]["comment_info"],
             view_submit_split_sql_info:res_split_sql.data.data,
         })
+        console.log(this.state.view_submit_split_sql_info)
     };
     //提交预览SQL
     async GetSubmitSqlByUuid(uuid) {
@@ -210,9 +210,7 @@ export default class UserSqlApply extends Component {
     //平台自动执行SQL
     async ExecuteBySplitSqlFilePath(split_sql_file_path) {
         this.setState({
-            sql_execute_loading:true,
             execute_status: "执行中"
-
         });
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
@@ -231,9 +229,9 @@ export default class UserSqlApply extends Component {
         }else if (this.state.inception_check_ignore_warning === 0 && this.state.sql_check_max_code === 1){
             message.error("审核存在警告,请处理警告或忽略警告执行")
         }else {
-            if (this.state.execute_sql_flag === "未提交") {
+            if (this.state.execute_sql_flag !== split_sql_file_path) {
                 this.setState({
-                    execute_sql_flag: "工单已提交正在处理，不允许多次提交"
+                    execute_sql_flag: split_sql_file_path
                 });
                 await axios.post(`${backendServerApiRoot}/execute_submit_sql_by_file_path/`, {params}).then(
                     res => {
@@ -241,7 +239,7 @@ export default class UserSqlApply extends Component {
                     }
                 );
             } else {
-                message.error(this.state.execute_sql_flag);
+                message.error("该工单正在执行,请误多次点击!!!");
             }
         }
     };
@@ -315,6 +313,7 @@ export default class UserSqlApply extends Component {
             recreate_sql_flag: flag
         };
         let res = await axios.post(`${backendServerApiRoot}/recreate_sql/`,{params});
+        window.location.reload()
         message.error(res.data.message)
         console.log(res)
     };
@@ -544,6 +543,20 @@ export default class UserSqlApply extends Component {
     }
   }
     render() {
+        const temp = {}; // 当前重复的值,支持多列
+        const mergeCells = (text, array, columns) => {
+          let i = 0;
+          if (text !== temp[columns]) {
+            temp[columns] = text;
+            array.forEach((item) => {
+                console.log(item.split_seq)
+              if (item.split_seq === temp[columns]) {
+                i += 1;
+              }
+            });
+          }
+          return i;
+        };
         const execute_results_columns = [
             {
               title: 'Id',
@@ -596,7 +609,7 @@ export default class UserSqlApply extends Component {
               key: "inception_sql",
             },
             {
-              title: '执行进度',
+              title: '执行进度(%)',
               dataIndex: 'inception_execute_percent',
               key:"inception_execute_percent",
             }
@@ -701,7 +714,18 @@ export default class UserSqlApply extends Component {
                                 size="small"
                                 bordered
                             >
-                                <Column title="split_id" dataIndex="split_seq"/>
+                                <Column title="split_seq"
+                                        dataIndex='split_seq'
+                                        key='split_seq'
+                                        render={(text, row) => {
+                                            const obj = {
+                                                children: text,
+                                                props: {},
+                                            };
+                                            obj.props.rowSpan = mergeCells(row.split_seq, this.state.view_submit_split_sql_info, 'split_seq');
+                                            return obj;
+                                        }}
+                                />
                                 <Column title="SQL路径" dataIndex="split_sql_file_path" width={300}/>
                                 <Column title="SQL"
                                         render={(text, row) => <button className="link-button" onClick={()=>{this.ViewSplitSQL(row.split_sql_file_path)}}>查看</button>}
@@ -715,8 +739,8 @@ export default class UserSqlApply extends Component {
                                             if (this.state.dba_check ==="通过" && row.execute_status === '未执行' && this.state.login_user_name_role==="dba")  {
                                                 return (
                                                     <div>
-                                                        <Button className="link-button" loading={this.state.sql_execute_loading} onClick={()=>{this.ExecuteBySplitSqlFilePath(row.split_sql_file_path)}}>平台执行</Button>
-                                                        <Button className="link-button" style={{marginLeft:15}} loading={this.state.sql_execute_loading} onClick={()=>{this.ExecuteBySplitSqlFilePathManual(row.split_sql_file_path)}}>手动执行</Button>
+                                                        <Button className="link-button" onClick={()=>{this.ExecuteBySplitSqlFilePath(row.split_sql_file_path)}}>平台执行</Button>
+                                                        <Button className="link-button" style={{marginLeft:15}} onClick={()=>{this.ExecuteBySplitSqlFilePathManual(row.split_sql_file_path)}}>手动执行</Button>
                                                     </div>
 
                                                 )
@@ -742,7 +766,7 @@ export default class UserSqlApply extends Component {
                                         render={(val, row) => {
                                             if (val === "执行成功"){
                                                 return <span style={{color:"#52c41a"}}>{val}</span>
-                                            }else if (val === "执行失败"){
+                                            }else if (val === "执行失败" && row.rerun_flag !==0 ){
                                                 //React.Fragment可以包含多个元素,使用div可以实现换行功能
                                                 return <React.Fragment>
                                                            <div><span style={{color:"#fa541c"}}>{val}</span></div>

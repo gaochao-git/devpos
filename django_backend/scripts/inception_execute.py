@@ -15,7 +15,6 @@ logging.basicConfig(level=logging.DEBUG,
 
 # inception执行SQL
 def execute_sql_func(master_ip,master_port,osc_config_sql,execute_sql):
-    print("inception_prepare_sql:{}".format(osc_config_sql))
     sql = """/*--user=wthong;--password=fffjjj;--host={};--port={};--execute=1;--enable-remote-backup={};--enable-ignore-warnings={};--enable-force={};*/\
         inception_magic_start;
         {}   
@@ -81,13 +80,19 @@ def main():
         logging.info("工单:%s,获取待执行SQL成功",submit_sql_uuid)
     except Exception as e:
         logging.error(str(e))
-
+    # 获取工单是否已经被执行过
+    sql = "select 1 from sql_execute_split where dba_execute !=1 and execute_status !=1 and split_sql_file_path='{}'".format(split_sql_file_path)
+    cursor.execute(sql)
+    row = cursor.fetchall()
+    if row:
+        logging.error("工单:%s_%s,该SQL已经执行,执行脚本退出",submit_sql_uuid,split_sql_file_path)
+        sys.exit()
     # 更新工单状态为执行中
     try:
         sql_update_executing = "update sql_submit_info set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1,dba_execute_user_name='{}' where submit_sql_uuid='{}'".format(execute_user_name, submit_sql_uuid)
         sql_execute_executing = "update sql_execute_split set dba_execute=2,execute_status=2,submit_sql_execute_plat_or_manual=1 where split_sql_file_path='{}'".format(split_sql_file_path)
-        cursor.execute("%s" % sql_update_executing)
-        cursor.execute("%s" % sql_execute_executing)
+        cursor.execute(sql_update_executing)
+        cursor.execute(sql_execute_executing)
         connection.commit()
         logging.info("工单:%s,工单状态更改为执行中成功", submit_sql_uuid)
     except Exception as e:
