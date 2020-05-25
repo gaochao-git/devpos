@@ -569,6 +569,18 @@ export default class UserSqlApply extends Component {
               dataIndex: 'inception_error_level',
               key:"inception_error_level",
               width:100,
+              sorter: (a, b) => {
+                var stringA = a.inception_error_level.toUpperCase(); // ignore upper and lowercase
+                var stringB = b.inception_error_level.toUpperCase(); // ignore upper and lowercase
+                if (stringA < stringB) {
+                    return -1;
+                }
+                if (stringA > stringB) {
+                    return 1;
+                }
+                // names must be equal
+                return 0;
+            }
             },
             {
               title: '阶段',
@@ -612,6 +624,35 @@ export default class UserSqlApply extends Component {
               title: '执行进度(%)',
               dataIndex: 'inception_execute_percent',
               key:"inception_execute_percent",
+            }
+        ];
+        const check_results_columns = [
+            {
+              title: 'SQL',
+              dataIndex: 'inception_sql',
+              key: "inception_sql",
+              width:600
+            },
+            {
+              title: '状态',
+              dataIndex: 'inception_stage_status',
+              key:"inception_stage_status",
+            },
+            {
+              title: '错误代码',
+              dataIndex: 'inception_error_level',
+              key:"inception_error_level",
+              sorter: (a, b) => a.inception_error_level - b.inception_error_level,
+            },
+            {
+              title: '错误信息',
+              dataIndex: 'inception_error_message',
+              key:"inception_error_message",
+            },
+            {
+              title: '影响行数',
+              dataIndex: 'inception_affected_rows',
+              key:"inception_affected_rows",
             }
         ];
         return (
@@ -821,20 +862,8 @@ export default class UserSqlApply extends Component {
                                     }}
                             pagination={true}
                             size="small"
+                            columns={check_results_columns}
                         >
-                            <Column title="SQL"
-                                dataIndex="inception_sql"
-                                width={600}
-                            />
-                            <Column title="状态"
-                                dataIndex="inception_stage_status"/>
-                            <Column title="错误代码"
-                                dataIndex="inception_error_level"
-                            />
-                            <Column title="错误信息"
-                                dataIndex="inception_error_message"/>
-                            <Column title="影响行数"
-                                dataIndex="inception_affected_rows"/>
                         </Table>
                     </Modal>
                     <Modal visible={this.state.ApplyModalVisible}

@@ -218,9 +218,10 @@ def submit_sql_by_ip_port_dao(login_user_name,sql_title, db_ip, db_port, file_pa
         return insert_status
 
 
-# SQL审核结果写入数据库
+# SQL审核结果写入数据库,使用db_helper会创建多次连接,效率太低
 def submit_sql_results(uuid_str, check_sql_results):
     # SQL审核结果写入数据库
+    cursor = connection.cursor()
     try:
         for check_sql_result in check_sql_results:
             inception_id = check_sql_result["ID"]
@@ -254,12 +255,14 @@ def submit_sql_results(uuid_str, check_sql_results):
                            inception_error_message, inception_sql, inception_affected_rows, inception_sequence,
                            inception_backup_dbnames, inception_execute_time,
                            inception_sqlsha1, inception_command)
-            db_helper.insert(sql_results_insert)
+            cursor.execute(sql_results_insert)
         insert_status = "ok"
     except Exception as e:
         logger.error(str(e))
         insert_status = 'error'
     finally:
+        cursor.close()
+        connection.close()
         return insert_status
 
 

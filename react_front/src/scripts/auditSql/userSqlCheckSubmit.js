@@ -274,6 +274,40 @@ class UserSqlCheckSubmit extends Component {
       this.setState({ expand: !expand });
     };
     render() {
+              const check_results_columns = [
+            {
+              title: 'ID',
+              dataIndex: 'ID',
+              key: "ID",
+            },
+            {
+              title: 'SQL',
+              dataIndex: 'SQL',
+              key: "SQL",
+              width:540
+            },
+            {
+              title: '状态',
+              dataIndex: 'Stage_Status',
+              key:"Stage_Status",
+            },
+            {
+              title: '错误代码',
+              dataIndex: 'Error_Level',
+              key:"Error_Level",
+              sorter: (a, b) => a.Error_Level - b.Error_Level,
+            },
+            {
+              title: '错误信息',
+              dataIndex: 'Error_Message',
+              key:"Error_Message",
+            },
+            {
+              title: '影响行数',
+              dataIndex: 'inception_affected_rows',
+              key:"inception_affected_rows",
+            }
+        ];
         const {form} = this.props;
         const {getFieldDecorator} = form;
         return (
@@ -388,26 +422,26 @@ class UserSqlCheckSubmit extends Component {
                     <Table
                           dataSource={this.state.check_sql_results}
                           rowKey={(row ,index) => index}
-                          pagination={true}
-                          size="small"
+                                                    rowClassName={(record, index) => {
+                                                let className = 'row-detail-default ';
+                                                if (record.Error_Level === 2) {
+                                                    className = 'row-detail-error';
+                                                    return className;
+                                                }else if (record.Error_Level  === 0){
+                                                    className = 'row-detail-success';
+                                                    return className;
+                                                }else if (record.Error_Level  === 1){
+                                                    className = 'row-detail-warning';
+                                                    return className;
+                                                }else {
+                                                    return className;
+                                                }
+                                    }}
+                            pagination={true}
+                            size="small"
+                            columns={check_results_columns}
 
-                      >
-                          <Column title="SQL" dataIndex="SQL" width={540}/>
-                          <Column title="状态" dataIndex="Stage_Status"/>
-                          <Column title="错误代码" dataIndex="Error_Level"/>
-                          <Column title="错误信息"
-                                  dataIndex="Error_Message"
-                                  render={val => {
-                                                        if (val !== "None"){
-                                                            return <span style={{color:"#fa541c"}}>{val}</span>
-                                                        }else {
-                                                            return <span style={{color:"#52c41a"}}>{val}</span>
-                                                        }
-                                                    }
-                                  }
-                          />
-                          <Column title="影响行数" dataIndex="Affected_rows"/>
-                      </Table>
+                      />
                     <Modal
                         title="表单提交"
                         visible={this.state.showDataVisible}

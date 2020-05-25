@@ -234,12 +234,12 @@ LOGGING = {
     'loggers': {
         'django': {             # 默认的logger应用如下配置
             'handlers': ['default', 'console', 'error'],  # 上线之后可以把'console'移除
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': True,  # 向不向更高级别的logger传递
         },
         'devops': {             # 默认的logger应用如下配置
             'handlers': ['console', 'error','info'],  # 上线之后可以把'console'移除
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': True,  # 向不向更高级别的logger传递
         },
         'sql_logger': {

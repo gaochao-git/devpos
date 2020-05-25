@@ -8,14 +8,11 @@ from django.db import connection
 import uuid
 from time import gmtime, strftime
 import os
-import re
 import json
-import time
 from apps.dao import login_dao
 from apps.utils import common
 from apps.utils import inception
 from apps.dao import audit_sql_dao
-from shutil import copyfile
 
 import logging
 logger = logging.getLogger('devops')
@@ -524,13 +521,11 @@ def recreate_sql(split_sql_file_path, recreate_sql_flag):
         rerun_sql_check_ret = inception.check_sql(des_master_ip, des_master_port, check_rerun_sql)
         logger.info(rerun_sql_check_ret['data'])
         for item in rerun_sql_check_ret['data']:
-            logger.info(item)
             sql_id = item["ID"]
             sql_type = item["Command"]
             sqlsha1 = item["sqlsha1"]
             sql_detail = item["SQL"]
             insert_status = audit_sql_dao.write_recreate_sql_check_results_dao(rerun_sequence, sql_id, sql_detail, sql_type, sqlsha1)
-            logger.info(insert_status)
     # 更新数据库状态
     try:
         flag = 0
