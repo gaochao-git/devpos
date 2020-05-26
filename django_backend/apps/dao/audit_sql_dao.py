@@ -118,7 +118,7 @@ def get_master_ip_dao(db_master_ip_or_hostname):
 
 # 页面查看审核结果
 def get_check_sql_results_by_uuid_dao(submit_sql_uuid):
-    sql = "select inception_sql,inception_stage_status,inception_error_level,inception_error_message,inception_affected_rows from sql_check_results where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    sql = "select inception_id,inception_sql,inception_stage_status,inception_error_level,inception_error_message,inception_affected_rows from sql_check_results where submit_sql_uuid='{}'".format(submit_sql_uuid)
     rows = []
     try:
         rows = db_helper.findall(sql)

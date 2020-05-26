@@ -284,7 +284,7 @@ class UserSqlCheckSubmit extends Component {
               title: 'SQL',
               dataIndex: 'SQL',
               key: "SQL",
-              width:540
+              width:520
             },
             {
               title: '状态',

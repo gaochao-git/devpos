@@ -628,10 +628,15 @@ export default class UserSqlApply extends Component {
         ];
         const check_results_columns = [
             {
+              title: 'ID',
+              dataIndex: 'inception_id',
+              key: "inception_id",
+            },
+            {
               title: 'SQL',
               dataIndex: 'inception_sql',
               key: "inception_sql",
-              width:600
+              width:500
             },
             {
               title: '状态',
