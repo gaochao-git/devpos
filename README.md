@@ -12,6 +12,8 @@ gaochao@localhost:~ # git clone https://github.com/gaochao-git/devpos.git
     2)$yourpath/devpos/django_backend/django_backend/settings.py修改mysql连接信息
     3)启动后端django
         python3.5 manage.py runserver 0.0.0.0:8000
+    4)启动celery
+        python3.5 manage.py celery worker --concurrency=4  --loglevel=info --logfile=./logs/celery.log
 2.启动前端
     1)安装nodejs
         brew install nodejs #安装nodejs根据mac、windows、linux不同系统自行百度安装

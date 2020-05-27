@@ -24,12 +24,31 @@ def findall(sql):
         connection.close()
 
 
-# 更新数据
+# 单条SQL更新
 def update(sql):
     cursor = connection.cursor()
     try:
         start_time = datetime.now()
         cursor.execute(sql)
+        end_time = datetime.now()
+        time_diff = (end_time - start_time).microseconds / 1000
+        update_status = "ok"
+    except Exception as e:
+        update_status = "error"
+        logger.error(e)
+    finally:
+        logger.info("sql:%s,sql执行耗时:%s ms" % (sql,time_diff))
+        cursor.close()
+        connection.close()
+        return update_status
+
+# 多条SQL更新
+def update_many(sql_list):
+    cursor = connection.cursor()
+    try:
+        start_time = datetime.now()
+        for sql in sql_list:
+            cursor.execute(sql)
         end_time = datetime.now()
         time_diff = (end_time - start_time).microseconds / 1000
         update_status = "ok"

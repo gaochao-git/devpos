@@ -102,8 +102,8 @@ export default class OrderInformation extends React.Component  {
         };
         console.log(params);
         axios.post(`${server}/check_order/`,{params}).then(
-                res => {res.data.status==="ok" ? message.success(res.data.message,3) && this.GetUserInfo() : message.error(res.data.message) && this.GetUserInfo()}
-        ).catch(err => {message.error(err.message,3)});
+                res => {res.data.status==="ok" ? message.success(res.data.message,2) && this.GetUserInfo() : message.error(res.data.message) && this.GetUserInfo()}
+        ).catch(err => {message.error(err.message,2)});
         this.setState({
             checkOrderVisible: false
         });
@@ -120,8 +120,8 @@ export default class OrderInformation extends React.Component  {
         };
         console.log(params);
         axios.post(`${server}/check_order/`,{params}).then(
-                res => {res.data.status==="ok" ? message.success(res.data.message,3) && this.GetUserInfo() : message.error(res.data.message) && this.GetUserInfo()}
-        ).catch(err => {message.error(err.message,3)});
+                res => {res.data.status==="ok" ? message.success(res.data.message,2) && this.GetUserInfo() : message.error(res.data.message) && this.GetUserInfo()}
+        ).catch(err => {message.error(err.message,2)});
         this.setState({
             checkOrderVisible: false
         });

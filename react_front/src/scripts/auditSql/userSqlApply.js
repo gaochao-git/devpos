@@ -235,7 +235,7 @@ export default class UserSqlApply extends Component {
                 });
                 await axios.post(`${backendServerApiRoot}/execute_submit_sql_by_file_path/`, {params}).then(
                     res => {
-                        res.data.status === "ok" ? this.setInterVal() : message.error(res.data.message);
+                        res.data.status === "ok" ? message.success(res.data.message,3) && this.setInterVal() : message.error(res.data.message);
                     }
                 );
             } else {

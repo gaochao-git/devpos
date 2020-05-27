@@ -13,6 +13,7 @@ from apps.dao import login_dao
 from apps.utils import common
 from apps.utils import inception
 from apps.dao import audit_sql_dao
+from apps.tasks import inception_execute
 
 import logging
 logger = logging.getLogger('devops')
@@ -403,22 +404,29 @@ def execute_submit_sql_by_file_path(submit_sql_uuid, inception_backup, inception
             osc_config_sql_list_str = [str(i) for i in osc_config_sql_list]
             osc_config_sql = ''.join(osc_config_sql_list_str)
     try:
-        cmd = "python3.5 {}/scripts/inception_execute.py '{}' {} {} {} '{}' '{}' '{}' {} '{}' &".format(os.getcwd(), submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path,execute_user_name, des_master_ip, des_master_port, osc_config_sql)
-        logger.info("调用脚本执行SQL:%s" % cmd)
-        ret = os.system(cmd)
-        logger.info("调用脚本执行SQL返回值(非0表示调用失败):%s" % ret)
-        if ret == 0:
+        # 调用celery异步执行,异获取到task_id则表示任务已经放入队列，后续具体操作交给worker处理，如果当时worker没有启动，后来再启动,worker会去队列获取任务执行
+        task_id = inception_execute.delay(des_master_ip, des_master_port, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error,split_sql_file_path,submit_sql_uuid,osc_config_sql)
+        logger.info("celery返回task_id:%s" % task_id)
+        if task_id:
+            # 更新工单状态为执行中
+            status = 2
+            update_status = audit_sql_dao.set_execute_status(submit_sql_uuid, split_sql_file_path, status, execute_user_name)
+            if update_status == "ok":
+                update_message = "更新工单状态为执行中成功"
+            else:
+                update_message = "更新工单状态为执行中失败"
             status = "ok"
-            message = "调用脚本成功"
-        elif ret != 0:
-            status = "ok"
-            message = '调用脚本失败'
+            message = "推送celery成功" + "," + update_message
+        else:
+            status = "error"
+            message = "推送celery失败"
     except Exception as e:
         status = "error"
         message = e
         logger.error(e)
     finally:
         content = {'status': status, 'message': message}
+        logger.info(content)
         return content
 
 
@@ -519,7 +527,6 @@ def recreate_sql(split_sql_file_path, recreate_sql_flag):
         check_rerun_sql = f.read()
         check_rerun_sql = check_rerun_sql.decode('utf-8')
         rerun_sql_check_ret = inception.check_sql(des_master_ip, des_master_port, check_rerun_sql)
-        logger.info(rerun_sql_check_ret['data'])
         for item in rerun_sql_check_ret['data']:
             sql_id = item["ID"]
             sql_type = item["Command"]

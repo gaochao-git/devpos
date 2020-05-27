@@ -10,7 +10,7 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 import os
 import pymysql
 pymysql.install_as_MySQLdb()
-
+import djcelery
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,7 +20,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'l9q4)=0$)sv$85s_ky4%$y^wug^)i47jtm8#hl**)l8b=d8gnp'
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -36,7 +36,8 @@ INSTALLED_APPS = [
     'apps',
     'corsheaders',  #解决跨域失败
     #'rest_framework',
-    'rest_framework.authtoken'
+    'rest_framework.authtoken',
+    'djcelery',
 ]
 
 
@@ -102,8 +103,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'django_backend.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/2.1/ref/settings/#databases
+################# 数据库配置 ##################
 
 DATABASES = {
     'default': {
@@ -117,11 +117,6 @@ DATABASES = {
         'AUTOCOMMIT':True,           # pymysql默认AUTOCOMMIT为False,如果没有该参数django会将其设置为True,如果指定该参数django会忽略该参数
     }
 }
-
-
-# Password validation
-# https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -137,6 +132,7 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
 
 #设置django上传数据大小为20M
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20971520
@@ -156,7 +152,8 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 
-# 日志配置
+
+################# 日志配置 ##################
 log_path = os.path.join(BASE_DIR, "logs")
 if not os.path.exists(log_path):
     os.makedirs("logs")
@@ -229,6 +226,14 @@ LOGGING = {
             'maxBytes': 1024*1024*5,
             'backupCount': 5,
             'formatter':'standard',
+        },
+        'inception_execute_log_handler': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR+'/logs/', "inception_execute.log"),
+            'maxBytes': 1024*1024*5,
+            'backupCount': 2,
+            'formatter':'simple',
         }
     },
     'loggers': {
@@ -247,5 +252,20 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False
         },
+        'inception_execute_logger': {
+            'handlers': ['inception_execute_log_handler'],
+            'level': 'INFO',
+            'propagate': False
+        }
     },
 }
+
+################# celery配置 ##################
+djcelery.setup_loader()
+BROKER_URL = 'redis://:redisfffjjj@39.97.247.142:6379/0'
+CELERY_RESULT_BACKEND = 'redis://:redisfffjjj@39.97.247.142:6379/1'
+CELERY_ACCEPT_CONTENT = ['application/json',]
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_REDIRECT_STDOUTS_LEVEL = 'INFO'        #标准输出和标准错误输出的日志级别。可以是DEBUG, INFO, WARNING, ERROR, or CRITICAL,默认为WARNING
+CELERY_TIMEZONE = TIME_ZONE
