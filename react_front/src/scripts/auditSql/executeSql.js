@@ -14,7 +14,7 @@ const EditableCell = ({ editable, value, onChange }) => (
     </div>
 );
 
-export default class UserSqlApply extends Component {
+export default class ExecuteSql extends Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -150,15 +150,8 @@ export default class UserSqlApply extends Component {
                 sql_view_loading:false,
             })
         }
-
-
     };
-    //预览数据 modal弹出按钮
-    showCheckSqlResultModalHandle = (e) => {
-        this.setState({
-        showSubmitSqlResultsVisible: true,
-        });
-    }
+
     //查看SQL审核结果
     async GetSqlCheckResultsByUuid(uuid) {
         this.setState({
@@ -209,6 +202,8 @@ export default class UserSqlApply extends Component {
     }
     //平台自动执行SQL
     async ExecuteBySplitSqlFilePath(split_sql_file_path) {
+        console.log(this.state.view_submit_split_sql_info)
+        //如果current_split_seq是最小则直接执行,否则判断他前面的是否已经执行,如果前面没执行,后面不允许执行,代码需要code
         this.setState({
             execute_status: "执行中"
         });
@@ -220,6 +215,13 @@ export default class UserSqlApply extends Component {
             split_sql_file_path:split_sql_file_path,
             execute_user_name:this.state.login_user_name
         };
+        let file_execute_dict = {};
+        for ( var item=0;item<this.state.view_submit_split_sql_info.length;item++){
+            file_execute_dict[this.state.view_submit_split_sql_info[item]["split_seq"]] = this.state.view_submit_split_sql_info[item]["dba_execute"]
+            if (this.state.view_submit_split_sql_info[item]["split_sql_file_path"] === split_sql_file_path){
+                var current_split_seq = this.state.view_submit_split_sql_info[item]["split_seq"]
+            }
+        }
         let inception_error_level_rray=[];
         for(var i=0;i<this.state.view_check_sql_result.length;i++){
             inception_error_level_rray.push(this.state.view_check_sql_result[i]["inception_error_level"])
@@ -228,6 +230,8 @@ export default class UserSqlApply extends Component {
            message.error("审核存在错误,请先处理错误")
         }else if (this.state.inception_check_ignore_warning === 0 && this.state.sql_check_max_code === 1){
             message.error("审核存在警告,请处理警告或忽略警告执行")
+        }else if (current_split_seq !== 1 && file_execute_dict[current_split_seq -1] !== "已执行"){
+            message.error("上面SQL执行完毕下面SQL才能执行")
         }else {
             if (this.state.execute_sql_flag !== split_sql_file_path) {
                 this.setState({
@@ -317,62 +321,7 @@ export default class UserSqlApply extends Component {
         message.error(res.data.message)
         console.log(res)
     };
-    //SQL预览关闭modal
-    closeSubmitSqlViewModal = () => {
-        this.setState({
-            showSubmitSqlViewVisible: false,
-        })
-    };
-    //sql检查结果modal关闭
-    closeSubmitSqlResultsModal = () => {
-        this.setState({
-            showSubmitSqlResultsVisible: false,
-        })
-    };
 
-    closeApplyModal = () => {
-        this.setState({
-            ApplyModalVisible: false,
-        })
-    };
-
-    closeViewExecuteSubmitSqlModal = () => {
-        this.setState({
-            ViewExecuteSubmitSqlModalVisible: false,
-        })
-    };
-    //关闭查看SQL进度modal
-    closeViewExecuteSubmitSqlProcessModal = () => {
-        this.setState({
-            ViewExecuteSubmitSqlProcessModalVisible: false,
-        })
-        window.clearInterval(this.timerProcessId);
-    };
-    //关闭inception设置modal
-    closeInceptionVariableConfigModal = () => {
-        this.setState({
-            InceptionVariableConfigModalVisible: false,
-        })
-    };
-    //关闭split sql  modal
-    closeSplitSqlModal = () => {
-        this.setState({
-            SplitSQLModalVisible: false,
-        })
-    };
-    //审核备注
-    handleApplyContentChange = (value) => {
-        console.log(value)
-        this.setState({
-            check_comment: value
-        })
-    }
-    //审核 modal弹出按钮
-    showApplySqlModalHandle = (e) => {
-        this.setState({
-        ApplyModalVisible: true,
-        });
-    }
 
     //查看进度
     async getExecuteProcessByUuid(split_sql_file_path) {
@@ -390,7 +339,6 @@ export default class UserSqlApply extends Component {
     }
     //定时查看进度，并更新进度到表里
     async getExecuteProcessByUuidTimeInterval() {
-        console.log(111111)
         let params = {
             split_sql_file_path:this.state.split_sql_file_path,
             submit_sql_uuid: this.state.submit_sql_uuid,
@@ -504,8 +452,6 @@ export default class UserSqlApply extends Component {
 
   }}
   edit(key) {
-      console.log(key);
-      console.log(this.state.editingKey);
     if(this.state.editingKey !== ''){
         this.cancel(this.state.editingKey)
         this.setState({editingKey: key})
@@ -520,8 +466,6 @@ export default class UserSqlApply extends Component {
     const target = newData.filter(item => key === item.name)[0];       //原始行记录target.value,target.name
     const cacheData =  [...this.cacheData];
     const cacheTarget = cacheData.filter(item => key === item.name)[0];   //新行记录cacheTarget.value,cacheTarget.name
-    console.log(target)
-    console.log(cacheTarget)
       let newConfigJson = this.state.newConfig
     if (target) {
       if(this.state.newClusterCfg[this.state.editingKey] && cacheTarget.value !== target.value){
@@ -669,7 +613,7 @@ export default class UserSqlApply extends Component {
                             Home
                         </Link>
                         >
-                        <Link className="title-text" to="/checkSummitSql">
+                        <Link className="title-text" to="/AuditSqlIndex">
                             SQL审核
                         </Link>
                     </div>
@@ -686,7 +630,7 @@ export default class UserSqlApply extends Component {
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={8}>SQL审核结果:</Col>
                                 <Col >
-                                    <Button style={{padding:5}} span={16} className="link-button" loading={this.state.sql_check_results_loading} onClick={this.showCheckSqlResultModalHandle.bind(this)} >查看</Button>
+                                    <Button style={{padding:5}} span={16} className="link-button" loading={this.state.sql_check_results_loading} onClick={() => this.setState({showSubmitSqlResultsVisible:true})} >查看</Button>
                                     {this.state.sql_check_max_code !== 0 ? <span style={{color:"red"}}>{[this.state.sql_check_code_explain]}</span>:<span  style={{color:"#52c41a"}}>[正常]</span>}
                                 </Col>
                             </Row>
@@ -735,9 +679,9 @@ export default class UserSqlApply extends Component {
                         <div>
                             <h3>审核操作</h3>
                             <div className="input-padding">
-                                { (this.state.leader_check==="未审核" && this.state.login_user_name_role==="leader") ? <Button type="primary" style={{marginLeft:16}} onClick={this.showApplySqlModalHandle}>审核</Button>:null}
-                                { (this.state.qa_check === '未审核' && this.state.login_user_name_role==="qa") ? <Button type="primary" style={{marginLeft:16}} onClick={this.showApplySqlModalHandle}>审核</Button>:null}
-                                { (this.state.dba_check === '未审核' && this.state.login_user_name_role==="dba") ? <Button type="primary" style={{marginLeft:16}} onClick={this.showApplySqlModalHandle}>审核</Button>:null}
+                                { (this.state.leader_check==="未审核" && this.state.login_user_name_role==="leader") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核</Button>:null}
+                                { (this.state.qa_check === '未审核' && this.state.login_user_name_role==="qa") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核</Button>:null}
+                                { (this.state.dba_check === '未审核' && this.state.login_user_name_role==="dba") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核</Button>:null}
 
                             </div>
                         </div>
@@ -834,7 +778,7 @@ export default class UserSqlApply extends Component {
                         :null
                     }
                     <Modal visible={this.state.showSubmitSqlViewVisible}
-                        onCancel={this.closeSubmitSqlViewModal}
+                        onCancel={() => this.setState({showSubmitSqlViewVisible:false})}
                         title="SQL预览"
                         footer={false}
                         width={960}
@@ -842,7 +786,7 @@ export default class UserSqlApply extends Component {
                         <TextArea wrap="off" style={{minHeight:300,overflow:"scroll"}} value={this.state.submit_sql}/>
                     </Modal>
                     <Modal visible={this.state.showSubmitSqlResultsVisible}
-                        onCancel={this.closeSubmitSqlResultsModal}
+                        onCancel={() => this.setState({showSubmitSqlResultsVisible:false})}
                         title="SQL审核结果"
                         footer={false}
                         width={1200}
@@ -872,18 +816,18 @@ export default class UserSqlApply extends Component {
                         </Table>
                     </Modal>
                     <Modal visible={this.state.ApplyModalVisible}
-                        onCancel={this.closeApplyModal}
+                        onCancel={() => this.setState({ApplyModalVisible:false})}
                         title="审核"
                         footer={false}
                     >
-                        <TextArea rows={6} placeholder="审核说明"  onChange={e => this.handleApplyContentChange(e.target.value)}/>
+                        <TextArea rows={6} placeholder="审核说明"  onChange={e => this.setState({check_comment:e.target.value})}/>
                         <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
                             <Button onClick={this.PassSubmitSqlByUuid.bind(this,'通过')} loading={this.state.sql_check_pass_loading} type="primary" style={{ marginRight: '10px' }}>通过</Button>
                             <Button onClick={this.PassSubmitSqlByUuid.bind(this,'不通过')} loading={this.state.sql_check_pass_loading} type="primary">不通过</Button>
                         </Row>
                     </Modal>
                     <Modal visible={this.state.ViewExecuteSubmitSqlModalVisible}
-                        onCancel={this.closeViewExecuteSubmitSqlModal}
+                        onCancel={() => this.setState({ViewExecuteSubmitSqlModalVisible:false})}
                         title="执行结果"
                         footer={false}
                         width={1340}
@@ -912,7 +856,7 @@ export default class UserSqlApply extends Component {
                     />
                     </Modal>
                     <Modal visible={this.state.ViewExecuteSubmitSqlProcessModalVisible}
-                        onCancel={this.closeViewExecuteSubmitSqlProcessModal}
+                        onCancel={() => this.setState({ViewExecuteSubmitSqlProcessModalVisible:false})}
                         title="执行进度"
                         footer={false}
                         width={1340}
@@ -925,7 +869,7 @@ export default class UserSqlApply extends Component {
                         />
                     </Modal>
                     <Modal visible={this.state.InceptionVariableConfigModalVisible}
-                        onCancel={this.closeInceptionVariableConfigModal}
+                        onCancel={() => this.setState({InceptionVariableConfigModalVisible:false})}
                         title="inception变量配置"
                         footer={false}
                         width={1240}
@@ -934,7 +878,7 @@ export default class UserSqlApply extends Component {
                         <Button type={"primary"} onClick={this.handleUpdateInceptionVariable.bind(this)}>提交更改</Button>
                     </Modal>
                     <Modal visible={this.state.SplitSQLModalVisible}
-                        onCancel={this.closeSplitSqlModal}
+                        onCancel={() => this.setState({SplitSQLModalVisible:false})}
                         title="SQL预览"
                         footer={false}
                         width={960}

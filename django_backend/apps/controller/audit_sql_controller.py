@@ -221,8 +221,14 @@ def get_split_sql_by_uuid_controller(request):
 def recreate_sql_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
     split_sql_file_path = request_body['params']['split_sql_file_path']
     recreate_sql_flag = request_body['params']['recreate_sql_flag']
     ret = audit_sql.recreate_sql(split_sql_file_path, recreate_sql_flag)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+
+
+def create_block_sql_controller(request):
+    to_str = str(request.body, encoding="utf-8")
+    request_body = json.loads(to_str)
+    ret = audit_sql.create_block_sql(request_body)
+    return HttpResponse(json.dumps(ret, default=str), content_type='text/xml')

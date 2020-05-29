@@ -14,7 +14,7 @@ const FormItem = Form.Item;
 const { Option } = Select;
 
 
-class UserSqlCheckSubmit extends Component {
+class AuditSqlIndex extends Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -36,6 +36,15 @@ class UserSqlCheckSubmit extends Component {
             cluster_name_list:[],
             submit_source_db_type:"cluster",
             cluster_name:"",
+            schema_name:"",
+            table_name:"",
+            min_id:"",
+            max_id:"",
+            where_condition:"",
+            mdl_type:"delete",
+            create_sql_content:"",
+            rebuild_table:"重建表",
+            set_value:"",
 
         }
     }
@@ -54,6 +63,39 @@ class UserSqlCheckSubmit extends Component {
     //检测SQL,cluster_name或者master_ip_port使用不同的方法
     async handleSqlCheck() {
         this.state.submit_source_db_type==="cluster" ? this.handleClusterNameSqlCheck(): this.handleMasterIpPortSqlCheck()
+    }
+
+    //生成块SQL,防止delete/update产生大事物
+    async handlerCreateBlockSql() {
+        this.setState({create_sql_content:""})
+        let params = {
+                db_ip: this.state.des_ip,
+                db_port: this.state.des_port,
+                cluster_name:this.state.cluster_name,
+                schema_name:this.state.schema_name,
+                table_name:this.state.table_name,
+                min_id:this.state.min_id,
+                max_id:this.state.max_id,
+                where_condition: this.state.where_condition,
+                mdl_type: this.state.mdl_type,
+                rebuild_table: this.state.rebuild_table,
+                set_value: this.state.set_value,
+            };
+        console.log(params)
+        await axios.post(`${backendServerApiRoot}/create_block_sql/`,{params}).then(
+                res => {res.data.status==="ok"?
+                    this.setState({
+                        create_sql_content: res.data.data,
+                    })
+                    :
+                    message.error(res.data.message,3) && this.setState({create_sql_content: ""})
+                }
+            ).catch(err => {
+                message.error(err, 3);
+                this.setState({
+                    create_sql_content: "",
+                });
+            })
     }
     //cluster_name检测SQL,集群名和输入SQL不能为空
     async handleClusterNameSqlCheck() {
@@ -304,22 +346,18 @@ class UserSqlCheckSubmit extends Component {
             },
             {
               title: '影响行数',
-              dataIndex: 'inception_affected_rows',
-              key:"inception_affected_rows",
+              dataIndex: 'Affected_rows',
+              key:"Affected_rows",
             }
         ];
         const {form} = this.props;
         const {getFieldDecorator} = form;
         return (
             <Tabs className="container">
-                <TabPane tab="SQL请求列表" key="1">
+                <TabPane tab="SQL工单列表" key="1">
                     <Table
                         dataSource={this.state.submit_sql_info}
                         rowKey={(row ,index) => index}
-                        // rowClassName={(record, index) => {
-                        //     let className = 'row-detail-default ';
-                        //     if (record.leader_check === "未审核"|| record.qa_check === "未审核"||record.dba_check === "未审核"||record.dba_execute === "未执行") className = 'row-detail-error';
-                        //     return className;}}
                         size="small"
                     >
                         <Column title="标题"
@@ -483,8 +521,47 @@ class UserSqlCheckSubmit extends Component {
                         </Form>
                     </Modal>
                 </TabPane>
+                <TabPane tab="生成块SQL" key="3">
+                    <div className="sub-title-input">
+                        <Input size="default" style={{ width: 150}} placeholder="库名" onChange={e => this.setState({schema_name:e.target.value})}/>
+                        <Input size="default" style={{marginLeft:10, width: 300}} placeholder="表名" onChange={e => this.setState({table_name:e.target.value})}/>
+                    </div>
+                    <div className="sub-title-input">
+                        <Input size="default" style={{ width: 150}} placeholder="最小ID" onChange={e => this.setState({min_id:e.target.value})}/>
+                        <Input size="default" style={{marginLeft:10, width: 300}} placeholder="最大ID" onChange={e => this.setState({max_id:e.target.value})}/>
+                    </div>
+                    <div className="sub-title-input">
+                        <Select defaultValue="delete" style={{ width: 150 }} onChange={e => this.setState({mdl_type:e})}>
+                            <Option value="delete">delete</Option>
+                            <Option value="update">update</Option>
+                        </Select>
+                        {
+                            this.state.mdl_type === "delete" ?
+                                <Select defaultValue="重建表" style={{marginLeft:10, width: 150 }} onChange={e => this.setState({rebuild_table:e})}>
+                                    <Option value="重建表">重建表</Option>
+                                    <Option value="不重建表">不重建表</Option>
+                                </Select>
+                            :null
+                        }
+                    </div>
+                    <div className="sub-title-input">
+                        {this.state.mdl_type === "update" ? <Input size="default" style={{width: 800}} placeholder="set 条件(不要输入set关键字),正确输入案例:name='张三', age=18" onChange={e => this.setState({set_value:e.target.value})}/> :null}
+                    </div>
+                    <div className="sub-title-input">
+                        <Input size="default" style={{width: 800}} placeholder="where 条件(不要输入where关键字,不要输入结束符),正确输入案例:name='张三' and age=18" onChange={e => this.setState({where_condition:e.target.value})}/>
+                    </div>
+                    <div className="sub-title-input">
+                        <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.handlerCreateBlockSql()}}>生成SQL</Button>
+                    </div>
+                    <div className="sub-title-input">
+                        {this.state.create_sql_content === "" ? null : <TextArea rows={5} value={this.state.create_sql_content} onChange={e => this.setState({where_condition:e.target.value})}/>}
+                    </div>
+                    <br/>
+                    <div><span style={{color:"#fa541c"}}>功能说明1：通过主键id和用户条件拆分成多个SQL,避免大事物影响线上业务(适用主键为id整型自增场景)</span></div>
+                    <div><span style={{color:"#fa541c"}}>功能说明2：重建表用来回收delete产生的碎片,释放数据文件空间及磁盘空间</span></div>
+                </TabPane>
             </Tabs>
         );
     }
 }
-export default Form.create()(UserSqlCheckSubmit);
+export default Form.create()(AuditSqlIndex);

@@ -103,21 +103,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'django_backend.wsgi.application'
 
-################# 数据库配置 ##################
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'HOST': '39.97.247.142',
-        'PORT': '3306',
-        'USER': 'wthong',
-        'PASSWORD': 'fffjjj',
-        'NAME': 'devops',
-        'cursorclass':pymysql.cursors.DictCursor,
-        'AUTOCOMMIT':True,           # pymysql默认AUTOCOMMIT为False,如果没有该参数django会将其设置为True,如果指定该参数django会忽略该参数
-    }
-}
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -134,24 +119,47 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+################# 通用配置 ##################
 #设置django上传数据大小为20M
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20971520
-
-# Internationalization
-# https://docs.djangoproject.com/en/2.1/topics/i18n/
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Shanghai'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/2.1/howto/static-files/
-
 STATIC_URL = '/static/'
 
+################# 数据库配置 ##################
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'HOST': '39.97.247.142',
+        'PORT': '3306',
+        'USER': 'wthong',
+        'PASSWORD': 'fffjjj',
+        'NAME': 'devops',
+        'cursorclass':pymysql.cursors.DictCursor,
+        'AUTOCOMMIT':True,           # pymysql默认AUTOCOMMIT为False,如果没有该参数django会将其设置为True,如果指定该参数django会忽略该参数
+    }
+}
+
+################# celery配置 ##################
+djcelery.setup_loader()
+BROKER_URL = 'redis://:redisfffjjj@39.97.247.142:6379/0'
+CELERY_RESULT_BACKEND = 'redis://:redisfffjjj@39.97.247.142:6379/1'
+CELERY_ACCEPT_CONTENT = ['application/json',]
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_REDIRECT_STDOUTS_LEVEL = 'INFO'        #标准输出和标准错误输出的日志级别。可以是DEBUG, INFO, WARNING, ERROR, or CRITICAL,默认为WARNING
+CELERY_TIMEZONE = TIME_ZONE
+
+################# inception配置 ##################
+
+INCEPTION_ADDRESS = {
+    'inception_host': '39.97.247.142',
+    'inception_port': 6669
+}
 
 ################# 日志配置 ##################
 log_path = os.path.join(BASE_DIR, "logs")
@@ -197,7 +205,7 @@ LOGGING = {
             'class': 'logging.handlers.RotatingFileHandler',  # 保存到文件，自动切
             'filename': os.path.join(BASE_DIR+'/logs/', "access.log"),  # 日志文件
             'maxBytes': 1024 * 1024 * 50,                    # 日志大小 50M
-            'backupCount': 3,                                # 最多备份几个
+            'backupCount': 1,                                # 最多备份几个
             'formatter': 'standard',
             'encoding': 'utf-8',
         },
@@ -206,7 +214,7 @@ LOGGING = {
             'class': 'logging.handlers.RotatingFileHandler',  # 保存到文件，自动切
             'filename': os.path.join(BASE_DIR+'/logs/', "info.log"),  # 日志文件
             'maxBytes': 1024 * 1024 * 50,  # 日志大小 50M
-            'backupCount': 5,
+            'backupCount': 1,
             'formatter': 'standard',
             'encoding': 'utf-8',
         },
@@ -215,7 +223,7 @@ LOGGING = {
             'class': 'logging.handlers.RotatingFileHandler',  # 保存到文件，自动切
             'filename': os.path.join(BASE_DIR+'/logs/', "error.log"),  # 日志文件
             'maxBytes': 1024 * 1024 * 50,  # 日志大小 50M
-            'backupCount': 5,
+            'backupCount': 1,
             'formatter': 'standard',
             'encoding': 'utf-8',
         },
@@ -224,7 +232,7 @@ LOGGING = {
             'class':'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(BASE_DIR+'/logs/', "sql.log"),
             'maxBytes': 1024*1024*5,
-            'backupCount': 5,
+            'backupCount': 1,
             'formatter':'standard',
         },
         'inception_execute_log_handler': {
@@ -232,7 +240,7 @@ LOGGING = {
             'class':'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(BASE_DIR+'/logs/', "inception_execute.log"),
             'maxBytes': 1024*1024*5,
-            'backupCount': 2,
+            'backupCount': 1,
             'formatter':'simple',
         }
     },
@@ -259,13 +267,3 @@ LOGGING = {
         }
     },
 }
-
-################# celery配置 ##################
-djcelery.setup_loader()
-BROKER_URL = 'redis://:redisfffjjj@39.97.247.142:6379/0'
-CELERY_RESULT_BACKEND = 'redis://:redisfffjjj@39.97.247.142:6379/1'
-CELERY_ACCEPT_CONTENT = ['application/json',]
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_REDIRECT_STDOUTS_LEVEL = 'INFO'        #标准输出和标准错误输出的日志级别。可以是DEBUG, INFO, WARNING, ERROR, or CRITICAL,默认为WARNING
-CELERY_TIMEZONE = TIME_ZONE

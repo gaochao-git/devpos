@@ -37,7 +37,7 @@ def inception_execute(des_master_ip, des_master_port, inception_backup, inceptio
     # 调用inception执行SQL
     try:
         ret = inception.execute_sql(des_master_ip, des_master_port, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, execute_sql,submit_sql_uuid,osc_config_sql)
-        logger.error('[工单:%s],调用inception.execute_sql执行SQL成功', submit_sql_uuid)
+        logger.info('[工单:%s],调用inception.execute_sql执行SQL成功', submit_sql_uuid)
     except Exception as e:
         logger.error('[工单:%s],调用inception.execute_sql执行SQL失败:%s', submit_sql_uuid, str(e))
 

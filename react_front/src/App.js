@@ -5,8 +5,8 @@ import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import {HashRouter,Route} from 'react-router-dom';
 import mysqlCluster from './scripts/mysql/mysqlCluster'
-import UserSqlCheckSubmit from './scripts/auditSql/userSqlCheckSubmit'
-import UserSqlApply from './scripts/auditSql/userSqlApply'
+import AuditSqlIndex from './scripts/auditSql/auditSqlIndex'
+import ExecuteSql from './scripts/auditSql/executeSql'
 import publicManage from "./scripts/publicUserManage/pubicUserPrivilegeManage"
 import privilegesApply from "./scripts/privilegesApply/userGrant";
 import OrderInformation from './scripts/privilegesApply/orderInformation'
@@ -102,7 +102,7 @@ class App extends Component {
                                         </SubMenu>
                                         <SubMenu key="sub4" title={<span><Icon type="laptop" />工单</span>}>
                                             <Menu.Item key="1">
-                                                <Link to="/checkSummitSql">SQL审核</Link>
+                                                <Link to="/auditSqlIndex">SQL审核</Link>
                                             </Menu.Item>
                                             <Menu.Item key="2">
                                                 <Link to="/privilegesApply">权限申请</Link>
@@ -133,8 +133,8 @@ class App extends Component {
                                     <Route exact path="/mysqlCluster" component={mysqlCluster} />
                                     <Route exact path="/mysqlInstance" component={mysqlInstance} />
                                     <Route exact path="/publicManage" component={publicManage} />
-                                    <Route exact path="/checkSummitSql" component={UserSqlCheckSubmit} />
-                                    <Route exact path="/viewApplySqlByUuid/:submit_sql_uuid" component={UserSqlApply} />
+                                    <Route exact path="/auditSqlIndex" component={AuditSqlIndex} />
+                                    <Route exact path="/viewApplySqlByUuid/:submit_sql_uuid" component={ExecuteSql} />
                                     <Route exact path="/privilegesApply" component={privilegesApply} />
                                     <Route exact path="/viewPrivilegeInfoByUuid/:order_uuid" component={OrderInformation} />
                                     <Route exact path="/commonUser" component={commonUser} />

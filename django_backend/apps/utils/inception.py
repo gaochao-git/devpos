@@ -6,10 +6,11 @@
 import pymysql
 import re
 import logging
+from django_backend.settings import INCEPTION_ADDRESS
 logger = logging.getLogger('inception_execute_logger')
 
-inception_host = '39.97.247.142'
-inception_port = 6669
+inception_host = INCEPTION_ADDRESS["inception_host"]
+inception_port = INCEPTION_ADDRESS["inception_port"]
 
 
 # 页面调用inception检测SQL,如果根据cluster_name则需要先获取到对应的master_ip、master_port
@@ -35,6 +36,7 @@ def check_sql(des_master_ip, des_master_port, check_sql_info):
         elif re.findall('2003', str(e)):
             message = "语法检测器无法连接"
         content = {'status': "error", 'message': message}
+    logger.error(content)
     return content
 
 

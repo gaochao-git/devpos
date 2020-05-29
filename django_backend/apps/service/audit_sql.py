@@ -14,6 +14,7 @@ from apps.utils import common
 from apps.utils import inception
 from apps.dao import audit_sql_dao
 from apps.tasks import inception_execute
+from io import StringIO
 
 import logging
 logger = logging.getLogger('devops')
@@ -545,3 +546,49 @@ def recreate_sql(split_sql_file_path, recreate_sql_flag):
     finally:
         content = {'status': status, 'message': message}
         return content
+
+
+def create_block_sql(request_body):
+    try:
+        mdl_sql = StringIO()
+        step = 9999
+        mdl_sql.write('use %s;\n' % request_body['params']['schema_name'])
+        if request_body['params']['mdl_type'] == "delete":
+            delete_sql = 'delete from %s where id >=%s and id <=%s'
+            if request_body['params']['where_condition'] != '':
+                length_single_sql = len(delete_sql) + len(request_body['params']['where_condition']) + 10
+            else:
+                length_single_sql = len(delete_sql) + 10
+        elif request_body['params']['mdl_type'] == "update":
+            update_sql = 'update %s set %s where id >=%s and id <=%s'
+            if request_body['params']['where_condition'] != '':
+                length_single_sql = len(update_sql) + len(request_body['params']['set_value']) + len(request_body['params']['where_condition']) + 10
+            else:
+                length_single_sql = len(update_sql) + len(request_body['params']['set_value']) + 10
+
+        count = 0
+        for i in range(int(request_body['params']['min_id']), int(request_body['params']['max_id']), step + 1):
+            big = i + step
+            if int(request_body['params']['max_id']) < i + step:
+                big = request_body['params']['max_id']
+            if request_body['params']['mdl_type'] == "delete":
+                mdl_sql.write(delete_sql % (request_body['params']['table_name'], i, big))
+            elif request_body['params']['mdl_type'] == "update":
+                mdl_sql.write(
+                    update_sql % (request_body['params']['table_name'], request_body['params']['set_value'], i, big))
+            if request_body['params']['where_condition'] != '':
+                mdl_sql.write(' and %s' % (request_body['params']['where_condition']))
+            mdl_sql.write(';\n')
+            count += 1
+            if length_single_sql * count > 20 * 1024 * 1024:
+                logger.error('超过20MB')
+                content = {'status': "error", 'message': "生成sql超过20MB，请缩小范围"}
+                return content
+        if request_body['params']['rebuild_table'] == '重建表':
+            mdl_sql.write('Alter table %s engine=innodb;\n' % request_body['params']['table_name'])
+        data = mdl_sql.getvalue()
+        content = {'status': "ok", 'message': "生成块SQL成功","data":data}
+    except Exception as e:
+        content = {'status': "error", 'message': "生成块SQL失败", "data": data}
+        logger.error(str(e))
+    return content

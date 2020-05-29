@@ -40,6 +40,8 @@ urlpatterns = [
     path('pass_submit_sql_by_uuid/', audit_sql_controller.pass_submit_sql_by_uuid_controller),                            # 审核SQL
     path('get_master_ip/', audit_sql_controller.get_master_ip_controller),                                                # sql审核--获取主库ip
     path('get_cluster_name/', audit_sql_controller.get_cluster_name_controller),                                          # sql审核--根据cluster_name输入框自动补全
+    path('recreate_sql/', audit_sql_controller.recreate_sql_controller),  # 根据拆分SQL文件获取SQL执行结果
+    path('create_block_sql/', audit_sql_controller.create_block_sql_controller),  # 生成用id切割的SQL用来删除或者更新数据,防止大事物
     # sql审核end
 
     path('get_cloud_info/', cloud_instance.get_cloud_instance_func),                                     # server--查看主机信息
@@ -58,6 +60,5 @@ urlpatterns = [
     path('privilege_view_user/', create_private_user.privilege_view_user_func),                          # 权限申请--查看用户已有权限
     path('get_mysql_instance_info/', mysql_instance_controller.get_mysql_instance_info_handler),                       # 获取mysql实例
     path('get_search_mysql_instance_info/', mysql_instance_controller.get_search_mysql_instance_info_handler),         # 根据搜索框获取mysql实例
-    path('recreate_sql/', audit_sql_controller.recreate_sql_controller),   # 根据拆分SQL文件获取SQL执行结果
     ]
 
