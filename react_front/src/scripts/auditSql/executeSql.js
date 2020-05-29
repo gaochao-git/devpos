@@ -202,7 +202,6 @@ export default class ExecuteSql extends Component {
     }
     //平台自动执行SQL
     async ExecuteBySplitSqlFilePath(split_sql_file_path) {
-        console.log(this.state.view_submit_split_sql_info)
         //如果current_split_seq是最小则直接执行,否则判断他前面的是否已经执行,如果前面没执行,后面不允许执行,代码需要code
         this.setState({
             execute_status: "执行中"
