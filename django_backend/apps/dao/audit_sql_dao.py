@@ -518,3 +518,25 @@ def set_execute_status(submit_sql_uuid, split_sql_file_path, status, execute_use
         cursor.close()
         connection.close()
         return update_status
+
+# 查看该SQL文件是否已经下发给celery
+def get_task_send_celery(split_sql_file_path):
+    sql = "select task_send_celery from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
+    print(sql)
+    rows = []
+    try:
+        rows = db_helper.findall(sql)
+    except Exception as e:
+        logger.error(e)
+    finally:
+        return rows
+
+def set_task_send_celery(split_sql_file_path):
+    sql = "update sql_execute_split set task_send_celery=1  where split_sql_file_path='{}'".format(split_sql_file_path)
+    try:
+        update_status = db_helper.update(sql)
+    except Exception as e:
+        update_status = "error"
+        logger.error(e)
+    finally:
+        return update_status

@@ -9,6 +9,7 @@ from celery import task
 from apps.utils import db_helper
 from django.db import connection
 from apps.utils import inception
+from apps.dao import audit_sql_dao
 import logging
 logger = logging.getLogger('inception_execute_logger')
 import pymysql
@@ -21,8 +22,27 @@ def sendmail(mail):
     return('mail sent.')
 
 @task
-def inception_execute(des_master_ip, des_master_port, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error,split_sql_file_path,submit_sql_uuid,osc_config_sql):
+def inception_execute(des_master_ip, des_master_port, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error,split_sql_file_path,submit_sql_uuid,osc_config_sql,execute_user_name):
     logger.info("[工单:%s],开始执行......", (submit_sql_uuid))
+    data = audit_sql_dao.get_master_info_by_split_sql_file_path_dao(split_sql_file_path)
+    dba_execute = data[0]["dba_execute"]
+    execute_status = data[0]["execute_status"]
+    # 如果该SQL已执行则直接return
+    if dba_execute != 1 or execute_status != 1:
+        content = {'status': "error", 'message': "该工单已执行"}
+        return content
+    try:
+        flag = 2
+        update_status = audit_sql_dao.set_execute_status(submit_sql_uuid, split_sql_file_path, flag, execute_user_name)
+        if update_status == "ok":
+            update_message = "更新工单状态为执行中成功"
+        else:
+            update_message = "更新工单状态为执行中失败"
+    except Exception as e:
+        update_message = "[工单:%s],更新工单状态为执行中出现异常:%s".format(submit_sql_uuid, e)
+        logger.error(update_message)
+        return update_message
+
     # 通过sql_file_path获取SQL文件并读取要执行的SQL
     try:
          with open("./upload/{}".format(split_sql_file_path), "rb") as f:
@@ -34,7 +54,7 @@ def inception_execute(des_master_ip, des_master_port, inception_backup, inceptio
         message = "[工单:%s],读取SQL文件失败:%s".format(submit_sql_uuid,e)
         return message
 
-    # 调用inception执行SQL
+    # 调用inception执行SQL,调用之前检查一下是否已经被执行过
     try:
         ret = inception.execute_sql(des_master_ip, des_master_port, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, execute_sql,submit_sql_uuid,osc_config_sql)
         logger.info('[工单:%s],调用inception.execute_sql执行SQL成功', submit_sql_uuid)

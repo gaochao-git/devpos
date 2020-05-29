@@ -406,21 +406,25 @@ def execute_submit_sql_by_file_path(submit_sql_uuid, inception_backup, inception
             osc_config_sql = ''.join(osc_config_sql_list_str)
     try:
         # 调用celery异步执行,异获取到task_id则表示任务已经放入队列，后续具体操作交给worker处理，如果当时worker没有启动，后来再启动,worker会去队列获取任务执行
-        task_id = inception_execute.delay(des_master_ip, des_master_port, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error,split_sql_file_path,submit_sql_uuid,osc_config_sql)
-        logger.info("celery返回task_id:%s" % task_id)
-        if task_id:
-            # 更新工单状态为执行中
-            status = 2
-            update_status = audit_sql_dao.set_execute_status(submit_sql_uuid, split_sql_file_path, status, execute_user_name)
-            if update_status == "ok":
-                update_message = "更新工单状态为执行中成功"
+        row_list = audit_sql_dao.get_task_send_celery(split_sql_file_path)
+        print(row_list)
+        if int(row_list[0]["task_send_celery"]) == 0:
+            task_id = inception_execute.delay(des_master_ip, des_master_port, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error,split_sql_file_path,submit_sql_uuid,osc_config_sql,execute_user_name)
+            if task_id:
+                logger.info("celery返回task_id:%s" % task_id)
+                status = "ok"
+                message = "推送celery成功"
+                update_status = audit_sql_dao.set_task_send_celery(split_sql_file_path)
+                if update_status == "ok":
+                    message = message + "更新task_send_celery成功"
+                else:
+                    message = message + "更新task_send_celery失败"
             else:
-                update_message = "更新工单状态为执行中失败"
-            status = "ok"
-            message = "推送celery成功" + "," + update_message
+                status = "error"
+                message = "推送celery失败"
         else:
-            status = "error"
-            message = "推送celery失败"
+            status = "ok"
+            message = "任务已注册到celery,等待celery执行,请勿多次提交"
     except Exception as e:
         status = "error"
         message = e
