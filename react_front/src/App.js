@@ -129,6 +129,13 @@ class App extends Component {
                                     </Menu>
                                 </Sider>
                                 <Content>
+                                    <Route exact path="/" component={() => {
+                                        if (this.state.is_dba) {
+                                            return <Cloud/>
+                                        } else {
+                                            return <Cloud/>
+                                        }
+                                    }}/>
                                     <Route exact path="/Cloud" component={Cloud} />
                                     <Route exact path="/mysqlCluster" component={mysqlCluster} />
                                     <Route exact path="/mysqlInstance" component={mysqlInstance} />

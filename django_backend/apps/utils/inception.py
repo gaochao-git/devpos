@@ -78,7 +78,7 @@ def get_ddl_process(sqlsha1):
         conn.close()
     except Exception as e:
         logger.error(str(e))
-    logger.error(inception_execute_percent)
+    logger.info(inception_execute_percent)
     return inception_execute_percent
 
 

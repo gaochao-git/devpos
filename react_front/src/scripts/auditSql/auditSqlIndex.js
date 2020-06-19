@@ -43,7 +43,7 @@ class AuditSqlIndex extends Component {
             where_condition:"",
             mdl_type:"delete",
             create_sql_content:"",
-            rebuild_table:"重建表",
+            rebuild_table:"",
             set_value:"",
 
         }

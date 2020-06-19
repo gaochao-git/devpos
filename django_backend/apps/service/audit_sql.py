@@ -416,9 +416,9 @@ def execute_submit_sql_by_file_path(submit_sql_uuid, inception_backup, inception
                 message = "推送celery成功"
                 update_status = audit_sql_dao.set_task_send_celery(split_sql_file_path)
                 if update_status == "ok":
-                    message = message + "更新task_send_celery成功"
+                    message = message + "," + "更新task_send_celery成功"
                 else:
-                    message = message + "更新task_send_celery失败"
+                    message = message + "," + "更新task_send_celery失败"
             else:
                 status = "error"
                 message = "推送celery失败"
