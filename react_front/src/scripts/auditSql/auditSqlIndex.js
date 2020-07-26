@@ -425,6 +425,7 @@ class AuditSqlIndex extends Component {
                         <Select defaultValue="集群名" style={{ width: 150 }} onChange={e => this.handleDbSourceTypeChange(e)}>
                             <Option value="cluster">集群名</Option>
                             <Option value="master_ip">master_ip_port</Option>
+                            <Option value="template">模版</Option>
                         </Select>
                         {
                             this.state.submit_source_db_type==="cluster" ?
