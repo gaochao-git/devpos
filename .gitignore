@@ -3,4 +3,8 @@
 *.pyc
 *.log
 *.log.*
+<<<<<<< HEAD
 *.pid
+=======
+venv
+>>>>>>> 9ed8c3f9bf8dcc92308bfdb0014a5e8fb5e45a6c
