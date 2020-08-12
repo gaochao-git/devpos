@@ -71,12 +71,11 @@ css代码---------devpos/react_front/src/styles
 ## 部署前端
 ```shell script
 1.更改/Users/gaochao/gaochao-git/gaochao_repo/devops/react_front/src/scripts/common/util.js 将backendServerApiRoot改为域名或者公网ip
-2.本地编译打包并上传到部署服务器
+2.本地编译打包并上传到部署服务器或者打包完直接用git推送上去
 cd /Users/gaochao/gaochao-git/gaochao_repo/devops/react_front
-yarn build
-tar zcpvf build.tar.gz ./build
-scp build.tar.gz root@'xxxxxx':/tmp
-3.启动前端测试是否能够运行
+yarn build     #会在react_front生成一个build目录
+scp传或者git本地推部署服务器拉
+3.启动前端测试是否能够运行,可以通过serve -s启动项目 (需要线安装serve:npm install -g serve),这一步可以没有，因为后面要用nginx进行代理前端
 ```
 ## 部署后端
 ```shell script
@@ -88,14 +87,14 @@ scp build.tar.gz root@'xxxxxx':/tmp
 
 ## uwsgi代理django
 ```shell script
-1.安装uwsgi
+1.安装uwsgi(yum安装的用不了,需要用pip安装)
 pip3.5 install uwsgi
 2.测试uwsgi是否能够工作，参考网上帖子
 3.修改uwsgi.ini配置文件
 cd /Users/gaochao/gaochao-git/gaochao_repo/devops/django_backend
 vim uwsgi.ini
 [uwsgi]
-# 应该用http-socket,不能用socket,不能用127.0.0.1,不能用公网ip
+# 应该用http-socket,不能用socket,不能用127.0.0.1,不能用公网ip,只能用内网ip
 http-socket = 内网ip:8000
 master = true
 chdir = /Users/gaochao/gaochao-git/gaochao_repo/devops/django_backend/
@@ -111,7 +110,7 @@ daemonize = logs/uwsgi.log
 max-requests = 6000
 buffer-size=65536
 2.启动uwsgi
-uwsgi --ini uwsgi.ini 
+/usr/local/python35/bin/uwsgi  --ini uwsgi.ini       #直接用系统的uwsgi启动会失败,需要用上一步安装的uwsgi启动
 ```
 
 ## nginx配置及代理react、uwsgi
@@ -126,7 +125,7 @@ vim /etc/nginx/conf.d/devops.conf
 server {
     listen      80;
     server_name 公网ip或域名;
-    root    /etc/nginx/build/;
+    root    /data/devpos/react_front/build/;   #前端编译完成的build目录
     index   index.htm  index.html;
     # 前端
     location / {
