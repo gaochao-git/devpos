@@ -1,7 +1,7 @@
 import axios from "axios";
 //后端服务器
-export const backendServerApiRoot = 'http://39.97.247.142:8000/api'    //公网ip
-//export const backendServerApiRoot = 'http://127.0.0.1/api:8000'
+// export const backendServerApiRoot = 'http://39.97.247.142:8000/api'    //公网ip
+export const backendServerApiRoot = 'http://127.0.0.1:8000/api'
 //根据token获取登陆信息
 let login_user_info = null
 export async function getUser() {

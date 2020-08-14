@@ -11,7 +11,7 @@ import publicManage from "./scripts/publicUserManage/pubicUserPrivilegeManage"
 import privilegesApply from "./scripts/privilegesApply/userGrant";
 import OrderInformation from './scripts/privilegesApply/orderInformation'
 import commonUser from "./scripts/commonUser/commonUserCharge";
-import Cloud from "./scripts/Cloud/CloudInstance";
+import Server from "./scripts/Server/Server";
 import Login from "./scripts/login/login"
 import {getUser} from './scripts/common/util'
 import mysqlInstance from './scripts/mysql/mysqlInstance'
@@ -75,7 +75,7 @@ class App extends Component {
                                     <Menu mode="inline" defaultSelectedKeys={['1']} defaultOpenKeys={['sub1']} style={{ height: '100%' }}>
                                         <SubMenu key="sub1" title={<span><Icon type="cloud-server" />server</span>}>
                                             <Menu.Item key="1">
-                                                <Link to="/Cloud">主机</Link>
+                                                <Link to="/Server">主机</Link>
                                             </Menu.Item>
                                         </SubMenu>
                                         <SubMenu key="sub2" title={<span><Icon type="database" />MySQL</span>}>
@@ -131,12 +131,12 @@ class App extends Component {
                                 <Content>
                                     <Route exact path="/" component={() => {
                                         if (this.state.is_dba) {
-                                            return <Cloud/>
+                                            return <server/>
                                         } else {
-                                            return <Cloud/>
+                                            return <server/>
                                         }
                                     }}/>
-                                    <Route exact path="/Cloud" component={Cloud} />
+                                    <Route exact path="/Server" component={Server} />
                                     <Route exact path="/mysqlCluster" component={mysqlCluster} />
                                     <Route exact path="/mysqlInstance" component={mysqlInstance} />
                                     <Route exact path="/publicManage" component={publicManage} />

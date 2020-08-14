@@ -6,7 +6,7 @@ from apps.controller import audit_sql_controller
 from apps.controller import create_common_user
 from apps.controller import migrate_common_user
 from apps.controller import create_private_user
-from apps.controller import cloud_instance
+from apps.controller import server_info_controller
 from apps.controller import login_controller
 import datetime
 from rest_framework.authtoken import views as drf_views
@@ -44,7 +44,7 @@ urlpatterns = [
     path('api/create_block_sql/', audit_sql_controller.create_block_sql_controller),  # 生成用id切割的SQL用来删除或者更新数据,防止大事物
     # sql审核end
 
-    path('api/get_cloud_info/', cloud_instance.get_cloud_instance_func),                                     # server--查看主机信息
+    path('api/get_server_info/', server_info_controller.get_server_info_controller),                         # server--查看主机信息
     path('api/get_user_info/', create_common_user.get_user_info_func),                                       # 公共账号管理--查看已有账号信息
     path('api/grant_user_info/', create_common_user.create_and_grant_func),                                  # 公共账号管理--创建用户申请权限
     path('api/migrate_common_user/', migrate_common_user.migrate_common_user_func),                          # 公共账号管理--同步公共账号

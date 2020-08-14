@@ -1,41 +1,58 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import { Button,Table, Input } from "antd";
+import { Button,Table, Input,message } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
+import { backendServerApiRoot } from "../common/util"
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { Search } = Input;
-const server = 'http://127.0.0.1:8000';
 
 
-export default class CloudInstance extends Component  {
+export default class Server extends Component  {
     constructor(props) {
         super(props);
         this.state = {
-            cloud_instance_info:[],
+            server_info:[],
+            filteredInfo: null,
+            sortedInfo: null,
+            //server_type_filer:[{text: '物理机', value: '物理机'},{text: '云主机', value: '云主机'}],
+            //idc_filter: [{ text: 'bj10', value: 'bj10' },{ text: 'bj11', value: 'bj11' },{ text: 'sh20', value: 'sh20' },{ text: 'sh21', value: 'sh21' },{ text: 'sz30', value: 'sz30' },{ text: 'sz31', value: 'sz31' }]
+
         }
     }
 
     componentDidMount() {
-        this.GetClusterInfo()
+        this.GetServerInfo()
     }
-    //获取所有集群信息
-    async GetClusterInfo() {
-        let res = await axios.get(`${server}/get_cloud_info/`);
-        console.log(res.data);
-        this.setState({
-            cloud_instance_info: res.data
-        })
+    //获取所有机器信息
+    async GetServerInfo() {
+        let params = {
+            search_server_name:"",
+        };
+        await axios.post(`${backendServerApiRoot}/get_server_info/`, {params}).then(
+            res => {res.data.status==="ok" ?
+                this.setState({
+                    server_info: res.data.data
+                })
+            :
+                message.error(res.data.message)}
+        ).catch(err => {message.error(err.message)})
     }
     //模糊搜索
-    async GetSearchClusterInfo(instance_name) {
-        let res = await axios.post(`${server}/get_cloud_info/`,{instance_name});
-        console.log(res.data);
-        this.setState({
-            cloud_instance_info: res.data
-        })
+    async GetSearchServerInfo(server_name) {
+        let params = {
+            search_server_name:server_name,
+        };
+        await axios.post(`${backendServerApiRoot}/get_server_info/`,{params}).then(
+            res => {res.data.status==="ok" ?
+                this.setState({
+                    server_info: res.data.data
+                })
+            :
+                message.error(res.data.message)}
+        ).catch(err => {message.error(err.message)})
     }
 
     render() {
@@ -98,6 +115,9 @@ export default class CloudInstance extends Component  {
               title: '类型',
               colSpan: 1,
               dataIndex: 'server_type',
+              filters: this.state.server_type_filer,
+              filterMultiple: false,
+              onFilter: (value, record) =>  record.server_type === (value),
           },
           {
               title: '用途',
@@ -124,7 +144,7 @@ export default class CloudInstance extends Component  {
                         </Link>
                         >>
                         <Link className="title-text" to="/CloudInstance">
-                            云主机信息
+                            主机信息
                         </Link>
                     </div>
                     <div>
@@ -141,7 +161,7 @@ export default class CloudInstance extends Component  {
             <div>
             </div>
                 <Table
-                    dataSource={this.state.cloud_instance_info}
+                    dataSource={this.state.server_info}
                     columns={columns}
                     bordered
                     size="small"
