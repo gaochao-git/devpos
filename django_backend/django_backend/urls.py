@@ -6,6 +6,7 @@ from apps.controller import audit_sql_controller
 from apps.controller import create_common_user
 from apps.controller import migrate_common_user
 from apps.controller import create_private_user
+from apps.controller import create_private_user_controller
 from apps.controller import server_info_controller
 from apps.controller import login_controller
 import datetime
@@ -45,16 +46,22 @@ urlpatterns = [
     # sql审核end
 
     path('api/get_server_info/', server_info_controller.get_server_info_controller),                         # server--查看主机信息
+
     path('api/get_user_info/', create_common_user.get_user_info_func),                                       # 公共账号管理--查看已有账号信息
     path('api/grant_user_info/', create_common_user.create_and_grant_func),                                  # 公共账号管理--创建用户申请权限
     path('api/migrate_common_user/', migrate_common_user.migrate_common_user_func),                          # 公共账号管理--同步公共账号
-    path('api/get_private_user_info/', create_private_user.get_private_user_info_func),                      # 权限申请--查看已有账号信息
+
+   # 权限申请begin
+    #path('api/get_application_form_info/', create_private_user.get_private_user_info_func),                      # 权限申请--查看已有账号信息
+    path('api/get_application_form_info/', create_private_user_controller.get_application_form_info_controller),  # 权限申请--查看已有账号信息
     path('api/privileges_extend_info/', create_private_user.privileges_extend_info_func),                    # 权限申请--权限扩展
     path('api/get_order_info/', create_private_user.get_order_info_func),                                    # 权限申请--查看工单信息
     path('api/privileges_create_user_info/', create_private_user.privileges_create_user_info_func),          # 权限申请--新建用户工单提交
     path('api/privileges_original_info/', create_private_user.privileges_original_info_func),                # 权限申请--查看用户原始权限信息
     path('api/check_order/', create_private_user.check_order_func),                                          # 权限申请--审核工单
     path('api/execute_order/', create_private_user.execute_order_func),                                      # 权限申请--执行工单
+    # 权限申请end
+
     path('api/auth/', drf_views.obtain_auth_token),                                                          # 登录--获取用户的token
     path('api/get_login_user_name_by_token/', login_controller.get_login_user_name_by_token_handler),                      # 登录--根据token获得登录用户名
     path('api/privilege_view_user/', create_private_user.privilege_view_user_func),                          # 权限申请--查看用户已有权限

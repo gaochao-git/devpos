@@ -5,7 +5,7 @@ import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import {Link} from "react-router-dom";
 import {getUser} from "../common/util";
-
+import { backendServerApiRoot } from "../common/util"
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const server = 'http://127.0.0.1:8000';
@@ -71,7 +71,7 @@ export default class OrderInformation extends React.Component  {
         let params = {
           order_uuid: this.props.match.params["order_uuid"],
         };
-        let res = await axios.post(`${server}/get_order_info/`,{params});
+        let res = await axios.post(`${backendServerApiRoot}/get_order_info/`,{params});
         console.log(res.data);
         this.setState({
             dev_name: res.data[0]["person_name"],

@@ -8,7 +8,7 @@ import mysqlCluster from './scripts/mysql/mysqlCluster'
 import AuditSqlIndex from './scripts/auditSql/auditSqlIndex'
 import ExecuteSql from './scripts/auditSql/executeSql'
 import publicManage from "./scripts/publicUserManage/pubicUserPrivilegeManage"
-import privilegesApply from "./scripts/privilegesApply/userGrant";
+import privilegesApply from "./scripts/privilegesApply/applicationForm";
 import OrderInformation from './scripts/privilegesApply/orderInformation'
 import commonUser from "./scripts/commonUser/commonUserCharge";
 import Server from "./scripts/Server/Server";

@@ -1,17 +1,17 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Table, Input, Form, Tabs} from "antd";
+import {Table, Input, Form, Tabs,message} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import CreatePrivateUser from "./createPrivateUser";
 import PrivilegesExtend from "./privilegesExtend";
+import { backendServerApiRoot } from "../common/util"
 
 
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { Search } = Input;
-const server = 'http://127.0.0.1:8000';
 const { TabPane } = Tabs;
 const Column = Table.Column;
 
@@ -31,26 +31,38 @@ class privateUser extends Component  {
 
 
     componentDidMount() {
-        this.GetUserInfo()
-
+        this.GetApplyFromInfo()
     }
-    //获取所有用户信息
-    async GetUserInfo() {
-        let res = await axios.get(`${server}/get_private_user_info/`);
-        console.log(res.data);
-        this.setState({
-            user_info: res.data
-        })
+    //获取所有机器信息
+    async GetApplyFromInfo() {
+        let params = {
+            search_applicant:"",
+        };
+        await axios.post(`${backendServerApiRoot}/get_application_form_info/`, {params}).then(
+            res => {res.data.status==="ok" ?
+                this.setState({
+                    user_info: res.data.data
+                })
+            :
+                message.error(res.data.message)}
+        ).catch(err => {message.error(err.message)})
     }
-
     //模糊搜索
-    async GetSearchUserInfo(user_name) {
-        let res = await axios.post(`${server}/get_private_user_info/`,{user_name});
-        console.log(res.data);
-        this.setState({
-            user_info: res.data
-        })
+    async GetSearchFromInfo(applicant_name) {
+        let params = {
+            search_applicant:applicant_name,
+        };
+        console.log(params)
+        await axios.post(`${backendServerApiRoot}/get_application_form_info/`,{params}).then(
+            res => {res.data.status==="ok" ?
+                this.setState({
+                    server_info: res.data.data
+                })
+            :
+                message.error(res.data.message)}
+        ).catch(err => {message.error(err.message)})
     }
+
 
     render() {
         return (
@@ -67,8 +79,8 @@ class privateUser extends Component  {
                     </div>
                     <div>
                         <Search
-                          placeholder="用户名"
-                          onSearch={value => this.GetSearchUserInfo(value)}
+                          placeholder="请输入申请人"
+                          onSearch={value => this.GetSearchFromInfo(value)}
                           style={{ width: 200 }}
                           allowClear
                         />
@@ -88,7 +100,7 @@ class privateUser extends Component  {
                                 return className;}}
                                 size="small"
                             >
-                                <Column title = '申请人' dataIndex = 'person_name'/>
+                                <Column title = '申请人' dataIndex = 'applicant'/>
                                 <Column title = '工单类型' dataIndex = 'request_type'/>
                                 <Column title = '部门' dataIndex = 'department'/>
                                 <Column title = '业务leader' dataIndex = 'leader'/>

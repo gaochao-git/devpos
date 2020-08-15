@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import { Button,Table, Input,message } from "antd";
+import { Table, Input,message } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -17,8 +17,8 @@ export default class Server extends Component  {
             server_info:[],
             filteredInfo: null,
             sortedInfo: null,
-            //server_type_filer:[{text: '物理机', value: '物理机'},{text: '云主机', value: '云主机'}],
-            //idc_filter: [{ text: 'bj10', value: 'bj10' },{ text: 'bj11', value: 'bj11' },{ text: 'sh20', value: 'sh20' },{ text: 'sh21', value: 'sh21' },{ text: 'sz30', value: 'sz30' },{ text: 'sz31', value: 'sz31' }]
+            server_type_filer:[{text: '物理机', value: '物理机'},{text: '云主机', value: '云主机'}],
+            idc_filter: [{ text: 'bj10', value: 'bj10' },{ text: 'bj11', value: 'bj11' },{ text: 'sh20', value: 'sh20' },{ text: 'sh21', value: 'sh21' },{ text: 'sz30', value: 'sz30' },{ text: 'sz31', value: 'sz31' }]
 
         }
     }
@@ -45,6 +45,7 @@ export default class Server extends Component  {
         let params = {
             search_server_name:server_name,
         };
+        console.log(params)
         await axios.post(`${backendServerApiRoot}/get_server_info/`,{params}).then(
             res => {res.data.status==="ok" ?
                 this.setState({
@@ -130,7 +131,7 @@ export default class Server extends Component  {
               dataIndex: 'status',
           },
           {
-            title: '到期时间',
+            title: '过保日期',
             dataIndex: 'deadline',
           }
 
@@ -148,13 +149,11 @@ export default class Server extends Component  {
                         </Link>
                     </div>
                     <div>
-                        <Button type="primary" onClick={() => {
-                            this.GetClusterInfo()
-                        }}>置空</Button>
                         <Search
-                          placeholder="实例名"
-                          onSearch={value => this.GetSearchClusterInfo(value)}
+                          placeholder="主机名"
+                          onSearch={value => this.GetSearchServerInfo(value)}
                           style={{ width: 200 }}
+                          allowClear
                         />
                     </div>
                 </div>
@@ -163,6 +162,10 @@ export default class Server extends Component  {
                 <Table
                     dataSource={this.state.server_info}
                     columns={columns}
+                    pagination={{
+                        total:this.state.server_info.length,
+                        showTotal:(count=this.state.server_info.length)=>{return '共'+count+'条'}
+                    }}
                     bordered
                     size="small"
                 />

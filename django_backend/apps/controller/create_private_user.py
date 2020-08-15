@@ -15,7 +15,7 @@ def get_private_user_info_func(request):
         sql = """select id as 'key',
                     order_uuid,
                     ctime,
-                    person_name,
+                    applicant,
                     case request_type when 0 then '创建新用户' when 1 then '扩展权限' when 2 then '扩展IP' when 3 then '扩展数据库' else '无效工单' end request_type,
                     department,
                     leader,
@@ -31,7 +31,7 @@ def get_private_user_info_func(request):
         #print(where_user_name_condition)
         sql = """select id as 'key',
                     ctime,
-                    person_name,
+                    applicant,
                     case request_type when 0 then '创建新用户' when 1 then '扩展权限' when 2 then '扩展IP' when 3 then '扩展数据库' else '无效工单' end request_type,
                     department,
                     leader,
@@ -85,7 +85,7 @@ def privileges_create_user_info_func(request):
             if not cur.fetchall():
                 str_order_uuid = str(uuid.uuid4())
                 add_user_info_sql = """insert into devops.privilege_request_info(order_uuid,
-                                person_name,
+                                applicant,
                                 request_type,
                                 department,
                                 leader,
@@ -204,7 +204,7 @@ def get_order_info_func(request):
                     tb_name,
                     db_master_ip,
                     db_master_port,
-                    person_name,
+                    applicant,
                     privileges,
                     case request_type when 0 then '创建新用户' when 1 then '扩展权限' when 2 then '扩展IP' when 3 then '扩展数据库' else '无效工单' end request_type,
                     department,
@@ -311,7 +311,7 @@ def privileges_extend_info_func(request):
                 str_database_list = ','.join(database_list)
                 str_order_uuid = str(uuid.uuid4())
                 add_order_info_sql = """insert into devops.privilege_request_info(order_uuid,
-                                            person_name,
+                                                applicant,
                                             request_type,
                                             department,
                                             leader,

@@ -8,7 +8,6 @@ from apps.service import server_info
 
 # 获取所有云主机信息
 def get_server_info_controller(request):
-    print(88888889)
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     search_server_name = request_body['params']['search_server_name']
