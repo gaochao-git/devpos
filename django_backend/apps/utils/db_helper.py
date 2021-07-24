@@ -150,7 +150,7 @@ def target_source_ping(ip, port):
     :return:
     """
     sql = "select 1"
-    return target_source_find_all(ip, port, sql)
+    return target_source_find_all(ip, port, sql, 0.2)
 
 
 def target_source_dml(ip, port, sql, my_connect_timeout=2):
