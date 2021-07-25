@@ -112,9 +112,8 @@ class ReplInfo():
             return "error", "", ""
         if temp_master == "":           # 自己上面没有主节点则自己就是主节点,直接返回就行,递归到最后节点必定会走到这一层
             return "ok", host, port
-        else:
-            temp_master_host, temp_master_port = temp_master.split(":")[0], temp_master.split(":")[1]
-            ReplInfo.get_top_node(temp_master_host, temp_master_port)
+        temp_master_host, temp_master_port = temp_master.split(":")[0], temp_master.split(":")[1]
+        return ReplInfo.get_top_node(temp_master_host, temp_master_port)
 
     @staticmethod
     def get_master_by_node(host, port):
