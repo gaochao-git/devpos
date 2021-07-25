@@ -138,7 +138,7 @@ class ReplInfo():
         if slave_io_status == "No" and slave_sql_status == "No":
             return ""
         else:
-            return "%s_%s" % (master_host, master_port)
+            return "%s:%s" % (master_host, master_port)
 
     @staticmethod
     def get_slave_by_node(host, port):
