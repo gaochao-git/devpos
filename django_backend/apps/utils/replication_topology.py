@@ -215,7 +215,7 @@ class ReplInfo():
                     if my_ins != ins:
                         logger.info("排列组合生成的%s_%s 这个slave的master与探测node不一致,可能是其他集群的节点,需要忽略")
                         continue
-                my_ins_server_uuid = my_ins_server_uuid_ret['data'][0]
+                my_ins_server_uuid = my_ins_server_uuid_ret['data'][0]['server_uuid']
                 if my_ins_server_uuid != ins_server_uuid:
                     logger.info("排列组合生成的%s_%s 这个slave的master的server_uuid与探测node的server_uuid不一致,可能是其他集群的节点,需要忽略")
                     continue
@@ -231,8 +231,8 @@ class ReplInfo():
         :return:
         """
         # 获取该节点server_uuid
-        sql = "select @@server_uuid as server_uuid"
-        ret = db_helper.target_source_find_all(top_host, top_port, sql, 0.2)
+        sql_server_uuid = "select @@server_uuid as server_uuid"
+        ret = db_helper.target_source_find_all(top_host, top_port, sql_server_uuid, 0.2)
         if ret['status'] != "ok": return
         instance_server_uuid = ret['data'][0]['server_uuid']
 
@@ -262,9 +262,9 @@ class ReplInfo():
             my_port = ret['data'][0]['Master_Port']
             # my_instance = my_host + ":" + my_port
             # 原始是通过判断my_instance与instance是否一致来判断,但是会忽略从库是通过vip连接的场景,所以通过server_uuid来判断
-            my_server_uuid_ret = db_helper.target_source_find_all(my_host, my_port, sql, 0.2)
+            my_server_uuid_ret = db_helper.target_source_find_all(my_host, my_port, sql_server_uuid, 0.2)
             if my_server_uuid_ret['status'] == "ok":
-                my_ins_server_uuid = my_server_uuid_ret['data'][0]
+                my_ins_server_uuid = my_server_uuid_ret['data'][0]['server_uuid']
                 if my_ins_server_uuid == instance_server_uuid:
                     slave_host = s.split(":")[0]
                     slave_port = s.split(":")[1]
