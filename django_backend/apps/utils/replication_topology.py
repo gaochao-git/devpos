@@ -52,7 +52,6 @@ get_top_node("172.16.1.111", 3306)
 '''
 
 
-
 class ReplInfo():
     def __init__(self, ip, port):
         self.output_instance_list = []
@@ -94,6 +93,7 @@ class ReplInfo():
         logger.info("repl_info:%s" % repl_info)
         content = {"status":"ok", "message":"ok", "data": repl_info}
         return content
+
     @staticmethod
     def get_top_node(host, port):
         """
@@ -155,7 +155,7 @@ class ReplInfo():
         sql = "select @@server_uuid as server_uuid"
         ret = db_helper.target_source_find_all(host, port, sql, 0.2)
         if ret['status'] != "ok": return slave_groups
-        ins_server_uuid = ret['data'][0]['ins_server_uuid']
+        ins_server_uuid = ret['data'][0]['server_uuid']
 
         # 获取slave_host、slave_port
         sql1 = """
@@ -168,7 +168,7 @@ class ReplInfo():
         ret2 = db_helper.target_source_find_all(host, port, sql2, 0.2)
         if ret1['status'] != "ok" or ret2['status'] != "ok": return slave_groups
         slave_host_list = [item.get('master_ip') for item in ret1['data']]
-        slave_port_list = [item.get('master_port') for item in ret2['data']]
+        slave_port_list = [item.get('Port') for item in ret2['data']]
 
         # 根据host、port进行排列组合
         instance_list = []
@@ -234,7 +234,7 @@ class ReplInfo():
         sql = "select @@server_uuid as server_uuid"
         ret = db_helper.target_source_find_all(top_host, top_port, sql, 0.2)
         if ret['status'] != "ok": return
-        instance_server_uuid = ret['data'][0]['ins_server_uuid']
+        instance_server_uuid = ret['data'][0]['server_uuid']
 
         instance = "%s:%s" % (top_host, top_port)
         self.output_instance_list.append(instance.replace(":", "_"))
@@ -289,15 +289,30 @@ class ReplTree():
         self.nodes = nodes
 
     def get_root(self):
+        """
+        :return:
+        """
         return [master for master in [list(node.keys())[0] for node in self.nodes] if not self.get_master(master)][0]
 
     def get_master(self, slave):
+        """
+        :param slave:
+        :return:
+        """
         return [node for node in self.nodes if slave in node.values()]
 
     def get_slave(self, master):
+        """
+        :param master:
+        :return:
+        """
         return [[repl.get(master)] for repl in self.nodes if master in repl.keys()]
 
     def get_child(self, node):
+        """
+        :param node:
+        :return: [['172.16.1.211:3306', [['172.16.1.212:3306', [[None]]], ['172.16.1.213:3306', [[None]]]]]]
+        """
         childs = self.get_slave(node)
         for child in childs:
             _c = self.get_child(child[0])
@@ -306,9 +321,15 @@ class ReplTree():
         return childs
 
     def get_tree(self):
+        """
+        :return: ['172.16.1.210_3306', [['172.16.1.211:3306', [['172.16.1.212:3306', [[None]]], ['172.16.1.213:3306', [[None]]]]]]] ,len(tree)=2
+        """
         return [self.get_root(), self.get_child(self.get_root())]
 
     def drwa_tree(self):
+        """
+        :return:['172.16.1.210_3306', '|____ 172.16.1.211:3306', '|________ 172.16.1.212:3306', '|____________ None', '|________ 172.16.1.213:3306', '|____________ None']
+        """
         tree = self.get_tree()
         level = 0
         draw_tree_list = []
