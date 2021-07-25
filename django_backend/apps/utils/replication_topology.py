@@ -77,7 +77,23 @@ class ReplInfo():
         # 初始化拓扑树实例
         repl_tree = ReplTree(self.output_node_relation_list)
         # 生成拓扑图
-        draw_tree_
+        draw_tree_result_list = repl_tree.drwa_tree()
+        # 替换拓扑图输出结构
+        out_repl_tree = ""
+        for node in draw_tree_result_list:
+            node = node.replace(":","_")
+            if node.find('None') < 0:
+                out_repl_tree = out_repl_tree + node + "\n"
+        # 去重
+        output_instance_list_pre = list(set(self.output_instance_list))
+        output_instance_list = []
+        for ins in output_instance_list_pre:
+            ins_dict = {'instance_name': ins}
+            output_instance_list.append(ins_dict)
+        repl_info = [{"output_node_relation_list":out_repl_tree}, {"node_list": output_instance_list}]
+        logger.info("repl_info:%s" % repl_info)
+        content = {"status":"ok", "message":"ok", "data": repl_info}
+        return content
     @staticmethod
     def get_top_node(host, port):
         """
@@ -257,7 +273,55 @@ class ReplInfo():
                     self.get_all_node(slave_host, slave_port)  # 递归向下获取
 
 
+class ReplTree():
+    """
+    生成拓扑树
+    output_node_relation_list = [{'172.16.1.210_3306': '172.16.1.211:3306'}, {'172.16.1.211:3306': '172.16.1.212:3306'},{'172.16.1.211:3306': '172.16.1.213:3306'}, {'172.16.1.212:3306': None},{'172.16.1.213:3306': None}]
+    repl_tree = ReplTree(output_node_relation_list)
+    draw_tree_result_list = repl_tree.drwa_tree()
+    print(draw_tree_result_list)
+    for node in draw_tree_result_list:
+        if node.find('None') < 0:
+            print(node)
+    """
 
+    def __init__(self, nodes):
+        self.nodes = nodes
+
+    def get_root(self):
+        return [master for master in [list(node.keys())[0] for node in self.nodes] if not self.get_master(master)][0]
+
+    def get_master(self, slave):
+        return [node for node in self.nodes if slave in node.values()]
+
+    def get_slave(self, master):
+        return [[repl.get(master)] for repl in self.nodes if master in repl.keys()]
+
+    def get_child(self, node):
+        childs = self.get_slave(node)
+        for child in childs:
+            _c = self.get_child(child[0])
+            if _c:
+                child.append(_c)
+        return childs
+
+    def get_tree(self):
+        return [self.get_root(), self.get_child(self.get_root())]
+
+    def drwa_tree(self):
+        tree = self.get_tree()
+        level = 0
+        draw_tree_list = []
+        def draw_node(node, level):
+            if level == 0:
+                draw_tree_list.append(node[0])
+            else:
+                draw_tree_list.append('|%s %s' %('_' * 4 * level, node[0]))
+            if len(node) == 2:
+                for inner_node in node[1]:
+                    draw_node(inner_node, level + 1)
+        draw_node(tree, level)
+        return draw_tree_list
 
 
 
