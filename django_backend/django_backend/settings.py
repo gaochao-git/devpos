@@ -134,15 +134,16 @@ STATIC_URL = '/static/'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': '39.97.247.142',
+        'HOST': '47.104.2.74',
         'PORT': '3306',
-        'USER': 'wthong',
+        'USER': 'wth',
         'PASSWORD': 'fffjjj',
         'NAME': 'devops',
         'cursorclass':pymysql.cursors.DictCursor,
         'AUTOCOMMIT':True,           # pymysql默认AUTOCOMMIT为False,如果没有该参数django会将其设置为True,如果指定该参数django会忽略该参数
     }
 }
+
 
 ################# celery配置 ##################
 djcelery.setup_loader()

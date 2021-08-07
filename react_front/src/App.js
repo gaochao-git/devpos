@@ -15,6 +15,7 @@ import Server from "./scripts/Server/Server";
 import Login from "./scripts/login/login"
 import {getUser} from './scripts/common/util'
 import mysqlInstance from './scripts/mysql/mysqlInstance'
+import mysqlConsole from './scripts/console/mysqlConsole'
 
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
@@ -109,7 +110,9 @@ class App extends Component {
                                             </Menu.Item>
                                         </SubMenu>
                                         <SubMenu key="sub5" title={<span><Icon type="code" />控制台</span>}>
-                                            <Menu.Item key="1">MySQL</Menu.Item>
+                                            <Menu.Item key="1">
+                                                <Link to="/mysqlConsole">MySQL</Link>
+                                            </Menu.Item>
                                             <Menu.Item key="2">Redis</Menu.Item>
                                         </SubMenu>
                                         <SubMenu key="sub6" title={<span><Icon type="cloud-download" />数据迁移/导出</span>}>
@@ -146,6 +149,7 @@ class App extends Component {
                                     <Route exact path="/viewPrivilegeInfoByUuid/:order_uuid" component={OrderInformation} />
                                     <Route exact path="/commonUser" component={commonUser} />
                                     <Route exact path="/home" component={Login} />
+                                    <Route exact path="/mysqlConsole" component={mysqlConsole} />
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>
