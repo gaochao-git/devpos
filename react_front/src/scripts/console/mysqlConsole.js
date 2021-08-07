@@ -14,16 +14,9 @@ export default class mysqlConsole extends Component {
     content: ''
   }
 
-  getSql=()=>{
-    const editor = this.codeEditor.editor;
-    //获得sql的值
-    const cont = editor.getValue();
-    console.log(cont);
-  }
-
   //编辑器内容变动后就修改state
-  onChange = (editor, data, value)=>{
-    this.setState({content: value});
+  onChange = (editor, data, sql)=>{
+    this.setState({content: sql});
   }
 
   render() {
@@ -36,7 +29,8 @@ export default class mysqlConsole extends Component {
             mode: {name: "text/x-mysql"},
             extraKeys: {"Tab": "autocomplete"},
             theme: 'ambiance',
-              styleActiveLine: true
+            styleActiveLine: true,
+            lineWrapping:true
           }}
           onChange={this.onChange}
         />
