@@ -158,7 +158,7 @@ CELERY_TIMEZONE = TIME_ZONE
 ################# inception配置 ##################
 
 INCEPTION_ADDRESS = {
-    'inception_host': '39.97.247.142',
+    'inception_host': '47.104.2.74',
     'inception_port': 6669
 }
 

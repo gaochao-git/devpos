@@ -1,20 +1,31 @@
 # 一、devops平台功能
-```shell script
+```text
 DBA自动化管理平台
 ```
 # 二、相关组件
-```shell script
+```text
 WEB服务器：nginx + uwsgi
 后端：python3 + django +celery + MySQL + Redis
 前端：nodejs + react + ant
+SQL审核工具: inception
 ```
 # 三、项目开发指南
 ### git clone 项目
 ```shell
 gaochao@localhost:~ # git clone https://github.com/gaochao-git/devops.git
 ```
-### 启动项目
+### 初始化项目
+```text
+1.生成django内置表
+Python manage.py migrate 
+2.初始化平台登陆用户
+python3 manage.py createsuperuser
+3.初始化项目表结构
+4.录入主机信息(sql审核ip模式才能使用)
+insert into devops.server(server_public_ip) values('47.104.2.74');
 ```
+### 启动项目
+```text
 1.启动后端(建议安装anaconda管理python多版本环境)
     1)进入django_backend目录,安装python相关模块
         pip3.5 install -r requriements.txt
@@ -36,7 +47,7 @@ gaochao@localhost:~ # git clone https://github.com/gaochao-git/devops.git
 ```
 ***
 #### 后端代码说明
-```
+```text
 配置文件----------------devpos/django_backend/django_backend/settings.py
 路由文件----------------devpos/django_backend/django_backend/urls.py
 http交互接口文件---------devpos/django_backend/apps/controller/功能名_controller.py
@@ -45,7 +56,7 @@ http交互接口文件---------devpos/django_backend/apps/controller/功能名_c
 celery异步任务----------devpos/django_backend/task.py
 ```
 #### 前端代码说明
-```
+```text
 首页html--------devpos/react_front/public/index.html
 首页js----------devpos/react_front/src/index.js
 布局及路由文件---devpos/react_front/src/App.js
@@ -55,7 +66,7 @@ css代码---------devpos/react_front/src/styles
 ```
 ***
 #### 参考下面步骤进行新功能开发
-```shell
+```text
 1.后端代码及API开发
     后端django_backend/django_backend/url.py添加url和方法，参考api/get_cluster_name
     后端django_backend/apps/controller层开发
@@ -69,7 +80,7 @@ css代码---------devpos/react_front/src/styles
 ```
 # 四、上线部署指南
 ## 部署前端
-```shell script
+```text
 1.更改/Users/gaochao/gaochao-git/gaochao_repo/devops/react_front/src/scripts/common/util.js 将backendServerApiRoot改为域名或者公网ip
 2.本地编译打包并上传到部署服务器或者打包完直接用git推送上去
 cd /Users/gaochao/gaochao-git/gaochao_repo/devops/react_front
@@ -78,7 +89,7 @@ scp传或者git本地推部署服务器拉
 3.启动前端测试是否能够运行,可以通过serve -s启动项目 (需要线安装serve:npm install -g serve),这一步可以没有，因为后面要用nginx进行代理前端
 ```
 ## 部署后端
-```shell script
+```text
 1.部署服务器git clone项目
 2.安装相关依赖包
 3.修改相关配置文件
@@ -86,7 +97,7 @@ scp传或者git本地推部署服务器拉
 ```
 
 ## uwsgi代理django
-```shell script
+```text
 1.安装uwsgi(yum安装的用不了,需要用pip安装)
 pip3.5 install uwsgi
 2.测试uwsgi是否能够工作，参考网上帖子
@@ -114,7 +125,7 @@ buffer-size=65536
 ```
 
 ## nginx配置及代理react、uwsgi
-```shell script
+```text
 1.安装nginx
 yum -y install nginx
 systempctl start nginx

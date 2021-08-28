@@ -99,8 +99,9 @@ class AuditSqlIndex extends Component {
     }
     //cluster_name检测SQL,集群名和输入SQL不能为空
     async handleClusterNameSqlCheck() {
+        console.log(this.state.check_sql)
         if (this.state.cluster_name.length===0 || this.state.check_sql.length===0){
-            message.error("输入框不能为空")
+            message.error("cluster_name检测SQL输入框不能为空")
         }else{
             let params = {
                 db_ip: this.state.des_ip,
@@ -135,8 +136,11 @@ class AuditSqlIndex extends Component {
     }
     //master_ip_port检测SQL,ip、port、输入SQL不能为空
     async handleMasterIpPortSqlCheck() {
+        console.log(this.state.check_sql)
+        console.log(this.state.des_ip)
+        console.log(this.state.des_port)
         if (this.state.des_ip.length===0 || this.state.des_port.length===0 || this.state.check_sql.length===0){
-            message.error("输入框不能为空")
+            message.error("master_ip_port检测SQL输入框不能为空")
         }else{
             let params = {
                 db_ip: this.state.des_ip,
