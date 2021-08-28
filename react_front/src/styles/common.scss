@@ -14,7 +14,7 @@
   padding: 0 20px;
   justify-content: space-between;
   align-items: center;
-  background: #328eb6;
+  background: #000c17;
   color: #fff;
 }
 
@@ -110,8 +110,12 @@
 }
 
 //覆盖antd menu样式
-.ant-menu-inline .ant-menu-submenu-title {
+ant-menu.-inline .ant-menu-submenu-title {
   margin: 2px 0;
+}
+//覆盖antd颜色
+.ant-menu-dark .ant-menu-item-selected, .ant-menu-submenu-popup.ant-menu-dark  .ant-menu-item-selected{
+  background: #15344a
 }
 
 .ant-table-thead > tr > th, .ant-table-tbody > tr > td {

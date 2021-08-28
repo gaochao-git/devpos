@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Layout, Menu, Icon, Button } from "antd";
+import {Layout, Menu, Icon, Button, Tooltip} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import {HashRouter,Route} from 'react-router-dom';
@@ -16,7 +16,10 @@ import Login from "./scripts/login/login"
 import {getUser} from './scripts/common/util'
 import mysqlInstance from './scripts/mysql/mysqlInstance'
 import mysqlConsole from './scripts/console/mysqlConsole'
-
+import NavService from './scripts/home/nave_service'
+import NavManage from './scripts/home/nave_manage'
+import NavOps from './scripts/home/nave_ops'
+import imgURL from './my_logo.jpg'
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
 axios.defaults.withCredentials = true;
@@ -34,7 +37,8 @@ class App extends Component {
         super(props);
         this.state = {
             login_user_name:"",
-            login_user_name_role:""
+            login_user_name_role:"",
+            current_nav:"",
         }
     }
     componentDidMount() {
@@ -47,8 +51,24 @@ class App extends Component {
         }).catch(error=>{
             console.log(error)
         })
+        //如果tab主标签存在则跳到指定tab，否则跳到服务标签
+        if (window.localStorage.current_nav){
+            this.setState({
+                current_nav: window.localStorage.current_nav
+            });
+        }else {
+            this.setState({
+                current_nav:"服务"
+            });
+        };
     }
-
+    //更改服务、运维、管理标签
+    handlerClick = e =>{
+        this.setState({
+            current_nav:e.key
+        });
+        window.localStorage.setItem("current_nav", e.key)
+    }
     render() {
         if (window.localStorage.getItem('token')) {
             return(
@@ -56,11 +76,40 @@ class App extends Component {
                     <HashRouter>
                         <Layout>
                             <Header className="header">
-                                <div onClick={() => window.location.href = `/page`}>{this.state.login_user_name_role}</div>
+                                <div className="logo">
+                                    <img alt="Logo" src={imgURL} style={{width:'50px'}}/>
+                                </div>
+                                <Menu
+                                    theme="dark"
+                                    mode="horizontal"
+                                    defaultOpenKeys={[this.state.current_nav]}
+                                    onClick={this.handlerClick}
+                                    selectedKeys={[this.state.current_nav]}
+                                >
+                                    <Menu.Item key="服务" style={{marginLeft:'20px'}} >
+                                        <Link to="/Server">服务</Link>
+                                    </Menu.Item>
+                                    <Menu.Item key="运维" style={{marginLeft:'20px'}}>
+                                        <Link to="/Server">运维</Link>
+                                    </Menu.Item>
+                                    <Menu.Item key="管理" style={{marginLeft:'20px'}}>
+                                        <Link to="/commonUser">管理</Link>
+                                    </Menu.Item>
+                                </Menu>
+                                <div style={{marginLeft:'600px'}}>
+                                    <Tooltip
+                                        title={
+                                            <span>
+                                                用户名:
+                                                <br/>部门:
+                                                <br/>邮箱:
+                                            </span>
+                                        }
+                                    >
+                                        用户信息
+                                    </Tooltip>
+                                </div>
                                 <div>
-                                    <span>
-                                        {this.state.login_user_name}
-                                    </span>
                                     <Button
                                         icon="poweroff"
                                         type="default"
@@ -72,71 +121,23 @@ class App extends Component {
                                 </div>
                             </Header>
                             <Layout>
-                                <Sider width={200} style={{ background: '#fff' }}>
-                                    <Menu mode="inline" defaultSelectedKeys={['1']} defaultOpenKeys={['sub1']} style={{ height: '100%' }}>
-                                        <SubMenu key="sub1" title={<span><Icon type="cloud-server" />server</span>}>
-                                            <Menu.Item key="1">
-                                                <Link to="/Server">主机</Link>
-                                            </Menu.Item>
-                                        </SubMenu>
-                                        <SubMenu key="sub2" title={<span><Icon type="database" />MySQL</span>}>
-                                            <Menu.Item key="1">
-                                                <Link to="#">主机</Link>
-                                            </Menu.Item>
-                                            <Menu.Item key="2">
-                                                <Link to="/mysqlInstance">实例</Link>
-                                            </Menu.Item>
-                                            <Menu.Item key="3">
-                                                <Link to="/mysqlCluster">集群</Link >
-                                            </Menu.Item>
-                                        </SubMenu>
-                                        <SubMenu key="sub3" title={<span><Icon type="database" />Redis</span>}>
-                                            <Menu.Item key="1">
-                                                <Link to="/redisServer">主机</Link>
-                                            </Menu.Item>
-                                            <Menu.Item key="2">
-                                                <Link to="/redisInstance">实例</Link>
-                                            </Menu.Item>
-                                            <Menu.Item key="3">
-                                                <Link to="/redisCluster">集群</Link>
-                                            </Menu.Item>
-                                        </SubMenu>
-                                        <SubMenu key="sub4" title={<span><Icon type="laptop" />工单</span>}>
-                                            <Menu.Item key="1">
-                                                <Link to="/auditSqlIndex">SQL审核</Link>
-                                            </Menu.Item>
-                                            <Menu.Item key="2">
-                                                <Link to="/privilegesApply">权限申请</Link>
-                                            </Menu.Item>
-                                        </SubMenu>
-                                        <SubMenu key="sub5" title={<span><Icon type="code" />控制台</span>}>
-                                            <Menu.Item key="1">
-                                                <Link to="/mysqlConsole">MySQL</Link>
-                                            </Menu.Item>
-                                            <Menu.Item key="2">Redis</Menu.Item>
-                                        </SubMenu>
-                                        <SubMenu key="sub6" title={<span><Icon type="cloud-download" />数据迁移/导出</span>}>
-                                            <Menu.Item key="1">迁移</Menu.Item>
-                                            <Menu.Item key="2">导出</Menu.Item>
-                                        </SubMenu>
-                                        <SubMenu key="sub7" title={<span><Icon type="robot" />自助服务</span>}>
-                                            <Menu.Item key="1">
-                                                <Link to="/commonUser">公共账号管理</Link>
-                                            </Menu.Item>
-                                            <Menu.Item key="2">备份</Menu.Item>
-                                            <Menu.Item key="3">归档</Menu.Item>
-                                            <Menu.Item key="4">
-                                                <Link to="/home">主页</Link>
-                                            </Menu.Item>
-                                        </SubMenu>
-                                    </Menu>
+                                <Sider width={240} style={{ background: '#15344a',minHeight:'860px'}}>
+                                    {
+                                        this.state.current_nav === "服务"? <NavService/>:null
+                                    }
+                                    {
+                                        this.state.current_nav === "运维"? <NavOps/>:null
+                                    }
+                                    {
+                                        this.state.current_nav === "管理"? <NavManage/>:null
+                                    }
                                 </Sider>
                                 <Content>
                                     <Route exact path="/" component={() => {
                                         if (this.state.is_dba) {
-                                            return <server/>
+                                            return <Server/>
                                         } else {
-                                            return <server/>
+                                            return <Server/>
                                         }
                                     }}/>
                                     <Route exact path="/Server" component={Server} />
