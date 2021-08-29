@@ -172,6 +172,7 @@ CREATE TABLE `sql_execute_split` (
   `split_seq` int(11) NOT NULL DEFAULT '0' COMMENT 'Inception返回的拆分ID',
   `rerun_seq` int(11) NOT NULL DEFAULT '0' COMMENT 'Inception执行失败后平台生成的重做序列号',
   `rerun_flag` tinyint(4) NOT NULL DEFAULT '-1' COMMENT '执行失败生成重做数据状态 0生成重做数据成功 1生成重做数据失败',
+  `rerun_sequence` varchar(50) NOT NULL DEFAULT '' COMMENT 'xxx',
   `ddlflag` tinyint(4) NOT NULL DEFAULT '-1' COMMENT 'Inception返回的ddlflag 0不含DDL, 1含DDL',
   `sql_num` int(11) NOT NULL DEFAULT '1' COMMENT '一个split sql file中包含的sql数量',
   `split_sql_file_path` varchar(150) NOT NULL COMMENT '请求sql存放路径',
@@ -191,7 +192,7 @@ CREATE TABLE `sql_execute_split` (
   `utime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_split_sql_file_path` (`split_sql_file_path`)
-) ENGINE=InnoDB AUTO_INCREMENT=450 DEFAULT CHARSET=utf8mb4 COMMENT='SQL拆分表';
+) ENGINE=InnoDB AUTO_INCREMENT=474 DEFAULT CHARSET=utf8mb4 COMMENT='SQL拆分表'
 
 CREATE TABLE `sql_inception_osc_config` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',

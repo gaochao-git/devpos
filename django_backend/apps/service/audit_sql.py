@@ -152,7 +152,8 @@ def submit_sql(token, request_body):
     # SQL审核结果写入数据库
     check_sql_results = request_body['params']['check_sql_results']
     ret = audit_sql_dao.submit_sql_results(uuid_str, check_sql_results)
-    return ret
+    if ret['status'] != "ok":
+        return ret
 
     ############################ 工单信息写数据库 #############################
     # 页面提交的工单信息写入数据库
@@ -249,7 +250,7 @@ def pass_submit_sql_by_uuid(token,submit_sql_uuid,apply_results,check_comment,ch
             if ret['status'] !="ok":
                 return ret
             else:
-                return {'status': "ok", 'message': "拆分SQL成"}
+                return {'status': "ok", 'message': "拆分SQL成功"}
     elif apply_results == "不通过":
         return {'status': "ok", 'message': "审核不通过"}
 
@@ -436,6 +437,16 @@ def execute_submit_sql_by_file_path(submit_sql_uuid, inception_backup, inception
 
 # 将拆分SQL写入拆分文件,并将自任务写入sql_execute_split
 def write_split_sql_to_new_file(master_ip, master_port,submit_sql_uuid,split_sql_data,sql_file_path,cluster_name):
+    """
+    拆分SQL写文件--->拆分SQL工单信息写入数据库
+    :param master_ip:
+    :param master_port:
+    :param submit_sql_uuid:
+    :param split_sql_data:
+    :param sql_file_path:
+    :param cluster_name:
+    :return:
+    """
     try:
         result = []
         result_tmp = {}

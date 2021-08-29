@@ -213,39 +213,54 @@ def submit_sql_results(uuid_str, check_sql_results):
     # SQL审核结果写入数据库
     cursor = connection.cursor()
     try:
+        sql_key = """
+            insert into sql_check_results(submit_sql_uuid,
+                                          inception_id,
+                                          inception_stage,
+                                          inception_error_level,
+                                          inception_stage_status,
+                                          inception_error_message,
+                                          inception_sql,
+                                          inception_affected_rows,
+                                          inception_sequence,
+                                          inception_backup_dbnames,
+                                          inception_execute_time,
+                                          inception_sqlsha1,
+                                          inception_command) values
+        """
+        sql_values = ""
+        total = len(check_sql_results)
+        i = 0
         for check_sql_result in check_sql_results:
-            inception_id = check_sql_result["ID"]
-            inception_stage = check_sql_result["stage"]
-            inception_error_level = check_sql_result["errlevel"]
-            inception_stage_status = check_sql_result["stagestatus"]
-            inception_error_message = pymysql.escape_string(check_sql_result["errormessage"])
-            inception_sql = pymysql.escape_string(check_sql_result["SQL"])
-            inception_affected_rows = check_sql_result["Affected_rows"]
-            inception_sequence = check_sql_result["sequence"]
-            inception_backup_dbnames = check_sql_result["backup_dbname"]
-            inception_execute_time = check_sql_result["execute_time"]
-            inception_sqlsha1 = check_sql_result["sqlsha1"]
-            inception_command = check_sql_result["command"]
-            sql_results_insert = """
-                    insert into sql_check_results(submit_sql_uuid,
-                                                  inception_id,
-                                                  inception_stage,
-                                                  inception_error_level,
-                                                  inception_stage_status,
-                                                  inception_error_message,
-                                                  inception_sql,
-                                                  inception_affected_rows,
-                                                  inception_sequence,
-                                                  inception_backup_dbnames,
-                                                  inception_execute_time,
-                                                  inception_sqlsha1,
-                                                  inception_command)
-                    values('{}',{},'{}',{},'{}','{}','{}','{}',{},'{}','{}','{}','{}') 
-                """.format(uuid_str, inception_id, inception_stage, inception_error_level, inception_stage_status,
-                           inception_error_message, inception_sql, inception_affected_rows, inception_sequence,
-                           inception_backup_dbnames, inception_execute_time,
-                           inception_sqlsha1, inception_command)
-            cursor.execute(sql_results_insert)
+            id = check_sql_result["ID"]
+            stage = check_sql_result["stage"]
+            error_level = check_sql_result["errlevel"]
+            stage_status = check_sql_result["stagestatus"]
+            error_message = pymysql.escape_string(check_sql_result["errormessage"])
+            sql = pymysql.escape_string(check_sql_result["SQL"])
+            affected_rows = check_sql_result["Affected_rows"]
+            sequence = check_sql_result["sequence"]
+            backup_dbnames = check_sql_result["backup_dbname"]
+            execute_time = check_sql_result["execute_time"]
+            sqlsha1 = check_sql_result["sqlsha1"]
+            command = check_sql_result["command"]
+            value = """
+                    ('{}',{},'{}',{},'{}','{}','{}','{}',{},'{}','{}','{}','{}') 
+                """.format(uuid_str, id, stage, error_level, stage_status,error_message, sql,
+                           affected_rows, sequence, backup_dbnames, execute_time, sqlsha1, command)
+            sql_values = sql_values + value + ','
+            i = i + 1
+            total = total - 1
+            if i < 50 and total == 0:  # 总数小于50或者最后一批不足50
+                sql_results_insert = sql_key + sql_values.rstrip(',')
+                cursor.execute(sql_results_insert)
+                print(555)
+            elif i == 50: # 达到50就执行一批
+                sql_results_insert = sql_key + sql_values.rstrip(',')
+                cursor.execute(sql_results_insert)
+                sql_values = ""
+                i = 0
+                print(666)
         status = "ok"
         message = "审核结果写入数据库成功"
     except Exception as e:
