@@ -10,7 +10,7 @@ from apps.utils import common
 from apps.utils import db_helper
 import logging
 
-logger = logging.getLogger('sql_logger')
+logger = logging.getLogger('devops')
 
 
 # 页面获取所有工单列表
@@ -111,7 +111,7 @@ def get_master_ip_dao(db_master_ip_or_hostname):
     try:
         rows = db_helper.findall(sql)
     except Exception as e:
-        logger.error(e)
+        logger.exception(e)
     finally:
         return rows
 
@@ -157,7 +157,7 @@ def get_inception_variable_config_info_dao(split_sql_file_path):
 def update_inception_variable_dao(request_body_json,split_sql_file_path):
     sql = "update sql_execute_split set inception_osc_config='{}' where split_sql_file_path='{}'".format(request_body_json,split_sql_file_path)
     try:
-        update_status = db_helper.update(sql)
+        update_status = db_helper.dml(sql)
     except Exception as e:
         update_status = "error"
         logger.error(e)
@@ -183,7 +183,7 @@ def submit_sql_by_cluster_name_dao(login_user_name,sql_title, cluster_name, file
                  values('{}','{}','{}','{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
             """.format(login_user_name, sql_title, cluster_name, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str)
     try:
-        insert_status = db_helper.insert(sql)
+        insert_status = db_helper.dml(sql)
     except Exception as e:
         insert_status = "error"
         logger.error(e)
@@ -210,7 +210,7 @@ def submit_sql_by_ip_port_dao(login_user_name,sql_title, db_ip, db_port, file_pa
                  values('{}','{}','{}',{},'{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
         """.format(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str)
     try:
-        insert_status = db_helper.insert(sql)
+        insert_status = db_helper.dml(sql)
     except Exception as e:
         insert_status = "error"
         logger.error(e)
@@ -225,17 +225,17 @@ def submit_sql_results(uuid_str, check_sql_results):
     try:
         for check_sql_result in check_sql_results:
             inception_id = check_sql_result["ID"]
-            inception_stage = check_sql_result["Stage"]
-            inception_error_level = check_sql_result["Error_Level"]
-            inception_stage_status = check_sql_result["Stage_Status"]
-            inception_error_message = pymysql.escape_string(check_sql_result["Error_Message"])
+            inception_stage = check_sql_result["stage"]
+            inception_error_level = check_sql_result["errlevel"]
+            inception_stage_status = check_sql_result["stagestatus"]
+            inception_error_message = pymysql.escape_string(check_sql_result["errormessage"])
             inception_sql = pymysql.escape_string(check_sql_result["SQL"])
             inception_affected_rows = check_sql_result["Affected_rows"]
-            inception_sequence = check_sql_result["Sequence"]
-            inception_backup_dbnames = check_sql_result["Backup_Dbnames"]
-            inception_execute_time = check_sql_result["Execute_Time"]
+            inception_sequence = check_sql_result["sequence"]
+            inception_backup_dbnames = check_sql_result["backup_dbname"]
+            inception_execute_time = check_sql_result["execute_time"]
             inception_sqlsha1 = check_sql_result["sqlsha1"]
-            inception_command = check_sql_result["Command"]
+            inception_command = check_sql_result["command"]
             sql_results_insert = """
                     insert into sql_check_results(submit_sql_uuid,
                                                   inception_id,
@@ -275,7 +275,7 @@ def pass_submit_sql_by_uuid_dao(submit_sql_uuid,check_comment,check_status,login
     elif login_user_name_role == "dba":
         sql = "update sql_submit_info set dba_check={},dba_check_user_name='{}',dba_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,login_user_name,check_comment,submit_sql_uuid)
     try:
-        update_status = db_helper.update(sql)
+        update_status = db_helper.dml(sql)
     except Exception as e:
         update_status = "error"
         logger.error(e)
@@ -324,10 +324,10 @@ def execute_submit_sql_by_file_path_manual_dao(submit_sql_uuid,split_sql_file_pa
     sql3 = "update sql_submit_info set dba_execute=2,execute_status=6,submit_sql_execute_plat_or_manual=2,dba_execute_user_name='{}' where submit_sql_uuid='{}'".format(login_user_name, submit_sql_uuid)
     #如果所有的拆分文件均执行完在将工单文件状态改了
     try:
-        db_helper.update(sql1)
+        db_helper.dml(sql1)
         rows = db_helper.findall(sql2)
         if not rows:
-            db_helper.update(sql3)
+            db_helper.dml(sql3)
         update_status = "ok"
     except Exception as e:
         update_status = "error"
@@ -446,10 +446,10 @@ def write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_p
                                         ) values('{}',{},'{}',{},{},'{}',{},'{}','{}',{},'{}')
                                     """.format(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,rerun_seq, inception_osc_config)
     try:
-        insert_status = db_helper.insert(sql)
+        insert_status = db_helper.dml(sql)
     except Exception as e:
         insert_status = "error"
-        logger.error(e)
+        logger.exception(e)
     finally:
         return insert_status
 
@@ -480,7 +480,7 @@ def get_recreate_sql_info_dao(split_sql_file_path):
 def write_recreate_sql_check_results_dao(rerun_sequence, sql_id, inception_sql, sql_type, inception_sqlsha1):
     sql = "insert into sql_check_rerun_results(rerun_sequence, sql_id, inception_sql, sql_type, inception_sqlsha1) values('{}',{},'{}','{}','{}')".format(rerun_sequence, sql_id, inception_sql, sql_type, inception_sqlsha1)
     try:
-        insert_status = db_helper.update(sql)
+        insert_status = db_helper.dml(sql)
     except Exception as e:
         insert_status = "error"
         logger.error(e)
@@ -491,7 +491,7 @@ def write_recreate_sql_check_results_dao(rerun_sequence, sql_id, inception_sql, 
 def update_recreate_sql_flag_dao(flag, split_sql_file_path):
     sql = "update sql_execute_split set rerun_flag={} where split_sql_file_path='{}'".format(flag, split_sql_file_path)
     try:
-        update_status = db_helper.update(sql)
+        update_status = db_helper.dml(sql)
     except Exception as e:
         update_status = "error"
         logger.error(e)
@@ -522,7 +522,6 @@ def set_execute_status(submit_sql_uuid, split_sql_file_path, status, execute_use
 # 查看该SQL文件是否已经下发给celery
 def get_task_send_celery(split_sql_file_path):
     sql = "select task_send_celery from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
-    print(sql)
     rows = []
     try:
         rows = db_helper.findall(sql)
@@ -534,7 +533,7 @@ def get_task_send_celery(split_sql_file_path):
 def set_task_send_celery(split_sql_file_path):
     sql = "update sql_execute_split set task_send_celery=1  where split_sql_file_path='{}'".format(split_sql_file_path)
     try:
-        update_status = db_helper.update(sql)
+        update_status = db_helper.dml(sql)
     except Exception as e:
         update_status = "error"
         logger.error(e)

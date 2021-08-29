@@ -23,6 +23,7 @@ python3 manage.py createsuperuser
 3.初始化项目表结构
 4.录入主机信息(sql审核ip模式才能使用)
 insert into devops.server(server_public_ip) values('47.104.2.74');
+insert into team_user(uid,gid,uname,department,title) values(1,1,'gaochao','运维',4);
 ```
 ### 启动项目
 ```text

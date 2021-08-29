@@ -127,7 +127,9 @@ export default class ExecuteSql extends Component {
             comment_info:res.data.data[0]["comment_info"],
             view_submit_split_sql_info:res_split_sql.data.data,
         })
+        console.log(111)
         console.log(this.state.view_submit_split_sql_info)
+        console.log(2222)
     };
     //提交预览SQL
     async GetSubmitSqlByUuid(uuid) {

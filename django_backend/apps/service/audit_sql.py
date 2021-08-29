@@ -139,12 +139,11 @@ def submit_sql(token, request_body):
     check_sql_results = request_body['params']['check_sql_results']
     sql_title = request_body['params']['title']
     login_user_info = common.get_login_user_info(login_user_name)
-    qa_name = login_user_info[0]["qa_name"]
-    leader_name = login_user_info[0]["leader_name"]
-    dba_name = login_user_info[0]["dba_name"]
+    qa_name = ''
+    leader_name = ''
+    dba_name = ''
     submit_sql_execute_type = request_body['params']['submit_sql_execute_type']
     comment_info = request_body['params']['comment_info']
-
     # 页面提交的工单信息写入数据库
     if (request_body['params']['submit_source_db_type'] == "cluster"):
         cluster_name = request_body['params']['cluster_name']
@@ -252,16 +251,19 @@ def pass_submit_sql_by_uuid(token,submit_sql_uuid,apply_results,check_comment,ch
             message = "审核成功," + ret
             content = {'status': status, 'message': message,"data": split_sql_data}
         except Exception as e:
+            logger.exception(e)
             status = "error"
             message = str(e) + ",+" + ret
             content = {'status': status, 'message': message}
             logger.error(e)
+        return content
     elif apply_results == "不通过":
         try:
             content = {'status': "ok", 'message': "审核不通过"}
         except Exception as e:
+            logger.exception(e)
             content = {'status': "error", 'message': str(e)}
-    return content
+        return content
 
 
 # 手动执行SQL更改工单状态
@@ -313,8 +315,8 @@ def split_sql_func(submit_sql_uuid):
         with open("./upload/{}".format(sql_file_path), "rb") as f:
             execute_sql = f.read()
             execute_sql = execute_sql.decode('utf-8')
-        split_sql_ret = inception.start_split_sql(des_master_ip, des_master_port, execute_sql)
-        ret = write_split_sql_to_new_file(des_master_ip, des_master_port, submit_sql_uuid, split_sql_ret, sql_file_path,cluster_name)
+        split_sql_data = inception.start_split_sql(des_master_ip, des_master_port, execute_sql)
+        ret = write_split_sql_to_new_file(des_master_ip, des_master_port, submit_sql_uuid, split_sql_data, sql_file_path,cluster_name)
         if ret == "拆分SQL成功":
             message = "拆分任务成功"
         else:
@@ -407,7 +409,6 @@ def execute_submit_sql_by_file_path(submit_sql_uuid, inception_backup, inception
     try:
         # 调用celery异步执行,异获取到task_id则表示任务已经放入队列，后续具体操作交给worker处理，如果当时worker没有启动，后来再启动,worker会去队列获取任务执行
         row_list = audit_sql_dao.get_task_send_celery(split_sql_file_path)
-        print(row_list)
         if int(row_list[0]["task_send_celery"]) == 0:
             task_id = inception_execute.delay(des_master_ip, des_master_port, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error,split_sql_file_path,submit_sql_uuid,osc_config_sql,execute_user_name)
             if task_id:
@@ -436,15 +437,16 @@ def execute_submit_sql_by_file_path(submit_sql_uuid, inception_backup, inception
 
 
 # 将拆分SQL写入拆分文件,并将自任务写入sql_execute_split
-def write_split_sql_to_new_file(master_ip, master_port,submit_sql_uuid,sql_tuple,sql_file_path,cluster_name):
+def write_split_sql_to_new_file(master_ip, master_port,submit_sql_uuid,split_sql_data,sql_file_path,cluster_name):
     try:
         result = []
         result_tmp = {}
-        for tup in sql_tuple:
-            result_tmp['split_seq'] = tup[0]
-            result_tmp['sql'] = tup[1]
-            result_tmp['ddlflag'] = tup[2]
-            result_tmp['sql_num'] = tup[3]
+        print(split_sql_data)
+        for tup in split_sql_data:
+            result_tmp['split_seq'] = tup['ID']
+            result_tmp['sql'] = tup['sql_statement']
+            result_tmp['ddlflag'] = tup['ddlflag']
+            result_tmp['sql_num'] = len(split_sql_data)
             result_copy = result_tmp.copy()
             result.append(result_copy)
             result_tmp.clear()
@@ -469,7 +471,7 @@ def write_split_sql_to_new_file(master_ip, master_port,submit_sql_uuid,sql_tuple
         message = "拆分SQL成功"
     except Exception as e:
         message = "拆分SQL失败"
-        logger.error(str(e))
+        logger.exception(str(e))
     finally:
         return message
 

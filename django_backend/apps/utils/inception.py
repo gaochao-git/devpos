@@ -15,9 +15,9 @@ inception_port = INCEPTION_ADDRESS["inception_port"]
 
 # 页面调用inception检测SQL,如果根据cluster_name则需要先获取到对应的master_ip、master_port
 def check_sql(des_master_ip, des_master_port, check_sql_info):
-    sql = """/*--user=wthong;--password=fffjjj;--host={};--check=1;--port={};*/\
+    sql = """/*--user=gaochao;--password=fffjjj;--host={};--check=1;--port={};*/\
         inception_magic_start;
-        {}   
+        {}
         inception_magic_commit;""".format(des_master_ip, des_master_port, check_sql_info)
     try:
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port, charset="utf8")  # inception服务器
@@ -29,35 +29,36 @@ def check_sql(des_master_ip, des_master_port, check_sql_info):
         conn.close()
         content = {'status': "ok", 'inception审核完成': "ok",'data': data}
     except Exception as e:
-        logger.error("inception审核失败",str(e))
+        logger.exception("inception审核失败",str(e))
         message = str(e)
         if re.findall('1875', str(e)):
             message = "语法错误"
         elif re.findall('2003', str(e)):
             message = "语法检测器无法连接"
         content = {'status': "error", 'message': message}
-    logger.error(content)
     return content
 
 
 # inception开始拆分
 def start_split_sql(master_ip, master_port, execute_sql):
+    data = []
     # 拆分SQL
-    sql = """/*--user=wthong;--password=fffjjj;--host={};--port={};--enable-split;*/\
+    sql = """/*--user=gaochao;--password=fffjjj;--host={};--port={};--enable-split;*/\
         inception_magic_start;
-        {}   
-        inception_magic_commit;""".format(master_ip, master_port, execute_sql)
+        {}
+        inception_magic_commit;""".format(master_ip, master_port,execute_sql)
     try:
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port, charset="utf8")  # inception服务器
         cur = conn.cursor()
         cur.execute(sql)
         sql_tuple = cur.fetchall()
+        data = [dict(zip([col[0] for col in cur.description], row)) for row in sql_tuple]
     except Exception as e:
-        logger.error(str(e))
+        logger.exception(str(e))
     finally:
         cur.close()
         conn.close()
-        return sql_tuple
+        return data
 
 
 # inception获取DDL执行进度

@@ -182,7 +182,6 @@ def split_sql_func(submit_sql_uuid):
         cursor.execute("%s" % sql_select)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        print(data)
         sql_file_path = data[0]["submit_sql_file_path"]
         cluster_name = data[0]["cluster_name"]
         if cluster_name:
@@ -204,7 +203,6 @@ def split_sql_func(submit_sql_uuid):
     finally:
         cursor.close()
         connection.close()
-        print(message)
         return message
 
 

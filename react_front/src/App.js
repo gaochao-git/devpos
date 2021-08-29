@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Layout, Menu, Icon, Button, Tooltip} from "antd";
+import {Layout, Menu, Icon, Button, Tooltip,message} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import {HashRouter,Route} from 'react-router-dom';
@@ -100,13 +100,13 @@ class App extends Component {
                                     <Tooltip
                                         title={
                                             <span>
-                                                用户名:
+                                                用户名:{this.state.login_user_name}
                                                 <br/>部门:
                                                 <br/>邮箱:
                                             </span>
                                         }
                                     >
-                                        用户信息
+                                        当前用户:{this.state.login_user_name}
                                     </Tooltip>
                                 </div>
                                 <div>

@@ -16,17 +16,14 @@ def findall(sql):
     """
     cursor = connection.cursor()
     try:
-        start_time = datetime.now()
         cursor.execute(sql)
-        end_time = datetime.now()
-        time_diff = (end_time - start_time).microseconds / 1000
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
         return data
     except Exception as e:
-        logger.error(e)
+        logger.exception(e)
     finally:
-        logger.info("sql:%s,sql执行耗时:%s ms" % (sql,time_diff))
+        logger.info("sql:%s" % (sql))
         cursor.close()
         connection.close()
 
@@ -69,13 +66,13 @@ def dml(sql):
         start_time = datetime.now()
         cursor.execute(sql)
         end_time = datetime.now()
-        time_diff = (end_time - start_time).microseconds / 1000
+        # time_diff = (end_time - start_time).microseconds / 1000
         update_status = "ok"
     except Exception as e:
         update_status = "error"
         logger.error(e)
     finally:
-        logger.info("sql:%s,sql执行耗时:%s ms" % (sql,time_diff))
+        logger.info("sql:%s" % (sql))
         cursor.close()
         connection.close()
         return update_status
@@ -93,7 +90,7 @@ def dml_many(sql_list):
         for sql in sql_list:
             cursor.execute(sql)
         end_time = datetime.now()
-        time_diff = (end_time - start_time).microseconds / 1000
+        # time_diff = (end_time - start_time).microseconds / 1000
         status = "ok"
         message = "执行成功"
         code = ""
@@ -103,10 +100,10 @@ def dml_many(sql_list):
         code = 2201
         logger.error("%s执行失败:%s", sql_list)
     finally:
-        logger.info("sql:%s,sql执行耗时:%s ms" % (sql,time_diff))
+        logger.info("sql:%s" % (sql))
         cursor.close()
         connection.close()
-        return {"status": status, "message": message, "code": code, "data": data}
+        return {"status": status, "message": message, "code": code}
 
 
 ################################################# 指定数据源公共方法 ##########################################

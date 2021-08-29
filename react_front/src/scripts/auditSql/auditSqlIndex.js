@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Button, Table, Input, Modal, Tabs, Form, Row, Select, message, Card, AutoComplete, Tooltip} from "antd";
+import {Button, Table, Input, Modal, Tabs, Form, Row, Select, data, Card, AutoComplete, Tooltip,message} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -34,7 +34,7 @@ class AuditSqlIndex extends Component {
             sql_submit_loading:false,
             des_ip_list:[],
             cluster_name_list:[],
-            submit_source_db_type:"cluster",
+            submit_source_db_type:"master_ip_port",
             cluster_name:"",
             schema_name:"",
             table_name:"",
@@ -136,9 +136,9 @@ class AuditSqlIndex extends Component {
     }
     //master_ip_port检测SQL,ip、port、输入SQL不能为空
     async handleMasterIpPortSqlCheck() {
-        console.log(this.state.check_sql)
-        console.log(this.state.des_ip)
-        console.log(this.state.des_port)
+        this.setState({
+                sql_submit_loading:false
+            });
         if (this.state.des_ip.length===0 || this.state.des_port.length===0 || this.state.check_sql.length===0){
             message.error("master_ip_port检测SQL输入框不能为空")
         }else{
@@ -206,6 +206,9 @@ class AuditSqlIndex extends Component {
             window.location.reload();
         }
         else
+            this.setState({
+                sql_submit_loading:false
+            });
             alert(res.data.message);
     }
 
@@ -327,32 +330,41 @@ class AuditSqlIndex extends Component {
               key: "ID",
             },
             {
+              title: 'stage',
+              dataIndex: 'stage',
+              key: "stage",
+            },
+            {
               title: 'SQL',
               dataIndex: 'SQL',
               key: "SQL",
-              width:520
             },
             {
               title: '状态',
-              dataIndex: 'Stage_Status',
-              key:"Stage_Status",
+              dataIndex: 'stagestatus',
+              key:"stagestatus",
             },
             {
               title: '错误代码',
-              dataIndex: 'Error_Level',
-              key:"Error_Level",
+              dataIndex: 'errlevel',
+              key:"errlevel",
               sorter: (a, b) => a.Error_Level - b.Error_Level,
             },
             {
               title: '错误信息',
-              dataIndex: 'Error_Message',
-              key:"Error_Message",
+              dataIndex: 'errormessage',
+              key:"errormessage",
             },
             {
               title: '影响行数',
               dataIndex: 'Affected_rows',
               key:"Affected_rows",
-            }
+            },
+            {
+              title: 'SQL类型',
+              dataIndex: 'command',
+              key:"command",
+            },
         ];
         const {form} = this.props;
         const {getFieldDecorator} = form;
@@ -426,7 +438,7 @@ class AuditSqlIndex extends Component {
                 </TabPane>
                 <TabPane tab="SQL新建工单" key="2">
                     <div className="sub-title-input">
-                        <Select defaultValue="集群名" style={{ width: 150 }} onChange={e => this.handleDbSourceTypeChange(e)}>
+                        <Select defaultValue="master_ip_port" style={{ width: 150 }} onChange={e => this.handleDbSourceTypeChange(e)}>
                             <Option value="cluster">集群名</Option>
                             <Option value="master_ip">master_ip_port</Option>
                             <Option value="template">模版</Option>
