@@ -209,13 +209,8 @@ def submit_sql_by_ip_port_dao(login_user_name,sql_title, db_ip, db_port, file_pa
                                          submit_sql_uuid) 
                  values('{}','{}','{}',{},'{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
         """.format(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str)
-    try:
-        insert_status = db_helper.dml(sql)
-    except Exception as e:
-        insert_status = "error"
-        logger.error(e)
-    finally:
-        return insert_status
+    return db_helper.dml(sql)
+
 
 
 # SQL审核结果写入数据库,使用db_helper会创建多次连接,效率太低
@@ -274,13 +269,7 @@ def pass_submit_sql_by_uuid_dao(submit_sql_uuid,check_comment,check_status,login
         sql = "update sql_submit_info set qa_check={},qa_user_name='{}',qa_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,login_user_name,check_comment,submit_sql_uuid)
     elif login_user_name_role == "dba":
         sql = "update sql_submit_info set dba_check={},dba_check_user_name='{}',dba_check_comment='{}' where submit_sql_uuid='{}'".format(check_status,login_user_name,check_comment,submit_sql_uuid)
-    try:
-        update_status = db_helper.dml(sql)
-    except Exception as e:
-        update_status = "error"
-        logger.error(e)
-    finally:
-        return update_status
+    return db_helper.dml(sql)
 
 # 获取拆分后的每条SQL信息
 def get_split_sql_info_dao(submit_sql_uuid):
@@ -445,13 +434,7 @@ def write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_p
                                         inception_osc_config
                                         ) values('{}',{},'{}',{},{},'{}',{},'{}','{}',{},'{}')
                                     """.format(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,rerun_seq, inception_osc_config)
-    try:
-        insert_status = db_helper.dml(sql)
-    except Exception as e:
-        insert_status = "error"
-        logger.exception(e)
-    finally:
-        return insert_status
+    return db_helper.dml(sql)
 
 # 获取执工单基础新
 def get_submit_sql_file_path_info_dao(submit_sql_uuid):

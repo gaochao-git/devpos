@@ -174,36 +174,36 @@ def get_execute_process_by_uuid_controller(request):
 
 
 # inception拆分SQL
-def split_sql_func(submit_sql_uuid):
-    # 查询工单信息
-    try:
-        cursor = connection.cursor()
-        sql_select = "select master_ip,master_port,cluster_name,submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
-        cursor.execute("%s" % sql_select)
-        rows = cursor.fetchall()
-        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        sql_file_path = data[0]["submit_sql_file_path"]
-        cluster_name = data[0]["cluster_name"]
-        if cluster_name:
-            des_master_ip, des_master_port = common.get_cluster_write_node_info(cluster_name)
-        else:
-            des_master_ip = data[0]["master_ip"]
-            des_master_port = data[0]["master_port"]
-        with open("./upload/{}".format(sql_file_path), "rb") as f:
-            execute_sql = f.read()
-            execute_sql = execute_sql.decode('utf-8')
-        ret = audit_sql.start_split_sql(cursor,submit_sql_uuid,des_master_ip, des_master_port, execute_sql, sql_file_path,cluster_name)
-        if ret == "拆分SQL成功":
-            message = "拆分任务成功"
-        else:
-            message = "拆分任务失败"
-    except Exception as e:
-        message = "拆分任务失败"
-        print(e)
-    finally:
-        cursor.close()
-        connection.close()
-        return message
+# def split_sql_func(submit_sql_uuid):
+#     # 查询工单信息
+#     try:
+#         cursor = connection.cursor()
+#         sql_select = "select master_ip,master_port,cluster_name,submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
+#         cursor.execute("%s" % sql_select)
+#         rows = cursor.fetchall()
+#         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+#         sql_file_path = data[0]["submit_sql_file_path"]
+#         cluster_name = data[0]["cluster_name"]
+#         if cluster_name:
+#             des_master_ip, des_master_port = common.get_cluster_write_node_info(cluster_name)
+#         else:
+#             des_master_ip = data[0]["master_ip"]
+#             des_master_port = data[0]["master_port"]
+#         with open("./upload/{}".format(sql_file_path), "rb") as f:
+#             execute_sql = f.read()
+#             execute_sql = execute_sql.decode('utf-8')
+#         ret = audit_sql.start_split_sql(cursor,submit_sql_uuid,des_master_ip, des_master_port, execute_sql, sql_file_path,cluster_name)
+#         if ret == "拆分SQL成功":
+#             message = "拆分任务成功"
+#         else:
+#             message = "拆分任务失败"
+#     except Exception as e:
+#         message = "拆分任务失败"
+#         print(e)
+#     finally:
+#         cursor.close()
+#         connection.close()
+#         return message
 
 
 # 获取页面拆分SQL

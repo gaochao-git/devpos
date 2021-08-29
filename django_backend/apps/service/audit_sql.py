@@ -151,9 +151,9 @@ def submit_sql(token, request_body):
     else:
         db_ip = request_body['params']['db_ip'].strip()
         db_port = request_body['params']['db_port'].strip()
-        insert_status = audit_sql_dao.submit_sql_by_ip_port_dao(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name, submit_sql_execute_type, comment_info, uuid_str)
-    logger.info("页面提交的工单信息写入数据库:%s",insert_status)
-    if insert_status != "ok":
+        ret = audit_sql_dao.submit_sql_by_ip_port_dao(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name, submit_sql_execute_type, comment_info, uuid_str)
+    logger.info("页面提交的工单信息写入数据库:%s",ret['status'])
+    if ret['status'] != "ok":
         message = "页面提交的工单信息写入数据库异常"
         content = {'status': "error", 'message': message}
         return content
@@ -236,34 +236,20 @@ def pass_submit_sql_by_uuid(token,submit_sql_uuid,apply_results,check_comment,ch
     data = login_dao.get_login_user_name_by_token_dao(token)
     login_user_name = data["username"]
     login_user_name_role = data["title"]
-    mark_status = audit_sql_dao.pass_submit_sql_by_uuid_dao(submit_sql_uuid,check_comment,check_status,login_user_name,login_user_name_role)
-
+    mark_ret = audit_sql_dao.pass_submit_sql_by_uuid_dao(submit_sql_uuid,check_comment,check_status,login_user_name,login_user_name_role)
+    if mark_ret['status'] != "ok":
+        return mark_ret
     # 如果是审核通过并且标记状态成功则走下面流程
-    if apply_results == "通过" and mark_status == "ok":
-        #获取拆分后SQL详细信息
-        split_sql_data = audit_sql_dao.get_split_sql_info_dao(submit_sql_uuid)
-        #拆分SQL
-        ret = "拆分失败"
+    if apply_results == "通过":
+        # 拆分SQL
         if login_user_name_role == "dba":
             ret = split_sql_func(submit_sql_uuid)
-        try:
-            status = "ok"
-            message = "审核成功," + ret
-            content = {'status': status, 'message': message,"data": split_sql_data}
-        except Exception as e:
-            logger.exception(e)
-            status = "error"
-            message = str(e) + ",+" + ret
-            content = {'status': status, 'message': message}
-            logger.error(e)
-        return content
+            if ret['status'] !="ok":
+                return ret
+            else:
+                return {'status': "ok", 'message': "拆分SQL成"}
     elif apply_results == "不通过":
-        try:
-            content = {'status': "ok", 'message': "审核不通过"}
-        except Exception as e:
-            logger.exception(e)
-            content = {'status': "error", 'message': str(e)}
-        return content
+        return {'status': "ok", 'message': "审核不通过"}
 
 
 # 手动执行SQL更改工单状态
@@ -304,6 +290,7 @@ def get_execute_results_by_split_sql_file_path(split_sql_file_path):
 def split_sql_func(submit_sql_uuid):
     # 查询工单信息
     try:
+        # 获取用户提供的SQL文件路径、数据源
         data = audit_sql_dao.get_submit_sql_file_path_info_dao(submit_sql_uuid)
         sql_file_path = data[0]["submit_sql_file_path"]
         cluster_name = data[0]["cluster_name"]
@@ -312,20 +299,29 @@ def split_sql_func(submit_sql_uuid):
         else:
             des_master_ip = data[0]["master_ip"]
             des_master_port = data[0]["master_port"]
+        # 从文件获取用户提交的SQL
         with open("./upload/{}".format(sql_file_path), "rb") as f:
             execute_sql = f.read()
             execute_sql = execute_sql.decode('utf-8')
-        split_sql_data = inception.start_split_sql(des_master_ip, des_master_port, execute_sql)
-        ret = write_split_sql_to_new_file(des_master_ip, des_master_port, submit_sql_uuid, split_sql_data, sql_file_path,cluster_name)
-        if ret == "拆分SQL成功":
-            message = "拆分任务成功"
+        # 调用inception连接数据源拆分SQL
+        split_sql_ret = inception.start_split_sql(des_master_ip, des_master_port, execute_sql)
+        if split_sql_ret['status'] == 'ok':
+            process_split_sql_ret = write_split_sql_to_new_file(des_master_ip, des_master_port, submit_sql_uuid, split_sql_ret['data'], sql_file_path,cluster_name)
+            if process_split_sql_ret['status'] == "ok":
+                status = "ok"
+                message = "调用inception拆分sql成功,处理拆分后结果成功"
+            else:
+                status = "error"
+                message = "调用inception拆分sql成功,处理拆分后结果失败"
         else:
-            message = "拆分任务失败"
+            status = "error"
+            message = "调用inception拆分sql失败"
     except Exception as e:
-        message = "拆分任务失败"
-        logger.error(str(e))
+        status = "error"
+        message = "拆分SQL任务出现异常"
+        logger.exception(str(e))
     finally:
-        return message
+        return {"status": status, "message": message}
 
 
 # 根据uuid获取sqlsha1,根据sqlsha1连接inception查看执行进度
@@ -441,7 +437,6 @@ def write_split_sql_to_new_file(master_ip, master_port,submit_sql_uuid,split_sql
     try:
         result = []
         result_tmp = {}
-        print(split_sql_data)
         for tup in split_sql_data:
             result_tmp['split_seq'] = tup['ID']
             result_tmp['sql'] = tup['sql_statement']
@@ -466,14 +461,23 @@ def write_split_sql_to_new_file(master_ip, master_port,submit_sql_uuid,split_sql
             # 拆分SQL写入文件
             with open(upfile, 'w') as f:
                 f.write(sql)
+            logger.info("拆分SQL写入对应文件成功：%s", upfile)
             # 拆分SQL详细信息写入数据库
-            audit_sql_dao.write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence, rerun_seq, inception_osc_config)
-        message = "拆分SQL成功"
+            split_sql_info_to_db_ret = audit_sql_dao.write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence, rerun_seq, inception_osc_config)
+            if split_sql_info_to_db_ret['status'] == "ok":
+                logger.info("拆分SQL工单信息写入sql_execute_split表成功：%s", split_sql_file_path)
+                status = "ok"
+                message = "拆分SQL写入对应文件成功，拆分SQL工单信息写入sql_execute_split表成功"
+            else:
+                status = "error"
+                message = "拆分SQL写入对应文件成功，拆分SQL工单信息写入sql_execute_split表失败"
+                logger.error("拆分SQL工单信息写入sql_execute_split表失败：%s", split_sql_file_path)
     except Exception as e:
-        message = "拆分SQL失败"
-        logger.exception(str(e))
+        status = "error"
+        message = "拆分SQL写文件或者写入数据库失败:%s" % str(e)
+        logger.exception(message)
     finally:
-        return message
+        return {"status": status, "message": message}
 
 
 # 获取页面拆分SQL

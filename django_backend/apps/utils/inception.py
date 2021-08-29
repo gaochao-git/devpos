@@ -41,7 +41,6 @@ def check_sql(des_master_ip, des_master_port, check_sql_info):
 
 # inception开始拆分
 def start_split_sql(master_ip, master_port, execute_sql):
-    data = []
     # 拆分SQL
     sql = """/*--user=gaochao;--password=fffjjj;--host={};--port={};--enable-split;*/\
         inception_magic_start;
@@ -53,12 +52,14 @@ def start_split_sql(master_ip, master_port, execute_sql):
         cur.execute(sql)
         sql_tuple = cur.fetchall()
         data = [dict(zip([col[0] for col in cur.description], row)) for row in sql_tuple]
+        content = {'status': "ok", 'inception审核完成': "ok", 'data': data}
     except Exception as e:
-        logger.exception(str(e))
+        logger.exception("inception拆分失败", str(e))
+        content = {'status': "error", 'message': str(e)}
     finally:
         cur.close()
         conn.close()
-        return data
+        return content
 
 
 # inception获取DDL执行进度

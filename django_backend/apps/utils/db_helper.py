@@ -63,19 +63,20 @@ def dml(sql):
     """
     cursor = connection.cursor()
     try:
-        start_time = datetime.now()
         cursor.execute(sql)
-        end_time = datetime.now()
-        # time_diff = (end_time - start_time).microseconds / 1000
-        update_status = "ok"
+        status = "ok"
+        message = "执行成功"
+        code = ""
     except Exception as e:
-        update_status = "error"
+        status = "error"
+        message = "执行SQL失败"
+        code = 2201
         logger.error(e)
     finally:
         logger.info("sql:%s" % (sql))
         cursor.close()
         connection.close()
-        return update_status
+        return {"status": status, "message": message, "code": code}
 
 
 def dml_many(sql_list):
@@ -86,11 +87,8 @@ def dml_many(sql_list):
     """
     cursor = connection.cursor()
     try:
-        start_time = datetime.now()
         for sql in sql_list:
             cursor.execute(sql)
-        end_time = datetime.now()
-        # time_diff = (end_time - start_time).microseconds / 1000
         status = "ok"
         message = "执行成功"
         code = ""
