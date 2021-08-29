@@ -112,23 +112,25 @@ def get_cluster_name(cluster_name_patten):
 # 页面提交SQL工单
 def submit_sql(token, request_body):
     """
-    SQL写文件--->工单信息写数据库--->SQL审核结果写数据库
+    按照这个顺序,如果提交过程中出现失败在SQL工单列表中不会给用户展示垃圾数据
+    SQL写文件--->SQL审核结果写数据库--->工单信息写数据库
     :param token:
     :param request_body:
     :return:
     """
-    #确定文件名
+    ############################ SQL写文件 #############################
+    # 确定文件名
     data = login_dao.get_login_user_name_by_token_dao(token)
     login_user_name = data["username"]
     now_date = strftime("%Y%m%d", gmtime())
     uuid_str = str(uuid.uuid4())
     file_name = "%s_%s.sql" % (login_user_name, uuid_str)
-    #确定存放路径
+    # 确定存放路径
     upload_path = "./upload/" + now_date
     if not os.path.isdir(upload_path):
         os.makedirs(upload_path)
     file_path = now_date + '/' + file_name
-    #拼接文件名路径,提取提交SQL,并将SQL写入文件
+    # 拼接文件名路径,提取提交SQL,并将SQL写入文件
     upfile = os.path.join(upload_path, file_name)
     check_sql = request_body['params']['check_sql']
     try:
@@ -146,7 +148,13 @@ def submit_sql(token, request_body):
     qa_name = ''
     leader_name = ''
     dba_name = ''
+    ############################ SQL审核结果写数据库 #############################
+    # SQL审核结果写入数据库
+    check_sql_results = request_body['params']['check_sql_results']
+    ret = audit_sql_dao.submit_sql_results(uuid_str, check_sql_results)
+    return ret
 
+    ############################ 工单信息写数据库 #############################
     # 页面提交的工单信息写入数据库
     sql_title = request_body['params']['title']
     submit_sql_execute_type = request_body['params']['submit_sql_execute_type']
@@ -158,15 +166,7 @@ def submit_sql(token, request_body):
         db_ip = request_body['params']['db_ip'].strip()
         db_port = request_body['params']['db_port'].strip()
         ret = audit_sql_dao.submit_sql_by_ip_port_dao(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name, submit_sql_execute_type, comment_info, uuid_str)
-    logger.info("页面提交的工单信息写入数据库:%s",ret['status'])
-    if ret['status'] != "ok":
-        message = "页面提交的工单信息写入数据库异常"
-        content = {'status': "error", 'message': message}
-        return content
-
-    # SQL审核结果写入数据库
-    check_sql_results = request_body['params']['check_sql_results']
-    ret = audit_sql_dao.submit_sql_results(uuid_str, check_sql_results)
+    logger.info("页面提交的工单信息写入数据库:%s", ret['status'])
     return ret
 
 
