@@ -205,11 +205,12 @@ class AuditSqlIndex extends Component {
         if( res.data.status === 'ok'){
             window.location.reload();
         }
-        else
+        else{
             this.setState({
                 sql_submit_loading:false
             });
-            alert(res.data.message);
+            message.success(res.data.message);
+        }
     }
 
     //master ip输入框

@@ -182,13 +182,8 @@ def submit_sql_by_cluster_name_dao(login_user_name,sql_title, cluster_name, file
                                          submit_sql_uuid) 
                  values('{}','{}','{}','{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
             """.format(login_user_name, sql_title, cluster_name, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str)
-    try:
-        insert_status = db_helper.dml(sql)
-    except Exception as e:
-        insert_status = "error"
-        logger.error(e)
-    finally:
-        return insert_status
+    return db_helper.dml(sql)
+
 
 
 # 页面提交SQL工单,类型为ip,port
@@ -251,14 +246,16 @@ def submit_sql_results(uuid_str, check_sql_results):
                            inception_backup_dbnames, inception_execute_time,
                            inception_sqlsha1, inception_command)
             cursor.execute(sql_results_insert)
-        insert_status = "ok"
+        status = "ok"
+        message = "审核结果写入数据库成功"
     except Exception as e:
-        logger.error(str(e))
-        insert_status = 'error'
+        logger.exception(str(e))
+        status = 'error'
+        message = "审核结果写入数据库失败"
     finally:
         cursor.close()
         connection.close()
-        return insert_status
+        return {"status": status, "message": message}
 
 
 # 标记工单为审核通过或者不通过

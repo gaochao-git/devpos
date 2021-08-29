@@ -111,6 +111,12 @@ def get_cluster_name(cluster_name_patten):
 
 # 页面提交SQL工单
 def submit_sql(token, request_body):
+    """
+    SQL写文件--->工单信息写数据库--->SQL审核结果写数据库
+    :param token:
+    :param request_body:
+    :return:
+    """
     #确定文件名
     data = login_dao.get_login_user_name_by_token_dao(token)
     login_user_name = data["username"]
@@ -132,22 +138,22 @@ def submit_sql(token, request_body):
         logger.info("提交的SQL写入文件成功")
         print("提交的SQL写入文件成功")
     except Exception as e:
-        logger.error("提交的SQL写入文件失败")
-        content = {'status': "error", 'message': str(e)}
-        return content
-
-    check_sql_results = request_body['params']['check_sql_results']
-    sql_title = request_body['params']['title']
+        message = "提交的SQL写入文件失败:%s",str(e)
+        logger.exception(message)
+        return {'status': "error", 'message': message}
+    # 获取工单相关人员信息
     login_user_info = common.get_login_user_info(login_user_name)
     qa_name = ''
     leader_name = ''
     dba_name = ''
+
+    # 页面提交的工单信息写入数据库
+    sql_title = request_body['params']['title']
     submit_sql_execute_type = request_body['params']['submit_sql_execute_type']
     comment_info = request_body['params']['comment_info']
-    # 页面提交的工单信息写入数据库
     if (request_body['params']['submit_source_db_type'] == "cluster"):
         cluster_name = request_body['params']['cluster_name']
-        insert_status = audit_sql_dao.submit_sql_by_cluster_name_dao(login_user_name, sql_title, cluster_name, file_path, leader_name, qa_name, dba_name, submit_sql_execute_type, comment_info, uuid_str)
+        ret = audit_sql_dao.submit_sql_by_cluster_name_dao(login_user_name, sql_title, cluster_name, file_path, leader_name, qa_name, dba_name, submit_sql_execute_type, comment_info, uuid_str)
     else:
         db_ip = request_body['params']['db_ip'].strip()
         db_port = request_body['params']['db_port'].strip()
@@ -159,13 +165,9 @@ def submit_sql(token, request_body):
         return content
 
     # SQL审核结果写入数据库
-    try:
-        insert_status = audit_sql_dao.submit_sql_results(uuid_str, check_sql_results)
-        content = {'status': "ok", 'message': insert_status}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e)}
-    finally:
-        return content
+    check_sql_results = request_body['params']['check_sql_results']
+    ret = audit_sql_dao.submit_sql_results(uuid_str, check_sql_results)
+    return ret
 
 
 # 页面预览指定的拆分SQL
