@@ -129,31 +129,18 @@ USE_L10N = True
 USE_TZ = True
 STATIC_URL = '/static/'
 
-################# 数据库配置 ##################
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'HOST': '47.104.2.74',
-        'PORT': '3306',
-        'USER': 'wth',
-        'PASSWORD': 'fffjjj',
-        'NAME': 'devops',
-        'cursorclass':pymysql.cursors.DictCursor,
-        'AUTOCOMMIT':True,           # pymysql默认AUTOCOMMIT为False,如果没有该参数django会将其设置为True,如果指定该参数django会忽略该参数
-    }
-}
-
 
 ################# celery配置 ##################
 djcelery.setup_loader()
-BROKER_URL = 'redis://:redisfffjjj@39.97.247.142:6379/0'
-CELERY_RESULT_BACKEND = 'redis://:redisfffjjj@39.97.247.142:6379/1'
+CELERY_IMPORTS= ('apps.celery_task.tasks',)
 CELERY_ACCEPT_CONTENT = ['application/json',]
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+CELERYBEAT_SCHEDULER = 'celery.beat:PersistentScheduler'
 CELERY_REDIRECT_STDOUTS_LEVEL = 'INFO'        #标准输出和标准错误输出的日志级别。可以是DEBUG, INFO, WARNING, ERROR, or CRITICAL,默认为WARNING
-CELERY_TIMEZONE = TIME_ZONE
+CELERY_TIMEZONE = 'Asia/Shanghai'
+BROKER_URL = 'redis://:redisfffjjj@39.97.247.142:6379/0'
+CELERY_RESULT_BACKEND = 'redis://:redisfffjjj@39.97.247.142:6379/1'
 
 ################# inception配置 ##################
 
@@ -268,3 +255,17 @@ LOGGING = {
         }
     },
 }
+
+# ============================================ 项目与环境相关动态配置 =======================================
+try:
+    csock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    csock.connect(('8.8.8.8',80))
+    (ip, port) = csock.getsokname()
+    csock.close()
+except socket.error as e:
+    logger.error(str(e))
+pro_host_list = ['47.104.2.74']
+if ip in pro_host_list:
+    from .pro import *
+else:
+    from .dev import *

@@ -13,7 +13,7 @@ from apps.dao import login_dao
 from apps.utils import common
 from apps.utils import inception
 from apps.dao import audit_sql_dao
-from apps.tasks import inception_execute
+from celery_task.tasks import inception_execute
 from io import StringIO
 
 import logging
