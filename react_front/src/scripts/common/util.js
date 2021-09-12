@@ -15,7 +15,5 @@ export async function getUser() {
     if (res.data["message"]==="验证成功")
       login_user_info = await res.data
   }
-
-  console.log(login_user_info)
   return login_user_info
 }

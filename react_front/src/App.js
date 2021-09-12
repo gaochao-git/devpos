@@ -20,6 +20,7 @@ import NavService from './scripts/home/nave_service'
 import NavManage from './scripts/home/nave_manage'
 import NavOps from './scripts/home/nave_ops'
 import imgURL from './my_logo.jpg'
+import HomeDbaInfo from './scripts/home/home_dba'
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
 axios.defaults.withCredentials = true;
@@ -135,9 +136,9 @@ class App extends Component {
                                 <Content>
                                     <Route exact path="/" component={() => {
                                         if (this.state.is_dba) {
-                                            return <Server/>
+                                            return <HomeDbaInfo/>
                                         } else {
-                                            return <Server/>
+                                            return <HomeDbaInfo/>
                                         }
                                     }}/>
                                     <Route exact path="/Server" component={Server} />
@@ -151,6 +152,7 @@ class App extends Component {
                                     <Route exact path="/commonUser" component={commonUser} />
                                     <Route exact path="/home" component={Login} />
                                     <Route exact path="/mysqlConsole" component={mysqlConsole} />
+                                    <Route exact path="/HomeDbaInfo" component={HomeDbaInfo} />
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>
