@@ -6,3 +6,6 @@ django_celery==3.3.1
 djangorestframework==3.11.0
 django-cors-headers==3.2.0
 redis==2.10.6
+ConcurrentLogHandler==0.9.1
+concurrent-log-handler==0.9.16
+django-cas-ng==4.1.1
