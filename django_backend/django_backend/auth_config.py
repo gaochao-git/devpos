@@ -7,7 +7,7 @@ logger = logging.getLogger('devops')
 try:
     csock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     csock.connect(('8.8.8.8',80))
-    (ip, port) = csock.getsokname()
+    (ip, port) = csock.getsockname()
     csock.close()
 except socket.error as e:
     logger.error(str(e))
@@ -38,6 +38,8 @@ else:
 
 CONNECT_INFO = {
     # 项目数据库配置
+    'django_database_user':django_database_user,
+    'django_database_pass':django_database_pass,
     'django_database_host': django_database_host,
     'django_database_port': django_database_port,
     # inception审核服务地址

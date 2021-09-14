@@ -29,7 +29,8 @@ insert into team_user(uid,gid,uname,department,title) values(1,1,'gaochao','运�
 ```text
 1.启动后端(建议安装anaconda管理python多版本环境)
     1)进入django_backend目录,安装python相关模块
-        pip3.5 install -r requriements.txt
+        python3.6 -m pip install --upgrade pip
+        pip3.6 install -r requriements.txt
     2)$yourpath/devpos/django_backend/django_backend/settings.py修改mysql连接信息
     3)启动后端django
         python3.5 manage.py runserver 0.0.0.0:8000

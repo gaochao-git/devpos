@@ -5,7 +5,7 @@ from apps.dao import audit_sql_dao
 from apps.utils import common
 import logging
 import pymysql
-logger = loggin.getLogger('inception_execute_logger')
+logger = logging.getLogger('inception_execute_logger')
 
 
 class ExecuteSql:

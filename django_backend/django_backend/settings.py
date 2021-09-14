@@ -6,11 +6,13 @@ https://docs.djangoproject.com/en/2.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.1/ref/settings/
 """
-
+import socket
 import os
 import pymysql
 pymysql.install_as_MySQLdb()
 import djcelery
+import logging
+logger = logging.getLogger('devops')
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -260,7 +262,7 @@ LOGGING = {
 try:
     csock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     csock.connect(('8.8.8.8',80))
-    (ip, port) = csock.getsokname()
+    (ip, port) = csock.getsockname()
     csock.close()
 except socket.error as e:
     logger.error(str(e))

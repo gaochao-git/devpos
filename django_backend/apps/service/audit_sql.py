@@ -4,7 +4,6 @@
 # @Author  : 高超
 
 import pymysql
-from django.db import connection
 import uuid
 from time import gmtime, strftime
 import os
@@ -13,7 +12,7 @@ from apps.dao import login_dao
 from apps.utils import common
 from apps.utils import inception
 from apps.dao import audit_sql_dao
-from celery_task.tasks import inception_execute
+from apps.celery_task.tasks import inception_execute
 from io import StringIO
 
 import logging
