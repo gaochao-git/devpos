@@ -27,4 +27,5 @@ def get_table_data_controller(request):
     except keyError as e:
         logger.exception('缺少请求参数:%s' % str(e))
         ret = {"status": "error", "code":2002, "message": "参数不合法"}
+    print(ret)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')

@@ -23,7 +23,9 @@ export default class mysqlConsole extends Component {
     instance_name_list:[{'instance_name':'47.104.2.74_3306'}],
     instance_name:"选择实例名",
     cluster_name_list:[{'cluster_name':'cloud'}],
-    cluster_name:"选择集群名"
+    cluster_name:"选择集群名",
+    get_data:false,
+    query_time:"",
 
   }
 
@@ -50,11 +52,11 @@ export default class mysqlConsole extends Component {
       this.setState({
           table_data: [],
           table_column:[],
+          get_data:false
       });
       await axios.post(`${backendServerApiRoot}/get_table_data/`,{params}).then(
           res => {
               if (res.data.status === "ok"){
-                  console.log(res.data.data[0])
                   let column_arr = []
                   if (res.data.data.length >0){
                       for (var i=0; i<Object.keys(res.data.data[0]).length;i++){
@@ -67,7 +69,9 @@ export default class mysqlConsole extends Component {
                   };
                   this.setState({
                       table_data: res.data.data,
-                      table_column: column_arr
+                      table_column: column_arr,
+                      get_data:true,
+                      query_time:res.data.diff_time
                   });
               }else{
                   message.error(res.data.message);
@@ -146,19 +150,25 @@ export default class mysqlConsole extends Component {
                   onChange={this.onChange} // sql变化事件
                   onCursorActivity={(cm) => this.onCursorActivity(cm)} // 用来完善选中监听
                 />
-                <Table
-                    dataSource={this.state.table_data}
-                    columns={this.state.table_column}
-                    bordered
-                    size="small"
-                    scroll={{x:'max-content'}}
-                    pagination={{
-                        pageSizeOptions:[10,20,30,40,50,60,70,80,90,100,300,500],
-                        showSizeChanger:true,
-                        total:this.state.table_data.length,
-                        showTotal:(count=this.state.table_data.length)=>{return '共'+count+'条'}
-                    }}
-                />
+                {this.state.get_data ?
+                <div>
+                    <Table
+                        dataSource={this.state.table_data}
+                        columns={this.state.table_column}
+                        bordered
+                        size="small"
+                        scroll={{x:'max-content'}}
+                        pagination={{
+                            pageSizeOptions:[10,20,30,40,50,60,70,80,90,100,300,500],
+                            showSizeChanger:true,
+                            total:this.state.table_data.length,
+//                            showTotal:(count=this.state.table_data.length)=>{return '共'+count+'条'}
+                        }}
+                    />
+                    {this.state.table_data.length} rows in set  ({this.state.query_time} ms)
+                </div>
+                :null
+                }
             </Col>
         </Row>
 

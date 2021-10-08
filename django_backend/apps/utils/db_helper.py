@@ -120,8 +120,11 @@ def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
         conn = pymysql.connect(host=ip, port=int(port), user=db_all_remote_user, passwd=db_all_remote_pass, db=db,
                                charset="utf8",connect_timeout=my_connect_timeout)
         cursor = conn.cursor()
+        start_time = datetime.now()
         cursor.execute(sql)
         rows = cursor.fetchall()
+        end_time = datetime.now()
+        diff_time = (end_time - start_time).microseconds/1000
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
         status = "ok"
         message = "执行成功"
@@ -130,11 +133,12 @@ def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
         status = "error"
         message = "connect_ip:%s,connect_port:%s,sql:%s,error:%s" %(ip, port, sql, str(e))
         code = 2201
+        diff_time = 0
         logger.exception(message)
     finally:
         if conn: cursor.close()
         if conn: connection.close()
-        return {"status": status, "message": message, "code": code, "data": data}
+        return {"status": status, "message": message, "code": code, "data": data, 'diff_time': diff_time}
 
 
 def target_source_ping(ip, port):
