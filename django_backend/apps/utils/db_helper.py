@@ -105,7 +105,7 @@ def dml_many(sql_list):
 
 
 ################################################# 指定数据源公共方法 ##########################################
-def target_source_find_all(ip, port, sql, my_connect_timeout=2):
+def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
     """
     连接远程数据库执行查询命令
     :param ip:
@@ -117,7 +117,7 @@ def target_source_find_all(ip, port, sql, my_connect_timeout=2):
     conn = False
     data = []
     try:
-        conn = pymysql.connect(host=ip, port=int(port), user=db_all_remote_user, passwd=db_all_remote_pass, db="",
+        conn = pymysql.connect(host=ip, port=int(port), user=db_all_remote_user, passwd=db_all_remote_pass, db=db,
                                charset="utf8",connect_timeout=my_connect_timeout)
         cursor = conn.cursor()
         cursor.execute(sql)

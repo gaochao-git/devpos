@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger('sql_logger')
 
 
-def get_table_data_dao(ip, port, sql):
+def get_table_data_dao(ip, port, sql, schema_name):
     """
     获取数据
     :param ip:
@@ -17,4 +17,4 @@ def get_table_data_dao(ip, port, sql):
     :param sql:
     :return:
     """
-    return db_helper.target_source_find_all(ip, port, sql)
+    return db_helper.target_source_find_all(ip, port, sql, db=schema_name)

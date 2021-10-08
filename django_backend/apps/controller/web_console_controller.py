@@ -22,9 +22,9 @@ def get_table_data_controller(request):
         ip = request_body['params']['ip']
         port = request_body['params']['port']
         sql = request_body['params']['sql']
-        ret = web_console.get_table_data(ip, port, sql)
+        schema_name = request_body['params']['schema_name']
+        ret = web_console.get_table_data(ip, port, sql, schema_name)
     except keyError as e:
         logger.exception('缺少请求参数:%s' % str(e))
         ret = {"status": "error", "code":2002, "message": "参数不合法"}
-    print(ret)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
