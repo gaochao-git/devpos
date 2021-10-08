@@ -170,17 +170,17 @@ export default class mysqlConsole extends Component {
                         }}
                     />
                     {this.state.table_data.length} rows in set  ({this.state.query_time} ms)
+                    <Button
+                        style={{marginLeft: '10px'}}
+                        onClick={tableToExcel.bind(this, this.state.table_data, this.state.table_column, 'query_result')}
+                    >
+                        导出Excel
+                    </Button>
                 </div>
                 :null
                 }
             </Col>
         </Row>
-        <Button
-            style={{marginLeft: '10px',float: 'right'}}
-            onClick={tableToExcel.bind(this, this.state.table_data, this.state.table_column, 'Redis 部门信息')}
-        >
-            导出Excel
-        </Button>
       </div>
     );
   }
