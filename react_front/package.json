@@ -43,6 +43,7 @@
     "jest-resolve": "24.9.0",
     "jest-watch-typeahead": "0.4.2",
     "js-cookie": "^2.2.1",
+    "js-export-excel": "^1.1.4",
     "lodash": "^4.17.15",
     "mini-css-extract-plugin": "0.8.0",
     "node-sass": "^4.13.0",
@@ -76,7 +77,8 @@
     "webpack": "4.41.2",
     "webpack-dev-server": "3.9.0",
     "webpack-manifest-plugin": "2.2.0",
-    "workbox-webpack-plugin": "4.3.1"
+    "workbox-webpack-plugin": "4.3.1",
+    "xlsx": "^0.17.2"
   },
   "scripts": {
     "dev": "webpack-dev-server --inline --progress --config config/webpackDevServer.config.js --host 0.0.0.0",

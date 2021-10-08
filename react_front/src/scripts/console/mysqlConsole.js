@@ -10,6 +10,7 @@ import 'codemirror/addon/hint/sql-hint.js';
 import 'codemirror/theme/ambiance.css';
 import 'codemirror/addon/selection/active-line';
 import { backendServerApiRoot } from "../common/util"
+import {tableToExcel} from "../common/excel"
 const {Option} = Select
 
 export default class mysqlConsole extends Component {
@@ -28,6 +29,10 @@ export default class mysqlConsole extends Component {
     query_time:"",
 
   }
+
+    exportBuInfoToExcel = () => {
+        tableToExcel({})
+    }
 
   //编辑器内容变动后就修改state
   onChange = (editor, data, sql)=>{
@@ -85,7 +90,6 @@ export default class mysqlConsole extends Component {
           });
       })
     };
-
   render() {
     return (
       <div>
@@ -171,7 +175,12 @@ export default class mysqlConsole extends Component {
                 }
             </Col>
         </Row>
-
+        <Button
+            style={{marginLeft: '10px',float: 'right'}}
+            onClick={tableToExcel.bind(this, this.state.table_data, this.state.table_column, 'Redis 部门信息')}
+        >
+            导出Excel
+        </Button>
       </div>
     );
   }
