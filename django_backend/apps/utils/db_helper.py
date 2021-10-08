@@ -4,7 +4,7 @@ import pymysql
 from datetime import datetime
 logger = logging.getLogger('sql_logger')
 db_all_remote_user = "gaochao"
-db_all_remote_pass = "gaochao"
+db_all_remote_pass = "fffjjj"
 
 # pymysql自动提交默认为False,django会将自动提交改为True,也可以在setting中自己设置,如果某个SQL想单独设置，则需要单独开启事物
 ################################################# 本项目数据源公共方法 ##########################################
@@ -118,7 +118,7 @@ def target_source_find_all(ip, port, sql, my_connect_timeout=2):
     data = []
     try:
         conn = pymysql.connect(host=ip, port=int(port), user=db_all_remote_user, passwd=db_all_remote_pass, db="",
-                               charset="utf-8",connect_timeout=my_connect_timeout)
+                               charset="utf8",connect_timeout=my_connect_timeout)
         cursor = conn.cursor()
         cursor.execute(sql)
         rows = cursor.fetchall()
@@ -130,7 +130,7 @@ def target_source_find_all(ip, port, sql, my_connect_timeout=2):
         status = "error"
         message = "connect_ip:%s,connect_port:%s,sql:%s,error:%s" %(ip, port, sql, str(e))
         code = 2201
-        logger.error(message)
+        logger.exception(message)
     finally:
         if conn: cursor.close()
         if conn: connection.close()

@@ -81,21 +81,20 @@ class AuditSqlIndex extends Component {
                 rebuild_table: this.state.rebuild_table,
                 set_value: this.state.set_value,
             };
-        console.log(params)
         await axios.post(`${backendServerApiRoot}/create_block_sql/`,{params}).then(
-                res => {res.data.status==="ok"?
-                    this.setState({
-                        create_sql_content: res.data.data,
-                    })
-                    :
-                    message.error(res.data.message,3) && this.setState({create_sql_content: ""})
-                }
-            ).catch(err => {
-                message.error(err, 3);
+            res => {res.data.status==="ok"?
                 this.setState({
-                    create_sql_content: "",
-                });
-            })
+                    create_sql_content: res.data.data,
+                })
+                :
+                message.error(res.data.message,3) && this.setState({create_sql_content: ""})
+            }
+        ).catch(err => {
+            message.error(err, 3);
+            this.setState({
+                create_sql_content: "",
+            });
+        })
     }
     //cluster_name检测SQL,集群名和输入SQL不能为空
     async handleClusterNameSqlCheck() {

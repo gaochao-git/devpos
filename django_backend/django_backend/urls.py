@@ -9,6 +9,7 @@ from apps.controller import create_private_user
 from apps.controller import create_private_user_controller
 from apps.controller import server_info_controller
 from apps.controller import login_controller
+from apps.controller import web_console_controller
 import datetime
 from rest_framework.authtoken import views as drf_views
 
@@ -67,5 +68,8 @@ urlpatterns = [
     path('api/privilege_view_user/', create_private_user.privilege_view_user_func),                          # 权限申请--查看用户已有权限
     path('api/get_mysql_instance_info/', mysql_instance_controller.get_mysql_instance_info_handler),                       # 获取mysql实例
     path('api/get_search_mysql_instance_info/', mysql_instance_controller.get_search_mysql_instance_info_handler),         # 根据搜索框获取mysql实例
+
+    # web_console
+    path('api/get_table_data/', web_console_controller.get_table_data_controller),
     ]
 
