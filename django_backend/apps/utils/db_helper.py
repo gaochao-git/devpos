@@ -138,7 +138,7 @@ def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
     finally:
         if conn: cursor.close()
         if conn: connection.close()
-        return {"status": status, "message": message, "code": code, "data": data, 'diff_time': diff_time}
+        return {"status": status, "message": message, "code": code, "data": data, 'query_time': diff_time}
 
 
 def target_source_ping(ip, port):

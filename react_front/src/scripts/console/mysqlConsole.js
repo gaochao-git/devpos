@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import { Table, Input,Badge,Button,message,Row,Col,Select } from "antd";
+import { Table, Input,Badge,Button,message,Row,Col,Select,Tabs } from "antd";
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/mode/sql/sql';
@@ -12,6 +12,7 @@ import 'codemirror/addon/selection/active-line';
 import { backendServerApiRoot } from "../common/util"
 import {tableToExcel} from "../common/excel"
 const {Option} = Select
+const {TabPane} = Tabs
 
 export default class mysqlConsole extends Component {
   state = {
@@ -27,6 +28,10 @@ export default class mysqlConsole extends Component {
     cluster_name:"选择集群名",
     get_data:false,
     query_time:"",
+    multi_label:[],
+    multi_table_data:[],
+    multi_table_column:[],
+    multi_query_time:[]
 
   }
 
@@ -34,16 +39,9 @@ export default class mysqlConsole extends Component {
         tableToExcel({})
     }
 
-  //编辑器内容变动后就修改state
-  onChange = (editor, data, sql)=>{
-    this.setState({sql_content: sql});
-//    console.log(sql)
-  }
-
   onCursorActivity = (cm) => {
     if (cm.getSelection()) {
       this.setState({sql_content: cm.getSelection()});
-//      console.log(cm.getSelection()); // 获取到选中部分内容，用来实现执行部分内容
     }
   }
 
@@ -62,21 +60,36 @@ export default class mysqlConsole extends Component {
       await axios.post(`${backendServerApiRoot}/get_table_data/`,{params}).then(
           res => {
               if (res.data.status === "ok"){
-                  let column_arr = []
-                  if (res.data.data.length >0){
-                      for (var i=0; i<Object.keys(res.data.data[0]).length;i++){
-                          console.log(Object.keys(res.data.data[0])[i])
-                          let column_obj = {};
-                          column_obj['title'] = [Object.keys(res.data.data[0])[i]]
-                          column_obj['dataIndex'] = [Object.keys(res.data.data[0])[i]]
-                          column_arr.push(column_obj)
-                      }
-                  };
+                  let table_column_list = []
+                  let table_data_list = []
+                  let table_label_list = []
+                  let query_time_list = []
+                  for (var j=0; j<res.data.data.length;j++){
+                      let column_arr = []
+                      let label = '结果' + (j+1)
+                      if (res.data.data.length >0){
+                          for (var i=0; i<Object.keys(res.data.data[j][j][0]).length;i++){
+                              let column_obj = {};
+                              column_obj['title'] = [Object.keys(res.data.data[j][j][0])[i]]
+                              column_obj['dataIndex'] = [Object.keys(res.data.data[j][j][0])[i]]
+                              column_arr.push(column_obj)
+                          }
+                      };
+                      table_column_list.push(column_arr)
+                      table_data_list.push(res.data.data[j][j])
+                      table_label_list.push(label)
+                      query_time_list.push(res.data.query_time[j][j])
+                  }
+                  console.log(table_label_list)
+                  console.log(table_data_list)
+                  console.log(table_column_list)
+                  console.log(query_time_list)
                   this.setState({
-                      table_data: res.data.data,
-                      table_column: column_arr,
+                      multi_label: table_label_list,
+                      multi_table_data: table_data_list,
+                      multi_table_column: table_column_list,
+                      multi_query_time: query_time_list,
                       get_data:true,
-                      query_time:res.data.diff_time
                   });
               }else{
                   message.error(res.data.message);
@@ -151,34 +164,39 @@ export default class mysqlConsole extends Component {
                     styleActiveLine: true,
                     lineWrapping:true
                   }}
-                  onChange={this.onChange} // sql变化事件
+                  onChange={(cm) => this.setState({sql_content: cm.getValue()})} // sql变化事件
+                  onFocus={(cm) => this.setState({sql_content: cm.getValue()})}
                   onCursorActivity={(cm) => this.onCursorActivity(cm)} // 用来完善选中监听
                 />
-                {this.state.get_data ?
-                <div>
-                    <Table
-                        dataSource={this.state.table_data}
-                        columns={this.state.table_column}
-                        bordered
-                        size="small"
-                        scroll={{x:'max-content'}}
-                        pagination={{
-                            pageSizeOptions:[10,20,30,40,50,60,70,80,90,100,300,500],
-                            showSizeChanger:true,
-                            total:this.state.table_data.length,
-//                            showTotal:(count=this.state.table_data.length)=>{return '共'+count+'条'}
-                        }}
-                    />
-                    {this.state.table_data.length} rows in set  ({this.state.query_time} ms)
-                    <Button
-                        style={{marginLeft: '10px'}}
-                        onClick={tableToExcel.bind(this, this.state.table_data, this.state.table_column, 'query_result')}
-                    >
-                        导出Excel
-                    </Button>
-                </div>
-                :null
-                }
+                <Tabs defaultActiveKey='1'>
+                    {
+                        this.state.multi_label.map((item,index)=>{
+                        return(
+                            <TabPane tab={item} key={index}>
+                                共{this.state.multi_table_data[index].length}条,  耗时:{this.state.multi_query_time[index]} ms
+                                <Button
+                                    style={{marginLeft: '10px'}}
+                                    onClick={tableToExcel.bind(this, this.state.multi_table_data[0], this.state.multi_table_column[0], 'query_result')}
+                                >
+                                    导出
+                                </Button>
+                                <Table
+                                    dataSource={this.state.multi_table_data[index]}
+                                    columns={this.state.multi_table_column[index]}
+                                    bordered
+                                    size="small"
+                                    scroll={{x:'max-content'}}
+                                    pagination={{
+                                        pageSizeOptions:[10,20,30,40,50,60,70,80,90,100,300,500],
+                                        showSizeChanger:true,
+                                        total:this.state.table_data.length,
+                                    }}
+                                />
+                            </TabPane>
+                        )
+                        })
+                    }
+                </Tabs>
             </Col>
         </Row>
       </div>
