@@ -80,10 +80,6 @@ export default class mysqlConsole extends Component {
                       table_label_list.push(label)
                       query_time_list.push(res.data.query_time[j][j])
                   }
-                  console.log(table_label_list)
-                  console.log(table_data_list)
-                  console.log(table_column_list)
-                  console.log(query_time_list)
                   this.setState({
                       multi_label: table_label_list,
                       multi_table_data: table_data_list,
@@ -103,6 +99,36 @@ export default class mysqlConsole extends Component {
           });
       })
     };
+
+
+  onInputRead = async (cm, change, editor) => {
+    console.log(cm)
+    console.log(change)
+    console.log(editor)
+    const { text } = change;
+    const dechars = [
+      '.',
+    ];
+    const autocomplete = dechars.includes(text[0]);
+    if (autocomplete) {
+//      const data = getTableList(); // 获取库表列表
+      const data = {"table5": ["c1", "c2"]}; // 获取库表列表
+      cm.setOption('hintOptions', {
+        tables: data,
+        completeSingle: false
+      });
+      cm.execCommand('autocomplete');
+    } else {
+//      const tableName = getTableList(); // 获取表列表
+      const tableName = {"table6": ["c1", "c2"]};; // 获取库表列表
+      cm.setOption('hintOptions', {
+        tables: tableName,
+        completeSingle: false
+      });
+    }
+    cm.execCommand('autocomplete');
+  }
+
   render() {
     return (
       <div>
@@ -160,13 +186,27 @@ export default class mysqlConsole extends Component {
                     lineNumbers: true,
                     mode: {name: "text/x-mysql"},
                     extraKeys: {"Tab": "autocomplete"},
-                    theme: 'ambiance',
+                    theme: 'idea',
                     styleActiveLine: true,
-                    lineWrapping:true
+                    lineWrapping:true,
+                    // 代码提示功能
+                    hintOptions: {
+                      // 避免由于提示列表只有一个提示信息时，自动填充
+                      completeSingle: false,
+                      // 不同的语言支持从配置中读取自定义配置 sql语言允许配置表和字段信息，用于代码提示
+                      tables: {
+                        "table1": ["c1", "c2"],
+                        "table2": ["c1", "c2"],
+                      },
+                    },
                   }}
+
                   onChange={(cm) => this.setState({sql_content: cm.getValue()})} // sql变化事件
                   onFocus={(cm) => this.setState({sql_content: cm.getValue()})}
                   onCursorActivity={(cm) => this.onCursorActivity(cm)} // 用来完善选中监听
+                  onInputRead={// 自动补全
+                     (cm, change, editor) => this.onInputRead(cm, change, editor)
+                  }
                 />
                 <Tabs defaultActiveKey='1'>
                     {
