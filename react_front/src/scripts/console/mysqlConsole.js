@@ -176,7 +176,7 @@ export default class mysqlConsole extends Component {
                                 共{this.state.multi_table_data[index].length}条,  耗时:{this.state.multi_query_time[index]} ms
                                 <Button
                                     style={{marginLeft: '10px'}}
-                                    onClick={tableToExcel.bind(this, this.state.multi_table_data[0], this.state.multi_table_column[0], 'query_result')}
+                                    onClick={tableToExcel.bind(this, this.state.multi_table_data[index], this.state.multi_table_column[index], 'query_result')}
                                 >
                                     导出
                                 </Button>
