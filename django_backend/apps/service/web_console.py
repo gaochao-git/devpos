@@ -9,7 +9,7 @@ from apps.dao import web_console_dao
 logger = logging.getLogger('devops')
 
 
-def get_table_data(ip, port, sql, schema_name):
+def get_table_data(ip, port, sql, schema_name, explain):
     """
     获取数据
     :param ip:
@@ -17,4 +17,4 @@ def get_table_data(ip, port, sql, schema_name):
     :param sql:
     :return:
     """
-    return web_console_dao.get_table_data_dao(ip, port, sql, schema_name)
+    return web_console_dao.get_table_data_dao(ip, port, sql, schema_name, explain)

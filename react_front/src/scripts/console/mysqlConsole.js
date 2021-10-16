@@ -45,12 +45,13 @@ export default class mysqlConsole extends Component {
     }
   }
 
-  async getTableData() {
+  async getTableData(explain) {
       let params = {
         ip:'47.104.2.74',
         port:3306,
         schema_name:'test',
-        sql:this.state.sql_content
+        sql:this.state.sql_content,
+        explain:explain
       };
       this.setState({
           table_data: [],
@@ -179,7 +180,8 @@ export default class mysqlConsole extends Component {
                         })}
                     </Select>
                 <hr/>
-                <Button type="primary" onClick={()=> this.getTableData()}>执行</Button>
+                <Button type="primary" onClick={()=> this.getTableData('no')}>执行</Button>
+                <Button type="dashed" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>执行</Button>
                 <CodeMirror
                   value={this.state.content}
                   options={{
