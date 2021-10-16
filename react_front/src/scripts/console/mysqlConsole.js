@@ -181,7 +181,7 @@ export default class mysqlConsole extends Component {
                     </Select>
                 <hr/>
                 <Button type="primary" onClick={()=> this.getTableData('no')}>执行</Button>
-                <Button type="dashed" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>执行</Button>
+                <Button type="dashed" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>执行计划</Button>
                 <CodeMirror
                   value={this.state.content}
                   options={{
