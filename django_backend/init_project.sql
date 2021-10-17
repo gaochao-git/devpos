@@ -203,6 +203,21 @@ CREATE TABLE `sql_inception_osc_config` (
   `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8 COMMENT='inception 变量配置表';
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_chunk_size',200);
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_chunk_size_limit',1);
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_chunk_time',0.5);
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_creitical_thread_connected',500);
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_creitical_thread_running',80);
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_max_thread_connected',500);
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_max_thread_running',80);
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_drop_new_table',1);
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_drop_old_table',1);
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_max_lag',10);
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_recursion_method','processlist');
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_check_alter','on');
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_alter_table_method','pt-osc');
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_check_unique_key_change','on');
+insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_alter_foreign_keys_method','none');
 
 CREATE TABLE `sql_submit_info` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
