@@ -3,7 +3,7 @@ import axios from 'axios'
 import {Layout, Menu, Icon, Button, Tooltip,message} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
-import {HashRouter,Route} from 'react-router-dom';
+import {HashRouter,Route,BrowserRouter} from 'react-router-dom';
 import mysqlCluster from './scripts/mysql/mysqlCluster'
 import AuditSqlIndex from './scripts/auditSql/auditSqlIndex'
 import ExecuteSql from './scripts/auditSql/executeSql'
@@ -23,9 +23,9 @@ import imgURL from './my_logo.jpg'
 import HomeDbaInfo from './scripts/home/home_dba'
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
-axios.defaults.withCredentials = true;
-axios.defaults.headers.post['Content-Type'] = 'application/json';
-axios.defaults.headers.common['Authorization'] = window.localStorage.getItem('token') ;
+//axios.defaults.withCredentials = true;
+//axios.defaults.headers.post['Content-Type'] = 'application/json';
+//axios.defaults.headers.common['Authorization'] = window.localStorage.getItem('token') ;
 
 function LoginOut(){
     console.log("退出登陆");
@@ -74,7 +74,7 @@ class App extends Component {
         if (window.localStorage.getItem('token')) {
             return(
                 <div className="App">
-                    <HashRouter>
+                    <BrowserRouter>
                         <Layout>
                             <Header className="header">
                                 <div className="logo">
@@ -157,7 +157,7 @@ class App extends Component {
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>
                         </Layout>
-                    </HashRouter>
+                    </BrowserRouter>
                 </div>
             )
         }else{

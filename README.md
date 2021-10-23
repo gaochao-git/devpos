@@ -34,6 +34,7 @@ insert into team_user(uid,gid,uname,department,title) values(1,1,'gaochao','运�
     2)$yourpath/devpos/django_backend/django_backend/settings.py修改mysql连接信息
     3)启动后端django
         python3.5 manage.py runserver 0.0.0.0:8000
+        公司: D:\gaochao\SoftInstall\anaconda\envs\python36\python.exe .\manage.py runserver 0.0.0.0:8000
     4)启动celery
         python3.5 manage.py celery worker --concurrency=4  --loglevel=info --logfile=./logs/celery.log
 2.启动前端

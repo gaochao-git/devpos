@@ -13,11 +13,6 @@ from apps.controller import web_console_controller
 import datetime
 from rest_framework.authtoken import views as drf_views
 
-JWT_AUTH = {
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
-    'JWT_AUTH_HEADER_PREFIX': 'JWT',
-}
-
 
 urlpatterns = [
     path('api/admin/', admin.site.urls),                                                                          # django后台登陆
@@ -46,7 +41,7 @@ urlpatterns = [
     path('api/create_block_sql/', audit_sql_controller.create_block_sql_controller),  # 生成用id切割的SQL用来删除或者更新数据,防止大事物
     # sql审核end
 
-    path('api/get_server_info/', server_info_controller.get_server_info_controller),                         # server--查看主机信息
+    path('api/get_server_info/', server_info_controller.get_server_info_controller, kwargs={"access": "all"}),                         # server--查看主机信息
 
     path('api/get_user_info/', create_common_user.get_user_info_func),                                       # 公共账号管理--查看已有账号信息
     path('api/grant_user_info/', create_common_user.create_and_grant_func),                                  # 公共账号管理--创建用户申请权限

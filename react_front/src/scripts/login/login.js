@@ -19,7 +19,6 @@ class Login extends Component  {
     // 登陆验证
     async login(username, password) {
         axios.post(`${backendServerApiRoot}/auth/`, {username, password}).then(function(res){
-            console.log(res)
             window.localStorage.setItem('token', res.data.token)
             window.location.reload()
         }).catch(function (error) {

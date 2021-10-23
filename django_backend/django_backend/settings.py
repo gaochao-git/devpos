@@ -37,11 +37,17 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'apps',
     'corsheaders',  #解决跨域失败
-    #'rest_framework',
+    'rest_framework',
     'rest_framework.authtoken',
     'djcelery',
 ]
 
+# django-rest-framework设置
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'apps.utils.auth.UserAuth',
+),
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

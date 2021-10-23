@@ -8,8 +8,13 @@ from apps.dao import server_info_dao
 import logging
 logger = logging.getLogger('devops')
 
-# 页面获取所有云主机信息
+
 def get_server_info(search_server_name):
+    """
+    页面获取所有云主机信息
+    :param search_server_name:
+    :return:
+    """
     data = []
     try:
         data = server_info_dao.get_server_info_dao(search_server_name)

@@ -11,5 +11,6 @@ def get_login_user_name_by_token_handler(request):
     # ret1 = sendmail.delay(dict(to='celery@python.org'))
     # print(ret1)
     token = request.META.get('HTTP_AUTHORIZATION')
+    print(token)
     ret = login.get_login_user_name_by_token(token)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')

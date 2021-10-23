@@ -1,5 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
+import MyAxios from "../common/interface"
 import { Table, Input,message } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
@@ -31,7 +32,8 @@ export default class Server extends Component  {
         let params = {
             search_server_name:"",
         };
-        await axios.post(`${backendServerApiRoot}/get_server_info/`, {params}).then(
+        console.log(window.location.href)
+        await MyAxios.post(`${backendServerApiRoot}/get_server_info/`, {params}).then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     server_info: res.data.data
@@ -46,7 +48,7 @@ export default class Server extends Component  {
             search_server_name:server_name,
         };
         console.log(params)
-        await axios.post(`${backendServerApiRoot}/get_server_info/`,{params}).then(
+        await MyAxios.post(`${backendServerApiRoot}/get_server_info/`,{params}).then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     server_info: res.data.data
