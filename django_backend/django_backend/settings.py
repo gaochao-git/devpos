@@ -44,9 +44,7 @@ INSTALLED_APPS = [
 
 # django-rest-framework设置
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'apps.utils.auth.UserAuth',
-),
+    # 'DEFAULT_AUTHENTICATION_CLASSES': ['apps.utils.auth.UserAuth',],
 }
 
 MIDDLEWARE = [
@@ -58,6 +56,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 自定义中间件登陆认证
+    'apps.utils.auth.TokenAuth',
 ]
 
 

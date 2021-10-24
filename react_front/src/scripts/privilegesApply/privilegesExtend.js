@@ -3,7 +3,6 @@ import axios from 'axios'
 import {Button, Input, Form, Row, Card, Checkbox, message, Table} from "antd";
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
-import {getUser} from "../common/util";
 
 
 
@@ -60,15 +59,7 @@ export default class PrivilegesExtend extends React.Component  {
     };
 
     componentDidMount() {
-        getUser().then(res => {
-            this.setState({
-                login_user_name: res.data.username,
-                //login_user_name_role: res.data.title,
-                login_user_name_role: res.data.title,
-            })
-        }).catch(error=>{
-            console.log(error)
-        })
+        console.log(2222)
 
     }
 

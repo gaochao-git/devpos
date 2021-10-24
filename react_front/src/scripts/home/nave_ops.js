@@ -4,7 +4,6 @@ import {Button, Table, Input, Modal, Tabs, Form, Row, Select, message, Card, Aut
 } from "antd";
 import {HashRouter, Link, Route} from 'react-router-dom';
 import "antd/dist/antd.css";
-import {getUser} from "../common/util";
 import Server from "../Server/Server";
 import mysqlCluster from "../mysql/mysqlCluster";
 import mysqlInstance from "../mysql/mysqlInstance";

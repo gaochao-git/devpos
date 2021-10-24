@@ -4,7 +4,6 @@ import {Button, Col, Form, Row, Card, Table, message,Modal,Input,} from "antd";
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import {Link} from "react-router-dom";
-import {getUser} from "../common/util";
 import { backendServerApiRoot } from "../common/util"
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
@@ -53,15 +52,6 @@ export default class OrderInformation extends React.Component  {
 
     componentDidMount() {
         this.GetUserInfo();
-        getUser().then(res => {
-            this.setState({
-                login_user_name: res.data.username,
-                login_user_name_role: res.data.title,
-            })
-        }).catch(error=>{
-            console.log(error)
-        })
-
     }
 
 

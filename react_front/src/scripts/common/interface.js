@@ -29,11 +29,11 @@ MyAxios.interceptors.response.use(
     //拦截响应，做统一处理
     if (response.data.status !=="ok") {
       switch (response.data.code) {
-        case 1201:
+        case "1201":
           message.error('未登录')
-        case 1202:
+        case "1202":
           message.error('token无效')
-        case 1203:
+        case "1203":
           message.error('权限不足')
       }
     }

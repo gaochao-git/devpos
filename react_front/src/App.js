@@ -3,6 +3,7 @@ import axios from 'axios'
 import {Layout, Menu, Icon, Button, Tooltip,message} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
+import MyAxios from "./scripts/common/interface"
 import {HashRouter,Route,BrowserRouter} from 'react-router-dom';
 import mysqlCluster from './scripts/mysql/mysqlCluster'
 import AuditSqlIndex from './scripts/auditSql/auditSqlIndex'
@@ -13,7 +14,6 @@ import OrderInformation from './scripts/privilegesApply/orderInformation'
 import commonUser from "./scripts/commonUser/commonUserCharge";
 import Server from "./scripts/Server/Server";
 import Login from "./scripts/login/login"
-import {getUser} from './scripts/common/util'
 import mysqlInstance from './scripts/mysql/mysqlInstance'
 import mysqlConsole from './scripts/console/mysqlConsole'
 import NavService from './scripts/home/nave_service'
@@ -43,15 +43,7 @@ class App extends Component {
         }
     }
     componentDidMount() {
-        console.log("Token:",window.localStorage.getItem('token'))
-        getUser().then(res => {
-            this.setState({
-                login_user_name: res.data.username,
-                login_user_name_role: res.data.title
-            })
-        }).catch(error=>{
-            console.log(error)
-        })
+        this.getUserInfo()
         //如果tab主标签存在则跳到指定tab，否则跳到服务标签
         if (window.localStorage.current_nav){
             this.setState({
@@ -62,6 +54,19 @@ class App extends Component {
                 current_nav:"服务"
             });
         };
+    }
+    //根据token获取登陆信息
+    async getUserInfo() {
+        await MyAxios.post('/get_login_user_name_by_token/').then(
+            res => {res.data.status==="ok" ?
+                this.setState({
+                    login_user_name:res.data.data[0]['username'],
+                    login_user_name_role:res.data.data[0]['title'],
+                })
+//                console.log(res.data.data)
+            :
+                message.error(res.data.message)}
+        ).catch(err => {message.error(err.message)})
     }
     //更改服务、运维、管理标签
     handlerClick = e =>{
@@ -102,6 +107,7 @@ class App extends Component {
                                         title={
                                             <span>
                                                 用户名:{this.state.login_user_name}
+                                                <br/>角色:{this.state.login_user_name_role}
                                                 <br/>部门:
                                                 <br/>邮箱:
                                             </span>

@@ -1,19 +1,6 @@
-import axios from "axios";
+import axios from 'axios'
+import MyAxios from "../common/interface"
+import { message } from "antd"
 //后端服务器
-// export const backendServerApiRoot = 'http://39.97.247.142:8000/api'    //公网ip
 export const backendServerApiRoot = 'http://127.0.0.1:8000/api'
-//根据token获取登陆信息
-let login_user_info = null
-export async function getUser() {
-  if (window.localStorage.getItem('token')) {
-    let params = {
-      token: window.localStorage.getItem('token')
-    };
-    const res = await axios.post(`${backendServerApiRoot}/get_login_user_name_by_token/`,{params}).catch(error=>{
-      console.log(error)
-    })
-    if (res.data["message"]==="验证成功")
-      login_user_info = await res.data
-  }
-  return login_user_info
-}
+

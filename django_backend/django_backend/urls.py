@@ -10,6 +10,7 @@ from apps.controller import create_private_user_controller
 from apps.controller import server_info_controller
 from apps.controller import login_controller
 from apps.controller import web_console_controller
+from apps.ansible_task.adhoc import ansible_adhoc
 import datetime
 from rest_framework.authtoken import views as drf_views
 
@@ -66,5 +67,9 @@ urlpatterns = [
 
     # web_console
     path('api/get_table_data/', web_console_controller.get_table_data_controller),
+
+    # ansible
+    path('api/ansible_adhoc/', ansible_adhoc.adhoc),
+    path('api/ansible_playbook/', ansible_adhoc.adhoc),
     ]
 

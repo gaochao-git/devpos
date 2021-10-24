@@ -4,12 +4,12 @@
 from django.http import HttpResponse
 import json
 from apps.service import server_info
-from apps.service import login
+from apps.utils.auth import permission_required
 import logging
 logger = logging.getLogger('devops')
 
 
-@login.auth
+@permission_required
 def get_server_info_controller(request):
     """
     获取主机信息

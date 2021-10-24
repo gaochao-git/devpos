@@ -33,6 +33,7 @@ export default class Server extends Component  {
             search_server_name:"",
         };
         console.log(window.location.href)
+        console.log(window.localStorage.getItem('token'))
         await MyAxios.post(`${backendServerApiRoot}/get_server_info/`, {params}).then(
             res => {res.data.status==="ok" ?
                 this.setState({
@@ -48,7 +49,7 @@ export default class Server extends Component  {
             search_server_name:server_name,
         };
         console.log(params)
-        await MyAxios.post(`${backendServerApiRoot}/get_server_info/`,{params}).then(
+        await MyAxios.post('/get_server_info/',{params}).then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     server_info: res.data.data

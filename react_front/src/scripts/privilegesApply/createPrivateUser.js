@@ -3,7 +3,6 @@ import axios from 'axios'
 import { Button, Input,Form,Row,Card,Checkbox,message} from "antd";
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
-import {getUser} from "../common/util";
 
 
 axios.defaults.withCredentials = true;
@@ -30,14 +29,7 @@ export default class CreatePrivateUser extends React.Component  {
     }
 
     componentDidMount() {
-        getUser().then(res => {
-            this.setState({
-                login_user_name: res.data.username,
-                login_user_name_role: res.data.title,
-            })
-        }).catch(error=>{
-            console.log(error)
-        })
+        console.log(111)
 
     };
 

@@ -1,0 +1,8 @@
+---
+- hosts: all
+  remote_user: root
+  tasks:
+  - name: 获取/tmp目录
+    shell: ls /tmp
+  - name: 创建文件
+    shell: touch /tmp/3.txt

@@ -254,13 +254,11 @@ def submit_sql_results(uuid_str, check_sql_results):
             if i < 50 and total == 0:  # 总数小于50或者最后一批不足50
                 sql_results_insert = sql_key + sql_values.rstrip(',')
                 cursor.execute(sql_results_insert)
-                print(555)
             elif i == 50: # 达到50就执行一批
                 sql_results_insert = sql_key + sql_values.rstrip(',')
                 cursor.execute(sql_results_insert)
                 sql_values = ""
                 i = 0
-                print(666)
         status = "ok"
         message = "审核结果写入数据库成功"
     except Exception as e:

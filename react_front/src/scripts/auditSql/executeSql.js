@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm, } from 'antd';
 import { Link } from 'react-router-dom';
 import axios from "axios";
-import {backendServerApiRoot, getUser} from "../common/util";
+import {backendServerApiRoot} from "../common/util";
 const Column = Table.Column;
 const TextArea = Input.TextArea;
 const EditableCell = ({ editable, value, onChange }) => (
@@ -74,14 +74,7 @@ export default class ExecuteSql extends Component {
         let submit_sql_uuid = this.props.match.params["submit_sql_uuid"];
         this.GetSqlApplyByUuid(submit_sql_uuid)
         this.GetSqlCheckResultsByUuid(submit_sql_uuid);
-        getUser().then(res => {
-            this.setState({
-                login_user_name: res.data.username,
-                login_user_name_role: res.data.title
-            })
-        }).catch(error=>{
-            console.log(error)
-        })
+        console.log(33333)
     };
     //获取提交SQL的详细信息
     async GetSqlApplyByUuid(sql_uuid) {

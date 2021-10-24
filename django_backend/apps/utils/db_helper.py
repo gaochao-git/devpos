@@ -14,19 +14,49 @@ def findall(sql):
     :param sql:
     :return:
     """
+    data = []
     cursor = connection.cursor()
     try:
         cursor.execute(sql)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+        status = "ok"
+        message = "执行SQL成功"
         return data
     except Exception as e:
+        status = "error"
+        message = "执行SQL失败"
         logger.exception(e)
     finally:
         logger.info("sql:%s" % (sql))
         cursor.close()
         connection.close()
 
+
+def find_all(sql):
+    """
+    传入SQL
+    :param sql:
+    :return:
+    """
+    data = []
+    try:
+        cursor = connection.cursor()
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+        status = "ok"
+        message = "执行成功"
+        code = ""
+    except Exception as e:
+        status = "error"
+        message = "执行SQL失败"
+        code = 2201
+        logger.error("%s执行失败:%s",sql)
+    finally:
+        cursor.close()
+        connection.close()
+        return {"status": status, "message": message, "code": code, "data": data}
 
 def find_all_many(sql_list):
     """
