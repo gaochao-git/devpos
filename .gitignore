@@ -5,4 +5,4 @@
 *.log.*
 *.pid
 venv
-
+*.tar.gz
