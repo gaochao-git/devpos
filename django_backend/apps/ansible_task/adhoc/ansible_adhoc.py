@@ -50,22 +50,6 @@ class ResultsCollectorJSONCallback(CallbackBase):
         host = result._host
         self.host_failed[host.get_name()] = result
 
-    def v2_runner_on_skipped(self, result):
-        self.task_ok[result._host.get_name()] = result
-
-    def v2_playbook_on_stats(self, stats):
-        hosts = sorted(stats.processed.keys())
-        for h in hosts:
-            t = stats.summarize(h)
-            self.task_status[h] = {
-                "ok": t['ok'],
-                "changed": t['changed'],
-                "unreachable": t['unreachable'],
-                "skipped": t['skipped'],
-                "failed": t['failures']
-            }
-        print(self.task_status)
-
 
 def adhoc():
     # since the API is constructed for CLI it expects certain options to always be set in the context object

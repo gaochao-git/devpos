@@ -11,6 +11,7 @@ from django.db import connection
 from apps.utils import inception
 from apps.dao import audit_sql_dao
 from apps.celery_task.execute_sql_task import ExecuteSql
+from apps.celery_task.install_mysql import InstallMysql
 import logging
 logger = logging.getLogger('inception_execute_logger')
 import pymysql
@@ -33,3 +34,15 @@ def inception_execute(params):
     """
     execute_sql_task = ExecuteSql(params)
     execute_sql_task.task_run()
+
+
+@task
+def install_mysql(ips, port, version):
+    """
+    执行单个SQL任务
+    :param params:
+    :return:
+    """
+    print(55555)
+    install_mysql_task = InstallMysql(ips, port, version)
+    install_mysql_task.task_run()

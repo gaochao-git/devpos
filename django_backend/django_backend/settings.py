@@ -10,7 +10,6 @@ import socket
 import os
 import pymysql
 pymysql.install_as_MySQLdb()
-import djcelery
 import logging
 logger = logging.getLogger('devops')
 
@@ -137,18 +136,6 @@ USE_L10N = True
 USE_TZ = True
 STATIC_URL = '/static/'
 
-
-################# celery配置 ##################
-djcelery.setup_loader()
-CELERY_IMPORTS= ('apps.celery_task.tasks',)
-CELERY_ACCEPT_CONTENT = ['application/json',]
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERYBEAT_SCHEDULER = 'celery.beat:PersistentScheduler'
-CELERY_REDIRECT_STDOUTS_LEVEL = 'INFO'        #标准输出和标准错误输出的日志级别。可以是DEBUG, INFO, WARNING, ERROR, or CRITICAL,默认为WARNING
-CELERY_TIMEZONE = 'Asia/Shanghai'
-BROKER_URL = 'redis://:redisfffjjj@39.97.247.142:6379/0'
-CELERY_RESULT_BACKEND = 'redis://:redisfffjjj@39.97.247.142:6379/1'
 
 ################# inception配置 ##################
 
