@@ -154,5 +154,75 @@ server {
 4.生效配置文件
 nginx -s reload
 ```
+## supervisor托管celery
+```shell
+[root@wth ~]# yum -y install supervisor
+s[root@wth ~]# ystemctl start  supervisord
+[root@wth supervisord.d]# vim /etc/supervisord.d/devops_beat.ini
+[program:devops_beat]
+command=python3.6 manage.py celery beat -l info -f ./logs/celery.log
+directory=/data/devops/django_backend
+autostart=false
+autorestart=false
+startsecs=1
+startretries=3
+exitcodes=0,2
+stopsignal=TERM
+stopwaitsecs=10
+user=root
+redirect_stderr=true
+priority=1
+stopasgroup=true
+killasgroup=true
+stdout_logfile=/var/log/devops_beat.log
+stdout_logfile_maxbytes=10MB
+stdout_logfile_backups=1
+[root@wth supervisord.d]# supervisorctl update
+devops_beat: added process group
+[root@wth supervisord.d]# supervisorctl status
+devops_beat                      STOPPED   Not started
 
+
+vim /etc/supervisord.d/devops_cron.ini
+[program:devops_cron]
+command=python3.6 manage.py celery worker -c 4 -l info -f ./logs/celery.log -Q celery --purge -n default_celery
+directory=/data/devops/django_backend
+autostart=false
+autorestart=false
+startsecs=1
+startretries=3
+exitcodes=0,2
+stopsignal=TERM
+stopwaitsecs=10
+user=root
+redirect_stderr=true
+priority=1
+stopasgroup=true
+killasgroup=true
+stdout_logfile=/var/log/devops_cron.log
+stdout_logfile_maxbytes=10MB
+stdout_logfile_backups=1
+
+
+vim /etc/supervisord.d/devops_async.ini
+[program:devops_async]
+command=python3.6 manage.py celery worker -c 4 -l info -f ./logs/celery.log -Q async_task --purge -n async_celery
+directory=/data/devops/django_backend
+autostart=false
+autorestart=false
+startsecs=1
+startretries=3
+exitcodes=0,2
+stopsignal=TERM
+stopwaitsecs=10
+user=root
+redirect_stderr=true
+priority=1
+stopasgroup=true
+killasgroup=true
+stdout_logfile=/var/log/devops_async.log
+stdout_logfile_maxbytes=10MB
+stdout_logfile_backups=1
+
+```
 ## 浏览器访问看是否正常工作
