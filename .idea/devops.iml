@@ -6,7 +6,6 @@
       <sourceFolder url="file://$MODULE_DIR$/django_backend" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/django_backend/django_backend" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
-      <excludeFolder url="file://$MODULE_DIR$/django_backend/apps/ansible_task/playbook/mysql" />
       <excludeFolder url="file://$MODULE_DIR$/django_backend/upload/20210829" />
       <excludeFolder url="file://$MODULE_DIR$/django_backend/upload/20211017" />
       <excludeFolder url="file://$MODULE_DIR$/django_backend/logs" />

@@ -11,7 +11,7 @@ from apps.controller import server_info_controller
 from apps.controller import login_controller
 from apps.controller import web_console_controller
 from apps.ansible_task.adhoc import ansible_adhoc
-import datetime
+from apps.ansible_task.playbook.mysql.roles.install_mysql import install_mysql_playbook
 from rest_framework.authtoken import views as drf_views
 
 
@@ -70,6 +70,6 @@ urlpatterns = [
 
     # ansible
     path('api/ansible_adhoc/', ansible_adhoc.adhoc),
-    path('api/ansible_playbook/', ansible_adhoc.adhoc),
+    path('api/ansible_playbook/', install_mysql_playbook.install_mysql),
     ]
 
