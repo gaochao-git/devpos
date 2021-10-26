@@ -1,0 +1,10 @@
+set sql_log_bin=off;
+alter user root@'localhost' identified with mysql_native_password as '*BE5A096D5CDA2678773E6195A35A4BAA78ED5F9B';
+create user root@'127.0.0.1' identified with mysql_native_password as '*BE5A096D5CDA2678773E6195A35A4BAA78ED5F9B';
+create user gaochao@'%' identified with mysql_native_password as '*BE5A096D5CDA2678773E6195A35A4BAA78ED5F9B';
+create user wth@'%' identified with mysql_native_password as '*BE5A096D5CDA2678773E6195A35A4BAA78ED5F9B';
+create user repl@'%' identified with mysql_native_password as '*BE5A096D5CDA2678773E6195A35A4BAA78ED5F9B';
+grant all privileges on *.* to root@'127.0.0.1' with grant option;
+grant all privileges on *.* to gaochao@'%';
+grant all privileges on *.* to wth@'%';
+grant super,replication slave,replication client on *.* to repl@'%';

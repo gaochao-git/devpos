@@ -14,31 +14,24 @@
     - SOURCE_MYSQL_DIR: "/Users/gaochao/gaochao-git/gaochao_repo/devpos/django_backend/apps/ansible_task/playbook/mysql/roles/install_mysql/files"
     - TEMPLATES_DIR: "/Users/gaochao/gaochao-git/gaochao_repo/devpos/django_backend/apps/ansible_task/playbook/mysql/roles/install_mysql/templates"
     - COPY_MYSQL_FILE_TO_DIR: "/tmp"
+    - LOGIN_MYSQL_USER: "root"
+    - LOGIN_MYSQL_PASSWD: "fffjjj"
+
   tasks:
   - name: 判断端口目录是否存在
     stat: path={{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}
     register: mysql_port_dir_stat
-#  - name: print
-#    debug:
-#      var: mysql_port_dir_stat
   - name: 如果端口目录已经存在则退出执行
     fail:
       msg: "{{MYSQL_PORT}}端口目录存在,退出后续操作"
     when: mysql_port_dir_stat.stat.exists == True
   - name: 判断端口是否运行中
-    wait_for:
-      port: "{{MYSQL_PORT}}"
-      timeout: 1
-      state: started
+    command: netstat -utnlp|grep "{{MYSQL_PORT}}"|wc -l
     register: mysqld_service_status
-    ignore_errors: yes
-#  - name: print
-#    debug:
-#      var: mysqld_service_status
   - name: 如果端口已经运行则退出执行
     fail:
-      msg: "{{MYSQL_PORT}}端口运行中,退出后续操作"
-    when: mysqld_service_status.failed == False
+      msg: "{{MYSQL_PORT}}端口运行中,退出后续操作{{mysqld_service_status}}"
+    when: mysqld_service_status == 100
   - name: 创建实例目录
     file: name={{ item }} state=directory owner={{ MYSQL_USER }} group={{ MYSQL_USER }} mode=0755 recurse=yes
     with_items:
@@ -54,17 +47,30 @@
     copy: src={{SOURCE_MYSQL_DIR}}/{{MYSQL_FILE_NAME}} dest={{COPY_MYSQL_FILE_TO_DIR}} owner=root group=root
   - name: 拷贝my.cnf到所有主机
     copy: src={{TEMPLATES_DIR}}/{{MYSQL_CONF_NAME}} dest={{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/etc owner=root group=root
+  - name: 替换my.cnf中的端口
+    replace:
+      dest: "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/etc/my.cnf"
+      regexp: "(3306)"
+      replace: "{{MYSQL_PORT}}"
+  - name: 替换my.cnf中的server_id
+    lineinfile:
+        dest: "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/etc/my.cnf"
+        regexp: "^server_id"
+        line: server_id = {{mysql_server_id}}
+        backrefs: yes
+  - name: 替换my.cnf中的read_only
+    lineinfile:
+      dest: "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/etc/my.cnf"
+      regexp: "^read_only"
+      line: read_only = off
+      backrefs: yes
+    when: mysql_role=="master"
   - name: 判断mysql.server启动脚本是否存在
     stat: path=/etc/init.d/mysql.server
     register: mysql_server_script_stat
   - name: 拷贝mysql.server到所有主机
     copy: src={{TEMPLATES_DIR}}/{{MYSQL_SERVER_SCRIPT}} dest=/etc/init.d owner=root group=root mode=0755
     when: mysql_server_script_stat.stat.exists == False
-  - name: 替换端口
-    replace:
-      dest: "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/etc/my.cnf"
-      regexp: "(3306)"
-      replace: "{{MYSQL_PORT}}"
   - name: 将中控机器压缩包解压到目标服务器
     unarchive: src={{COPY_MYSQL_FILE_TO_DIR}}/{{MYSQL_FILE_NAME}} dest={{COPY_MYSQL_FILE_TO_DIR}} owner=root group=root copy=no
   - name: 将解压后的包拷贝到base目录
@@ -73,8 +79,41 @@
     shell: "{{ MYSQL_BASE_DIR }}/bin/mysqld --defaults-file={{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/etc/my.cnf --initialize-insecure"
   - name: 启动mysqld
     shell: /etc/init.d/mysql.server -P {{MYSQL_PORT}} start
-  - name: 等待mysqld启动
-    wait_for:
-      port: "{{MYSQL_PORT}}"
-      timeout: 10
-      state: started
+  - name: 拷贝user_init.sql
+    copy: src={{TEMPLATES_DIR}}/user_init.sql dest=/tmp owner=root group=root
+  - name: 初始化用户
+    shell: "{{ MYSQL_BASE_DIR }}/bin/mysql -uroot -P{{MYSQL_PORT}} -S /home/mysql/multi/{{MYSQL_PORT}}/socket/mysql.sock </tmp/user_init.sql"
+  - name: change_master_to
+    mysql_replication:
+      mode: changemaster
+      master_host: "{{master_ip}}"
+      master_port: "{{MYSQL_PORT}}"
+      master_user: repl
+      master_password: fffjjj
+      master_auto_position: yes
+      login_host: 127.0.0.1
+      login_port: "{{MYSQL_PORT}}"
+      login_user: "{{LOGIN_MYSQL_USER}}"
+      login_password: "{{ LOGIN_MYSQL_PASSWD }}"
+    when: mysql_role=="slave"
+  - name: start slave
+    mysql_replication:
+      mode: startslave
+      login_host: 127.0.0.1
+      login_port: "{{MYSQL_PORT}}"
+      login_user: "{{LOGIN_MYSQL_USER}}"
+      login_password: "{{ LOGIN_MYSQL_PASSWD }}"
+    when: mysql_role == "slave"
+  - name: show slave status
+    mysql_replication:
+      mode: getslave
+      login_host: 127.0.0.1
+      login_port: "{{MYSQL_PORT}}"
+      login_user: "{{LOGIN_MYSQL_USER}}"
+      login_password: "{{ LOGIN_MYSQL_PASSWD }}"
+    register: slave_status
+  - name: 判断slave是否启动成功
+    fail:
+      msg: "Slave_IO_Running={{slave_status.Slave_IO_Running}},Slave_SQL_Running={{slave_status.Slave_SQL_Running}}"
+    when: slave_status.Slave_IO_Running != "Yes" or slave_status.Slave_SQL_Running != "Yes"
+

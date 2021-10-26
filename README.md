@@ -154,6 +154,11 @@ server {
 4.生效配置文件
 nginx -s reload
 ```
+## celery 本地开发
+```shell
+1.异步调用
+python3.6 manage.py celery worker -c 4 -l info -f ./logs/celery.log -Q async_task --purge -n async_celery
+```
 ## supervisor托管celery
 ```shell
 [root@wth ~]# yum -y install supervisor

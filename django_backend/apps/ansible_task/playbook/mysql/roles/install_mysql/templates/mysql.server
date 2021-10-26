@@ -34,7 +34,7 @@ if [ $# -ge 3 ]; then
     fi
 fi
 mysql_multi_dir=/home/mysql/multi
-conf="/$mysql_multi_dir/$port/etc/my.cnf"
+conf="$mysql_multi_dir/$port/etc/my.cnf"
 if [[ $check_status != 0 && (! -f $conf) ]]; then
     log_failure_msg "the file [$conf] is not exists"
     exit

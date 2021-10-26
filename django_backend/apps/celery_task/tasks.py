@@ -37,12 +37,12 @@ def inception_execute(params):
 
 
 @task
-def install_mysql(ips, port, version):
+def install_mysql(topo_source, port, version):
     """
     执行单个SQL任务
     :param params:
     :return:
     """
     print(55555)
-    install_mysql_task = InstallMysql(ips, port, version)
+    install_mysql_task = InstallMysql(topo_source, port, version)
     install_mysql_task.task_run()

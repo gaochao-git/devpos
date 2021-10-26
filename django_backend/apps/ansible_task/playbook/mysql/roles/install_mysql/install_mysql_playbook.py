@@ -5,61 +5,49 @@ from ansible.executor.playbook_executor import PlaybookExecutor
 from ansible import context
 from ansible.module_utils.common.collections import ImmutableDict
 import json
-from ansible.plugins.callback import CallbackBase
+import random
+from apps.ansible_task.playbook.playbook_common import ResultsCollector
 import logging
 logger = logging.getLogger('devops')
 
-class ResultsCollector(CallbackBase):
-    def v2_runner_on_ok(self, result):
-        host = result._host
-        logger.info('ok: [%s]' % host)
 
-    def v2_playbook_on_no_hosts_matched(self):
-        self.output = "skipping: No match hosts."
-
-    def v2_playbook_on_no_hosts_remaining(self):
-        print('remaining')
-
-    def v2_playbook_on_task_start(self, task, is_conditional):
-        logger.info('%s' % task)
-
-    def v2_playbook_on_play_start(self, play):
-        logger.info('PLAY [%s]' % play)
-
-    def v2_playbook_on_stats(self, stats):
-        """
-        192.168.1.31 : ok=5    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
-        :param stats:
-        :return:
-        """
-        logger.info('PLAY RECAP ********************************')
-        hosts = sorted(stats.processed.keys())
-        for h in hosts:
-            exec_ret = {}
-            t = stats.summarize(h)
-            exec_ret[h] = {"ok": t['ok'],"changed": t['changed'],"unreachable": t['unreachable'],"skipped": t['skipped'],"failed": t['failures']}
-            logger.info(exec_ret)
-
-    def v2_runner_on_failed(self, result, ignore_errors=False):
-        host = result._host
-        logger.info('FAILED [%s] =>%s' % (host, result._result))
-
-    def v2_runner_on_unreachable(self, result):
-        host = result._host
-        logger.info('UNREACHABLE[%s] =>%s' % (host, result._result))
+def get_server_id(host):
+    """
+    获取mysql的server_id
+    :param host:
+    :return:
+    """
+    return random.randint(100, 10000) + int(host.split('.')[-1])
 
 
-def install_mysql(playbook_path, sources, port, version):
-    print("开始调用playbook")
-    playbook_run(playbook_path, sources, port, version)
+def install_mysql(playbook_path, topo_source, mysql_port, mysql_version):
+    playbook_run(playbook_path, topo_source, mysql_port, mysql_version)
 
+def playbook_run(playbook_path, topo_source, mysql_port, mysql_version):
+    topo_list = topo_source.split('\n')
+    sources = ""
+    for topo_item in topo_list:
+        sources = sources + topo_item.split("=>")[0] + ','
 
-def playbook_run(playbook_path, sources, port, version):
     loader = DataLoader()
     inventory = InventoryManager(loader=loader, sources=sources)
     variable_manager = VariableManager(loader=loader, inventory=inventory)
-    variable_manager.extra_vars['mysql_port'] = port
-    variable_manager.extra_vars['mysql_version'] = version
+    variable_manager.extra_vars['mysql_port'] = mysql_port
+    variable_manager.extra_vars['mysql_version'] = mysql_version
+    # 给host设置变量
+    for topo_item in topo_list:
+        host = topo_item.split("=>")[0]
+        variable_manager.set_host_variable(host=host, varname='mysql_server_id', value=get_server_id(host))
+        if len(topo_item.split("=>")) == 1:
+            variable_manager.set_host_variable(host=host, varname='mysql_role', value='master')
+            variable_manager.set_host_variable(host=host, varname='master_ip', value='')
+        elif len(topo_item.split("=>")) == 2:
+            variable_manager.set_host_variable(host=host, varname='mysql_role', value='slave')
+            variable_manager.set_host_variable(host=host, varname='master_ip', value=topo_item.split("=>")[1])
+        # host = inventory.get_host(hostname=host)
+        # host_vars = variable_manager.get_vars(host=host)
+        # print(host_vars)
+
     context.CLIARGS = ImmutableDict(connection='smart',
                                     module_path=['/anaconda2/envs/py3/lib/python3.6/site-packages/ansible/modules',
                                                  '/usr/share/ansible'],
@@ -74,7 +62,6 @@ def playbook_run(playbook_path, sources, port, version):
     )
     playbook._tqm._stdout_callback = ResultsCollector()
     result = playbook.run()
-    print(result)
     return result
 
 

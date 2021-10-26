@@ -195,7 +195,7 @@ LOGGING = {
         'info': {   # 专门用来记正常日志
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',  # 保存到文件，自动切
-            'filename': os.path.join(BASE_DIR+'/logs/', "info.log"),  # 日志文件
+            'filename': os.path.join(BASE_DIR+'/logs/', "error.log"),  # 日志文件
             'maxBytes': 1024 * 1024 * 50,  # 日志大小 50M
             'backupCount': 1,
             'formatter': 'standard',

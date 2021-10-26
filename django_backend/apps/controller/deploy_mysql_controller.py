@@ -19,10 +19,10 @@ def submit_install_mysql_controller(request):
     """
     request_body = json.loads(str(request.body, encoding="utf-8"))
     try:
-        ips = request_body['ips']
+        topo_source = request_body['topo_source']
         port = request_body['port']
         version = request_body['version']
-        ret = deploy_mysql.submit_install_mysql(ips, port, version)
+        ret = deploy_mysql.submit_install_mysql(topo_source, port, version)
     except KeyError as e:
         logger.exception('缺少请求参数:%s' % str(e))
         ret = {"status": "error", "code":2002, "message": "参数不合法"}
