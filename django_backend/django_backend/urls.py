@@ -74,5 +74,8 @@ urlpatterns = [
     path('api/ansible_adhoc/', ansible_adhoc.adhoc),
     path('api/ansible_playbook/', install_mysql_playbook.install_mysql),
     path('api/submit_deploy_mysql/', deploy_mysql_controller.submit_install_mysql_controller),
+    path('api/get_deploy_mysql_submit_info/', deploy_mysql_controller.get_deploy_mysql_submit_info_controller),
+    path('api/get_deploy_mysql_info_by_uuid/', deploy_mysql_controller.get_deploy_mysql_info_by_uuid_controller),
+    path('api/deploy_mysql_by_uuid/', deploy_mysql_controller.deploy_mysql_by_uuid_controller),
     ]
 

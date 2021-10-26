@@ -25,3 +25,50 @@ def submit_install_mysql_dao(uuid_str, topo_source, port, version):
           """.format(uuid_str,'gaochao','test_idc',topo_source,version,'ms','其他参数')
     return db_helper.dml(sql)
 
+
+def get_deploy_mysql_submit_info_dao():
+    """
+    获取所有部署工单任务
+    :return:
+    """
+    sql = """
+              select 
+                  submit_uuid,
+                  submit_user,
+                  idc,
+                  deploy_topos,
+                  deploy_version,
+                  deploy_archit,
+                  deploy_other_param,
+                  submit_check,
+                  submit_check_comment,
+                  submit_execute,
+                  deploy_status,
+                  create_time,
+                  update_time 
+              from deploy_mysql_submit_info
+              order by create_time desc
+          """
+    return db_helper.find_all(sql)
+
+
+def get_deploy_mysql_info_by_uuid_dao(submit_uuid):
+    sql = """
+              select 
+                  submit_uuid,
+                  submit_user,
+                  idc,
+                  deploy_topos,
+                  deploy_version,
+                  deploy_archit,
+                  deploy_other_param,
+                  submit_check,
+                  submit_check_comment,
+                  submit_execute,
+                  deploy_status,
+                  create_time,
+                  update_time 
+              from deploy_mysql_submit_info
+              where submit_uuid='{}'
+          """.format(submit_uuid)
+    return db_helper.find_all(sql)

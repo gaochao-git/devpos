@@ -6,6 +6,8 @@ import "antd/dist/antd.css";
 import MyAxios from "./scripts/common/interface"
 import {HashRouter,Route,BrowserRouter} from 'react-router-dom';
 import mysqlCluster from './scripts/mysql/mysqlCluster'
+import DeployMysql from "./scripts/mysql/deployMysql"
+import ExecuteDeployMysql from "./scripts/mysql/executeDeployMysql"
 import AuditSqlIndex from './scripts/auditSql/auditSqlIndex'
 import ExecuteSql from './scripts/auditSql/executeSql'
 import publicManage from "./scripts/publicUserManage/pubicUserPrivilegeManage"
@@ -158,7 +160,9 @@ class App extends Component {
                                     <Route exact path="/commonUser" component={commonUser} />
                                     <Route exact path="/home" component={Login} />
                                     <Route exact path="/mysqlConsole" component={mysqlConsole} />
-                                    <Route exact path="/HomeDbaInfo" component={HomeDbaInfo} />
+                                    <Route exact path="/homeDbaInfo" component={HomeDbaInfo} />
+                                    <Route exact path="/deployMysql" component={DeployMysql} />
+                                    <Route exact path="/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>

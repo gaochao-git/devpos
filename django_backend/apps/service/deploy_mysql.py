@@ -31,3 +31,37 @@ def submit_install_mysql(topo_source, port, version):
             print("推送celery失败")
     except Exception as e:
         logger.exception(e)
+
+
+def deploy_mysql_by_uuid(submit_uuid,deploy_topos,deploy_version):
+    """
+    部署mysql
+    :param submit_uuid:
+    :return:
+    """
+    port=3310
+    try:
+        task_id = install_mysql.delay(deploy_topos, port, deploy_version)
+        if task_id:
+            print("推送celery成功:",task_id)
+            status = "ok"
+            message = "推送celery成功"
+        else:
+            print("推送celery失败")
+            status = "error"
+            message = "推送celery失败"
+    except Exception as e:
+        logger.exception(e)
+        status = "error"
+        message = "推送celery失败：%s" % str(e)
+    return {"status":status, "message": message}
+
+
+
+def get_deploy_mysql_submit_info():
+    ret = deploy_mysql_dao.get_deploy_mysql_submit_info_dao()
+    return ret
+
+def get_deploy_mysql_info_by_uuid(submit_uuid):
+    ret = deploy_mysql_dao.get_deploy_mysql_info_by_uuid_dao(submit_uuid)
+    return ret

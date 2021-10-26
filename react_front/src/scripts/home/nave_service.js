@@ -13,6 +13,7 @@ import ExecuteSql from "../auditSql/executeSql";
 import privilegesApply from "../privilegesApply/applicationForm";
 import OrderInformation from "../privilegesApply/orderInformation";
 import commonUser from "../commonUser/commonUserCharge";
+//import DeployMysql from "../mysql/deployMysql"
 import Login from "../login/login";
 import mysqlConsole from "../console/mysqlConsole";
 
@@ -31,6 +32,7 @@ class NavService extends Component {
             "/redisCluster":"sub3",
             "/auditSqlIndex":"sub4",
             "/privilegesApply":"sub4",
+            "/DeployMysql":"sub5",
         }
         //确定侧边栏选中的菜单
         if (this.props.location.pathname==='/'){
@@ -85,6 +87,12 @@ class NavService extends Component {
                     </Menu.Item>
                     <Menu.Item key="/privilegesApply">
                         <Link to="/privilegesApply">权限申请</Link>
+                    </Menu.Item>
+                    <Menu.Item key="/deployMysql">
+                        <Link to="/deployMysql">新建mysql集群</Link>
+                    </Menu.Item>
+                    <Menu.Item key="/extendMysql">
+                        <Link to="/extendMysql">扩容mysql集群</Link>
                     </Menu.Item>
                 </SubMenu>
                 <SubMenu key="sub5" title={<span><Icon type="code" />控制台</span>}>
