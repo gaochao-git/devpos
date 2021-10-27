@@ -77,5 +77,6 @@ urlpatterns = [
     path('api/get_deploy_mysql_submit_info/', deploy_mysql_controller.get_deploy_mysql_submit_info_controller),
     path('api/get_deploy_mysql_info_by_uuid/', deploy_mysql_controller.get_deploy_mysql_info_by_uuid_controller),
     path('api/deploy_mysql_by_uuid/', deploy_mysql_controller.deploy_mysql_by_uuid_controller),
+    path('api/get_deploy_mysql_log/', deploy_mysql_controller.get_deploy_mysql_log_controller),
     ]
 

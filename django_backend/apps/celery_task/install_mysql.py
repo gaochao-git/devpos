@@ -10,12 +10,13 @@ logger = logging.getLogger('devops')
 from multiprocessing import current_process
 
 class InstallMysql:
-    def __init__(self, topo_source, mysql_port, mysql_version):
+    def __init__(self, submit_uuid, topo_source, mysql_port, mysql_version):
         self.topo_source = topo_source
         self.mysql_port = mysql_port
         self.mysql_version = mysql_version
+        self.submit_uuid = submit_uuid
 
     def task_run(self):
         current_process()._config = {'semprefix': '/mp'}   # 不加这一行通过celery调用ansible会报`AttributeError: 'Worker' object has no attribute '_config'``
         playbook_path = ['/Users/gaochao/gaochao-git/gaochao_repo/devpos/django_backend/apps/ansible_task/playbook/mysql/roles/install_mysql/task/install_mysql.yml']
-        install_mysql_playbook.install_mysql(playbook_path, self.topo_source, self.mysql_port, self.mysql_version)
+        install_mysql_playbook.install_mysql(playbook_path, self.submit_uuid, self.topo_source, self.mysql_port, self.mysql_version)

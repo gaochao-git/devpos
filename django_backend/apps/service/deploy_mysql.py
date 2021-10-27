@@ -41,7 +41,7 @@ def deploy_mysql_by_uuid(submit_uuid,deploy_topos,deploy_version):
     """
     port=3310
     try:
-        task_id = install_mysql.delay(deploy_topos, port, deploy_version)
+        task_id = install_mysql.delay(submit_uuid, deploy_topos, port, deploy_version)
         if task_id:
             print("推送celery成功:",task_id)
             status = "ok"
@@ -57,11 +57,30 @@ def deploy_mysql_by_uuid(submit_uuid,deploy_topos,deploy_version):
     return {"status":status, "message": message}
 
 
-
 def get_deploy_mysql_submit_info():
+    """
+    获取所有工单信息
+    :return:
+    """
     ret = deploy_mysql_dao.get_deploy_mysql_submit_info_dao()
     return ret
 
+
 def get_deploy_mysql_info_by_uuid(submit_uuid):
+    """
+    获取工单信息
+    :param submit_uuid:
+    :return:
+    """
     ret = deploy_mysql_dao.get_deploy_mysql_info_by_uuid_dao(submit_uuid)
+    return ret
+
+
+def get_deploy_mysql_log(submit_uuid):
+    """
+    获取部署日志
+    :param submit_uuid:
+    :return:
+    """
+    ret = deploy_mysql_dao.get_deploy_mysql_log_dao(submit_uuid)
     return ret

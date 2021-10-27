@@ -1,12 +1,21 @@
 import React, { Component } from 'react';
-import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm, } from 'antd';
+import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm,Tabs } from 'antd';
 import { Link } from 'react-router-dom';
 import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
 import MyAxios from "../common/interface"
+import { UnControlled as CodeMirror } from 'react-codemirror2';
+import 'codemirror/lib/codemirror.css';
+import 'codemirror/mode/sql/sql';
+import 'codemirror/addon/hint/show-hint.css';
+import 'codemirror/addon/hint/show-hint.js';
+import 'codemirror/addon/hint/sql-hint.js';
+import 'codemirror/theme/ambiance.css';
+import 'codemirror/addon/selection/active-line';
+import 'codemirror/addon/display/fullscreen.js'
 const Column = Table.Column;
 const TextArea = Input.TextArea;
-
+const { TabPane } = Tabs;
 export default class ExecuteDeployMysql extends Component {
     constructor(props) {
         super(props);
@@ -16,7 +25,8 @@ export default class ExecuteDeployMysql extends Component {
             deploy_archit:"",
             deploy_other_param:"",
             deploy_topos:"",
-            ViewExecuteSubmitSqlModalVisible:false
+            ViewExecuteSubmitSqlModalVisible:false,
+            deploy_mysql_log:""
         }
     }
 
@@ -57,14 +67,42 @@ export default class ExecuteDeployMysql extends Component {
                    this.setState({
                      ExecuteModalVisible: false,
                    });
-                   message.success("发送任务成功")
+                   message.success("发送任务成功");
+                   this.setInterVal();
                 }else{
                     message.error(res.data.message)
                 }
             }
         ).catch(err => {message.error(err.message)})
     };
-
+    //间隔执行
+    setInterVal = () => {
+         this.timerId = window.setInterval(this.GetDeployLogByUuid.bind(this),1000);
+    }
+    //获取提交SQL的详细信息
+    async GetDeployLogByUuid() {
+        let params = {
+            submit_uuid: this.props.match.params["submit_uuid"],
+        };
+        if( this.state.execute_status === "执行成功" || this.state.execute_status === "执行失败"  || this.state.execute_status === "执行成功(含警告)"){
+            window.clearInterval(this.timerId);
+            console.log("工单执完毕，关闭定时器");
+        } else{
+             console.log("工单执行中，定时id为:",this.timerId);
+             console.log("工单执行状态:",this.state.execute_status);
+        }
+        await MyAxios.post('/get_deploy_mysql_log/',params).then(
+            res => {
+                if (res.data.status==="ok"){
+                   this.setState({
+                     deploy_mysql_log: res.data.data,
+                   });
+                }else{
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err => {message.error(err.message)})
+    };
     //查看SQL审核结果
     async GetSqlCheckResultsByUuid(uuid) {
         this.setState({
@@ -108,10 +146,7 @@ export default class ExecuteDeployMysql extends Component {
         this.GetSqlApplyByUuid(this.state.submit_uuid);
     };
 
-    //间隔执行
-    setInterVal = () => {
-         this.timerId = window.setInterval(this.GetSqlApplyByUuid.bind(this),1000);
-    }
+
     //平台自动执行SQL
     async ExecuteBySplitSqlFilePath(split_sql_file_path) {
         //如果current_split_seq是最小则直接执行,否则判断他前面的是否已经执行,如果前面没执行,后面不允许执行,代码需要code
@@ -296,8 +331,22 @@ export default class ExecuteDeployMysql extends Component {
                         null
                     }
                     <br/>
-                    <h3>日志</h3>
-                    <TextArea/>
+                    <Tabs>
+                        <TabPane tab="部署日志" key="1">
+                                <CodeMirror
+                                    value={this.state.deploy_mysql_log}
+                                    options={{
+                                      lineNumbers: true,
+                                      mode: {name: "text/x-mysql"},
+                                      theme: 'ambiance',
+//                                      fullScreen: true
+                                    }}
+                                />
+                        </TabPane>
+                        <TabPane tab="工单流转日志" key="2">
+                            Content of Tab Pane 3
+                        </TabPane>
+                    </Tabs>
                     <Modal visible={this.state.showSubmitSqlViewVisible}
                         onCancel={() => this.setState({showSubmitSqlViewVisible:false})}
                         title="SQL预览"

@@ -20,10 +20,10 @@ def get_server_id(host):
     return random.randint(100, 10000) + int(host.split('.')[-1])
 
 
-def install_mysql(playbook_path, topo_source, mysql_port, mysql_version):
-    playbook_run(playbook_path, topo_source, mysql_port, mysql_version)
+def install_mysql(playbook_path, submit_uuid, topo_source, mysql_port, mysql_version):
+    playbook_run(playbook_path, submit_uuid, topo_source, mysql_port, mysql_version)
 
-def playbook_run(playbook_path, topo_source, mysql_port, mysql_version):
+def playbook_run(playbook_path, submit_uuid, topo_source, mysql_port, mysql_version):
     topo_list = topo_source.split('\n')
     sources = ""
     for topo_item in topo_list:
@@ -60,7 +60,7 @@ def playbook_run(playbook_path, topo_source, mysql_port, mysql_version):
         loader=loader,
         passwords=None,
     )
-    playbook._tqm._stdout_callback = ResultsCollector()
+    playbook._tqm._stdout_callback = ResultsCollector(submit_uuid)
     result = playbook.run()
     return result
 

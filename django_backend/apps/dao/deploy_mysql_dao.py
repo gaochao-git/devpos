@@ -53,6 +53,11 @@ def get_deploy_mysql_submit_info_dao():
 
 
 def get_deploy_mysql_info_by_uuid_dao(submit_uuid):
+    """
+    获取工单信息
+    :param submit_uuid:
+    :return:
+    """
     sql = """
               select 
                   submit_uuid,
@@ -72,3 +77,13 @@ def get_deploy_mysql_info_by_uuid_dao(submit_uuid):
               where submit_uuid='{}'
           """.format(submit_uuid)
     return db_helper.find_all(sql)
+
+
+def get_deploy_mysql_log_dao(submit_uuid):
+    sql = "select concat('[',create_time,'] ',deploy_log)  as deploy_log from deploy_mysql_log where submit_uuid='{}'".format(submit_uuid)
+    ret = db_helper.find_all(sql)
+    if ret['status'] != "ok": return ret
+    data = ""
+    for item in ret['data']:
+        data = data + item['deploy_log'] + '\n'
+    return {"status": "ok","message":"获取日志成功", "data": data}
