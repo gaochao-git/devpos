@@ -154,13 +154,38 @@ export default class DeployMysql extends Component  {
                             <Option value="BJ10">BJ10</Option>
                             <Option value="BJ11">BJ11</Option>
                         </Select>
-                        <Select defaultValue="选择高可用架构" style={{ width: 150 }} onChange={e => this.setState({deploy_archit:e})}>
+                        <Select defaultValue="选择集群类型" style={{ width: 150 }} onChange={e => this.setState({deploy_archit:e})}>
+                            <Option value="ms">单点</Option>
                             <Option value="ms">主从</Option>
-                            <Option value="MHA">MHA</Option>
+                            <Option value="MHA">高可用</Option>
                         </Select>
                         <Select defaultValue="选择MySQL版本" style={{ width: 150 }} onChange={e => this.setState({deploy_version:e})}>
-                            <Option value="mysql5.7.22">MySQL5.7.22</Option>
-                            <Option value="mysql8.0.22">MySQL8.0.22</Option>
+                            <Option value="mysql5.7.22">MySQL5.7</Option>
+                            <Option value="mysql8.0.22">MySQL8.0</Option>
+                        </Select>
+                        <Select defaultValue="CPU" style={{ width: 150 }} onChange={e => this.setState({deploy_version:e})}>
+                            <Option value="2">2核</Option>
+                            <Option value="4">4核</Option>
+                            <Option value="8">8核</Option>
+                            <Option value="16">16核</Option>
+                            <Option value="32">32核</Option>
+                            <Option value="64">64核</Option>
+                            <Option value="128">128核</Option>
+                        </Select>
+                        <Select defaultValue="内存" style={{ width: 150 }} onChange={e => this.setState({deploy_version:e})}>
+                            <Option value="2">2GB</Option>
+                            <Option value="4">4GB</Option>
+                            <Option value="8">8GB</Option>
+                            <Option value="16">16GB</Option>
+                            <Option value="32">32GB</Option>
+                            <Option value="64">64GB</Option>
+                        </Select>
+                        <Select defaultValue="磁盘" style={{ width: 150 }} onChange={e => this.setState({deploy_version:e})}>
+                            <Option value="150">100GB</Option>
+                            <Option value="150">150GB</Option>
+                            <Option value="200">200GB</Option>
+                            <Option value="250">250GB</Option>
+                            <Option value="300">300GB</Option>
                         </Select>
                     </div>
                     <div>
