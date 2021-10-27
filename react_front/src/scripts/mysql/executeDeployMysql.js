@@ -36,15 +36,16 @@ export default class ExecuteDeployMysql extends Component {
             submit_check_username:"",
             submit_execute_username: "",
             checkCommentVisible:false,
+            idc: "",
         }
     }
 
     componentDidMount() {
-        this.GetDeployMysqlInfoByUuid();
+        this.getDeployMysqlInfoByUuid();
         this.GetDeployLogByUuid()
     };
     //获取工单信息
-    async GetDeployMysqlInfoByUuid() {
+    async getDeployMysqlInfoByUuid() {
         let params = {
             submit_uuid: this.props.match.params["submit_uuid"],
         };
@@ -63,6 +64,7 @@ export default class ExecuteDeployMysql extends Component {
                      deploy_status: res.data.data[0]['deploy_status'],
                      submit_check_username: res.data.data[0]['submit_check_username'],
                      submit_execute_username: res.data.data[0]['submit_execute_username'],
+                     idc: res.data.data[0]['idc'],
                    });
                 }else{
                     message.error(res.data.message)
@@ -70,7 +72,7 @@ export default class ExecuteDeployMysql extends Component {
             }
         ).catch(err => {message.error(err.message)})
     }
-    //提交预览SQL
+    // 执行部署
     async executeDeployMysqlByUuid() {
         let params = {
             submit_uuid: this.props.match.params["submit_uuid"],
@@ -93,19 +95,24 @@ export default class ExecuteDeployMysql extends Component {
     };
     //间隔执行
     setInterVal = () => {
-         this.timerId = window.setInterval(this.GetDeployLogByUuid.bind(this),1000);
+         this.timerId = window.setInterval(()=>this.getSubmitInfoInterval(),2000);
+    }
+    //定时执行下面方法
+    getSubmitInfoInterval(){
+        this.GetDeployLogByUuid();
+        this.getDeployMysqlInfoByUuid();
     }
     //获取提交SQL的详细信息
     async GetDeployLogByUuid() {
         let params = {
             submit_uuid: this.props.match.params["submit_uuid"],
         };
-        if( this.state.execute_status === "执行成功" || this.state.execute_status === "执行失败"  || this.state.execute_status === "执行成功(含警告)"){
+        if( this.state.deploy_status == "执行成功" || this.state.deploy_status === "执行失败"){
             window.clearInterval(this.timerId);
             console.log("工单执完毕，关闭定时器");
         } else{
              console.log("工单执行中，定时id为:",this.timerId);
-             console.log("工单执行状态:",this.state.execute_status);
+             console.log("工单执行状态:",this.state.deploy_status);
         }
         await MyAxios.post('/get_deploy_mysql_log/',params).then(
             res => {
@@ -145,101 +152,6 @@ export default class ExecuteDeployMysql extends Component {
         ).catch(err => {message.error(err.message)})
     };
 
-
-    //平台自动执行SQL
-    async ExecuteBySplitSqlFilePath(split_sql_file_path) {
-        //如果current_split_seq是最小则直接执行,否则判断他前面的是否已经执行,如果前面没执行,后面不允许执行,代码需要code
-        this.setState({
-            execute_status: "执行中"
-        });
-        let params = {
-            submit_uuid: this.state.submit_uuid,
-            inception_backup: this.state.inception_backup,
-            inception_check_ignore_warning: this.state.inception_check_ignore_warning,
-            inception_execute_ignore_error: this.state.inception_execute_ignore_error,
-            split_sql_file_path:split_sql_file_path,
-            execute_user_name:this.state.login_user_name
-        };
-        let file_execute_dict = {};
-        for ( var item=0;item<this.state.view_submit_split_sql_info.length;item++){
-            file_execute_dict[this.state.view_submit_split_sql_info[item]["split_seq"]] = this.state.view_submit_split_sql_info[item]["dba_execute"]
-            if (this.state.view_submit_split_sql_info[item]["split_sql_file_path"] === split_sql_file_path){
-                var current_split_seq = this.state.view_submit_split_sql_info[item]["split_seq"]
-            }
-        }
-        let inception_error_level_rray=[];
-        for(var i=0;i<this.state.view_check_sql_result.length;i++){
-            inception_error_level_rray.push(this.state.view_check_sql_result[i]["inception_error_level"])
-        };
-        if (this.state.sql_check_max_code === 2){
-           message.error("审核存在错误,请先处理错误")
-        }else if (this.state.inception_check_ignore_warning === 0 && this.state.sql_check_max_code === 1){
-            message.error("审核存在警告,请处理警告或忽略警告执行")
-        }else if (current_split_seq !== 1 && file_execute_dict[current_split_seq -1] !== "已执行"){
-            message.error("上面SQL执行完毕下面SQL才能执行")
-        }else {
-            if (this.state.execute_sql_flag !== split_sql_file_path) {
-                this.setState({
-                    execute_sql_flag: split_sql_file_path
-                });
-                await axios.post(`${backendServerApiRoot}/execute_submit_sql_by_file_path/`, {params}).then(
-                    res => {
-                        res.data.status === "ok" ? message.success(res.data.message,3) && this.setInterVal() : message.error(res.data.message);
-                    }
-                );
-            } else {
-                message.error("该工单正在执行,请误多次点击!!!");
-            }
-        }
-    };
-
-    //查看执行SQL结果
-    async ViewExecuteSubmitSqlResultsByUuid(split_sql_file_path) {
-        console.log(split_sql_file_path)
-        let params = {
-            submit_uuid: this.state.submit_uuid,
-            split_sql_file_path:split_sql_file_path
-        };
-        let res = await axios.post(`${backendServerApiRoot}/get_execute_results_by_split_sql_file_path/`,{params});
-        this.setState({
-            execute_sql_results: res.data.data,
-            ViewExecuteSubmitSqlModalVisible:true,
-        });
-    };
-
-
-    //查看进度
-    async getExecuteProcessByUuid(split_sql_file_path) {
-        let params = {
-            submit_uuid: this.state.submit_uuid,
-            split_sql_file_path:split_sql_file_path
-        };
-        let res = await axios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,{params});
-        this.setState({
-            execute_sql_process_results: res.data.data,
-            ViewExecuteSubmitSqlProcessModalVisible:true,
-            split_sql_file_path:split_sql_file_path
-        });
-        this.timerProcessId = window.setInterval(this.getExecuteProcessByUuidTimeInterval.bind(this),1000);
-    }
-    //定时查看进度，并更新进度到表里
-    async getExecuteProcessByUuidTimeInterval() {
-        let params = {
-            split_sql_file_path:this.state.split_sql_file_path,
-            submit_uuid: this.state.submit_uuid,
-        };
-        let res = await axios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,{params});
-        if (res.data.data.length>0 && res.data.data[0]["inception_execute_percent"]!==0){
-            this.setState({
-                execute_sql_process_results: res.data.data
-            });
-        }else {
-            this.setState({
-                ViewExecuteSubmitSqlProcessModalVisible:false
-            });
-        }
-    }
-
     render() {
         const temp = {}; // 当前重复的值,支持多列
         const mergeCells = (text, array, columns) => {
@@ -273,7 +185,6 @@ export default class ExecuteDeployMysql extends Component {
                     <h3>工单信息</h3>
                     <Row type='flex' justify="space-around">
                         <Col span={11} className="col-detail">
-                            <Row gutter={8}><Col style={{padding:5}} span={8}>主题:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_title}</Col></Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={8}>申请用户:</Col>
                                 {this.state.submit_user}
@@ -282,10 +193,9 @@ export default class ExecuteDeployMysql extends Component {
                                 <Col style={{padding:5}} span={8}>部署信息:</Col>
                                 <Button className="link-button" onClick={()=>this.setState({deployTopoVisible:true})} style={{padding:5}} span={16}>查看</Button>
                             </Row>
+                            <Row gutter={8}><Col style={{padding:5}} span={8}>机房:</Col><Col style={{padding:5}} span={16}>{this.state.idc}</Col></Row>
                             <Row gutter={8}><Col style={{padding:5}} span={8}>版本:</Col><Col style={{padding:5}} span={16}>{this.state.deploy_version}</Col></Row>
-                            <Row gutter={8}><Col style={{padding:5}} span={8}>架构:</Col><Col style={{padding:5}} span={16}>{this.state.deploy_archit}</Col></Row>
-                            <Row gutter={8}><Col style={{padding:5}} span={8}>自定义参数:</Col><Col style={{padding:5}} span={16}>{this.state.deploy_other_param}</Col></Row>
-
+                            <Row gutter={8}><Col style={{padding:5}} span={8}>集群类型:</Col><Col style={{padding:5}} span={16}>{this.state.deploy_archit}</Col></Row>
                         </Col>
                         <Col span={11} className="col-detail">
                             <Row gutter={8}>
