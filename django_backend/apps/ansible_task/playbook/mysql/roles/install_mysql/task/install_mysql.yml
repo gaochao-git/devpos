@@ -5,8 +5,6 @@
   vars:
     - MYSQL_USER: mysql
     - MYSQL_MULTI_DIR: "/home/mysql/multi"
-    - MYSQL_PORT: "{{mysql_port}}"
-    - MYSQL_BASE_DIR: "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/private"
     - MYSQL_VERSION: "{{mysql_version}}"
     - MYSQL_FILE_NAME: "{{MYSQL_VERSION}}.tar.gz"
     - MYSQL_CONF_NAME: "my.cnf"
@@ -18,52 +16,52 @@
     - LOGIN_MYSQL_PASSWD: "fffjjj"
 
   tasks:
+  - name: print 部署详情信息
+    debug:
+      msg: 部署端口={{mysql_port}},master_ip={{master_ip}},master_port={{master_port}},
   - name: 判断端口目录是否存在
-    stat: path={{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}
+    stat: path={{MYSQL_MULTI_DIR}}/{{mysql_port}}
     register: mysql_port_dir_stat
   - name: 如果端口目录已经存在则退出执行
     fail:
-      msg: "{{MYSQL_PORT}}端口目录存在,退出后续操作"
+      msg: "{{mysql_port}}端口目录存在,退出后续操作"
     when: mysql_port_dir_stat.stat.exists == True
   - name: 判断端口是否运行中
-    shell: netstat -utnlp|grep "{{MYSQL_PORT}}"|wc -l
+    shell: netstat -utnlp|grep "{{mysql_port}}"|wc -l
     register: mysqld_service_status
-  - name: print
-    debug:
-      msg: netstat输出结果为{{mysqld_service_status.stdout}}
   - name: 如果端口已经运行则退出执行
     fail:
-      msg: "{{MYSQL_PORT}}端口运行中,退出后续操作"
+      msg: "{{mysql_port}}端口运行中,退出后续操作"
     when: mysqld_service_status.stdout != "0"
   - name: 创建实例目录
     file: name={{ item }} state=directory owner={{ MYSQL_USER }} group={{ MYSQL_USER }} mode=0755 recurse=yes
     with_items:
-      - "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/binlog"
-      - "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/data"
-      - "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/etc"
-      - "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/lock"
-      - "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/log"
-      - "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/pid"
-      - "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/socket"
-      - "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/tmp"
+      - "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/binlog"
+      - "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/data"
+      - "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/etc"
+      - "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/lock"
+      - "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/log"
+      - "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/pid"
+      - "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/socket"
+      - "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/tmp"
   - name: 拷贝mysql安装包到所有主机
     copy: src={{SOURCE_MYSQL_DIR}}/{{MYSQL_FILE_NAME}} dest={{COPY_MYSQL_FILE_TO_DIR}} owner=root group=root
   - name: 拷贝my.cnf到所有主机
-    copy: src={{TEMPLATES_DIR}}/{{MYSQL_CONF_NAME}} dest={{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/etc owner=root group=root
+    copy: src={{TEMPLATES_DIR}}/{{MYSQL_CONF_NAME}} dest={{MYSQL_MULTI_DIR}}/{{mysql_port}}/etc owner=root group=root
   - name: 替换my.cnf中的端口
     replace:
-      dest: "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/etc/my.cnf"
+      dest: "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/etc/my.cnf"
       regexp: "(3306)"
-      replace: "{{MYSQL_PORT}}"
+      replace: "{{mysql_port}}"
   - name: 替换my.cnf中的server_id
     lineinfile:
-        dest: "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/etc/my.cnf"
+        dest: "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/etc/my.cnf"
         regexp: "^server_id"
         line: server_id = {{mysql_server_id}}
         backrefs: yes
   - name: 替换my.cnf中的read_only
     lineinfile:
-      dest: "{{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/etc/my.cnf"
+      dest: "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/etc/my.cnf"
       regexp: "^read_only"
       line: read_only = off
       backrefs: yes
@@ -77,25 +75,25 @@
   - name: 将中控机器压缩包解压到目标服务器
     unarchive: src={{COPY_MYSQL_FILE_TO_DIR}}/{{MYSQL_FILE_NAME}} dest={{COPY_MYSQL_FILE_TO_DIR}} owner=root group=root copy=no
   - name: 将解压后的包拷贝到base目录
-    command: mv {{COPY_MYSQL_FILE_TO_DIR}}/{{MYSQL_VERSION}} {{MYSQL_BASE_DIR}}
+    command: mv {{COPY_MYSQL_FILE_TO_DIR}}/{{MYSQL_VERSION}} {{MYSQL_MULTI_DIR}}/{{mysql_port}}/private
   - name: mysql初始化
-    shell: "{{ MYSQL_BASE_DIR }}/bin/mysqld --defaults-file={{MYSQL_MULTI_DIR}}/{{MYSQL_PORT}}/etc/my.cnf --initialize-insecure"
+    shell: "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/private/bin/mysqld --defaults-file={{MYSQL_MULTI_DIR}}/{{mysql_port}}/etc/my.cnf --initialize-insecure"
   - name: 启动mysqld
-    shell: /etc/init.d/mysql.server -P {{MYSQL_PORT}} start
+    shell: /etc/init.d/mysql.server -P {{mysql_port}} start
   - name: 拷贝user_init.sql
     copy: src={{TEMPLATES_DIR}}/user_init.sql dest=/tmp owner=root group=root
   - name: 初始化用户
-    shell: "{{ MYSQL_BASE_DIR }}/bin/mysql -uroot -P{{MYSQL_PORT}} -S /home/mysql/multi/{{MYSQL_PORT}}/socket/mysql.sock </tmp/user_init.sql"
+    shell: "{{MYSQL_MULTI_DIR}}/{{mysql_port}}/private/bin/mysql -uroot -P{{mysql_port}} -S /home/mysql/multi/{{mysql_port}}/socket/mysql.sock </tmp/user_init.sql"
   - name: change_master_to
     mysql_replication:
       mode: changemaster
       master_host: "{{master_ip}}"
-      master_port: "{{MYSQL_PORT}}"
+      master_port: "{{mysql_port}}"
       master_user: repl
       master_password: fffjjj
       master_auto_position: yes
       login_host: 127.0.0.1
-      login_port: "{{MYSQL_PORT}}"
+      login_port: "{{mysql_port}}"
       login_user: "{{LOGIN_MYSQL_USER}}"
       login_password: "{{ LOGIN_MYSQL_PASSWD }}"
     when: mysql_role=="slave"
@@ -103,20 +101,21 @@
     mysql_replication:
       mode: startslave
       login_host: 127.0.0.1
-      login_port: "{{MYSQL_PORT}}"
+      login_port: "{{mysql_port}}"
       login_user: "{{LOGIN_MYSQL_USER}}"
       login_password: "{{ LOGIN_MYSQL_PASSWD }}"
     when: mysql_role == "slave"
   - name: show slave status
     mysql_replication:
-      mode: getslave
+      mode: getreplica
       login_host: 127.0.0.1
-      login_port: "{{MYSQL_PORT}}"
+      login_port: "{{mysql_port}}"
       login_user: "{{LOGIN_MYSQL_USER}}"
       login_password: "{{ LOGIN_MYSQL_PASSWD }}"
     register: slave_status
+    when: mysql_role == "slave"
   - name: 判断slave是否启动成功
     fail:
       msg: "Slave_IO_Running={{slave_status.Slave_IO_Running}},Slave_SQL_Running={{slave_status.Slave_SQL_Running}}"
-    when: slave_status.Slave_IO_Running != "Yes" or slave_status.Slave_SQL_Running != "Yes"
+    when: mysql_role == "slave" and (slave_status.Slave_IO_Running != "Yes" or slave_status.Slave_SQL_Running != "Yes")
 

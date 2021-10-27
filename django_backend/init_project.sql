@@ -280,20 +280,23 @@ CREATE TABLE `deploy_mysql_submit_info` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `submit_uuid` varchar(50) NOT NULL COMMENT '工单id',
   `submit_user` varchar(50) NOT NULL COMMENT '提交用户',
-  idc varchar(50) not null default '' COMMENT '机房',
-  deploy_topos varchar(50) not null default '' COMMENT '部署topo信息',
-  deploy_version varchar(50) not null default '' COMMENT '版本',
-  deploy_archit varchar(50) not null default '' COMMENT '部署架构',
-  deploy_other_param text COMMENT '自定义参数',
+  `idc` varchar(50) NOT NULL DEFAULT '' COMMENT '机房',
+  `deploy_topos` text NOT NULL COMMENT '部署topo信息',
+  `deploy_version` varchar(50) NOT NULL DEFAULT '' COMMENT '版本',
+  `deploy_archit` varchar(50) NOT NULL DEFAULT '' COMMENT '部署架构',
+  `deploy_other_param` text COMMENT '自定义参数',
   `submit_check` tinyint(4) NOT NULL DEFAULT '1' COMMENT '审核:1-->未审核,2-->审核通过,3-->审核不通过',
+  `submit_check_username` varchar(50) NOT NULL DEFAULT '' COMMENT '审核人员',
   `submit_check_comment` varchar(200) NOT NULL DEFAULT '' COMMENT '审核备注',
   `submit_execute` tinyint(4) NOT NULL DEFAULT '1' COMMENT '执行:1-->未执行,2-->已执行',
+  `submit_execute_username` varchar(50) NOT NULL DEFAULT '' COMMENT '执行人员',
   `deploy_status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态:1-->未执行,2-->执行中,3-->执行成功,4-->执行失败',
+  `task_send_celery` varchar(50) NOT NULL DEFAULT '0' COMMENT '任务是否已经注册到celery:0未注册,1已注册',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_submit_uuid` (`submit_uuid`)
-) ENGINE=InnoDB AUTO_INCREMENT=62 DEFAULT CHARSET=utf8mb4 COMMENT='数据库部署工单';
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='数据库部署工单';
 
 CREATE TABLE `deploy_mysql_log` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',

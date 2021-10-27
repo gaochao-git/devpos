@@ -37,11 +37,11 @@ def inception_execute(params):
 
 
 @task
-def install_mysql(submit_uuid, topo_source, port, version):
+def install_mysql(submit_uuid, deploy_topos, deploy_version):
     """
     执行单个SQL任务
     :param params:
     :return:
     """
-    install_mysql_task = InstallMysql(submit_uuid, topo_source, port, version)
+    install_mysql_task = InstallMysql(submit_uuid, deploy_topos, deploy_version)
     install_mysql_task.task_run()

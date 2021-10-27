@@ -21,15 +21,20 @@ export default class DeployMysql extends Component  {
         this.state = {
             submit_info:[],
             showSubmitVisible:false,
-            topo_source_placeholder:"说明:\n  部署实例1\n  部署实例2=>同步实例1\n例如:\n  47.104.2.74_3306\n  47.104.2.75_3306=>47.104.2.74_3306"
+            topo_source_placeholder:"说明:\n  部署实例1\n  部署实例2=>同步实例1\n例如:\n  47.104.2.74_3306\n  47.104.2.75_3306=>47.104.2.74_3306",
+            deploy_topos:"",
+            deploy_version:"",
+            idc:"",
+            deploy_archit:"",
+
         }
     }
 
     componentDidMount() {
-        this.GetDeploySubmitInfo()
+        this.getDeploySubmitInfo()
     }
     //获取工单信息
-    async GetDeploySubmitInfo() {
+    async getDeploySubmitInfo() {
         await MyAxios.post('/get_deploy_mysql_submit_info/').then(
             res => {res.data.status==="ok" ?
                 this.setState({
@@ -39,21 +44,37 @@ export default class DeployMysql extends Component  {
                 message.error(res.data.message)}
         ).catch(err => {message.error(err.message)})
     }
+    //提交工单
+    async submitDeployMysql() {
+        let params = {
+            deploy_topos: this.state.deploy_topos,
+            deploy_version: this.state.deploy_version,
+            idc: this.state.idc,
+            deploy_archit: this.state.deploy_archit,
+        };
+        await MyAxios.post('/submit_deploy_mysql/',params).then(
+            res => {
+                if(res.data.status==="ok") {
+                    this.setState({showSubmitVisible:false});
+                    message.success("提交任务成功");
+                    this.getDeploySubmitInfo();
+                }else{
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err => {message.error(err.message)})
+    }
 
     render() {
         const columns = [
           {
-            title: '提交用户',
+            title: '用户',
             dataIndex: 'submit_user',
           },
           {
               title: '机房',
               dataIndex: 'idc',
           },
-          {
-              title: '部署集群信息',
-              dataIndex: 'deploy_topos',
-            },
             {
                 title: '版本',
                 dataIndex: 'deploy_version',
@@ -67,7 +88,7 @@ export default class DeployMysql extends Component  {
                 dataIndex: 'deploy_other_param',
             },
           {
-              title: '工单审核状态',
+              title: '审核状态',
               dataIndex: 'submit_check',
           },
           {
@@ -75,11 +96,11 @@ export default class DeployMysql extends Component  {
               dataIndex: 'submit_check_comment',
           },
          {
-             title: '工单是否执行',
+             title: '是否执行',
              dataIndex: 'submit_execute',
          },
           {
-            title: '工单执行状态',
+            title: '执行结果',
             dataIndex: 'deploy_status',
           },
           {
@@ -129,21 +150,21 @@ export default class DeployMysql extends Component  {
                     </TabPane>
                     <TabPane tab="新建部署工单" key="2">
                     <div className="sub-title-input">
-                        <Select defaultValue="BJ10" style={{ width: 150 }} onChange={e => message.success(e)}>
+                        <Select defaultValue="选择机房" style={{ width: 150 }} onChange={e => this.setState({idc:e})}>
                             <Option value="BJ10">BJ10</Option>
                             <Option value="BJ11">BJ11</Option>
                         </Select>
-                        <Select defaultValue="MHA" style={{ width: 150 }} onChange={e => message.success(e)}>
+                        <Select defaultValue="选择高可用架构" style={{ width: 150 }} onChange={e => this.setState({deploy_archit:e})}>
                             <Option value="ms">主从</Option>
                             <Option value="MHA">MHA</Option>
                         </Select>
-                        <Select defaultValue="MySQL5.7.32" style={{ width: 150 }} onChange={e => message.success(e)}>
-                            <Option value="MySQL5.7.32">MySQL5.7.32</Option>
-                            <Option value="MySQL8.0.22">MySQL8.0.22</Option>
+                        <Select defaultValue="选择MySQL版本" style={{ width: 150 }} onChange={e => this.setState({deploy_version:e})}>
+                            <Option value="mysql5.7.22">MySQL5.7.22</Option>
+                            <Option value="mysql8.0.22">MySQL8.0.22</Option>
                         </Select>
                     </div>
                     <div>
-                        <TextArea rows={10} placeholder={this.state.topo_source_placeholder} onChange={e => this.handleSqlChange(e.target.value)}/>
+                        <TextArea rows={10} placeholder={this.state.topo_source_placeholder} onChange={e => this.setState({deploy_topos:e.target.value})}/>
                         <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.setState({showSubmitVisible:true})}}>提交工单</Button>
                     </div>
 
@@ -154,7 +175,7 @@ export default class DeployMysql extends Component  {
                         width={300}
                     >
                         <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
-                            <Button onClick={()=>message.success(111)} type="primary" style={{ marginRight: '10px' }}>执行</Button>
+                            <Button onClick={()=>this.submitDeployMysql()} type="primary" style={{ marginRight: '10px' }}>执行</Button>
                             <Button onClick={() => this.setState({showSubmitVisible:false})} type="primary">返回</Button>
                         </Row>
                     </Modal>

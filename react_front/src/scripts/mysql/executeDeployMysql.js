@@ -26,17 +26,27 @@ export default class ExecuteDeployMysql extends Component {
             deploy_other_param:"",
             deploy_topos:"",
             ViewExecuteSubmitSqlModalVisible:false,
-            deploy_mysql_log:""
+            deploy_mysql_log:"",
+            deployTopoVisible: false,
+            check_comment:"",
+            submit_check: "",
+            submit_check_comment: "",
+            submit_execute: "",
+            deploy_status: "",
+            submit_check_username:"",
+            submit_execute_username: "",
+            checkCommentVisible:false,
         }
     }
 
     componentDidMount() {
-        this.GetDeployMysqlInfoByUuid(this.props.match.params["submit_uuid"])
+        this.GetDeployMysqlInfoByUuid();
+        this.GetDeployLogByUuid()
     };
     //获取工单信息
-    async GetDeployMysqlInfoByUuid(submit_uuid) {
+    async GetDeployMysqlInfoByUuid() {
         let params = {
-            submit_uuid: submit_uuid,
+            submit_uuid: this.props.match.params["submit_uuid"],
         };
         await MyAxios.post('/get_deploy_mysql_info_by_uuid/',params).then(
             res => {
@@ -47,6 +57,12 @@ export default class ExecuteDeployMysql extends Component {
                      deploy_archit: res.data.data[0]['deploy_archit'],
                      deploy_other_param: res.data.data[0]['deploy_other_param'],
                      deploy_topos: res.data.data[0]['deploy_topos'],
+                     submit_check: res.data.data[0]['submit_check'],
+                     submit_check_comment: res.data.data[0]['submit_check_comment'],
+                     submit_execute: res.data.data[0]['submit_execute'],
+                     deploy_status: res.data.data[0]['deploy_status'],
+                     submit_check_username: res.data.data[0]['submit_check_username'],
+                     submit_execute_username: res.data.data[0]['submit_execute_username'],
                    });
                 }else{
                     message.error(res.data.message)
@@ -103,47 +119,30 @@ export default class ExecuteDeployMysql extends Component {
             }
         ).catch(err => {message.error(err.message)})
     };
-    //查看SQL审核结果
-    async GetSqlCheckResultsByUuid(uuid) {
+    //审核通过或不通过
+    async PassSubmitByUuid(value) {
         this.setState({
-            sql_check_results_loading:true
-        })
-        // let token = window.localStorage.getItem('token')
+            check_pass_loading:true
+        });
         let params = {
             submit_uuid: this.props.match.params["submit_uuid"],
-        };
-        let res = await axios.post(`${backendServerApiRoot}/get_check_sql_results_by_uuid/`,{params});
-        let inception_error_level_rray=[];
-        for(var i=0;i<res.data.data.length;i++){
-            inception_error_level_rray.push(res.data.data[i]["inception_error_level"])
-        };
-        this.setState({
-            view_check_sql_result:res.data.data,
-            sql_check_max_code: Math.max.apply(null,inception_error_level_rray),
-            sql_check_code_explain: Math.max.apply(null,inception_error_level_rray)!==0 ? "异常":"正常",
-            sql_check_results_loading:false
-        });
-    };
-    //审核通过或不通过
-    async PassSubmitSqlByUuid(value) {
-        this.setState({
-            sql_check_pass_loading:true
-        });
-        let params = {
-            submit_uuid: this.state.submit_uuid,
-            apply_results:value,
-            check_user_name:this.state.login_user_name,
-            check_user_name_role:this.state.login_user_name_role,
+            check_status:value,   //2通过，3不通过
+            check_username: "gaochao",
             check_comment:this.state.check_comment,
         };
-        let res = await axios.post(`${backendServerApiRoot}/pass_submit_sql_by_uuid/`,{params});
-        message.success(res.data.message);
-        this.setState({
-            ApplyModalVisible: false,
-            view_submit_sql_info:res.data.data,
-            sql_check_pass_loading:false
-        });
-        this.GetSqlApplyByUuid(this.state.submit_uuid);
+        await MyAxios.post('/pass_submit_deploy_mysql_by_uuid/',params).then(
+            res => {
+                if (res.data.status==="ok"){
+                   this.setState({
+                     CheckModalVisible: false,
+                     check_pass_loading:false
+                   });
+                   message.success("执行成功")
+                }else{
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err => {message.error(err.message)})
     };
 
 
@@ -281,6 +280,7 @@ export default class ExecuteDeployMysql extends Component {
                             </Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={8}>部署信息:</Col>
+                                <Button className="link-button" onClick={()=>this.setState({deployTopoVisible:true})} style={{padding:5}} span={16}>查看</Button>
                             </Row>
                             <Row gutter={8}><Col style={{padding:5}} span={8}>版本:</Col><Col style={{padding:5}} span={16}>{this.state.deploy_version}</Col></Row>
                             <Row gutter={8}><Col style={{padding:5}} span={8}>架构:</Col><Col style={{padding:5}} span={16}>{this.state.deploy_archit}</Col></Row>
@@ -291,29 +291,27 @@ export default class ExecuteDeployMysql extends Component {
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={6}>审核人:</Col>
                                 <Col style={{padding:5}} span={18}>
-                                    [{this.state.leader_user_name}]
-                                        {this.state.leader_check==="通过" ? <span style={{color:"#52c41a"}}>[{this.state.leader_check}]</span>:<span  style={{color:"red"}}>[{this.state.leader_check}]</span>}
-                                </Col>
-                            </Row>
-                            <Row gutter={8}>
-                                <Col style={{padding:5}} span={6}>审核内容:</Col>
-                                <Col style={{padding:5}} span={18}>
-                                    [{this.state.dba_check_user_name}]
-                                    {this.state.dba_check === "通过" ? <span style={{color:"#52c41a"}}>[{this.state.dba_check}]</span>:<span  style={{color:"red"}}>[{this.state.dba_check}]</span>}
+                                    [{this.state.submit_check_username}]
+                                    {this.state.submit_check==="通过" ? <span style={{color:"#52c41a"}}>[{this.state.submit_check}]</span>:<span  style={{color:"red"}}>[{this.state.submit_check}]</span>}
+                                    <Button className="link-button" style={{marginTop:-6}} onClick={()=>this.setState({checkCommentVisible:true})}>查看</Button>
                                 </Col>
                             </Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={6}>执行人:</Col>
                                 <Col style={{padding:5}} span={18}>
-                                    [{this.state.dba_execute_user_name}]
-                                    {this.state.dba_execute === "已执行" ? <span style={{color:"#52c41a"}}>[{this.state.dba_execute}]</span>:<span  style={{color:"red"}}>[{this.state.dba_execute}]</span>}
+                                    {this.state.submit_execute_username}
+                                </Col>
+                            </Row>
+                            <Row gutter={8}>
+                                <Col style={{padding:5}} span={6}>工单状态:</Col>
+                                <Col style={{padding:5}} span={18}>
+                                    {this.state.submit_execute}
                                 </Col>
                             </Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={6}>执行结果:</Col>
                                 <Col style={{padding:5}} span={18}>
-                                    [{this.state.dba_execute_user_name}]
-                                    {this.state.dba_execute === "已执行" ? <span style={{color:"#52c41a"}}>[{this.state.dba_execute}]</span>:<span  style={{color:"red"}}>[{this.state.dba_execute}]</span>}
+                                    {this.state.deploy_status}
                                 </Col>
                             </Row>
                         </Col>
@@ -323,7 +321,7 @@ export default class ExecuteDeployMysql extends Component {
                         <div>
                             <h3>操作</h3>
                             <div className="input-padding">
-                                { (this.state.leader_check!=="未审核" && this.state.login_user_name_role!=="leader") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核</Button>:null}
+                                { (this.state.leader_check!=="未审核" && this.state.login_user_name_role!=="leader") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({CheckModalVisible:true})}>审核</Button>:null}
                                 { (this.state.qa_check !== '未审核' && this.state.login_user_name_role!=="qa") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({ExecuteModalVisible:true})}>执行</Button>:null}
                             </div>
                         </div>
@@ -347,23 +345,15 @@ export default class ExecuteDeployMysql extends Component {
                             Content of Tab Pane 3
                         </TabPane>
                     </Tabs>
-                    <Modal visible={this.state.showSubmitSqlViewVisible}
-                        onCancel={() => this.setState({showSubmitSqlViewVisible:false})}
-                        title="SQL预览"
-                        footer={false}
-                        width={960}
-                    >
-                        <TextArea wrap="off" style={{minHeight:300,overflow:"scroll"}} value={this.state.submit_sql}/>
-                    </Modal>
-                    <Modal visible={this.state.ApplyModalVisible}
-                        onCancel={() => this.setState({ApplyModalVisible:false})}
+                    <Modal visible={this.state.CheckModalVisible}
+                        onCancel={() => this.setState({CheckModalVisible:false})}
                         title="审核"
                         footer={false}
                     >
                         <TextArea rows={6} placeholder="审核说明"  onChange={e => this.setState({check_comment:e.target.value})}/>
                         <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
-                            <Button onClick={this.PassSubmitSqlByUuid.bind(this,'通过')} loading={this.state.sql_check_pass_loading} type="primary" style={{ marginRight: '10px' }}>通过</Button>
-                            <Button onClick={this.PassSubmitSqlByUuid.bind(this,'不通过')} loading={this.state.sql_check_pass_loading} type="primary">不通过</Button>
+                            <Button onClick={this.PassSubmitByUuid.bind(this,2)} loading={this.state.check_pass_loading} type="primary" style={{ marginRight: '10px' }}>通过</Button>
+                            <Button onClick={this.PassSubmitByUuid.bind(this,3)} loading={this.state.check_pass_loading} type="primary">不通过</Button>
                         </Row>
                     </Modal>
                     <Modal visible={this.state.ExecuteModalVisible}
@@ -377,20 +367,21 @@ export default class ExecuteDeployMysql extends Component {
                             <Button onClick={() => this.setState({ExecuteModalVisible:false})} type="primary">返回</Button>
                         </Row>
                     </Modal>
-                    <Modal visible={this.state.ViewExecuteSubmitSqlModalVisible}
-                        onCancel={() => this.setState({ViewExecuteSubmitSqlModalVisible:false})}
-                        title="执行结果"
-                        footer={false}
-                        width={1340}
-                    >
-                    </Modal>
-                    <Modal visible={this.state.SplitSQLModalVisible}
-                        onCancel={() => this.setState({SplitSQLModalVisible:false})}
-                        title="SQL预览"
+                    <Modal visible={this.state.deployTopoVisible}
+                        onCancel={() => this.setState({deployTopoVisible:false})}
+                        title="部署信息预览"
                         footer={false}
                         width={960}
                     >
-                        <TextArea wrap="off" style={{minHeight:300,overflow:"scroll"}} value={this.state.submit_split_sql}/>
+                        <TextArea wrap="off" style={{minHeight:300,overflow:"scroll"}} value={this.state.deploy_topos}/>
+                    </Modal>
+                    <Modal visible={this.state.checkCommentVisible}
+                        onCancel={() => this.setState({checkCommentVisible:false})}
+                        title="审核内容"
+                        footer={false}
+                        width={960}
+                    >
+                        <TextArea wrap="off" style={{minHeight:300,overflow:"scroll"}} value={this.state.submit_check_comment}/>
                     </Modal>
                 </div>
                 </div>

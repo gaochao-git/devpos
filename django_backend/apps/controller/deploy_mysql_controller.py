@@ -19,10 +19,11 @@ def submit_install_mysql_controller(request):
     """
     request_body = json.loads(str(request.body, encoding="utf-8"))
     try:
-        topo_source = request_body['topo_source']
-        port = request_body['port']
-        version = request_body['version']
-        ret = deploy_mysql.submit_install_mysql(topo_source, port, version)
+        deploy_topos = request_body['deploy_topos']
+        idc = request_body['idc']
+        deploy_version = request_body['deploy_version']
+        deploy_archit = request_body['deploy_archit']
+        ret = deploy_mysql.submit_install_mysql(deploy_topos, idc, deploy_version, deploy_archit)
     except KeyError as e:
         logger.exception('缺少请求参数:%s' % str(e))
         ret = {"status": "error", "code":2002, "message": "参数不合法"}
@@ -78,6 +79,25 @@ def get_deploy_mysql_log_controller(request):
     try:
         submit_uuid = request_body['submit_uuid']
         ret = deploy_mysql.get_deploy_mysql_log(submit_uuid)
+    except KeyError as e:
+        logger.exception('缺少请求参数:%s' % str(e))
+        ret = {"status": "error", "code": 2002, "message": "参数不合法"}
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+
+
+def pass_submit_deploy_mysql_by_uuid_controller(request):
+    """
+    审核部署工单
+    :param request:
+    :return:
+    """
+    request_body = json.loads(str(request.body, encoding="utf-8"))
+    try:
+        submit_uuid = request_body['submit_uuid']
+        check_status = request_body['check_status']
+        check_username = request_body['check_username']
+        check_comment = request_body['check_comment']
+        ret = deploy_mysql.pass_submit_deploy_mysql_by_uuid(submit_uuid,check_status,check_username,check_comment)
     except KeyError as e:
         logger.exception('缺少请求参数:%s' % str(e))
         ret = {"status": "error", "code": 2002, "message": "参数不合法"}

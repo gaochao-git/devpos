@@ -97,13 +97,11 @@ def dml(sql):
         status = "ok"
         message = "执行成功"
         code = ""
-        print(222)
     except Exception as e:
         status = "error"
         message = "执行SQL失败"
         code = 2201
         logger.error(e)
-        print(3333)
     finally:
         logger.info("sql:%s" % (sql))
         cursor.close()

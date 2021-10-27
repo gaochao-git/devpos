@@ -25,11 +25,17 @@ class ResultsCollector(CallbackBase):
         # logger.info('ok: [%s],result:%s' % (host,result._result))
         # message = 'ok: [%s]' % host
         if 'changed' in result._result.keys():
-            message = '  ok: [%s],changed:[%s],result:%s' % (host,result._result['changed'],result._result)
+            message = '  OK: [%s],changed:[%s],result:%s' % (host,result._result['changed'],result._result)
         else:
-            message = '  ok: [%s],result:%s' % (host, result._result)
+            message = '  OK: [%s],result:%s' % (host, result._result)
         logger.info(message)
         self.write_log_to_db(pymysql.escape_string(message),"ok")
+
+    def v2_runner_on_skipped(self, result):
+        host = result._host
+        message = '  SKIPPING: [%s],result:%s' % (host, result._result)
+        logger.info(message)
+        self.write_log_to_db(pymysql.escape_string(message), "skip")
 
     def v2_playbook_on_no_hosts_matched(self):
         self.output = "skipping: No match hosts."
@@ -53,8 +59,8 @@ class ResultsCollector(CallbackBase):
         :param stats:
         :return:
         """
-        logger.info('PLAY RECAP ********************************')
-        self.write_log_to_db('PLAY RECAP ********************************')
+        logger.info('PLAY RECAP ---------------------------------------------------------------------------')
+        self.write_log_to_db('PLAY RECAP ----------------------------------------------------------------------------')
         hosts = sorted(stats.processed.keys())
         for h in hosts:
             exec_ret = {}
@@ -66,12 +72,12 @@ class ResultsCollector(CallbackBase):
 
     def v2_runner_on_failed(self, result, ignore_errors=False):
         host = result._host
-        message = '  FAILED [%s] result=>%s' % (host, result._result)
+        message = '  **FAILED: [%s] result:%s' % (host, result._result)
         logger.error(message)
         self.write_log_to_db(pymysql.escape_string(message), "fail")
 
     def v2_runner_on_unreachable(self, result):
         host = result._host
-        message = '  UNREACHABLE[%s] result=>%s' % (host, result._result)
+        message = '  **UNREACHABLE: [%s] result:%s' % (host, result._result)
         logger.info(message)
         self.write_log_to_db(pymysql.escape_string(message), "unreachable")

@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger('devops')
 
 
-def get_server_id(host):
+def generate_server_id(host):
     """
     获取mysql的server_id
     :param host:
@@ -20,30 +20,34 @@ def get_server_id(host):
     return random.randint(100, 10000) + int(host.split('.')[-1])
 
 
-def install_mysql(playbook_path, submit_uuid, topo_source, mysql_port, mysql_version):
-    playbook_run(playbook_path, submit_uuid, topo_source, mysql_port, mysql_version)
-
-def playbook_run(playbook_path, submit_uuid, topo_source, mysql_port, mysql_version):
+def install_mysql(playbook_path, submit_uuid, topo_source, mysql_version):
     topo_list = topo_source.split('\n')
     sources = ""
     for topo_item in topo_list:
-        sources = sources + topo_item.split("=>")[0] + ','
+        instance = topo_item.split("=>")[0]
+        sources = sources + instance.split('_')[0] + ','
 
     loader = DataLoader()
     inventory = InventoryManager(loader=loader, sources=sources)
     variable_manager = VariableManager(loader=loader, inventory=inventory)
-    variable_manager.extra_vars['mysql_port'] = mysql_port
     variable_manager.extra_vars['mysql_version'] = mysql_version
     # 给host设置变量
     for topo_item in topo_list:
-        host = topo_item.split("=>")[0]
-        variable_manager.set_host_variable(host=host, varname='mysql_server_id', value=get_server_id(host))
+        ins = topo_item.split("=>")[0]
+        host = ins.split('_')[0]
+        port = ins.split('_')[1]
+        variable_manager.set_host_variable(host=host, varname='mysql_server_id', value=generate_server_id(host))
+        variable_manager.set_host_variable(host=host, varname='mysql_port', value=port)
         if len(topo_item.split("=>")) == 1:
             variable_manager.set_host_variable(host=host, varname='mysql_role', value='master')
             variable_manager.set_host_variable(host=host, varname='master_ip', value='')
+            variable_manager.set_host_variable(host=host, varname='master_port', value='')
         elif len(topo_item.split("=>")) == 2:
+            master_ip = topo_item.split("=>")[1].split('_')[0]
+            master_port = topo_item.split("=>")[1].split('_')[1]
             variable_manager.set_host_variable(host=host, varname='mysql_role', value='slave')
-            variable_manager.set_host_variable(host=host, varname='master_ip', value=topo_item.split("=>")[1])
+            variable_manager.set_host_variable(host=host, varname='master_ip', value=master_ip)
+            variable_manager.set_host_variable(host=host, varname='master_port', value=master_port)
         # host = inventory.get_host(hostname=host)
         # host_vars = variable_manager.get_vars(host=host)
         # print(host_vars)
@@ -62,13 +66,4 @@ def playbook_run(playbook_path, submit_uuid, topo_source, mysql_port, mysql_vers
     )
     playbook._tqm._stdout_callback = ResultsCollector(submit_uuid)
     result = playbook.run()
-    return result
-
-
-if __name__ == '__main__':
-    host_list = ['47.104.2.74', '47.104.2.75']
-    sources = ','.join(host_list)
-    port = 3310
-    version = 'mysql5722'
-    playbook_path = ['/Users/gaochao/gaochao-git/gaochao_repo/devpos/django_backend/apps/ansible_task/playbook/mysql/roles/install_mysql/task/install_mysql.yml']
-    playbook_run(playbook_path, sources, port, version)
+    print("playbook执行结果:%s" % result)
