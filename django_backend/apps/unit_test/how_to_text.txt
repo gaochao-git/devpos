@@ -1,0 +1,32 @@
+django.test测试框架使用步骤
+
+一、表结构泛解析与migration跟踪（该项目是通过直接创建表开发的,没有使用Django ORM框架,所以用django测试框架需要反解析成model）
+1.将数据库中表结构反解析为model（不要反解析系统自带的表,migrate时会自动生成,否则会出现冲突）
+python3.6 manage.py inspectdb mysql_cluster mysql_cluster_instance >./apps/models.py
+2.替换models.py中的信息,反解析出来的model默认不受migration管理,需要改为True
+managed = False-------------->managed = True
+3.生成migration
+python3.6 manage.py makemigrations
+
+二、准备测试数据
+1.django单元测试,每次开始的时候会自动创建测数据库(默认为test_xxxx),并通过migrations里面的文件将所有表创建,如果case中
+依赖数据可以通过fixtures = ['db.json']将里面数据载入，后续所有测试case都使用的这个库里面的数据
+2.fixtures目录里面的数据初始化:将项目数据库中的数据转为json格式存储在db.json中
+python3.6 manage.py dumpdata -a --natural-primary --indent=4 -e auth.permission -e contenttypes.contenttype>apps/fixtures/db.json
+# 单表导出
+python3.6 manage.py dumpdata sessions.session --natural-primary --indent=4 >apps/fixtures/db.json
+
+三、如何跑单元测试
+注意: Tidb不支持回滚点,所以如果后端存储是Tidb，需要手动临时将数据源换成mysql
+1.运行单元测试
+python3.6 manage.py test apps.unit_test.test_mysql_cluster.TestMysqlCluster
+2.运行单元测试并跑覆盖率(一般用这个)
+coverage run --source='./apps' manage.py test apps.unit_test
+coverage run --source='./apps' manage.py test apps.unit_test.test_mysql_cluster.TestMysqlCluster
+2.显示覆盖率
+coverage report      # 输出覆盖率
+coverage report -m   # 显示哪些没有被覆盖
+coverage html        # html输出
+coverage xml         # xml输出
+四、忽略某些文件,不被统计到覆盖率里面
+在.coveragerc中配置

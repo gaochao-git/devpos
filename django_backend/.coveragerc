@@ -1,0 +1,7 @@
+[run]
+omit =
+    apps/unit_test/*
+    *__init__.py
+    apps/migrations/*
+    apps/models.py
+    apps/celery_task/tasks.py
