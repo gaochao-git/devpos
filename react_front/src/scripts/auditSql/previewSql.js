@@ -18,7 +18,7 @@ export default class PreviewSQL extends React.Component {
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_submit_sql_by_uuid/`,{params});
+        let res = await axios.post(`${backendServerApiRoot}/get_submit_sql_by_uuid/`,params);
         console.log("SQL预览:",res.data);
         this.setState({
             submit_sql:res.data.data,

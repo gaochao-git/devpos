@@ -22,7 +22,7 @@ def get_submit_sql_info_controller(request):
 def get_cluster_name_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    cluster_name_patten = request_body['params']['cluster_name']
+    cluster_name_patten = request_body['cluster_name']
     ret = audit_sql.get_cluster_name(cluster_name_patten)
     return HttpResponse(json.dumps(ret,default=str), content_type='application/json')
 
@@ -31,7 +31,7 @@ def get_cluster_name_controller(request):
 def get_submit_sql_by_uuid_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
+    submit_sql_uuid = request_body['submit_sql_uuid']
     ret = audit_sql.get_submit_sql_by_uuid(submit_sql_uuid)
     return HttpResponse(json.dumps(ret,default=str), content_type='text/xml')
 
@@ -40,7 +40,7 @@ def get_submit_sql_by_uuid_controller(request):
 def get_apply_sql_by_uuid_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
+    submit_sql_uuid = request_body['submit_sql_uuid']
     ret = audit_sql.get_apply_sql_by_uuid(submit_sql_uuid)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
@@ -49,7 +49,7 @@ def get_apply_sql_by_uuid_controller(request):
 def get_master_ip_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    db_master_ip_or_hostname = request_body['params']['db_master_ip_or_hostname']
+    db_master_ip_or_hostname = request_body['db_master_ip_or_hostname']
     ret = audit_sql.get_master_ip(db_master_ip_or_hostname)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
@@ -58,8 +58,8 @@ def get_master_ip_controller(request):
 def check_sql_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    if request_body['params']['submit_source_db_type'] == "cluster":
-        cluster_name = request_body['params']['cluster_name']
+    if request_body['submit_source_db_type'] == "cluster":
+        cluster_name = request_body['cluster_name']
         if common.get_cluster_write_node_info(cluster_name) == "no_write_node":
             content = {'status': "error", 'message': "没有匹配到合适的写节点"}
             return HttpResponse(json.dumps(content), content_type='application/json')
@@ -67,9 +67,9 @@ def check_sql_controller(request):
             des_master_ip, des_master_port = common.get_cluster_write_node_info(cluster_name)
 
     else:
-        des_master_ip = request_body['params']['db_ip'].strip()
-        des_master_port = request_body['params']['db_port'].strip()
-    check_sql_info = request_body['params']['check_sql_info']
+        des_master_ip = request_body['db_ip'].strip()
+        des_master_port = request_body['db_port'].strip()
+    check_sql_info = request_body['check_sql_info']
     ret = inception.check_sql(des_master_ip, des_master_port, check_sql_info)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
@@ -88,7 +88,7 @@ def submit_sql_controller(request):
 def get_submit_split_sql_by_file_path_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    split_sql_file_path = request_body['params']['split_sql_file_path']
+    split_sql_file_path = request_body['split_sql_file_path']
     ret = audit_sql.get_submit_split_sql_by_file_path(split_sql_file_path)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
@@ -97,7 +97,7 @@ def get_submit_split_sql_by_file_path_controller(request):
 def get_inception_variable_config_info_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    split_sql_file_path = request_body['params']['split_sql_file_path']
+    split_sql_file_path = request_body['split_sql_file_path']
     ret = audit_sql.get_inception_variable_config_info(split_sql_file_path)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
@@ -105,7 +105,7 @@ def get_inception_variable_config_info_controller(request):
 def update_inception_variable_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    split_sql_file_path = request_body['params']['split_sql_file_path']
+    split_sql_file_path = request_body['split_sql_file_path']
     new_config = request_body["params"]["new_config_json"]
     request_body_json = json.dumps(new_config)
     ret = audit_sql.update_inception_variable(request_body_json,split_sql_file_path)
@@ -115,7 +115,7 @@ def update_inception_variable_controller(request):
 def get_check_sql_results_by_uuid_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
+    submit_sql_uuid = request_body['submit_sql_uuid']
     ret = audit_sql.get_check_sql_results_by_uuid(submit_sql_uuid)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
@@ -124,9 +124,9 @@ def pass_submit_sql_by_uuid_controller(request):
     token = request.META.get('HTTP_AUTHORIZATION')
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    apply_results = request_body['params']['apply_results']
-    check_comment = request_body['params']['check_comment']
+    submit_sql_uuid = request_body['submit_sql_uuid']
+    apply_results = request_body['apply_results']
+    check_comment = request_body['check_comment']
     check_status = 2 if apply_results == "通过" else 3
     ret = audit_sql.pass_submit_sql_by_uuid(token,submit_sql_uuid,apply_results,check_comment,check_status)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
@@ -136,12 +136,12 @@ def pass_submit_sql_by_uuid_controller(request):
 def execute_submit_sql_by_file_path_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    split_sql_file_path = request_body['params']['split_sql_file_path']
-    inception_backup = request_body['params']['inception_backup']
-    inception_check_ignore_warning = request_body['params']['inception_check_ignore_warning']
-    inception_execute_ignore_error = request_body['params']['inception_execute_ignore_error']
-    execute_user_name = request_body['params']["execute_user_name"]
+    submit_sql_uuid = request_body['submit_sql_uuid']
+    split_sql_file_path = request_body['split_sql_file_path']
+    inception_backup = request_body['inception_backup']
+    inception_check_ignore_warning = request_body['inception_check_ignore_warning']
+    inception_execute_ignore_error = request_body['inception_execute_ignore_error']
+    execute_user_name = request_body["execute_user_name"]
     ret = audit_sql.execute_submit_sql_by_file_path( submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path,execute_user_name)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
@@ -151,8 +151,8 @@ def execute_submit_sql_by_file_path_manual_controller(request):
     token = request.META.get('HTTP_AUTHORIZATION')
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
-    split_sql_file_path = request_body['params']['split_sql_file_path']
+    submit_sql_uuid = request_body['submit_sql_uuid']
+    split_sql_file_path = request_body['split_sql_file_path']
     ret = audit_sql.execute_submit_sql_by_file_path_manual(token,submit_sql_uuid,split_sql_file_path)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
@@ -160,7 +160,7 @@ def execute_submit_sql_by_file_path_manual_controller(request):
 def get_execute_results_by_split_sql_file_path_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    split_sql_file_path = request_body['params']['split_sql_file_path']
+    split_sql_file_path = request_body['split_sql_file_path']
     ret = audit_sql.get_execute_results_by_split_sql_file_path(split_sql_file_path)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
@@ -168,7 +168,7 @@ def get_execute_results_by_split_sql_file_path_controller(request):
 def get_execute_process_by_uuid_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    split_sql_file_path = request_body['params']['split_sql_file_path']
+    split_sql_file_path = request_body['split_sql_file_path']
     ret = audit_sql.get_execute_process_by_uuid(split_sql_file_path)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
@@ -210,7 +210,7 @@ def get_execute_process_by_uuid_controller(request):
 def get_split_sql_by_uuid_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['params']['submit_sql_uuid']
+    submit_sql_uuid = request_body['submit_sql_uuid']
     ret = audit_sql.get_split_sql_by_uuid(submit_sql_uuid)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
@@ -219,8 +219,8 @@ def get_split_sql_by_uuid_controller(request):
 def recreate_sql_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
-    split_sql_file_path = request_body['params']['split_sql_file_path']
-    recreate_sql_flag = request_body['params']['recreate_sql_flag']
+    split_sql_file_path = request_body['split_sql_file_path']
+    recreate_sql_flag = request_body['recreate_sql_flag']
     ret = audit_sql.recreate_sql(split_sql_file_path, recreate_sql_flag)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 

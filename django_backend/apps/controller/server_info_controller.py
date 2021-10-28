@@ -19,7 +19,7 @@ def get_server_info_controller(request):
     try:
         to_str = str(request.body, encoding="utf-8")
         request_body = json.loads(to_str)
-        search_server_name = request_body["params"]["search_server_name"]
+        search_server_name = request_body["search_server_name"]
         ret = server_info.get_server_info(search_server_name)
     except KeyError as e:
         logger.exception(e)

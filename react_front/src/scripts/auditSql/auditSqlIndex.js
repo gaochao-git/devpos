@@ -4,7 +4,7 @@ import {Button, Table, Input, Modal, Tabs, Form, Row, Select, data, Card, AutoCo
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
-import { backendServerApiRoot } from "../common/util"
+import MyAxios from "../common/interface"
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { TextArea } = Input
@@ -55,7 +55,7 @@ class AuditSqlIndex extends Component {
     }
     //获取已经提交的SQL列表
     async GetSubmitSqlInfo() {
-        let res = await axios.get(`${backendServerApiRoot}/get_submit_sql_info/`,);
+        let res = await MyAxios.post('/get_submit_sql_info/');
         this.setState({
             submit_sql_info: res.data.data,
         });
@@ -81,7 +81,7 @@ class AuditSqlIndex extends Component {
                 rebuild_table: this.state.rebuild_table,
                 set_value: this.state.set_value,
             };
-        await axios.post(`${backendServerApiRoot}/create_block_sql/`,{params}).then(
+        await MyAxios.post('/create_block_sql/',params).then(
             res => {res.data.status==="ok"?
                 this.setState({
                     create_sql_content: res.data.data,
@@ -114,7 +114,7 @@ class AuditSqlIndex extends Component {
                 sql_check_loading:true,
                 submit_sql_button_disabled:"hide"
             });
-            await axios.post(`${backendServerApiRoot}/check_sql/`,{params}).then(
+            await MyAxios.post('/check_sql/',params).then(
                 res => {res.data.status==="ok"?
                     this.setState({
                         check_sql_results: res.data.data,
@@ -153,7 +153,7 @@ class AuditSqlIndex extends Component {
                 sql_check_loading:true,
                 submit_sql_button_disabled:"hide"
             });
-            await axios.post(`${backendServerApiRoot}/check_sql/`,{params}).then(
+            await MyAxios.post('/check_sql/',params).then(
                 res => {res.data.status==="ok"?
                     this.setState({
                         check_sql_results: res.data.data,
@@ -200,7 +200,7 @@ class AuditSqlIndex extends Component {
             submit_sql_execute_type: value["执行类型"],
             comment_info: value["comment_info"],
         };
-        let res = await axios.post(`${backendServerApiRoot}/submit_sql/`,{params});
+        let res = await MyAxios.post('/submit_sql/',params);
         if( res.data.status === 'ok'){
             window.location.reload();
         }
@@ -222,7 +222,7 @@ class AuditSqlIndex extends Component {
             let params = {
                 db_master_ip_or_hostname: value
             };
-            let res = await axios.post(`${backendServerApiRoot}/get_master_ip/`,{params});
+            let res = await MyAxios.post('/get_master_ip/',params);
             if( res.data.status === 'ok'){
                 this.setState({
                     des_ip_list: res.data.data.length===0 ? []:res.data.data,
@@ -246,7 +246,7 @@ class AuditSqlIndex extends Component {
             let params = {
                 cluster_name: value
             };
-            let res = await axios.post(`${backendServerApiRoot}/get_cluster_name/`,{params});
+            let res = await MyAxios.post('/get_cluster_name/',params);
             if( res.data.status === 'ok'){
                 this.setState({
                     cluster_name_list: res.data.data.length===0 ? []:res.data.data,
