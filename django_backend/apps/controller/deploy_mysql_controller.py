@@ -69,7 +69,7 @@ def get_deploy_mysql_info_by_uuid_controller(request):
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
-def get_deploy_mysql_log_controller(request):
+def get_ansible_api_log_controller(request):
     """
     获取部署日志
     :param request:
@@ -78,7 +78,7 @@ def get_deploy_mysql_log_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
     try:
         submit_uuid = request_body['submit_uuid']
-        ret = deploy_mysql.get_deploy_mysql_log(submit_uuid)
+        ret = deploy_mysql.get_ansible_api_log(submit_uuid)
     except KeyError as e:
         logger.exception('缺少请求参数:%s' % str(e))
         ret = {"status": "error", "code": 2002, "message": "参数不合法"}
@@ -101,4 +101,21 @@ def pass_submit_deploy_mysql_by_uuid_controller(request):
     except KeyError as e:
         logger.exception('缺少请求参数:%s' % str(e))
         ret = {"status": "error", "code": 2002, "message": "参数不合法"}
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+
+
+def get_work_flow_by_uuid_controller(request):
+    """
+    获取工单流转记录
+    :param request:
+    :return:
+    """
+    request_body = json.loads(str(request.body, encoding="utf-8"))
+    try:
+        submit_uuid = request_body['submit_uuid']
+        ret = deploy_mysql.get_work_flow_by_uuid(submit_uuid)
+    except KeyError as e:
+        logger.exception('缺少请求参数:%s' % str(e))
+        ret = {"status": "error", "code": 2002, "message": "参数不合法"}
+    print(ret)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')

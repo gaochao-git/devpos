@@ -26,7 +26,7 @@ export default class ExecuteDeployMysql extends Component {
             deploy_other_param:"",
             deploy_topos:"",
             ViewExecuteSubmitSqlModalVisible:false,
-            deploy_mysql_log:"",
+            stdout_log:"",
             deployTopoVisible: false,
             check_comment:"",
             submit_check: "",
@@ -37,12 +37,14 @@ export default class ExecuteDeployMysql extends Component {
             submit_execute_username: "",
             checkCommentVisible:false,
             idc: "",
+            work_flow:[],
         }
     }
 
     componentDidMount() {
         this.getDeployMysqlInfoByUuid();
-        this.GetDeployLogByUuid()
+        this.getDeployLogByUuid();
+        this.getWorkFlowByUuid();
     };
     //获取工单信息
     async getDeployMysqlInfoByUuid() {
@@ -72,6 +74,24 @@ export default class ExecuteDeployMysql extends Component {
             }
         ).catch(err => {message.error(err.message)})
     }
+    //获取工单流转记录
+    async getWorkFlowByUuid() {
+        let params = {
+            submit_uuid: this.props.match.params["submit_uuid"],
+        };
+        await MyAxios.post('/get_work_flow_by_uuid/',params).then(
+            res => {
+                if (res.data.status==="ok"){
+                    console.log(res.data.data)
+                   this.setState({
+                     work_flow: res.data.data,
+                   });
+                }else{
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err => {message.error(err.message)})
+    }
     // 执行部署
     async executeDeployMysqlByUuid() {
         let params = {
@@ -86,6 +106,7 @@ export default class ExecuteDeployMysql extends Component {
                      ExecuteModalVisible: false,
                    });
                    message.success("发送任务成功");
+                   this.getWorkFlowByUuid();
                    this.setInterVal();
                 }else{
                     message.error(res.data.message)
@@ -99,11 +120,11 @@ export default class ExecuteDeployMysql extends Component {
     }
     //定时执行下面方法
     getSubmitInfoInterval(){
-        this.GetDeployLogByUuid();
+        this.getDeployLogByUuid();
         this.getDeployMysqlInfoByUuid();
     }
     //获取提交SQL的详细信息
-    async GetDeployLogByUuid() {
+    async getDeployLogByUuid() {
         let params = {
             submit_uuid: this.props.match.params["submit_uuid"],
         };
@@ -114,11 +135,11 @@ export default class ExecuteDeployMysql extends Component {
              console.log("工单执行中，定时id为:",this.timerId);
              console.log("工单执行状态:",this.state.deploy_status);
         }
-        await MyAxios.post('/get_deploy_mysql_log/',params).then(
+        await MyAxios.post('/get_ansible_api_log/',params).then(
             res => {
                 if (res.data.status==="ok"){
                    this.setState({
-                     deploy_mysql_log: res.data.data,
+                     stdout_log: res.data.data,
                    });
                 }else{
                     message.error(res.data.message)
@@ -144,7 +165,9 @@ export default class ExecuteDeployMysql extends Component {
                      CheckModalVisible: false,
                      check_pass_loading:false
                    });
-                   message.success("执行成功")
+                   message.success("执行成功");
+                   this.getDeployMysqlInfoByUuid();
+                   this.getWorkFlowByUuid();
                 }else{
                     message.error(res.data.message)
                 }
@@ -153,20 +176,24 @@ export default class ExecuteDeployMysql extends Component {
     };
 
     render() {
-        const temp = {}; // 当前重复的值,支持多列
-        const mergeCells = (text, array, columns) => {
-          let i = 0;
-          if (text !== temp[columns]) {
-            temp[columns] = text;
-            array.forEach((item) => {
-                console.log(item.split_seq)
-              if (item.split_seq === temp[columns]) {
-                i += 1;
-              }
-            });
-          }
-          return i;
-        };
+        const columns = [
+          {
+            title: '操作人',
+            dataIndex: 'op_username',
+          },
+          {
+              title: '操作类型',
+              dataIndex: 'op_type',
+          },
+          {
+              title: '备注',
+              dataIndex: 'op_comment',
+          },
+          {
+            title: '操作时间',
+            dataIndex: 'create_time',
+          },
+        ];
         return (
             <section>
                 <div className="server-list">
@@ -242,7 +269,7 @@ export default class ExecuteDeployMysql extends Component {
                     <Tabs>
                         <TabPane tab="部署日志" key="1">
                                 <CodeMirror
-                                    value={this.state.deploy_mysql_log}
+                                    value={this.state.stdout_log}
                                     options={{
                                       lineNumbers: true,
                                       mode: {name: "text/x-mysql"},
@@ -252,7 +279,13 @@ export default class ExecuteDeployMysql extends Component {
                                 />
                         </TabPane>
                         <TabPane tab="工单流转日志" key="2">
-                            Content of Tab Pane 3
+                            <Table
+                                dataSource={this.state.work_flow}
+                                rowKey={(row ,index) => index}
+                                columns={columns}
+                                bordered
+                                size="small"
+                            />
                         </TabPane>
                     </Tabs>
                     <Modal visible={this.state.CheckModalVisible}

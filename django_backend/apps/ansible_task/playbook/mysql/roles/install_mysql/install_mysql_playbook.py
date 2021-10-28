@@ -4,24 +4,22 @@ from ansible.inventory.manager import InventoryManager
 from ansible.executor.playbook_executor import PlaybookExecutor
 from ansible import context
 from ansible.module_utils.common.collections import ImmutableDict
-import json
-import random
 from apps.ansible_task.playbook.playbook_common import ResultsCollector
 from apps.utils import db_helper
+from apps.utils.common import generate_server_id
 import logging
 logger = logging.getLogger('devops')
 
 
-def generate_server_id(host):
+def install_mysql(playbook_path, submit_uuid, topo_source, mysql_version):
     """
-    获取mysql的server_id
-    :param host:
+    调用ansible api执行playbook
+    :param playbook_path:
+    :param submit_uuid:
+    :param topo_source:
+    :param mysql_version:
     :return:
     """
-    return random.randint(100, 10000) + int(host.split('.')[-1])
-
-
-def install_mysql(playbook_path, submit_uuid, topo_source, mysql_version):
     # 生成sources
     topo_list = topo_source.split('\n')
     sources = ""

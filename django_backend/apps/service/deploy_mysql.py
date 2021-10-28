@@ -22,20 +22,11 @@ def submit_install_mysql(deploy_topos, idc, deploy_version, deploy_archit):
     """
     ret = deploy_mysql_dao.submit_install_mysql_dao(deploy_topos, idc, deploy_version, deploy_archit)
     return ret
-    # if ret['status'] != "ok": return ret
-    # try:
-    #     task_id = install_mysql.delay(topo_source, port, version)
-    #     if task_id:
-    #         print("推送celery成功:",task_id)
-    #     else:
-    #         print("推送celery失败")
-    # except Exception as e:
-    #     logger.exception(e)
 
 
 def deploy_mysql_by_uuid(submit_uuid, deploy_topos, deploy_version):
     """
-    部署mysql
+    部署mysql，将任务丢给celery异步执行
     :param submit_uuid:
     :return:
     """
@@ -77,13 +68,13 @@ def get_deploy_mysql_info_by_uuid(submit_uuid):
     return ret
 
 
-def get_deploy_mysql_log(submit_uuid):
+def get_ansible_api_log(submit_uuid):
     """
     获取部署日志
     :param submit_uuid:
     :return:
     """
-    ret = deploy_mysql_dao.get_deploy_mysql_log_dao(submit_uuid)
+    ret = deploy_mysql_dao.get_ansible_api_log_dao(submit_uuid)
     return ret
 
 
@@ -97,4 +88,14 @@ def pass_submit_deploy_mysql_by_uuid(submit_uuid,check_status,check_username,che
     :return:
     """
     ret = deploy_mysql_dao.pass_submit_deploy_mysql_by_uuid_dao(submit_uuid,check_status,check_username,check_comment)
+    return ret
+
+
+def get_work_flow_by_uuid(submit_uuid):
+    """
+    获取工单流转记录
+    :param submit_uuid:
+    :return:
+    """
+    ret = deploy_mysql_dao.get_work_flow_by_uuid_dao(submit_uuid)
     return ret

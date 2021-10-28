@@ -12,7 +12,6 @@ from apps.controller import login_controller
 from apps.controller import web_console_controller
 from apps.controller import deploy_mysql_controller
 from apps.ansible_task.adhoc import ansible_adhoc
-from apps.ansible_task.playbook.mysql.roles.install_mysql import install_mysql_playbook
 
 from rest_framework.authtoken import views as drf_views
 
@@ -70,15 +69,15 @@ urlpatterns = [
     # web_console
     path('api/get_table_data/', web_console_controller.get_table_data_controller),
 
-    # ansible
-    path('api/ansible_adhoc/', ansible_adhoc.adhoc),
-    path('api/ansible_playbook/', install_mysql_playbook.install_mysql),
-    path('api/submit_deploy_mysql/', deploy_mysql_controller.submit_install_mysql_controller),
-    path('api/get_deploy_mysql_submit_info/', deploy_mysql_controller.get_deploy_mysql_submit_info_controller),
-    path('api/get_deploy_mysql_info_by_uuid/', deploy_mysql_controller.get_deploy_mysql_info_by_uuid_controller),
-    path('api/deploy_mysql_by_uuid/', deploy_mysql_controller.deploy_mysql_by_uuid_controller),
-    path('api/get_deploy_mysql_log/', deploy_mysql_controller.get_deploy_mysql_log_controller),
-    path('api/pass_submit_deploy_mysql_by_uuid/', deploy_mysql_controller.pass_submit_deploy_mysql_by_uuid_controller),
+    # 部署
+    path('api/ansible_adhoc/', ansible_adhoc.adhoc),  # ansible api执行命令
+    path('api/submit_deploy_mysql/', deploy_mysql_controller.submit_install_mysql_controller),  # 提交部署mysql工单
+    path('api/get_deploy_mysql_submit_info/', deploy_mysql_controller.get_deploy_mysql_submit_info_controller), # 获取所有部署mysql工单信息
+    path('api/get_deploy_mysql_info_by_uuid/', deploy_mysql_controller.get_deploy_mysql_info_by_uuid_controller), # 获取部署mysql工单详情
+    path('api/deploy_mysql_by_uuid/', deploy_mysql_controller.deploy_mysql_by_uuid_controller), # 执行部署mysql任务
+    path('api/get_ansible_api_log/', deploy_mysql_controller.get_ansible_api_log_controller), # 获取部署日志
+    path('api/pass_submit_deploy_mysql_by_uuid/', deploy_mysql_controller.pass_submit_deploy_mysql_by_uuid_controller),  # 审核部署mysql工单
+    path('api/get_work_flow_by_uuid/', deploy_mysql_controller.get_work_flow_by_uuid_controller),  # 获取工单流转记录
     ]
 
 

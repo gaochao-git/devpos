@@ -298,12 +298,25 @@ CREATE TABLE `deploy_mysql_submit_info` (
   UNIQUE KEY `uk_submit_uuid` (`submit_uuid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='数据库部署工单';
 
-CREATE TABLE `deploy_mysql_log` (
+CREATE TABLE `ansible_api_log` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `submit_uuid` varchar(50) NOT NULL COMMENT '工单id',
-  `deploy_log`  text NOT NULL COMMENT '输出日志',
+  `stdout_log`  text NOT NULL COMMENT '输出日志',
   step_task_status varchar(30) not null default '' comment '每个task执行结果状态',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='数据库部署日志表';
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='ansible api日志表';
+
+
+CREATE TABLE `work_flow_log` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `submit_uuid` varchar(50) NOT NULL COMMENT '工单id',
+  `work_type` varchar(50) NOT NULL DEFAULT '' COMMENT '工单类型',
+  `op_username` varchar(50) NOT NULL DEFAULT '' COMMENT '操作人',
+  `op_comment` varchar(50) NOT NULL DEFAULT '' COMMENT '操作人备注',
+  `op_type` varchar(50) NOT NULL DEFAULT '' COMMENT '操作类型',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COMMENT='工单流转日志表';

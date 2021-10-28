@@ -17,14 +17,21 @@ def submit_install_mysql_dao(deploy_topos, idc, deploy_version, deploy_archit):
     :return:
     """
     submit_uuid = str(uuid.uuid4())
-    sql = """
+    sql1 = """
             insert into deploy_mysql_submit_info(submit_uuid,submit_user,idc,deploy_topos,deploy_version,deploy_archit,
                                                  deploy_other_param,submit_check,submit_check_comment,submit_execute,
                                                  deploy_status,create_time,update_time,submit_check_username,
                                                  submit_execute_username,task_send_celery) 
                                            values('{0}','{1}','{2}','{3}','{4}','{5}','{6}',1,'审核内容',1,1,now(),now(),'高超','高超',0)
           """.format(submit_uuid,'gaochao', idc, deploy_topos, deploy_version,deploy_archit, '其他参数')
-    return db_helper.dml(sql)
+    sql2 = """
+        insert into work_flow_log(submit_uuid,work_type,op_username,op_comment,op_type,create_time,update_time) 
+                           values('{0}','部署mysql','高超','','提交工单',now(),now())
+    """.format(submit_uuid)
+    sql_list = []
+    sql_list.append(sql1)
+    sql_list.append(sql2)
+    return db_helper.dml_many(sql_list)
 
 
 def get_deploy_mysql_submit_info_dao():
@@ -84,18 +91,18 @@ def get_deploy_mysql_info_by_uuid_dao(submit_uuid):
     return db_helper.find_all(sql)
 
 
-def get_deploy_mysql_log_dao(submit_uuid):
+def get_ansible_api_log_dao(submit_uuid):
     """
     获取部署日志
     :param submit_uuid:
     :return:
     """
-    sql = "select concat('[',create_time,'] ',deploy_log)  as deploy_log from deploy_mysql_log where submit_uuid='{}'".format(submit_uuid)
+    sql = "select concat('[',create_time,'] ',stdout_log)  as stdout_log from ansible_api_log where submit_uuid='{}'".format(submit_uuid)
     ret = db_helper.find_all(sql)
     if ret['status'] != "ok": return ret
     data = ""
     for item in ret['data']:
-        data = data + item['deploy_log'] + '\n'
+        data = data + item['stdout_log'] + '\n'
     return {"status": "ok","message":"获取日志成功", "data": data}
 
 
@@ -108,12 +115,19 @@ def pass_submit_deploy_mysql_by_uuid_dao(submit_uuid,check_status,check_username
     :param check_comment:
     :return:
     """
-    sql = """
+    sql1 = """
             update deploy_mysql_submit_info 
             set submit_check={0},submit_check_username='{1}',submit_check_comment='{2}'
             where submit_uuid='{3}'
           """.format(check_status,check_username,check_comment,submit_uuid)
-    return db_helper.dml(sql)
+    sql2 = """
+            insert into work_flow_log(submit_uuid,work_type,op_username,op_comment,op_type,create_time,update_time) 
+                               values('{0}','部署mysql','高超','{1}','审核工单',now(),now())
+        """.format(submit_uuid, check_comment)
+    sql_list = []
+    sql_list.append(sql1)
+    sql_list.append(sql2)
+    return db_helper.dml_many(sql_list)
 
 
 def set_task_celery_dao(submit_uuid):
@@ -122,5 +136,25 @@ def set_task_celery_dao(submit_uuid):
     :param submit_uuid:
     :return:
     """
-    sql = "update deploy_mysql_submit_info set task_send_celery=1 where submit_uuid='{}'".format(submit_uuid)
-    return db_helper.dml(sql)
+    sql1 = "update deploy_mysql_submit_info set task_send_celery=1 where submit_uuid='{}'".format(submit_uuid)
+    sql2 = """
+                insert into work_flow_log(submit_uuid,work_type,op_username,op_comment,op_type,create_time,update_time) 
+                                   values('{0}','部署mysql','高超','','执行工单',now(),now())
+            """.format(submit_uuid)
+    sql_list = []
+    sql_list.append(sql1)
+    sql_list.append(sql2)
+    return db_helper.dml_many(sql_list)
+
+
+def get_work_flow_by_uuid_dao(submit_uuid):
+    """
+    获取工单流转记录
+    :param submit_uuid:
+    :return:
+    """
+    sql = """
+            select work_type,op_username,op_comment,op_type,create_time 
+            from work_flow_log where submit_uuid='{}'
+        """.format(submit_uuid)
+    return db_helper.find_all(sql)

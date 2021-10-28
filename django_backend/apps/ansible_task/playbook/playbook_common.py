@@ -15,7 +15,7 @@ class ResultsCollector(CallbackBase):
 
     def write_log_to_db(self, result, task_status=""):
         sql = """
-                insert into deploy_mysql_log(submit_uuid,deploy_log,step_task_status,create_time,update_time)
+                insert into ansible_api_log(submit_uuid,stdout_log,step_task_status,create_time,update_time)
                                       values('{}','{}','{}',now(),now())
               """.format(self.submit_uuid,result, task_status)
         db_helper.dml(sql)

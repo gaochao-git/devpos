@@ -1,5 +1,6 @@
 from django.db import connection
 import logging
+import random
 from apps.utils import db_helper
 
 logger = logging.getLogger('devops')
@@ -34,3 +35,12 @@ def get_login_user_info(login_user):
     except Exception as e:
         logger.error(e)
     return rows
+
+
+def generate_server_id(host):
+    """
+    获取mysql的server_id
+    :param host:
+    :return:
+    """
+    return random.randint(100, 10000) + int(host.split('.')[-1])
