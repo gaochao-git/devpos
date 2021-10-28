@@ -1,8 +1,7 @@
 import React,{Component} from 'react';
 import axios from 'axios'
 import MyAxios from "../common/interface"
-//import { Table, Input,message,Tabs } from "antd";
-import {Button, Table, Input, Modal, Tabs, Form, Row, Select, data, Card, AutoComplete, Tooltip,message} from "antd";
+import {Button, Table, Input, Modal, Tabs, Form, Row, Select, data, Card, AutoComplete, Tooltip,message,Col,Descriptions,Collapse} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -14,6 +13,7 @@ const { TabPane } = Tabs;
 const FormItem = Form.Item;
 const { Option } = Select;
 const { TextArea } = Input
+const { Panel } = Collapse;
 
 export default class DeployMysql extends Component  {
     constructor(props) {
@@ -22,6 +22,7 @@ export default class DeployMysql extends Component  {
             submit_info:[],
             showSubmitVisible:false,
             topo_source_placeholder:"说明:\n  部署实例1\n  部署实例2=>同步实例1\n例如:\n  47.104.2.74_3306\n  47.104.2.75_3306=>47.104.2.74_3306",
+            rds_placeholder:"说明:sdf\nsdfsf\n\n\n\n",
             deploy_topos:"",
             deploy_version:"",
             idc:"",
@@ -148,50 +149,111 @@ export default class DeployMysql extends Component  {
                     />
                     </TabPane>
                     <TabPane tab="新建部署工单" key="2">
-                    <div className="sub-title-input">
-                        <Select defaultValue="选择机房" style={{ width: 150 }} onChange={e => this.setState({idc:e})}>
-                            <Option value="BJ10">BJ10</Option>
-                            <Option value="BJ11">BJ11</Option>
-                        </Select>
-                        <Select defaultValue="选择集群类型" style={{ width: 150 }} onChange={e => this.setState({deploy_archit:e})}>
-                            <Option value="ms">单点</Option>
-                            <Option value="ms">主从</Option>
-                            <Option value="MHA">高可用</Option>
-                        </Select>
-                        <Select defaultValue="选择MySQL版本" style={{ width: 150 }} onChange={e => this.setState({deploy_version:e})}>
-                            <Option value="mysql5.7.22">MySQL5.7</Option>
-                            <Option value="mysql8.0.22">MySQL8.0</Option>
-                        </Select>
-                        <Select defaultValue="CPU" style={{ width: 150 }} onChange={e => this.setState({cpu:e})}>
-                            <Option value="2">2核</Option>
-                            <Option value="4">4核</Option>
-                            <Option value="8">8核</Option>
-                            <Option value="16">16核</Option>
-                            <Option value="32">32核</Option>
-                            <Option value="64">64核</Option>
-                            <Option value="128">128核</Option>
-                        </Select>
-                        <Select defaultValue="内存" style={{ width: 150 }} onChange={e => this.setState({mem:e})}>
-                            <Option value="2">2GB</Option>
-                            <Option value="4">4GB</Option>
-                            <Option value="8">8GB</Option>
-                            <Option value="16">16GB</Option>
-                            <Option value="32">32GB</Option>
-                            <Option value="64">64GB</Option>
-                        </Select>
-                        <Select defaultValue="磁盘" style={{ width: 150 }} onChange={e => this.setState({disk:e})}>
-                            <Option value="150">100GB</Option>
-                            <Option value="150">150GB</Option>
-                            <Option value="200">200GB</Option>
-                            <Option value="250">250GB</Option>
-                            <Option value="300">300GB</Option>
-                        </Select>
-                    </div>
-                    <div>
-                        <TextArea rows={10} placeholder={this.state.topo_source_placeholder} onChange={e => this.setState({deploy_topos:e.target.value})}/>
-                        <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.setState({showSubmitVisible:true})}}>提交工单</Button>
-                    </div>
+                        <div className="sub-title-input">
+                            <Select defaultValue="选择机房" style={{ width: 300 }} onChange={e => this.setState({idc:e})}>
+                                <Option value="BJ10">BJ10</Option>
+                                <Option value="BJ11">BJ11</Option>
+                            </Select>
+                            <Select defaultValue="选择集群类型" style={{ width: 300 }} onChange={e => this.setState({deploy_archit:e})}>
+                                <Option value="ms">单点</Option>
+                                <Option value="ms">主从</Option>
+                                <Option value="MHA">高可用</Option>
+                            </Select>
+                            <Select defaultValue="选择MySQL版本" style={{ width: 300 }} onChange={e => this.setState({deploy_version:e})}>
+                                <Option value="mysql5.7.22">MySQL5.7</Option>
+                                <Option value="mysql8.0.22">MySQL8.0</Option>
+                            </Select>
+                        </div>
+                        <div>
+                            <TextArea rows={10} placeholder={this.state.topo_source_placeholder} onChange={e => this.setState({deploy_topos:e.target.value})}/>
+                            <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.setState({showSubmitVisible:true})}}>提交工单</Button>
+                        </div>
+                    </TabPane>
+                    <TabPane tab="RDS资源申请" key="3">
+                        <Row>
+                          <Col span={12}>
+                                <div className="sub-title-input">
+                                <span style={{ marginRight: 20 }}>选择机房: </span>
+                                <Select defaultValue="BJ10" style={{ width: 300 }} onChange={e => this.setState({idc:e})}>
+                                    <Option value="BJ10">BJ10</Option>
+                                    <Option value="BJ11">BJ11</Option>
+                                </Select>
+                            </div>
+                            <div>
+                                <p>{this.state.rds_placeholder}</p>
+                            </div>
+                            <div className="sub-title-input">
+                                <span style={{ marginRight: 20 }}>选择类型: </span>
+                                <Select defaultValue="MHA" style={{ width: 300 }} onChange={e => this.setState({deploy_archit:e})}>
+                                    <Option value="m">单点</Option>
+                                    <Option value="ms">主从</Option>
+                                    <Option value="MHA">高可用</Option>
+                                </Select>
+                            </div>
+                            <div>
+                                <p style={{color:"red"}}>推荐使用高可用版,最高99.99%可用性,数据复制强一致,RPO=0</p>
+                            </div>
+                            <div className="sub-title-input">
+                                <span style={{ marginRight: 20 }}>选择版本: </span>
+                                <Select defaultValue="mysql5.7.22" style={{ width: 300 }} onChange={e => this.setState({deploy_version:e})}>
+                                    <Option value="mysql5.7.22">MySQL5.7</Option>
+                                    <Option value="mysql8.0.22">MySQL8.0</Option>
+                                </Select>
+                            </div>
+                            <div>
+                                <p>{this.state.rds_placeholder}</p>
+                            </div>
+                          </Col>
+                          <Col span={12}>
+                            <div className="sub-title-input">
+                                <span style={{ marginRight: 20 }}>选择CPU: </span>
+                                <Select defaultValue="2" style={{ width: 300 }} onChange={e => this.setState({cpu:e})}>
+                                    <Option value="2">2核</Option>
+                                    <Option value="4">4核</Option>
+                                    <Option value="8">8核</Option>
+                                    <Option value="16">16核</Option>
+                                    <Option value="32">32核</Option>
+                                    <Option value="64">64核</Option>
+                                    <Option value="128">128核</Option>
+                                </Select>
+                            </div>
+                            <div>
+                                <p>{this.state.rds_placeholder}</p>
+                            </div>
+                            <div className="sub-title-input">
+                                <span style={{ marginRight: 20 }}>选择内存: </span>
+                                <Select defaultValue="2" style={{ width: 300 }} onChange={e => this.setState({mem:e})}>
+                                    <Option value="2">2GB</Option>
+                                    <Option value="4">4GB</Option>
+                                    <Option value="8">8GB</Option>
+                                    <Option value="16">16GB</Option>
+                                    <Option value="32">32GB</Option>
+                                    <Option value="64">64GB</Option>
+                                </Select>
+                            </div>
+                            <div>
+                                <p>{this.state.rds_placeholder}</p>
+                            </div>
+                            <div className="sub-title-input">
+                                <span style={{ marginRight: 20 }}>选择磁盘: </span>
+                                <Select defaultValue="150" style={{ width: 300 }} onChange={e => this.setState({disk:e})}>
+                                    <Option value="150">100GB</Option>
+                                    <Option value="150">150GB</Option>
+                                    <Option value="200">200GB</Option>
+                                    <Option value="250">250GB</Option>
+                                    <Option value="300">300GB</Option>
+                                </Select>
+                            </div>
+                            <div>
+                                <p>{this.state.rds_placeholder}</p>
+                            </div>
 
+                          </Col>
+                        </Row>
+
+                        <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.setState({showSubmitVisible:true})}}>提交工单</Button>
+                    </TabPane>
+                </Tabs>
                     <Modal visible={this.state.showSubmitVisible}
                         onCancel={() => this.setState({showSubmitVisible:false})}
                         title="确认提交?"
@@ -203,8 +265,6 @@ export default class DeployMysql extends Component  {
                             <Button onClick={() => this.setState({showSubmitVisible:false})} type="primary">返回</Button>
                         </Row>
                     </Modal>
-                </TabPane>
-                </Tabs>
             </div>
         )
     }

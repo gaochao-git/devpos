@@ -186,7 +186,7 @@ export default class ExecuteDeployMysql extends Component {
               dataIndex: 'op_type',
           },
           {
-              title: '备注',
+              title: '处理意见',
               dataIndex: 'op_comment',
           },
           {
@@ -230,7 +230,6 @@ export default class ExecuteDeployMysql extends Component {
                                 <Col style={{padding:5}} span={18}>
                                     [{this.state.submit_check_username}]
                                     {this.state.submit_check==="通过" ? <span style={{color:"#52c41a"}}>[{this.state.submit_check}]</span>:<span  style={{color:"red"}}>[{this.state.submit_check}]</span>}
-                                    <Button className="link-button" style={{marginTop:-6}} onClick={()=>this.setState({checkCommentVisible:true})}>查看</Button>
                                 </Col>
                             </Row>
                             <Row gutter={8}>

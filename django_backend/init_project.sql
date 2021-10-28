@@ -1,5 +1,5 @@
 CREATE TABLE `common_user` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `user_name` varchar(50) NOT NULL DEFAULT '' COMMENT '用户名',
   `user_password` varchar(50) NOT NULL DEFAULT '' COMMENT '用户密码',
   `user_host` varchar(200) NOT NULL DEFAULT '' COMMENT '用户主机名',
@@ -14,7 +14,7 @@ CREATE TABLE `common_user` (
 ) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COMMENT='公共用户表';
 
 CREATE TABLE `mysql_cluster` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `cluster_type` varchar(30) NOT NULL DEFAULT '' COMMENT '集群类型: 单点,主从,MMM,MHA,PXC,MGR',
   `cluster_name` varchar(64) NOT NULL DEFAULT '' COMMENT '集群名称',
   `cluster_grade` tinyint(4) NOT NULL DEFAULT '0' COMMENT '集群重要等级，-1代表无需备份，0代表未定义，1代表不重要，2代表普通，3代表重要，4代表非常重要',
@@ -27,7 +27,7 @@ CREATE TABLE `mysql_cluster` (
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COMMENT='mysql集群信息表';
 
 CREATE TABLE `mysql_cluster_instance` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `cluster_name` varchar(64) NOT NULL DEFAULT '' COMMENT '集群名称',
   `cluster_type` varchar(50) NOT NULL DEFAULT '' COMMENT '集群类型: 单点,主从,MMM,MHA,PXC,MGR',
   `instance_name` varchar(100) NOT NULL DEFAULT '' COMMENT '实例名',
@@ -36,7 +36,7 @@ CREATE TABLE `mysql_cluster_instance` (
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COMMENT='mysql集群实例表';
 
 CREATE TABLE `mysql_instance` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `host_name` varchar(50) NOT NULL DEFAULT '' COMMENT '主机名',
   `host_ip` varchar(50) NOT NULL DEFAULT '' COMMENT '主机ip',
   `port` int(4) NOT NULL COMMENT 'mysql端口',
@@ -54,7 +54,7 @@ CREATE TABLE `mysql_instance` (
 ) ENGINE=InnoDB AUTO_INCREMENT=3362 DEFAULT CHARSET=utf8mb4 COMMENT='mysql实例表';
 
 CREATE TABLE `private_user` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `user_name` varchar(50) NOT NULL DEFAULT '' COMMENT '用户名',
   `user_password` varchar(50) NOT NULL DEFAULT '' COMMENT '用户密码',
   `user_host` varchar(200) NOT NULL DEFAULT '' COMMENT '用户主机名',
@@ -71,7 +71,7 @@ CREATE TABLE `private_user` (
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COMMENT='私有用户表';
 
 CREATE TABLE `privilege_request_info` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `order_uuid` varchar(40) NOT NULL DEFAULT '' COMMENT '工单唯一标识',
   `person_name` varchar(50) NOT NULL DEFAULT '' COMMENT '申请人',
   `request_type` int(11) NOT NULL DEFAULT '-1' COMMENT '0-->创建新用户,1-->扩展权限,2-->扩展IP,3-->扩展数据库',
@@ -95,7 +95,7 @@ CREATE TABLE `privilege_request_info` (
 ) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COMMENT='权限请求工单表';
 
 CREATE TABLE `server` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `server_public_ip` varchar(50) NOT NULL DEFAULT '' COMMENT '主机公网ip',
   `server_private_ip` varchar(50) NOT NULL DEFAULT '' COMMENT '主机内网ip',
   `server_hostname` varchar(200) NOT NULL DEFAULT '' COMMENT '主机名',
@@ -121,7 +121,7 @@ CREATE TABLE `server` (
 
 
 CREATE TABLE `sql_check_results` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `submit_sql_uuid` varchar(50) NOT NULL COMMENT '请求uuid',
   `inception_id` int(11) NOT NULL DEFAULT '0' COMMENT 'Inception返回的ID',
   `inception_stage` varchar(20) NOT NULL DEFAULT '' COMMENT 'Inception返回的stage',
@@ -167,7 +167,7 @@ CREATE TABLE `sql_execute_results` (
 
 
 CREATE TABLE `sql_execute_split` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `submit_sql_uuid` varchar(50) NOT NULL COMMENT '请求uuid',
   `split_seq` int(11) NOT NULL DEFAULT '0' COMMENT 'Inception返回的拆分ID',
   `rerun_seq` int(11) NOT NULL DEFAULT '0' COMMENT 'Inception执行失败后平台生成的重做序列号',
@@ -195,7 +195,7 @@ CREATE TABLE `sql_execute_split` (
 ) ENGINE=InnoDB AUTO_INCREMENT=474 DEFAULT CHARSET=utf8mb4 COMMENT='SQL拆分表'
 
 CREATE TABLE `sql_inception_osc_config` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `variable_name` varchar(200) NOT NULL DEFAULT '' COMMENT '变量名',
   `variable_value` varchar(200) NOT NULL DEFAULT '' COMMENT '变量值',
   `variable_description` varchar(2000) DEFAULT NULL COMMENT '参数解释',
@@ -220,7 +220,7 @@ insert into sql_inception_osc_config(variable_name,variable_value) values('incep
 insert into sql_inception_osc_config(variable_name,variable_value) values('inception_osc_alter_foreign_keys_method','none');
 
 CREATE TABLE `sql_submit_info` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `submit_sql_uuid` varchar(50) NOT NULL COMMENT '请求uuid',
   `submit_sql_user` varchar(50) NOT NULL COMMENT '提交SQL用户',
   `submit_sql_file_path` varchar(200) NOT NULL COMMENT '请求sql存放路径',
@@ -256,7 +256,7 @@ CREATE TABLE `sql_submit_info` (
 
 
 CREATE TABLE `team_check_role` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `gid` int(11) NOT NULL DEFAULT '-1' COMMENT '用户归属组',
   `gname` varchar(50) NOT NULL DEFAULT '' COMMENT '组名',
   `qa_name` varchar(50) NOT NULL DEFAULT '' COMMENT 'qa',
@@ -266,7 +266,7 @@ CREATE TABLE `team_check_role` (
 ) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COMMENT='审核成员表';
 
 CREATE TABLE `team_user` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `uid` varchar(50) NOT NULL DEFAULT '' COMMENT '用户唯一标识',
   `gid` int(11) NOT NULL DEFAULT '-1' COMMENT '用户组唯一标识',
   `uname` varchar(50) NOT NULL DEFAULT '' COMMENT '姓名',
@@ -277,7 +277,7 @@ CREATE TABLE `team_user` (
 
 
 CREATE TABLE `deploy_mysql_submit_info` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `submit_uuid` varchar(50) NOT NULL COMMENT '工单id',
   `submit_user` varchar(50) NOT NULL COMMENT '提交用户',
   `idc` varchar(50) NOT NULL DEFAULT '' COMMENT '机房',
@@ -299,7 +299,7 @@ CREATE TABLE `deploy_mysql_submit_info` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='数据库部署工单';
 
 CREATE TABLE `ansible_api_log` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `submit_uuid` varchar(50) NOT NULL COMMENT '工单id',
   `stdout_log`  text NOT NULL COMMENT '输出日志',
   step_task_status varchar(30) not null default '' comment '每个task执行结果状态',
@@ -310,7 +310,7 @@ CREATE TABLE `ansible_api_log` (
 
 
 CREATE TABLE `work_flow_log` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `submit_uuid` varchar(50) NOT NULL COMMENT '工单id',
   `work_type` varchar(50) NOT NULL DEFAULT '' COMMENT '工单类型',
   `op_username` varchar(50) NOT NULL DEFAULT '' COMMENT '操作人',
@@ -320,3 +320,15 @@ CREATE TABLE `work_flow_log` (
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COMMENT='工单流转日志表';
+
+
+CREATE TABLE `resource_config` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `company` varchar(150) NOT NULL COMMENT '公司名字',
+  `resource_name` varchar(50) NOT NULL COMMENT '资源名字',
+  `resource_value` text NOT NULL COMMENT '资源配置必须采用|分割,便于后续取值',
+  `config_user` varchar(50) NOT NULL COMMENT '配置人员',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='资源配置表';

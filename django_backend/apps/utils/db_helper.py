@@ -1,6 +1,7 @@
 from django.db import connection
 import logging
 import pymysql
+from django.db import transaction
 from datetime import datetime
 logger = logging.getLogger('sql_logger')
 db_all_remote_user = "gaochao"
@@ -115,10 +116,11 @@ def dml_many(sql_list):
     :param sql_list:
     :return:
     """
-    cursor = connection.cursor()
     try:
-        for sql in sql_list:
-            cursor.execute(sql)
+        with transaction.atomic():
+            cursor = connection.cursor()
+            for sql in sql_list:
+                cursor.execute(sql)
         status = "ok"
         message = "执行成功"
         code = ""
