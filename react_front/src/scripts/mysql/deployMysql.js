@@ -148,13 +148,30 @@ export default class DeployMysql extends Component  {
                         size="small"
                     />
                     </TabPane>
-                    <TabPane tab="新建部署工单" key="2">
+                    <TabPane tab="新建集群" key="2">
                         <div className="sub-title-input">
                             <Select defaultValue="选择机房" style={{ width: 300 }} onChange={e => this.setState({idc:e})}>
                                 <Option value="BJ10">BJ10</Option>
                                 <Option value="BJ11">BJ11</Option>
                             </Select>
                             <Select defaultValue="选择集群类型" style={{ width: 300 }} onChange={e => this.setState({deploy_archit:e})}>
+                                <Option value="ms">单点</Option>
+                                <Option value="ms">主从</Option>
+                                <Option value="MHA">高可用</Option>
+                            </Select>
+                            <Select defaultValue="选择MySQL版本" style={{ width: 300 }} onChange={e => this.setState({deploy_version:e})}>
+                                <Option value="mysql5.7.22">MySQL5.7</Option>
+                                <Option value="mysql8.0.22">MySQL8.0</Option>
+                            </Select>
+                        </div>
+                        <div>
+                            <TextArea rows={10} placeholder={this.state.topo_source_placeholder} onChange={e => this.setState({deploy_topos:e.target.value})}/>
+                            <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.setState({showSubmitVisible:true})}}>提交工单</Button>
+                        </div>
+                    </TabPane>
+                    <TabPane tab="扩容实例" key="3">
+                        <div className="sub-title-input">
+                            <Select defaultValue="选择集群" style={{ width: 300 }} onChange={e => this.setState({deploy_archit:e})}>
                                 <Option value="ms">单点</Option>
                                 <Option value="ms">主从</Option>
                                 <Option value="MHA">高可用</Option>

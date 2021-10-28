@@ -9,10 +9,11 @@ import 'codemirror/addon/hint/show-hint.js';
 import 'codemirror/addon/hint/sql-hint.js';
 import 'codemirror/theme/ambiance.css';
 import 'codemirror/addon/selection/active-line';
-import { backendServerApiRoot } from "../common/util"
+import MyAxios from "../common/interface"
 import {tableToExcel} from "../common/excel"
 const {Option} = Select
 const {TabPane} = Tabs
+const { TextArea } = Input
 
 export default class mysqlConsole extends Component {
   state = {
@@ -58,7 +59,7 @@ export default class mysqlConsole extends Component {
           table_column:[],
           get_data:false
       });
-      await axios.post(`${backendServerApiRoot}/get_table_data/`,{params}).then(
+      await MyAxios.post('/get_table_data/',{params}).then(
           res => {
               if (res.data.status === "ok"){
                   let table_column_list = []
@@ -222,18 +223,25 @@ export default class mysqlConsole extends Component {
                                 >
                                     导出
                                 </Button>
-                                <Table
-                                    dataSource={this.state.multi_table_data[index]}
-                                    columns={this.state.multi_table_column[index]}
-                                    bordered
-                                    size="small"
-                                    scroll={{x:'max-content'}}
-                                    pagination={{
-                                        pageSizeOptions:[10,20,30,40,50,60,70,80,90,100,300,500],
-                                        showSizeChanger:true,
-                                        total:this.state.table_data.length,
-                                    }}
-                                />
+                                {
+                                    this.state.multi_table_column[index].length>0 && this.state.multi_table_data[index][0].hasOwnProperty('Create Table')
+                                    ? <TextArea rows={20} value={this.state.multi_table_data[index][0]['Create Table']}/>
+                                    :
+                                    <Table
+                                        dataSource={this.state.multi_table_data[index]}
+                                        columns={this.state.multi_table_column[index]}
+                                        bordered
+                                        size="small"
+                                        scroll={{x:'max-content'}}
+                                        pagination={{
+                                            pageSizeOptions:[10,20,30,40,50,60,70,80,90,100,300,500],
+                                            showSizeChanger:true,
+                                            total:this.state.table_data.length,
+                                        }}
+                                    />
+
+                                }
+
                             </TabPane>
                         )
                         })
