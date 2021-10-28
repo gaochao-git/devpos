@@ -1,21 +1,7 @@
 import React,{Component} from 'react';
-import axios from 'axios'
 import {Button, Table, Input, Modal, Tabs, Form, Row, Select, message, Card, AutoComplete, Tooltip, Menu, Layout, Icon
 } from "antd";
-import {HashRouter, Link, Route,withRouter} from 'react-router-dom';
-import "antd/dist/antd.css";
-import Server from "../Server/Server";
-import mysqlCluster from "../mysql/mysqlCluster";
-import mysqlInstance from "../mysql/mysqlInstance";
-import publicManage from "../publicUserManage/pubicUserPrivilegeManage";
-import AuditSqlIndex from "../auditSql/auditSqlIndex";
-import ExecuteSql from "../auditSql/executeSql";
-import privilegesApply from "../privilegesApply/applicationForm";
-import OrderInformation from "../privilegesApply/orderInformation";
-import commonUser from "../commonUser/commonUserCharge";
-import Login from "../login/login";
-import mysqlConsole from "../console/mysqlConsole";
-
+import {Link, withRouter} from 'react-router-dom';
 const { SubMenu } = Menu;
 
 

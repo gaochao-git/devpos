@@ -1,22 +1,7 @@
 import React,{Component} from 'react';
-import axios from 'axios'
 import {Button, Table, Input, Modal, Tabs, Form, Row, Select, message, Card, AutoComplete, Tooltip, Menu, Layout, Icon
 } from "antd";
-import {HashRouter, Link, Route, withRouter} from 'react-router-dom';
-import "antd/dist/antd.css";
-import Server from "../Server/Server";
-import mysqlCluster from "../mysql/mysqlCluster";
-import mysqlInstance from "../mysql/mysqlInstance";
-import publicManage from "../publicUserManage/pubicUserPrivilegeManage";
-import AuditSqlIndex from "../auditSql/auditSqlIndex";
-import ExecuteSql from "../auditSql/executeSql";
-import privilegesApply from "../privilegesApply/applicationForm";
-import OrderInformation from "../privilegesApply/orderInformation";
-import commonUser from "../commonUser/commonUserCharge";
-//import DeployMysql from "../mysql/deployMysql"
-import Login from "../login/login";
-import mysqlConsole from "../console/mysqlConsole";
-
+import {Link,withRouter} from 'react-router-dom';
 const { SubMenu } = Menu;
 
 
@@ -32,7 +17,8 @@ class NavService extends Component {
             "/redisCluster":"sub3",
             "/auditSqlIndex":"sub4",
             "/privilegesApply":"sub4",
-            "/DeployMysql":"sub5",
+            "/deployMysql":"sub5",
+            "/rds":"sub6",
         }
         //确定侧边栏选中的菜单
         if (this.props.location.pathname==='/'){
@@ -89,10 +75,10 @@ class NavService extends Component {
                         <Link to="/privilegesApply">权限申请</Link>
                     </Menu.Item>
                     <Menu.Item key="/deployMysql">
-                        <Link to="/deployMysql">新建mysql集群</Link>
+                        <Link to="/deployMysql">部署mysql集群</Link>
                     </Menu.Item>
-                    <Menu.Item key="/extendMysql">
-                        <Link to="/extendMysql">扩容mysql集群</Link>
+                    <Menu.Item key="/rds">
+                        <Link to="/rds">RDS资源申请</Link>
                     </Menu.Item>
                 </SubMenu>
                 <SubMenu key="sub5" title={<span><Icon type="code" />控制台</span>}>

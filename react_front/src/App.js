@@ -7,6 +7,7 @@ import MyAxios from "./scripts/common/interface"
 import {HashRouter,Route,BrowserRouter} from 'react-router-dom';
 import mysqlCluster from './scripts/mysql/mysqlCluster'
 import DeployMysql from "./scripts/mysql/deployMysql"
+import Rds from "./scripts/mysql/rds"
 import ExecuteDeployMysql from "./scripts/mysql/executeDeployMysql"
 import AuditSqlIndex from './scripts/auditSql/auditSqlIndex'
 import ExecuteSql from './scripts/auditSql/executeSql'
@@ -25,9 +26,7 @@ import imgURL from './my_logo.jpg'
 import HomeDbaInfo from './scripts/home/home_dba'
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
-//axios.defaults.withCredentials = true;
-//axios.defaults.headers.post['Content-Type'] = 'application/json';
-//axios.defaults.headers.common['Authorization'] = window.localStorage.getItem('token') ;
+
 
 function LoginOut(){
     console.log("退出登陆");
@@ -163,6 +162,7 @@ class App extends Component {
                                     <Route exact path="/homeDbaInfo" component={HomeDbaInfo} />
                                     <Route exact path="/deployMysql" component={DeployMysql} />
                                     <Route exact path="/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
+                                    <Route exact path="/rds" component={Rds} />
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>
