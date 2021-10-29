@@ -2,6 +2,7 @@ import axios from 'axios'
 import MyAxios from "../common/interface"
 import { message } from "antd"
 
+// 多环境配置后端路由
 export function env(){
     switch (process.env.NODE_ENV){
         case "development":
