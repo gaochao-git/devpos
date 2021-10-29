@@ -17,9 +17,9 @@ from rest_framework.authtoken import views as drf_views
 
 
 urlpatterns = [
-    path('api/admin/', admin.site.urls),                                                                          # django后台登陆
-    path('api/get_mysql_cluster_info/', mysql_cluster_controller.get_mysql_cluster_controller),                               # 查看所有mysql集群信息
-    path('api/get_search_mysql_cluster_info/', mysql_cluster_controller.get_mysql_cluster_by_cluster_name_controller),        # 根据集群名搜索集群信息
+    path('api/admin/', admin.site.urls), # django后台登陆
+    path('api/auth/', drf_views.obtain_auth_token),       # 登录--获取用户的token
+    path('api/get_login_user_name_by_token/', login_controller.get_login_user_name_by_token_handler), # 登录--根据token获得登录用户名
 
     # sql审核begin
     path('api/get_submit_sql_info/', audit_sql_controller.get_submit_sql_info_controller),                                         # 页面获取所有工单列表
@@ -41,16 +41,13 @@ urlpatterns = [
     path('api/get_cluster_name/', audit_sql_controller.get_cluster_name_controller),                                          # sql审核--根据cluster_name输入框自动补全
     path('api/recreate_sql/', audit_sql_controller.recreate_sql_controller),  # 根据拆分SQL文件获取SQL执行结果
     path('api/create_block_sql/', audit_sql_controller.create_block_sql_controller),  # 生成用id切割的SQL用来删除或者更新数据,防止大事物
-    # sql审核end
 
-    path('api/v1/get_server_info/', server_info_controller.get_server_info_controller, kwargs={"access": "all"}),                         # server--查看主机信息
-
+    # 数据库公共账号管理
     path('api/get_user_info/', create_common_user.get_user_info_func),                                       # 公共账号管理--查看已有账号信息
     path('api/grant_user_info/', create_common_user.create_and_grant_func),                                  # 公共账号管理--创建用户申请权限
     path('api/migrate_common_user/', migrate_common_user.migrate_common_user_func),                          # 公共账号管理--同步公共账号
 
-   # 权限申请begin
-    #path('api/get_application_form_info/', create_private_user.get_private_user_info_func),                      # 权限申请--查看已有账号信息
+    # 权限申请
     path('api/get_application_form_info/', create_private_user_controller.get_application_form_info_controller),  # 权限申请--查看已有账号信息
     path('api/privileges_extend_info/', create_private_user.privileges_extend_info_func),                    # 权限申请--权限扩展
     path('api/get_order_info/', create_private_user.get_order_info_func),                                    # 权限申请--查看工单信息
@@ -58,26 +55,28 @@ urlpatterns = [
     path('api/privileges_original_info/', create_private_user.privileges_original_info_func),                # 权限申请--查看用户原始权限信息
     path('api/check_order/', create_private_user.check_order_func),                                          # 权限申请--审核工单
     path('api/execute_order/', create_private_user.execute_order_func),                                      # 权限申请--执行工单
-    # 权限申请end
-
-    path('api/auth/', drf_views.obtain_auth_token),                                                          # 登录--获取用户的token
-    path('api/get_login_user_name_by_token/', login_controller.get_login_user_name_by_token_handler),                      # 登录--根据token获得登录用户名
     path('api/privilege_view_user/', create_private_user.privilege_view_user_func),                          # 权限申请--查看用户已有权限
     path('api/get_mysql_instance_info/', mysql_instance_controller.get_mysql_instance_info_handler),                       # 获取mysql实例
     path('api/get_search_mysql_instance_info/', mysql_instance_controller.get_search_mysql_instance_info_handler),         # 根据搜索框获取mysql实例
 
-    # web_console
-    path('api/get_table_data/', web_console_controller.get_table_data_controller),
+    # 服务器资源
+    path('api/v1/service/server/get_server_info/', server_info_controller.get_server_info_controller, kwargs={"access": "all"}), # server--查看主机信息
+    # mysql资源
+    path('api/get_mysql_cluster_info/', mysql_cluster_controller.get_mysql_cluster_controller), # 查看所有mysql集群信息
+    path('api/get_search_mysql_cluster_info/', mysql_cluster_controller.get_mysql_cluster_by_cluster_name_controller),        # 根据集群名搜索集群信息
 
-    # 部署
-    path('api/v1/service/mysql/ansible_adhoc/', ansible_adhoc.adhoc),  # ansible api执行命令
-    path('api/v1/service/mysql/submit_deploy_mysql/', deploy_mysql_controller.submit_install_mysql_controller),  # 提交部署mysql工单
-    path('api/v1/service/mysql/get_deploy_mysql_submit_info/', deploy_mysql_controller.get_deploy_mysql_submit_info_controller), # 获取所有部署mysql工单信息
-    path('api/v1/service/mysql/get_deploy_mysql_info_by_uuid/', deploy_mysql_controller.get_deploy_mysql_info_by_uuid_controller), # 获取部署mysql工单详情
-    path('api/v1/service/mysql/deploy_mysql_by_uuid/', deploy_mysql_controller.deploy_mysql_by_uuid_controller), # 执行部署mysql任务
-    path('api/v1/service/mysql/get_ansible_api_log/', deploy_mysql_controller.get_ansible_api_log_controller), # 获取部署日志
-    path('api/v1/service/mysql/pass_submit_deploy_mysql_by_uuid/', deploy_mysql_controller.pass_submit_deploy_mysql_by_uuid_controller),  # 审核部署mysql工单
-    path('api/v1/service/mysql/get_work_flow_by_uuid/', deploy_mysql_controller.get_work_flow_by_uuid_controller),  # 获取工单流转记录
+    # web_console
+    path('api/v1/service/console/get_table_data/', web_console_controller.get_table_data_controller),
+
+    # 数据库集群资源申请工单
+    path('api/v1/service/ticket/ansible_adhoc/', ansible_adhoc.adhoc),  # ansible api执行命令
+    path('api/v1/service/ticket/submit_deploy_mysql/', deploy_mysql_controller.submit_install_mysql_controller),  # 提交部署mysql工单
+    path('api/v1/service/ticket/get_deploy_mysql_submit_info/', deploy_mysql_controller.get_deploy_mysql_submit_info_controller), # 获取所有部署mysql工单信息
+    path('api/v1/service/ticket/get_deploy_mysql_info_by_uuid/', deploy_mysql_controller.get_deploy_mysql_info_by_uuid_controller), # 获取部署mysql工单详情
+    path('api/v1/service/ticket/deploy_mysql_by_uuid/', deploy_mysql_controller.deploy_mysql_by_uuid_controller), # 执行部署mysql任务
+    path('api/v1/service/ticket/get_ansible_api_log/', deploy_mysql_controller.get_ansible_api_log_controller), # 获取部署日志
+    path('api/v1/service/ticket/pass_submit_deploy_mysql_by_uuid/', deploy_mysql_controller.pass_submit_deploy_mysql_by_uuid_controller),  # 审核部署mysql工单
+    path('api/v1/service/ticket/get_work_flow_by_uuid/', deploy_mysql_controller.get_work_flow_by_uuid_controller),  # 获取工单流转记录
     ]
 
 

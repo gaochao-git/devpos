@@ -59,7 +59,7 @@ export default class mysqlConsole extends Component {
           table_column:[],
           get_data:false
       });
-      await MyAxios.post('/get_table_data/',{params}).then(
+      await MyAxios.post('/v1/service/console/get_table_data/',{params}).then(
           res => {
               if (res.data.status === "ok"){
                   let table_column_list = []

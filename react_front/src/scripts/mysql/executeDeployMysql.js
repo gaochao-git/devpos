@@ -51,7 +51,7 @@ export default class ExecuteDeployMysql extends Component {
         let params = {
             submit_uuid: this.props.match.params["submit_uuid"],
         };
-        await MyAxios.post('/v1/service/mysql/get_deploy_mysql_info_by_uuid/',params).then(
+        await MyAxios.post('/v1/service/ticket/get_deploy_mysql_info_by_uuid/',params).then(
             res => {
                 if (res.data.status==="ok"){
                     console.log(res)
@@ -80,7 +80,7 @@ export default class ExecuteDeployMysql extends Component {
         let params = {
             submit_uuid: this.props.match.params["submit_uuid"],
         };
-        await MyAxios.post('/v1/service/mysql/get_work_flow_by_uuid/',params).then(
+        await MyAxios.post('/v1/service/ticket/get_work_flow_by_uuid/',params).then(
             res => {
                 if (res.data.status==="ok"){
                     console.log(res.data.data)
@@ -100,7 +100,7 @@ export default class ExecuteDeployMysql extends Component {
             deploy_topos: this.state.deploy_topos,
             deploy_version: this.state.deploy_version,
         };
-        await MyAxios.post('/v1/service/mysql/deploy_mysql_by_uuid/',params).then(
+        await MyAxios.post('/v1/service/ticket/deploy_mysql_by_uuid/',params).then(
             res => {
                 if (res.data.status==="ok"){
                    this.setState({
@@ -136,7 +136,7 @@ export default class ExecuteDeployMysql extends Component {
              console.log("工单执行中，定时id为:",this.timerId);
              console.log("工单执行状态:",this.state.deploy_status);
         }
-        await MyAxios.post('/v1/service/mysql/get_ansible_api_log/',params).then(
+        await MyAxios.post('/v1/service/ticket/get_ansible_api_log/',params).then(
             res => {
                 if (res.data.status==="ok"){
                    this.setState({
