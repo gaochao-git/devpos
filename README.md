@@ -91,6 +91,41 @@ yarn build     #会在react_front生成一个build目录
 scp传或者git本地推部署服务器拉
 3.启动前端测试是否能够运行,可以通过serve -s启动项目 (需要线安装serve:npm install -g serve),这一步可以没有，因为后面要用nginx进行代理前端
 ```
+## 部署多环境打包
+```text
+1.拷贝scripts/build.js为scripts/build_gaochao.js
+2.更改scripts/build_gaochao.js中process.env.NODE_ENV = 'gaochao';
+3.更改package.json中的scripts:
+"scripts": {
+    "dev": "webpack-dev-server --inline --progress --config config/webpackDevServer.config.js --host 0.0.0.0",
+    "start": "node scripts/start.js",
+    "start:gaochao": "node scripts/build_gaochao.js",
+    "build": "node scripts/build.js",
+    "test": "node scripts/test.js"
+  }
+4.更改package.json中的browserslist
+"browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "gaochao": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+5.打包
+npm run build:gaochao
+6.判断env环境
+message.success(process.env.NODE_ENV)
+```
 ## 部署后端
 ```text
 1.部署服务器git clone项目

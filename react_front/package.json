@@ -83,6 +83,7 @@
   "scripts": {
     "dev": "webpack-dev-server --inline --progress --config config/webpackDevServer.config.js --host 0.0.0.0",
     "start": "node scripts/start.js",
+    "start:gaochao": "node scripts/start_gaochao.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js"
   },
@@ -91,6 +92,11 @@
   },
   "browserslist": {
     "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "gaochao": [
       ">0.2%",
       "not dead",
       "not op_mini all"
