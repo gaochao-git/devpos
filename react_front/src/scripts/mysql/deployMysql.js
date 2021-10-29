@@ -35,7 +35,6 @@ export default class DeployMysql extends Component  {
     }
 
     componentDidMount() {
-        message.success(process.env.NODE_ENV)
         this.getDeploySubmitInfo()
     }
     //获取工单信息
