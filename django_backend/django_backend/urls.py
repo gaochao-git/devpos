@@ -43,7 +43,7 @@ urlpatterns = [
     path('api/create_block_sql/', audit_sql_controller.create_block_sql_controller),  # 生成用id切割的SQL用来删除或者更新数据,防止大事物
     # sql审核end
 
-    path('api/get_server_info/', server_info_controller.get_server_info_controller, kwargs={"access": "all"}),                         # server--查看主机信息
+    path('api/v1/get_server_info/', server_info_controller.get_server_info_controller, kwargs={"access": "all"}),                         # server--查看主机信息
 
     path('api/get_user_info/', create_common_user.get_user_info_func),                                       # 公共账号管理--查看已有账号信息
     path('api/grant_user_info/', create_common_user.create_and_grant_func),                                  # 公共账号管理--创建用户申请权限
@@ -70,14 +70,14 @@ urlpatterns = [
     path('api/get_table_data/', web_console_controller.get_table_data_controller),
 
     # 部署
-    path('api/ansible_adhoc/', ansible_adhoc.adhoc),  # ansible api执行命令
-    path('api/submit_deploy_mysql/', deploy_mysql_controller.submit_install_mysql_controller),  # 提交部署mysql工单
-    path('api/get_deploy_mysql_submit_info/', deploy_mysql_controller.get_deploy_mysql_submit_info_controller), # 获取所有部署mysql工单信息
-    path('api/get_deploy_mysql_info_by_uuid/', deploy_mysql_controller.get_deploy_mysql_info_by_uuid_controller), # 获取部署mysql工单详情
-    path('api/deploy_mysql_by_uuid/', deploy_mysql_controller.deploy_mysql_by_uuid_controller), # 执行部署mysql任务
-    path('api/get_ansible_api_log/', deploy_mysql_controller.get_ansible_api_log_controller), # 获取部署日志
-    path('api/pass_submit_deploy_mysql_by_uuid/', deploy_mysql_controller.pass_submit_deploy_mysql_by_uuid_controller),  # 审核部署mysql工单
-    path('api/get_work_flow_by_uuid/', deploy_mysql_controller.get_work_flow_by_uuid_controller),  # 获取工单流转记录
+    path('api/v1/service/mysql/ansible_adhoc/', ansible_adhoc.adhoc),  # ansible api执行命令
+    path('api/v1/service/mysql/submit_deploy_mysql/', deploy_mysql_controller.submit_install_mysql_controller),  # 提交部署mysql工单
+    path('api/v1/service/mysql/get_deploy_mysql_submit_info/', deploy_mysql_controller.get_deploy_mysql_submit_info_controller), # 获取所有部署mysql工单信息
+    path('api/v1/service/mysql/get_deploy_mysql_info_by_uuid/', deploy_mysql_controller.get_deploy_mysql_info_by_uuid_controller), # 获取部署mysql工单详情
+    path('api/v1/service/mysql/deploy_mysql_by_uuid/', deploy_mysql_controller.deploy_mysql_by_uuid_controller), # 执行部署mysql任务
+    path('api/v1/service/mysql/get_ansible_api_log/', deploy_mysql_controller.get_ansible_api_log_controller), # 获取部署日志
+    path('api/v1/service/mysql/pass_submit_deploy_mysql_by_uuid/', deploy_mysql_controller.pass_submit_deploy_mysql_by_uuid_controller),  # 审核部署mysql工单
+    path('api/v1/service/mysql/get_work_flow_by_uuid/', deploy_mysql_controller.get_work_flow_by_uuid_controller),  # 获取工单流转记录
     ]
 
 

@@ -3,7 +3,7 @@
 # @Time    : 2019/4/17 3:17 PM
 # @Author  : 高超
 
-from django.http import HttpResponse,Http404,HttpRequest
+from django.http import HttpResponse,Http404,HttpRequest,JsonResponse
 import json
 import logging
 from apps.service import deploy_mysql
@@ -46,7 +46,6 @@ def deploy_mysql_by_uuid_controller(request):
         logger.exception('缺少请求参数:%s' % str(e))
         ret = {"status": "error", "code":2002, "message": "参数不合法"}
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
-
 
 def get_deploy_mysql_submit_info_controller(request):
     ret = deploy_mysql.get_deploy_mysql_submit_info()

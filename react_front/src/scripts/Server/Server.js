@@ -29,8 +29,7 @@ export default class Server extends Component  {
     }
     //获取所有机器信息
     async GetServerInfo() {
-        let params = {};
-        await MyAxios.post('/get_server_info/',params).then(
+        await MyAxios.get('/v1/get_server_info/').then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     server_info: res.data.data
@@ -43,9 +42,9 @@ export default class Server extends Component  {
     async GetSearchServerInfo(server_name) {
         let params = {
             search_server_name:server_name,
+            mem:"2G"
         };
-        console.log(params)
-        await MyAxios.post('/get_server_info/',params).then(
+        await MyAxios.get('/get_server_info/',{params}).then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     server_info: res.data.data

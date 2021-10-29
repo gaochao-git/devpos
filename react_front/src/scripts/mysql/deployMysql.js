@@ -39,7 +39,7 @@ export default class DeployMysql extends Component  {
     }
     //获取工单信息
     async getDeploySubmitInfo() {
-        await MyAxios.post('/get_deploy_mysql_submit_info/').then(
+        await MyAxios.get('/v1/service/mysql/get_deploy_mysql_submit_info/').then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     submit_info: res.data.data
@@ -56,7 +56,7 @@ export default class DeployMysql extends Component  {
             idc: this.state.idc,
             deploy_archit: this.state.deploy_archit,
         };
-        await MyAxios.post('/submit_deploy_mysql/',params).then(
+        await MyAxios.post('/v1/mysql/service/submit_deploy_mysql/',params).then(
             res => {
                 if(res.data.status==="ok") {
                     this.setState({showSubmitVisible:false});
