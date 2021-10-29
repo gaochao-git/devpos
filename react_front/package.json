@@ -85,6 +85,7 @@
     "start": "node scripts/start.js",
     "start:gaochao": "node scripts/start_gaochao.js",
     "build": "node scripts/build.js",
+    "build:build_gaochao": "node scripts/build_gaochao.js",
     "test": "node scripts/test.js"
   },
   "eslintConfig": {
@@ -96,7 +97,7 @@
       "not dead",
       "not op_mini all"
     ],
-    "gaochao": [
+    "build_gaochao": [
       ">0.2%",
       "not dead",
       "not op_mini all"
