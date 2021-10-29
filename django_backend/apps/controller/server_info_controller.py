@@ -13,13 +13,14 @@ logger = logging.getLogger('devops')
 def get_server_info_controller(request):
     """
     获取主机信息
+    .get('param_name')方式该参数为选填
+    ['param_name']方式参数为必添
     :param request:
     :return:
     """
     try:
-        to_str = str(request.body, encoding="utf-8")
-        request_body = json.loads(to_str)
-        search_server_name = request_body["search_server_name"]
+        request_body = json.loads(str(request.body, encoding="utf-8"))
+        search_server_name = request_body.get("search_server_name")      # None或者str
         ret = server_info.get_server_info(search_server_name)
     except KeyError as e:
         logger.exception(e)

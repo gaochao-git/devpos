@@ -29,12 +29,8 @@ export default class Server extends Component  {
     }
     //获取所有机器信息
     async GetServerInfo() {
-        let params = {
-            search_server_name:"",
-        };
-        console.log(window.location.href)
-        console.log(window.localStorage.getItem('token'))
-        await MyAxios.post(`${backendServerApiRoot}/get_server_info/`, params).then(
+        let params = {};
+        await MyAxios.post('/get_server_info/',params).then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     server_info: res.data.data

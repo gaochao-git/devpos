@@ -1,8 +1,9 @@
 from django.utils.deprecation import MiddlewareMixin
 from django.shortcuts import HttpResponse
 import json
-from apps.dao import login_dao
 from apps.utils import db_helper
+import logging
+logger = logging.getLogger('devops')
 
 
 class TokenAuth(MiddlewareMixin):
@@ -32,6 +33,11 @@ class TokenAuth(MiddlewareMixin):
         print("md1  process_response 方法！", id(request))  # 在视图之后
         return response
 
+    def process_exception(self, request, exception):  # 引发错误 才会触发这个方法
+        print("md1  process_exception 方法！")
+        content = {"status": "error", "message": "后端出现异常", "code": 2201}
+        return HttpResponse(json.dumps(content), content_type='application/json')
+
 
 def permission_required(func):
     """
@@ -45,5 +51,6 @@ def permission_required(func):
                 print(access)
             return func(request)
         except Exception as e:
+            logger.exception(e)
             print(e)
     return wrapper

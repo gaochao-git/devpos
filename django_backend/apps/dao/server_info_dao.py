@@ -9,8 +9,9 @@ import logging
 
 logger = logging.getLogger('sql_logger')
 
+
 def get_server_info_dao(search_server_name):
-    if search_server_name == "":
+    if search_server_name is None:
         sql = """select id as 'key',
                 server_public_ip,
                 server_private_ip,
