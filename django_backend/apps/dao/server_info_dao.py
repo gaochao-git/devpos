@@ -46,13 +46,5 @@ def get_server_info_dao(search_server_name):
                 cpu_size,
                 deadline,
                 case status when 0 then '不可用' when 1 then '可用' end status
-          from server where server_hostname like "{}%" order by server_hostname""".format(search_server_name)
-    rows = []
-    try:
-        rows = db_helper.findall(sql)
-        logger.info("获取主机信息成功")
-    except Exception as e:
-        logger.error("获取所有工单失败%s",str(e))
-
-    finally:
-        return rows
+          from server where server_public_ip like "{}%" order by server_hostname""".format(search_server_name)
+    return db_helper.findall(sql)

@@ -30,11 +30,9 @@ class TokenAuth(MiddlewareMixin):
 
     def process_response(self, request, response):
         # 基于请求响应
-        print("md1  process_response 方法！", id(request))  # 在视图之后
-        return response
+        pass
 
     def process_exception(self, request, exception):  # 引发错误 才会触发这个方法
-        print("md1  process_exception 方法！")
         content = {"status": "error", "message": "后端出现异常", "code": 2201}
         return HttpResponse(json.dumps(content), content_type='application/json')
 
