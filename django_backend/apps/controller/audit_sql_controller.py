@@ -5,25 +5,22 @@
 
 from django.http import HttpResponse
 import json
-from django.db import connection
 from apps.utils import common
 from apps.utils import inception
 from apps.service import audit_sql
+import logging
+logger = logging.getLogger('devops')
 
 
 # 页面获取所有工单列表
 def get_submit_sql_info_controller(request):
-    token = request.META.get('HTTP_AUTHORIZATION')
-    ret = audit_sql.get_submit_sql_info(token)
+    ret = audit_sql.get_submit_sql_info()
     return HttpResponse(json.dumps(ret,default=str), content_type='application/json')
 
 
-# 根据输入的集群名模糊匹配已有集群名
+# 获取所有集群名
 def get_cluster_name_controller(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    cluster_name_patten = request_body['cluster_name']
-    ret = audit_sql.get_cluster_name(cluster_name_patten)
+    ret = audit_sql.get_cluster_name()
     return HttpResponse(json.dumps(ret,default=str), content_type='application/json')
 
 
@@ -47,30 +44,28 @@ def get_apply_sql_by_uuid_controller(request):
 
 # 获取master ip
 def get_master_ip_controller(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    db_master_ip_or_hostname = request_body['db_master_ip_or_hostname']
-    ret = audit_sql.get_master_ip(db_master_ip_or_hostname)
+    ret = audit_sql.get_master_ip()
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
 # 页面调用inception检测SQL,如果根据cluster_name则需要先获取到对应的master_ip、master_port
 def check_sql_controller(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    if request_body['submit_source_db_type'] == "cluster":
-        cluster_name = request_body['cluster_name']
-        if common.get_cluster_write_node_info(cluster_name) == "no_write_node":
-            content = {'status': "error", 'message': "没有匹配到合适的写节点"}
-            return HttpResponse(json.dumps(content), content_type='application/json')
-        else:
-            des_master_ip, des_master_port = common.get_cluster_write_node_info(cluster_name)
-
-    else:
-        des_master_ip = request_body['db_ip'].strip()
-        des_master_port = request_body['db_port'].strip()
-    check_sql_info = request_body['check_sql_info']
-    ret = inception.check_sql(des_master_ip, des_master_port, check_sql_info)
+    """
+    request_body.get('xx')参数为选填参数
+    request_body['xx']参数为必选参数
+    :param request:
+    :return:
+    """
+    try:
+        request_body = json.loads(str(request.body, encoding="utf-8"))
+        cluster_name = request_body.get('cluster_name').strip()
+        instance_name = request_body.get('instance_name').strip()
+        check_sql_info = request_body['check_sql_info']
+        submit_type = request_body['submit_type']
+        ret = audit_sql.check_sql(submit_type, check_sql_info, cluster_name, instance_name)
+    except Exception as e:
+        logger.exception(e)
+        ret = {"status": "error", "message": "参数不符合"}
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
@@ -185,7 +180,7 @@ def get_execute_process_by_uuid_controller(request):
 #         sql_file_path = data[0]["submit_sql_file_path"]
 #         cluster_name = data[0]["cluster_name"]
 #         if cluster_name:
-#             des_master_ip, des_master_port = common.get_cluster_write_node_info(cluster_name)
+#             des_master_ip, des_master_port = common.get_cluster_node(cluster_name)
 #         else:
 #             des_master_ip = data[0]["master_ip"]
 #             des_master_port = data[0]["master_port"]

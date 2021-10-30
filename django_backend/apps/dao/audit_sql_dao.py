@@ -14,7 +14,8 @@ logger = logging.getLogger('devops')
 
 
 # 页面获取所有工单列表
-def get_submit_sql_info_dao(where_condition):
+def get_submit_sql_info_dao():
+    where_condition = ""
     sql = """
         SELECT 
             a.submit_sql_user,
@@ -33,13 +34,7 @@ def get_submit_sql_info_dao(where_condition):
             a.utime
         FROM sql_submit_info a inner join team_user b on a.submit_sql_user=b.uname where 1=1 {} order by a.ctime desc, a.utime desc
     """.format(where_condition)
-    rows = []
-    try:
-        rows = db_helper.findall(sql)
-    except Exception as e:
-        logger.error(e)
-    finally:
-        return rows
+    return db_helper.find_all(sql)
 
 
 # 页面预览指定工单提交的SQL
@@ -90,30 +85,17 @@ def get_apply_sql_by_uuid_dao(submit_sql_uuid):
         return rows
 
 
-# 根据输入的集群名模糊匹配已有集群名
-def get_cluster_name_dao(cluster_name_patten):
-    rows = []
-    sql = "select cluster_name from mysql_cluster where cluster_name like '{}%' limit 5".format(cluster_name_patten)
-    try:
-        rows = db_helper.findall(sql)
-    except Exception as e:
-        logger.error(e)
-    finally:
-        return rows
+# 获取所有集群名
+def get_cluster_name_dao():
+    sql = "select cluster_name from mysql_cluster"
+    return db_helper.find_all(sql)
 
 
-# 获取master ip
-def get_master_ip_dao(db_master_ip_or_hostname):
-    if db_master_ip_or_hostname.strip('.').isdigit():
-        sql = "select server_public_ip from server where server_public_ip like '{}%' limit 5".format(db_master_ip_or_hostname)
-    else:
-        sql = "select server_public_ip from server where server_hostname like '{}%' limit 5".format(db_master_ip_or_hostname)
-    try:
-        rows = db_helper.findall(sql)
-    except Exception as e:
-        logger.exception(e)
-    finally:
-        return rows
+# 获取所有实例名
+def get_master_ip_dao():
+    sql = "select instance_name from mysql_cluster_instance"
+    return db_helper.find_all(sql)
+
 
 
 # 页面查看审核结果

@@ -25,15 +25,18 @@ CREATE TABLE `mysql_cluster` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `udx_cluster_name` (`cluster_name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COMMENT='mysql集群信息表';
+insert into mysql_cluster(cluster_type,cluster_name) values('m','devops_test');
 
 CREATE TABLE `mysql_cluster_instance` (
-  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
   `cluster_name` varchar(64) NOT NULL DEFAULT '' COMMENT '集群名称',
-  `cluster_type` varchar(50) NOT NULL DEFAULT '' COMMENT '集群类型: 单点,主从,MMM,MHA,PXC,MGR',
   `instance_name` varchar(100) NOT NULL DEFAULT '' COMMENT '实例名',
+  `instance_role` varchar(64) NOT NULL DEFAULT '' COMMENT '实例角色',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_instance_name` (`instance_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COMMENT='mysql集群实例表';
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COMMENT='mysql集群实例表';
+insert into mysql_cluster_instance(cluster_name,instance_name,instance_role) values('devops_test','47.104.2.74_3306','M');
+
 
 CREATE TABLE `mysql_instance` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',

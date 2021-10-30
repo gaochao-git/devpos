@@ -53,7 +53,7 @@ def find_all(sql):
         status = "error"
         message = "执行SQL失败"
         code = 2201
-        logger.error("%s执行失败:%s",sql)
+        logger.exception("%s执行失败:%s",sql)
     finally:
         cursor.close()
         connection.close()
@@ -79,7 +79,7 @@ def find_all_many(sql_list):
         status = "error"
         message = "执行SQL失败"
         code = 2201
-        logger.error("%s执行失败:%s",sql_list)
+        logger.exception("%s执行失败:%s",sql_list)
     finally:
         cursor.close()
         connection.close()
@@ -102,7 +102,7 @@ def dml(sql):
         status = "error"
         message = "执行SQL失败"
         code = 2201
-        logger.error(e)
+        logger.exception(e)
     finally:
         logger.info("sql:%s" % (sql))
         cursor.close()
@@ -128,7 +128,7 @@ def dml_many(sql_list):
         status = "error"
         message = "执行SQL失败"
         code = 2201
-        logger.error("%s执行失败:%s", sql_list)
+        logger.exception("%s执行失败:%s", sql_list)
     finally:
         logger.info("sql:%s" % (sql))
         cursor.close()
@@ -206,7 +206,7 @@ def target_source_dml(ip, port, sql, my_connect_timeout=2):
         status = "error"
         message = "connect_ip:%s,connect_port:%s,sql:%s,error:%s" %(ip, port, sql, str(e))
         code = 2201
-        logger.error(message)
+        logger.exception(message)
     finally:
         if conn: cursor.close()
         if conn: connection.close()
@@ -236,7 +236,7 @@ def target_source_dml_many(ip, port, sql_list, my_connect_timeout=2):
         status = "error"
         message = "connect_ip:%s,connect_port:%s,sql:%s,error:%s" %(ip, port, sql_list, str(e))
         code = 2201
-        logger.error(message)
+        logger.exception(message)
     finally:
         if conn: cursor.close()
         if conn: connection.close()

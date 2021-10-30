@@ -23,6 +23,9 @@ class AuditSqlIndex extends Component {
             selectExecuteTypeOptionData:['立即执行','暂缓执行'],
             des_ip:"",
             des_port:"",
+            db_ip_port:"",
+            current_instance_name:"",
+            current_cluster_name:"",
             check_sql:"",
             check_sql_info:[],
             check_sql_results:[],
@@ -34,7 +37,7 @@ class AuditSqlIndex extends Component {
             sql_submit_loading:false,
             des_ip_list:[],
             cluster_name_list:[],
-            submit_source_db_type:"master_ip_port",
+            submit_type:"master_ip_port",
             cluster_name:"",
             schema_name:"",
             table_name:"",
@@ -52,17 +55,25 @@ class AuditSqlIndex extends Component {
 
     componentDidMount() {
         this.GetSubmitSqlInfo()
+        this.handleGetMasterIp()
+        this.handleGetClusterName()
     }
     //获取已经提交的SQL列表
     async GetSubmitSqlInfo() {
-        let res = await MyAxios.post('/get_submit_sql_info/');
-        this.setState({
-            submit_sql_info: res.data.data,
-        });
-    }
-    //检测SQL,cluster_name或者master_ip_port使用不同的方法
-    async handleSqlCheck() {
-        this.state.submit_source_db_type==="cluster" ? this.handleClusterNameSqlCheck(): this.handleMasterIpPortSqlCheck()
+        await MyAxios.get('/v1/service/ticket/audit_sql/get_submit_sql_info/').then(
+            res=>{
+                if (res.data.status==="ok"){
+                    this.setState({
+                        submit_sql_info: res.data.data,
+                    });
+                }else{
+                    message.error(res.data.message);
+                };
+            }
+        ).catch(
+            err=>{message.error(err.message)}
+        )
+
     }
 
     //生成块SQL,防止delete/update产生大事物
@@ -96,81 +107,36 @@ class AuditSqlIndex extends Component {
             });
         })
     }
-    //cluster_name检测SQL,集群名和输入SQL不能为空
-    async handleClusterNameSqlCheck() {
-        console.log(this.state.check_sql)
-        if (this.state.cluster_name.length===0 || this.state.check_sql.length===0){
-            message.error("cluster_name检测SQL输入框不能为空")
-        }else{
-            let params = {
-                db_ip: this.state.des_ip,
-                db_port: this.state.des_port,
-                check_sql_info: this.state.check_sql,
-                cluster_name:this.state.cluster_name,
-                submit_source_db_type:this.state.submit_source_db_type
-            };
-            this.setState({
-                check_sql_results: [],
-                sql_check_loading:true,
-                submit_sql_button_disabled:"hide"
-            });
-            await MyAxios.post('/check_sql/',params).then(
-                res => {res.data.status==="ok"?
-                    this.setState({
-                        check_sql_results: res.data.data,
-                        submit_sql_button_disabled:"show",
-                        sql_check_loading:false,
-                    })
-                    :
-                    message.error(res.data.message,3) && this.setState({check_sql_results: [],sql_check_loading:false,})
-                }
-            ).catch(err => {
-                message.error(err, 3);
-                this.setState({
-                    check_sql_results: [],
-                    sql_check_loading:false,
-                });
-            })
-        }
-    }
-    //master_ip_port检测SQL,ip、port、输入SQL不能为空
-    async handleMasterIpPortSqlCheck() {
+    //检测SQL
+    async handleSqlCheck() {
+        let params = {
+            cluster_name:this.state.current_cluster_name,
+            instance_name: this.state.current_instance_name,
+            check_sql_info: this.state.check_sql,
+            submit_type:this.state.submit_type
+        };
         this.setState({
-                sql_submit_loading:false
-            });
-        if (this.state.des_ip.length===0 || this.state.des_port.length===0 || this.state.check_sql.length===0){
-            message.error("master_ip_port检测SQL输入框不能为空")
-        }else{
-            let params = {
-                db_ip: this.state.des_ip,
-                db_port: this.state.des_port,
-                check_sql_info: this.state.check_sql,
-                cluster_name:this.state.cluster_name,
-                submit_source_db_type:this.state.submit_source_db_type
-            };
+            check_sql_results: [],
+            sql_check_loading:true,
+            submit_sql_button_disabled:"hide"
+        });
+        await MyAxios.post('/v1/service/ticket/audit_sql/check_sql/',params).then(
+            res => {res.data.status==="ok"?
+                this.setState({
+                    check_sql_results: res.data.data,
+                    submit_sql_button_disabled:"show",
+                    sql_check_loading:false,
+                })
+                :
+                message.error(res.data.message,3) && this.setState({check_sql_results: [],sql_check_loading:false,})
+            }
+        ).catch(err => {
+            message.error(err, 3);
             this.setState({
                 check_sql_results: [],
-                sql_check_loading:true,
-                submit_sql_button_disabled:"hide"
+                sql_check_loading:false,
             });
-            await MyAxios.post('/check_sql/',params).then(
-                res => {res.data.status==="ok"?
-                    this.setState({
-                        check_sql_results: res.data.data,
-                        submit_sql_button_disabled:"show",
-                        sql_check_loading:false,
-                    })
-                    :
-                    message.error(res.data.message,3) && this.setState({check_sql_results: [],sql_check_loading:false,})
-                }
-            ).catch(err => {
-                message.error(err, 3);
-                this.setState({
-                    check_sql_results: [],
-                    sql_check_loading:false,
-                });
-            })
-        }
+        })
     }
 
     //组装提交SQL信息,防止多次提交
@@ -188,7 +154,7 @@ class AuditSqlIndex extends Component {
             sql_submit_loading:true
         });
         let params = {
-            submit_source_db_type:this.state.submit_source_db_type,
+            submit_type:this.state.submit_type,
             cluster_name:this.state.cluster_name,
             db_ip: this.state.des_ip,
             db_port: this.state.des_port,
@@ -212,78 +178,41 @@ class AuditSqlIndex extends Component {
         }
     }
 
-    //master ip输入框
-    onSearch = searchText => {
-        this.handleGetMasterIp(searchText)
-    };
-    //根据master ip输入框自动补全ip
-    async handleGetMasterIp(value) {
-        if (value.length>=1){
-            let params = {
-                db_master_ip_or_hostname: value
-            };
-            let res = await MyAxios.post('/get_master_ip/',params);
-            if( res.data.status === 'ok'){
-                this.setState({
-                    des_ip_list: res.data.data.length===0 ? []:res.data.data,
-                });
-            } else{
-                console.log("get_master_ip接口错误")
+    //获取所有mysql实例
+    async handleGetMasterIp() {
+            await MyAxios.post('/get_master_ip/').then(
+                res=>{
+                    if(res.data.status === 'ok'){
+                        this.setState({
+                            des_ip_list: res.data.data,
+                        });
+                    } else{
+                        message.error(res.data.message);
+                        this.setState({
+                            des_ip_list: []
+                        });
+                    }
+                }
+            ).catch(
+                err=>{message.error(err.message)}
+            )
+    }
+    //获取所有集群名
+    async handleGetClusterName() {
+        await MyAxios.post('/get_cluster_name/').then(
+            res=>{
+                if( res.data.status === 'ok'){
+                    this.setState({
+                        cluster_name_list: res.data.data,
+                    });
+                } else{
+                    message.error(res.data.message)
+                }
             }
-        }else {
-            this.setState({
-                des_ip_list: []
-            });
-        }
+        ).catch(err=>message.error(err.message))
+
     }
-    //cluster_name输入框
-    onClusterNameSearch = searchText => {
-        this.handleGetClusterName(searchText)
-    };
-    //根据cluster_name输入框自动补全ip
-    async handleGetClusterName(value) {
-        if (value.length>=1){
-            let params = {
-                cluster_name: value
-            };
-            let res = await MyAxios.post('/get_cluster_name/',params);
-            if( res.data.status === 'ok'){
-                this.setState({
-                    cluster_name_list: res.data.data.length===0 ? []:res.data.data,
-                });
-            } else{
-                console.log("get_cluster_name接口错误")
-            }
-        }else {
-            this.setState({
-                cluster_name_list: []
-            });
-        }
-    }
-    //搜索出来ip后点击捕获
-    onSelect = select => {
-        this.setState({
-            des_ip:select
-        })
-    };
-    //搜索出来cluster_name后点击捕获
-    onClusterNameSelect = select => {
-        this.setState({
-            cluster_name:select
-        })
-    };
-    //master port输入框
-    handleHostPortChange = (value) => {
-        this.setState({
-            des_port: value
-        })
-    }
-    //cluster name输入框自动搜索
-    handleClusterNameChange = (value) => {
-        this.setState({
-            cluster_name: value
-        })
-    }
+
     //sql输入框
     handleSqlChange = (value) => {
         this.setState({
@@ -310,7 +239,7 @@ class AuditSqlIndex extends Component {
     //提工单数据源方式选择
     handleDbSourceTypeChange = (value) => {
         this.setState({
-            submit_source_db_type: value,
+            submit_type: value,
         });
     }
 
@@ -444,28 +373,37 @@ class AuditSqlIndex extends Component {
                             <Option value="template">模版</Option>
                         </Select>
                         {
-                            this.state.submit_source_db_type==="cluster" ?
+                            this.state.submit_type==="cluster" ?
                                 <div>
-                                    <AutoComplete
-                                        dataSource={this.state.cluster_name_list}
-                                        style={{ width: 300,marginLeft:10 }}
-                                        onSelect={this.onClusterNameSelect}
-                                        onSearch={this.onClusterNameSearch}
-                                        placeholder="输入集群名"
-                                        size="default"
-                                    />
+                                    <Select
+                                        showSearch
+                                        filterOption={(input,option)=>
+                                            option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                                        }
+                                        style={{width:300,marginLeft:2}}
+                                        value={this.state.current_cluster_name}
+                                        onChange={e=>this.setState({current_cluster_name:e})}
+                                    >
+                                        {this.state.cluster_name_list.map(record =>{
+                                            return <Option value={record.cluster_name} key={record.cluster_name}>{record.cluster_name}</Option>
+                                        })}
+                                    </Select>
                                 </div>
                             :
                                 <div>
-                                    <AutoComplete
-                                        dataSource={this.state.des_ip_list}
-                                        style={{ width: 300,marginLeft:10 }}
-                                        onSelect={this.onSelect}
-                                        onSearch={this.onSearch}
-                                        placeholder="数据库主库地址ip或主机名"
-                                        size="default"
-                                    />
-                                    <Input size="default" style={{marginLeft:10, width: 300}} placeholder="数据库端口" onChange={e => this.handleHostPortChange(e.target.value)}/>
+                                    <Select
+                                        showSearch
+                                        filterOption={(input,option)=>
+                                            option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                                        }
+                                        style={{width:300,marginLeft:2}}
+                                        value={this.state.current_instance_name}
+                                        onChange={e=>this.setState({current_instance_name:e})}
+                                    >
+                                        {this.state.des_ip_list.map(record =>{
+                                            return <Option value={record.instance_name} key={record.instance_name}>{record.instance_name}</Option>
+                                        })}
+                                    </Select>
                                 </div>
                         }
                     </div>

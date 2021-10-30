@@ -18,30 +18,36 @@ from io import StringIO
 import logging
 logger = logging.getLogger('devops')
 
+
 # 页面获取所有工单列表
-def get_submit_sql_info(token):
-    data_login_user = login_dao.get_login_user_name_by_token_dao(token)
-    login_user_name = data_login_user["username"]
-    login_user_name_role = data_login_user["title"]
-    if login_user_name_role == 'dba':
-        where_condition = ""
-    elif login_user_name_role == 'leader' or login_user_name_role == 'qa':
-        where_condition = "and b.title!=4"            #DBA提交的SQL,不用暴露给其他人,DBA经常需要维护数据库例如清理表碎片,不需要别人审核
-    else:
-        where_condition = "and submit_sql_user='{}'".format(login_user_name)
-    data = []
-    try:
-        data = audit_sql_dao.get_submit_sql_info_dao(where_condition)
-        status = "ok"
-        message = "ok"
-        logger.info("获取所有工单成功")
-    except Exception as e:
-        status = "error"
-        message = e
-        logger.error("获取所有工单失败%s",str(e))
-    finally:
-        content = {'status': status, 'message': message,'data': data}
-        return content
+def get_submit_sql_info():
+    ret = audit_sql_dao.get_submit_sql_info_dao()
+    return ret
+
+
+def check_sql(submit_type, check_sql_info, cluster_name, instance_name):
+    """
+    检查SQL语法
+    :param submit_type
+    :param check_sql_info:
+    :param cluster_name:
+    :param instance_name:
+    :return:
+    """
+    if submit_type == "cluster":
+        instance_ret = common.get_cluster_node(cluster_name, 'M')
+        if instance_ret['status'] !="ok":
+            return instance_ret
+        elif len(instance_ret['data']) ==0:
+            return {"status": "error", "message":"没有获取到写节点"}
+        else:
+            instance_name = instance_ret['data'][0]['instance_name']
+    elif submit_type == "template":
+        pass
+    print(instance_name)
+    des_master_ip, des_master_port = instance_name.split('_')[0], instance_name.split('_')[1]
+    ret = inception.check_sql(des_master_ip, des_master_port, check_sql_info)
+    return ret
 
 
 # 页面预览指定工单提交的SQL
@@ -78,34 +84,15 @@ def get_apply_sql_by_uuid(submit_sql_uuid):
 
 
 # 获取master ip
-def get_master_ip(db_master_ip_or_hostname):
-    ip_list = []
-    try:
-        rows = audit_sql_dao.get_master_ip_dao(db_master_ip_or_hostname)
-        [ip_list.append(i["server_public_ip"]) for i in rows]
-        status = "ok"
-        message = "ok"
-    except Exception as e:
-        status = "error"
-        message = str(e)
-        logger.error(e)
-    finally:
-        content = {'status': status, 'message': message, 'data': ip_list}
-        return content
+def get_master_ip():
+    ret = audit_sql_dao.get_master_ip_dao()
+    return ret
 
 
 # 根据输入的集群名模糊匹配已有集群名
-def get_cluster_name(cluster_name_patten):
-    cluster_name_list = []
-    try:
-        rows = audit_sql_dao.get_cluster_name_dao(cluster_name_patten)
-        [cluster_name_list.append(i["cluster_name"]) for i in rows]
-        content = {'status': "ok", 'message': "ok",'data': cluster_name_list}
-    except Exception as e:
-        content = {'status': "error", 'message': str(e),'data': cluster_name_list}
-        logger.error(e)
-    finally:
-        return content
+def get_cluster_name():
+    ret = audit_sql_dao.get_cluster_name_dao()
+    return ret
 
 
 # 页面提交SQL工单
@@ -297,7 +284,7 @@ def split_sql_func(submit_sql_uuid):
         sql_file_path = data[0]["submit_sql_file_path"]
         cluster_name = data[0]["cluster_name"]
         if cluster_name:
-            des_master_ip, des_master_port = common.get_cluster_write_node_info(cluster_name)
+            des_master_ip, des_master_port = common.get_cluster_node(cluster_name)
         else:
             des_master_ip = data[0]["master_ip"]
             des_master_port = data[0]["master_port"]
@@ -363,7 +350,7 @@ def execute_submit_sql_by_file_path(submit_sql_uuid, inception_backup, inception
         content = {'status': "error", 'message': "该工单已执行"}
         return content
     if cluster_name:
-        des_master_ip,des_master_port = common.get_cluster_write_node_info(cluster_name)
+        des_master_ip,des_master_port = common.get_cluster_node(cluster_name)
         logger.info(des_master_ip)
         logger.info(des_master_port)
         if des_master_ip == "no_write_node":
@@ -545,7 +532,7 @@ def recreate_sql(split_sql_file_path, recreate_sql_flag):
     audit_sql_dao.write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, rerun_file, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,new_rerun_seq, inception_osc_config)
     # 重做SQL二次检查,详细信息写入数据库sql_check_rerun_results
     if cluster_name:
-        des_master_ip,des_master_port = common.get_cluster_write_node_info(cluster_name)
+        des_master_ip,des_master_port = common.get_cluster_node(cluster_name)
     with open(rerun_file_path, "rb") as f:
         check_rerun_sql = f.read()
         check_rerun_sql = check_rerun_sql.decode('utf-8')
