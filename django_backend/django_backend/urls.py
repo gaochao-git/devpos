@@ -17,7 +17,7 @@ from rest_framework.authtoken import views as drf_views
 
 
 urlpatterns = [
-    path('api/admin/', admin.site.urls), # django后台登陆
+    path('admin/', admin.site.urls), # django后台登陆
     path('api/auth/', drf_views.obtain_auth_token),       # 登录--获取用户的token
     path('api/get_login_user_name_by_token/', login_controller.get_login_user_name_by_token_handler), # 登录--根据token获得登录用户名
 

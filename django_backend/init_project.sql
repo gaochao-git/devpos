@@ -335,3 +335,41 @@ CREATE TABLE `resource_config` (
   `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='资源配置表';
+
+
+CREATE TABLE `cloud_user_group` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `organization` varchar(80) NOT NULL default '' comment "公司名称",
+  department varchar(80) NOT NULL default '' comment "部门名称",
+  group_name varchar(80) NOT NULL comment "小组名称",
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_department_group_name` (department,group_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 comment '公司组织架构表'
+insert into cloud_user_group(organization,department,group_name) values('wl','基础设施部','技术组件');
+
+
+CREATE TABLE `cloud_user` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  username varchar(80) NOT NULL default '' comment "用户名",
+  display_username varchar(80) NOT NULL default '' comment "用户中文名称",
+  user_email varchar(80) NOT NULL default '' comment "用户邮箱",
+  user_role varchar(80) NOT NULL default '' comment "用户角色",
+  department varchar(80) NOT NULL default '' comment "部门名称",
+  group_name varchar(80) NOT NULL comment "小组名称",
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_username` (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 comment '用户信息表';
+insert into cloud_user(username,display_username,user_role,department,group_name) values('gaochao','高超','dba','基础设施部','技术组件');
+
+
+CREATE TABLE `cloud_role` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  role_name varchar(80) NOT NULL default '' comment "角色名称",
+  `description` varchar(80) NOT NULL default '' comment "描述",
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_role_name` (role_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 comment '角色表';
+insert into cloud_role(role_name,description) values('dev','开发人员');
+insert into cloud_role(role_name,description) values('qa','测试人员');
+insert into cloud_role(role_name,description) values('dba','数据库运维人员');
+insert into cloud_role(role_name,description) values('sa','主机运维');

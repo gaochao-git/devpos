@@ -30,6 +30,21 @@ def get_login_user_info(login_user):
     return rows
 
 
+def get_user_info(token):
+    """
+    获取登陆用户详情
+    :param token:
+    :return:
+    """
+    sql = """
+            select a.username,a.display_username,a.user_role,a.user_email,a.department,a.group_name 
+            from cloud_user a 
+            inner join auth_user b on a.username=b.username 
+            inner join authtoken_token c on b.id=c.user_id where c.`key`='{}'
+          """.format(token)
+    return db_helper.find_all(sql)
+
+
 def generate_server_id(host):
     """
     获取mysql的server_id

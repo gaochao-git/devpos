@@ -16,7 +16,7 @@ class TokenAuth(MiddlewareMixin):
             bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
             token = bearer_token.split(' ')[1]
             if token != 'undefined':
-                sql = "select 1 from  authtoken_token where `key`='{}'".format(token)
+                sql = "select 1 from authtoken_token where `key`='{}'".format(token)
                 login_ret = db_helper.find_all(sql)
                 if login_ret['status'] != "ok":
                     content = {"status": "error", "message": "登陆接口异常", "code": 1202}

@@ -64,7 +64,6 @@ class App extends Component {
                     login_user_name:res.data.data[0]['username'],
                     login_user_name_role:res.data.data[0]['title'],
                 })
-//                console.log(res.data.data)
             :
                 message.error(res.data.message)}
         ).catch(err => {message.error(err.message)})
