@@ -1,6 +1,8 @@
 from django.utils.deprecation import MiddlewareMixin
 from django.shortcuts import HttpResponse
 import json
+import jwt
+from rest_framework_jwt.utils import jwt_decode_handler
 from apps.utils import db_helper
 import logging
 logger = logging.getLogger('devops')
@@ -11,22 +13,20 @@ class TokenAuth(MiddlewareMixin):
     登陆验证中间件,除了登陆接口所有接口均需要验证
     """
     def process_request(self, request):
-        auth_ignore_path = ['/api/auth/']
+        auth_ignore_path = ['/api/auth/','/api/v2/auth/']
         if request.path not in auth_ignore_path:
             bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
-            token = bearer_token.split(' ')[1]
-            if token != 'undefined':
-                sql = "select 1 from authtoken_token where `key`='{}'".format(token)
-                login_ret = db_helper.find_all(sql)
-                if login_ret['status'] != "ok":
-                    content = {"status": "error", "message": "登陆接口异常", "code": 1202}
-                    return HttpResponse(json.dumps(content), content_type='application/json')
-                if len(login_ret['data']) == 0:
-                    content = {"status": "error", "message": "用户登陆失败", "code": 1203}
-                    return HttpResponse(json.dumps(content), content_type='application/json')
-            else:
-                content = {"status": "error", "message": "当前用户没登陆,请登陆", "code": 1201}
-                return HttpResponse(json.dumps(content), content_type='application/json')
+            if bearer_token is None:
+                ret = {"status": "error", "message": "用户未登陆", "code": 1201}
+                return HttpResponse(json.dumps(ret), content_type='application/json')
+            try:
+                token = bearer_token.split(' ')[1]
+            except Exception as e:
+                ret = {"status": "error", "message": "token格式不合法"}
+                return HttpResponse(json.dumps(ret), content_type='application/json')
+            # ret = v1_auth(token)
+            ret = v2_auth(token)
+            if ret['status'] !="ok": return HttpResponse(json.dumps(ret), content_type='application/json')
 
     def process_response(self, request, response):
         # 基于请求响应
@@ -36,6 +36,38 @@ class TokenAuth(MiddlewareMixin):
         print("md1  process_exception 方法！")
         content = {"status": "error", "message": "后端出现异常", "code": 2201}
         return HttpResponse(json.dumps(content), content_type='application/json')
+
+
+def v1_auth(token):
+    """
+    普通token验证,没有过期
+    :param token:
+    :return:
+    """
+    sql = "select 1 from authtoken_token where `key`='{}'".format(token)
+    login_ret = db_helper.find_all(sql)
+    if login_ret['status'] != "ok": return {"status": "error", "message": "登陆过期", "code": 1202}
+    if len(login_ret['data']) == 0: return {"status": "error", "message": "用户登陆验证失败", "code": 1203}
+
+
+def v2_auth(token):
+    """
+    jwt认证
+    token不通过为处罚异常
+    token验证通过返回用户信息:{'user_id': 1, 'username': 'gaochao', 'exp': 1635680388, 'email': ''}
+    :param token:
+    :return:
+    """
+    content = {"status": "ok", "message": "验证成功"}
+    try:
+        token_user = jwt_decode_handler(token)
+    except jwt.ExpiredSignatureError as e:
+        content = {"status": "error", "message": "登陆过期","code": "1202"}
+        logger.error(e)
+    except Exception as e:
+        logger.exception(e)
+        content = {"status": "error", "message": "用户登陆验证失败", "code": "1203"}
+    return content
 
 
 def permission_required(func):

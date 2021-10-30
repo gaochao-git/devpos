@@ -1,7 +1,6 @@
 import {Button, Form, Icon, Input, message} from "antd";
 import React, {Component, } from "react";
-import axios from "axios";
-import {backendServerApiRoot} from "../common/util";
+import MyAxios from "../common/interface"
 
 // 登陆
 class Login extends Component  {
@@ -18,7 +17,7 @@ class Login extends Component  {
     };
     // 登陆验证
     async login(username, password) {
-        axios.post(`${backendServerApiRoot}/auth/`, {username, password}).then(function(res){
+        MyAxios.post('/v2/auth/', {username, password}).then(function(res){
             window.localStorage.setItem('token', res.data.token)
             window.location.reload()
         }).catch(function (error) {

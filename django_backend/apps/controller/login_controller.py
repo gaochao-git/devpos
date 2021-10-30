@@ -17,3 +17,16 @@ def get_login_user_name_by_token_handler(request):
     token = bearer_token.split(' ')[1]
     ret = login.get_login_user_name_by_token(token)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+
+
+def v2_get_login_user_name_by_token_handler(request):
+    """
+    根据登陆jwt token获取用户详情
+    :param request:
+    :return:
+    """
+    bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
+    print(bearer_token)
+    token = bearer_token.split(' ')[1]
+    ret = login.get_login_user_name_by_token(token)
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')

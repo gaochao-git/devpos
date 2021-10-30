@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 import socket
 import os
 import pymysql
+import datetime
 pymysql.install_as_MySQLdb()
 import logging
 logger = logging.getLogger('devops')
@@ -41,10 +42,21 @@ INSTALLED_APPS = [
     'djcelery',
 ]
 
-# django-rest-framework设置
+# ===========================JWT认证begin===================================
 REST_FRAMEWORK = {
-    # 'DEFAULT_AUTHENTICATION_CLASSES': ['apps.utils.auth.UserAuth',],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ),
 }
+
+JWT_AUTH = {
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(minutes=1),
+}
+
+# ============================JWT认证end==========================================
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

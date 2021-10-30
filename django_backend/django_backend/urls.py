@@ -14,12 +14,16 @@ from apps.controller import deploy_mysql_controller
 from apps.ansible_task.adhoc import ansible_adhoc
 
 from rest_framework.authtoken import views as drf_views
+from rest_framework_jwt.views import obtain_jwt_token,refresh_jwt_token
 
 
 urlpatterns = [
     path('admin/', admin.site.urls), # django后台登陆
-    path('api/auth/', drf_views.obtain_auth_token),       # 登录--获取用户的token
-    path('api/get_login_user_name_by_token/', login_controller.get_login_user_name_by_token_handler), # 登录--根据token获得登录用户名
+    path('api/v1/auth/', drf_views.obtain_auth_token),       # token登录v1版本,不带过期
+    path('api/v2/auth/', obtain_jwt_token),                  # token登陆v2版本,带过期
+    path('api/v2/auth_refresh/', refresh_jwt_token),         # token登陆v2版本,刷新token
+    path('api/get_login_user_info/', login_controller.get_login_user_name_by_token_handler), # 登录--根据token获得登录用户名
+    path('api/v2/v2_get_login_user_info/', login_controller.v2_get_login_user_name_by_token_handler), # 登录--根据token获得登录用户名
 
     # sql审核begin
     path('api/v1/service/ticket/audit_sql/get_submit_sql_info/', audit_sql_controller.get_submit_sql_info_controller), # 页面获取所有工单列表

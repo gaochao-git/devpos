@@ -58,7 +58,7 @@ class App extends Component {
     }
     //根据token获取登陆信息
     async getUserInfo() {
-        await MyAxios.post('/get_login_user_name_by_token/').then(
+        await MyAxios.post('/v2/v2_get_login_user_info/').then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     login_user_name:res.data.data[0]['username'],

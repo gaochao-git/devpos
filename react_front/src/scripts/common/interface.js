@@ -30,12 +30,15 @@ MyAxios.interceptors.response.use(
     if (response.data.status !=="ok") {
       switch (response.data.code) {
         case "1201":
-          message.error('未登录')
+          message.error('用户未登陆')
         case "1202":
-          message.error('token无效')
+          message.error('登陆过期')
+          window.localStorage.removeItem("token")
+          window.location.reload()
         case "1203":
-          message.error('权限不足')
+          message.error('用户登陆验证失败')
       }
+
     }
     return response
   },
