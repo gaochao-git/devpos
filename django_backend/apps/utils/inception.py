@@ -36,7 +36,10 @@ def check_sql(des_master_ip, des_master_port, check_sql_info):
         elif re.findall('2003', str(e)):
             message = "语法检测器无法连接"
         content = {'status': "error", 'message': message}
-    return content
+    finally:
+        if conn: cur.close()
+        if conn: conn.close()
+        return content
 
 
 # inception开始拆分
@@ -57,8 +60,8 @@ def start_split_sql(master_ip, master_port, execute_sql):
         logger.exception("inception拆分失败", str(e))
         content = {'status': "error", 'message': str(e)}
     finally:
-        cur.close()
-        conn.close()
+        if conn: cur.close()
+        if conn: conn.close()
         return content
 
 
@@ -80,8 +83,11 @@ def get_ddl_process(sqlsha1):
         conn.close()
     except Exception as e:
         logger.error(str(e))
-    logger.info(inception_execute_percent)
-    return inception_execute_percent
+    finally:
+        if conn: cur.close()
+        if conn: conn.close()
+        logger.info(inception_execute_percent)
+        return inception_execute_percent
 
 
 # inception执行SQL
@@ -107,6 +113,6 @@ def execute_sql(des_master_ip, des_master_port, inception_backup, inception_chec
         content = {"status":"error", "message":e}
         logger.error("[工单:%s],调用inception执行SQL异常结束", submit_sql_uuid)
     finally:
-        cur.close()
-        conn.close()
+        if conn: cur.close()
+        if conn: conn.close()
         return content
