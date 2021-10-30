@@ -5,10 +5,19 @@ from apps.utils import db_helper
 
 logger = logging.getLogger('devops')
 
-# 根据集群名获取制定角色
+
 def get_cluster_node(cluster_name, instance_role):
-    sql = "select instance_name from mysql_cluster_instance where cluster_name='{}' and instance_role='{}'".format(cluster_name, instance_role)
+    """
+    获取集群内指定角色节点
+    :param cluster_name:
+    :param instance_role:
+    :return:
+    """
+    sql = """
+            select instance_name from mysql_cluster_instance where cluster_name='{}' and instance_role='{}'
+          """.format(cluster_name, instance_role)
     return db_helper.find_all(sql)
+
 
 # 获取登陆用户及leader相关信息
 def get_login_user_info(login_user):
