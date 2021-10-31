@@ -34,9 +34,15 @@ class TokenAuth(MiddlewareMixin):
         # 基于请求响应
         return response
 
-    def process_exception(self, request, exception):  # 引发错误 才会触发这个方法
-        print("md1  process_exception 方法！")
-        content = {"status": "error", "message": "后端出现异常", "code": StatusCode.ERROR.code}
+    def process_exception(self, request, exception):
+        """
+        正常代码不论错误还是正确不会用到这个异常，除非一些异常没有被捕获到就会被这个异常不过到并处理
+        :param request:
+        :param exception:
+        :return:
+        """
+        logger.error("未手动捕获的异常%s,%s", request,exception)
+        content = {"status": "error", "message": "后端服务异常", "code": StatusCode.ERROR.code}
         return HttpResponse(json.dumps(content), content_type='application/json')
 
 

@@ -3,6 +3,7 @@ import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm, } 
 import { Link } from 'react-router-dom';
 import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
+import MyAxios from "../common/interface"
 const Column = Table.Column;
 const TextArea = Input.TextArea;
 const EditableCell = ({ editable, value, onChange }) => (
@@ -89,7 +90,7 @@ export default class ExecuteSql extends Component {
              console.log("SQL执行中，定时id为:",this.timerId);
              console.log("SQL执行状态:",this.state.execute_status);
         }
-        let res = await axios.post(`${backendServerApiRoot}/get_apply_sql_by_uuid/`,params);
+        let res = await MyAxios.post(`${backendServerApiRoot}/get_apply_sql_by_uuid/`,params);
         let res_split_sql = await axios.post(`${backendServerApiRoot}/get_split_sql_by_uuid/`,params);
         if (res.data.data[0]["cluster_name"].length>0){
             this.setState({
@@ -132,7 +133,7 @@ export default class ExecuteSql extends Component {
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_submit_sql_by_uuid/`,params);
+        let res = await MyAxios.post(`${backendServerApiRoot}/get_submit_sql_by_uuid/`,params);
         if (res.data.status==="ok"){
             this.setState({
                 showSubmitSqlViewVisible: true,
@@ -156,7 +157,7 @@ export default class ExecuteSql extends Component {
         let params = {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_check_sql_results_by_uuid/`,params);
+        let res = await MyAxios.post(`${backendServerApiRoot}/get_check_sql_results_by_uuid/`,params);
         let inception_error_level_rray=[];
         for(var i=0;i<res.data.data.length;i++){
             inception_error_level_rray.push(res.data.data[i]["inception_error_level"])
@@ -180,7 +181,7 @@ export default class ExecuteSql extends Component {
             check_user_name_role:this.state.login_user_name_role,
             check_comment:this.state.check_comment,
         };
-        let res = await axios.post(`${backendServerApiRoot}/pass_submit_sql_by_uuid/`,params);
+        let res = await MyAxios.post(`${backendServerApiRoot}/pass_submit_sql_by_uuid/`,params);
         message.success(res.data.message);
         this.setState({
             ApplyModalVisible: false,
@@ -231,7 +232,7 @@ export default class ExecuteSql extends Component {
                 this.setState({
                     execute_sql_flag: split_sql_file_path
                 });
-                await axios.post(`${backendServerApiRoot}/execute_submit_sql_by_file_path/`, params).then(
+                await MyAxios.post(`${backendServerApiRoot}/execute_submit_sql_by_file_path/`, params).then(
                     res => {
                         res.data.status === "ok" ? message.success(res.data.message,3) && this.setInterVal() : message.error(res.data.message);
                     }
@@ -250,7 +251,7 @@ export default class ExecuteSql extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path
         };
-        await axios.post(`${backendServerApiRoot}/execute_submit_sql_by_file_path_manual/`, params).then(
+        await MyAxios.post(`${backendServerApiRoot}/execute_submit_sql_by_file_path_manual/`, params).then(
             res => {
                 res.data.status === "ok" ? this.GetSqlApplyByUuid(this.state.submit_sql_uuid) && message.success(res.data.message) : message.error(res.data.message);
             })
@@ -261,7 +262,7 @@ export default class ExecuteSql extends Component {
         let params = {
             split_sql_file_path:split_sql_file_path
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_inception_variable_config_info/`,params);
+        let res = await MyAxios.post(`${backendServerApiRoot}/get_inception_variable_config_info/`,params);
         console.log(res.data);
         this.setState({
             data: res.data.data,
@@ -277,7 +278,7 @@ export default class ExecuteSql extends Component {
         let params = {
             split_sql_file_path:split_sql_file_path
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_submit_split_sql_by_file_path/`,params);
+        let res = await MyAxios.post(`${backendServerApiRoot}/get_submit_split_sql_by_file_path/`,params);
         if (res.data.status==="ok"){
             this.setState({
                 SplitSQLModalVisible: true,
@@ -296,7 +297,7 @@ export default class ExecuteSql extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_execute_results_by_split_sql_file_path/`,params);
+        let res = await MyAxios.post(`${backendServerApiRoot}/get_execute_results_by_split_sql_file_path/`,params);
         this.setState({
             execute_sql_results: res.data.data,
             ViewExecuteSubmitSqlModalVisible:true,
@@ -310,7 +311,7 @@ export default class ExecuteSql extends Component {
             split_sql_file_path:split_sql_file_path,
             recreate_sql_flag: flag
         };
-        let res = await axios.post(`${backendServerApiRoot}/recreate_sql/`,params);
+        let res = await MyAxios.post(`${backendServerApiRoot}/recreate_sql/`,params);
         window.location.reload()
         message.error(res.data.message)
         console.log(res)
@@ -323,7 +324,7 @@ export default class ExecuteSql extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,params);
+        let res = await MyAxios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,params);
         this.setState({
             execute_sql_process_results: res.data.data,
             ViewExecuteSubmitSqlProcessModalVisible:true,
@@ -337,7 +338,7 @@ export default class ExecuteSql extends Component {
             split_sql_file_path:this.state.split_sql_file_path,
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
-        let res = await axios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,params);
+        let res = await MyAxios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,params);
         if (res.data.data.length>0 && res.data.data[0]["inception_execute_percent"]!==0){
             this.setState({
                 execute_sql_process_results: res.data.data
@@ -369,7 +370,7 @@ export default class ExecuteSql extends Component {
     }
     //获取inception变量配置
     async GetInceptionVariableConfig() {
-        let res = await axios.get(`${backendServerApiRoot}/get_inception_variable_config_info/`);
+        let res = await MyAxios.get(`${backendServerApiRoot}/get_inception_variable_config_info/`);
         console.log(res.data);
         this.setState({
             data: res.data.data,
@@ -382,7 +383,7 @@ export default class ExecuteSql extends Component {
             split_sql_file_path: this.state.split_sql_file_path,
             new_config_json: this.state.newConfig,
         };
-        axios.post(`${backendServerApiRoot}/update_inception_variable/`,params).then(
+        MyAxios.post('/update_inception_variable/',params).then(
            res => {res.data.status==="ok" ? message.success(res.data.message) : message.error(res.data.message)}
         ).catch(err => {message.error(err.message)})
         this.setState({

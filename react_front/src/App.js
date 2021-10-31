@@ -43,6 +43,7 @@ class App extends Component {
         }
     }
     componentDidMount() {
+        console.log(window.localStorage.getItem('token'))
         if (window.localStorage.getItem('token')){
           this.getUserInfo();
         };
