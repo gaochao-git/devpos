@@ -5,7 +5,7 @@ from apps.utils import db_helper
 logger = logging.getLogger('sql_logger')
 
 
-def get_login_user_name_by_token_dao(token):
+def get_login_user_info_dao(token):
     """
     根据登陆token获取用户详情
     :param token:

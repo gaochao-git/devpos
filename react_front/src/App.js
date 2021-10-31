@@ -47,13 +47,9 @@ class App extends Component {
         this.getUserInfo()
         //如果tab主标签存在则跳到指定tab，否则跳到服务标签
         if (window.localStorage.current_nav){
-            this.setState({
-                current_nav: window.localStorage.current_nav
-            });
+            this.setState({current_nav: window.localStorage.current_nav});
         }else {
-            this.setState({
-                current_nav:"服务"
-            });
+            this.setState({current_nav:"服务"});
         };
     }
     //根据token获取登陆信息
@@ -70,9 +66,7 @@ class App extends Component {
     }
     //更改服务、运维、管理标签
     handlerClick = e =>{
-        this.setState({
-            current_nav:e.key
-        });
+        this.setState({current_nav:e.key});
         window.localStorage.setItem("current_nav", e.key)
     }
     render() {
@@ -171,16 +165,15 @@ class App extends Component {
             )
         }else{
             return (
-                <div>
+                <div className="App">
+                <BrowserRouter>
                     <Layout className="layout">
-                        <Header className="header">
-                            <span>请先登陆</span>
-                        </Header>
-                        <Content style={{ margin: '0 auto',padding:'50px 50px' }}>
+                        <Content style={{ margin: '0 auto',padding:'300px 300px' }}>
                             <Login></Login>
                         </Content>
-                        <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>
+                        <Footer style={{ textAlign: 'center'}}>Devpos Design ©2020 Created By Me</Footer>
                     </Layout>,
+                </BrowserRouter>
                 </div>
             )
         }

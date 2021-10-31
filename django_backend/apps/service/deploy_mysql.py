@@ -33,7 +33,7 @@ def deploy_mysql_by_uuid(submit_uuid, deploy_topos, deploy_version):
     try:
         task_id = install_mysql.delay(submit_uuid, deploy_topos, deploy_version)
         if task_id:
-            logger.info("推送celery成功:",task_id)
+            logger.info("推送celery成功:%s",task_id)
             ret = deploy_mysql_dao.set_task_celery_dao(submit_uuid)
             if ret['status'] != "ok": return ret
             status = "ok"

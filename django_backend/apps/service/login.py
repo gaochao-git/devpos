@@ -7,11 +7,11 @@ import json
 logger = logging.getLogger('sql_logger')
 
 
-def get_login_user_name_by_token(token):
+def get_login_user_info(token):
     """
     根据登陆token获取用户详情
     :param token:
     :return:
     """
-    ret = login_dao.get_login_user_name_by_token_dao(token)
+    ret = login_dao.get_login_user_info_dao(token)
     return ret

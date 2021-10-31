@@ -22,8 +22,8 @@ urlpatterns = [
     path('api/v1/auth/', drf_views.obtain_auth_token),       # token登录v1版本,不带过期
     path('api/v2/auth/', obtain_jwt_token),                  # token登陆v2版本,带过期
     path('api/v2/auth_refresh/', refresh_jwt_token),         # token登陆v2版本,刷新token
-    path('api/get_login_user_info/', login_controller.get_login_user_name_by_token_handler), # 登录--根据token获得登录用户名
-    path('api/v2/v2_get_login_user_info/', login_controller.v2_get_login_user_name_by_token_handler), # 登录--根据token获得登录用户名
+    path('api/get_login_user_info/', login_controller.get_login_user_info_controller), # 登录--根据token获得登录用户名
+    path('api/v2/v2_get_login_user_info/', login_controller.v2_get_login_user_info_controller), # 登录--根据token获得登录用户名
 
     # sql审核begin
     path('api/v1/service/ticket/audit_sql/get_submit_sql_info/', audit_sql_controller.get_submit_sql_info_controller), # 页面获取所有工单列表
