@@ -3,6 +3,7 @@ import logging
 import pymysql
 from django.db import transaction
 from datetime import datetime
+from apps.utils.error_code import StatusCode
 logger = logging.getLogger('sql_logger')
 db_all_remote_user = "gaochao"
 db_all_remote_pass = "fffjjj"
@@ -27,7 +28,7 @@ def findall(sql):
     except Exception as e:
         status = "error"
         message = "执行SQL失败"
-        logger.exception(e)
+        logger.exception("sql执行失败:%s", e)
     finally:
         logger.info("sql:%s" % (sql))
         cursor.close()
@@ -47,13 +48,13 @@ def find_all(sql):
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
         status = "ok"
-        message = "执行成功"
-        code = ""
+        message = StatusCode.OK.errmsg
+        code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = "执行SQL失败"
-        code = 2201
-        logger.exception("%s执行失败:%s",sql)
+        message = StatusCode.ERR_DB.errmsg
+        code = StatusCode.ERR_DB.code
+        logger.exception("sql执行失败:%s", e)
     finally:
         cursor.close()
         connection.close()
@@ -73,13 +74,13 @@ def find_all_many(sql_list):
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
         status = "ok"
-        message = "执行成功"
-        code = ""
+        message = StatusCode.OK.errmsg
+        code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = "执行SQL失败"
-        code = 2201
-        logger.exception("%s执行失败:%s",sql_list)
+        message = StatusCode.ERR_DB.errmsg
+        code = StatusCode.ERR_DB.code
+        logger.exception("sql执行失败:%s", e)
     finally:
         cursor.close()
         connection.close()
@@ -96,13 +97,13 @@ def dml(sql):
     try:
         cursor.execute(sql)
         status = "ok"
-        message = "执行成功"
-        code = ""
+        message = StatusCode.OK.errmsg
+        code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = "执行SQL失败"
-        code = 2201
-        logger.exception(e)
+        message = StatusCode.ERR_DB.errmsg
+        code = StatusCode.ERR_DB.code
+        logger.exception("sql执行失败:%s", e)
     finally:
         logger.info("sql:%s" % (sql))
         cursor.close()
@@ -122,13 +123,13 @@ def dml_many(sql_list):
             for sql in sql_list:
                 cursor.execute(sql)
         status = "ok"
-        message = "执行成功"
-        code = ""
+        message = StatusCode.OK.errmsg
+        code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = "执行SQL失败"
-        code = 2201
-        logger.exception("%s执行失败:%s", sql_list)
+        message = StatusCode.ERR_DB.errmsg
+        code = StatusCode.ERR_DB.code
+        logger.exception("sql执行失败:%s", e)
     finally:
         logger.info("sql:%s" % (sql))
         cursor.close()
@@ -159,14 +160,14 @@ def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
         diff_time = (end_time - start_time).microseconds/1000
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
         status = "ok"
-        message = "执行成功"
-        code = ""
+        message = StatusCode.OK.errmsg
+        code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = "connect_ip:%s,connect_port:%s,sql:%s,error:%s" %(ip, port, sql, str(e))
-        code = 2201
+        message = StatusCode.ERR_DB.errmsg
+        code = StatusCode.ERR_DB.code
         diff_time = 0
-        logger.exception(message)
+        logger.exception("sql执行失败:%s", e)
     finally:
         if conn: cursor.close()
         if conn: connection.close()
@@ -200,17 +201,17 @@ def target_source_dml(ip, port, sql, my_connect_timeout=2):
         cursor = conn.cursor()
         cursor.execute(sql)
         status = "ok"
-        message = "执行成功"
-        code = ""
+        message = StatusCode.OK.errmsg
+        code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = "connect_ip:%s,connect_port:%s,sql:%s,error:%s" %(ip, port, sql, str(e))
-        code = 2201
-        logger.exception(message)
+        message = StatusCode.ERR_DB.errmsg
+        code = StatusCode.ERR_DB.code
+        logger.exception("sql执行失败:%s", e)
     finally:
         if conn: cursor.close()
         if conn: connection.close()
-        return {"status": status, "message": message, "code": code, "data": data}
+        return {"status": status, "message": message, "code": code}
 
 
 def target_source_dml_many(ip, port, sql_list, my_connect_timeout=2):
@@ -230,14 +231,14 @@ def target_source_dml_many(ip, port, sql_list, my_connect_timeout=2):
         for sql in sql_list:
             cursor.execute(sql)
         status = "ok"
-        message = "执行成功"
-        code = ""
+        message = StatusCode.OK.errmsg
+        code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = "connect_ip:%s,connect_port:%s,sql:%s,error:%s" %(ip, port, sql_list, str(e))
-        code = 2201
-        logger.exception(message)
+        message = StatusCode.ERR_DB.errmsg
+        code = StatusCode.ERR_DB.code
+        logger.exception("sql执行失败:%s", e)
     finally:
         if conn: cursor.close()
         if conn: connection.close()
-        return {"status": status, "message": message, "code": code, "data": data}
+        return {"status": status, "message": message, "code": code}

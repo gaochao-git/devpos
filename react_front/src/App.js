@@ -27,7 +27,6 @@ import HomeDbaInfo from './scripts/home/home_dba'
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
 
-
 function LoginOut(){
     console.log("退出登陆");
     window.localStorage.removeItem("token")
@@ -44,7 +43,9 @@ class App extends Component {
         }
     }
     componentDidMount() {
-        this.getUserInfo()
+        if (window.localStorage.getItem('token')){
+          this.getUserInfo();
+        };
         //如果tab主标签存在则跳到指定tab，否则跳到服务标签
         if (window.localStorage.current_nav){
             this.setState({current_nav: window.localStorage.current_nav});

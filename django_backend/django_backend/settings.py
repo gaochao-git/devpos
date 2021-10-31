@@ -52,7 +52,10 @@ REST_FRAMEWORK = {
 }
 
 JWT_AUTH = {
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=12),
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(seconds=5),         # access token过期时间
+    'JWT_ALLOW_REFRESH': True,
+    # refresh token过期时间,暂时没想好放在哪个位置调用,必须在access_token过期前前端采用定刷新更新token,感觉比较鸡肋或者是没get到精髓
+    'JWT_REFRESH_EXPIRATION_DELTA':datetime.timedelta(seconds=60),
 }
 
 # ============================JWT认证end==========================================

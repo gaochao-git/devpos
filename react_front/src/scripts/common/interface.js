@@ -32,14 +32,15 @@ MyAxios.interceptors.response.use(
   response => {
     //拦截响应，做统一处理
     if (response.data.status !=="ok") {
+    console.log(response.data.code)
       switch (response.data.code) {
-        case "1201":
+        case 1201:
           message.error('用户未登陆')
-        case "1202":
+        case 1202:
           message.error('登陆过期')
           window.localStorage.removeItem("token")
           window.location.reload()
-        case "1203":
+        case "1201":
           message.error('用户登陆验证失败')
       }
 

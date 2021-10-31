@@ -4,6 +4,7 @@ import json
 import jwt
 from rest_framework_jwt.utils import jwt_decode_handler
 from apps.utils import db_helper
+from apps.utils.error_code import StatusCode
 import logging
 logger = logging.getLogger('devops')
 
@@ -13,16 +14,17 @@ class TokenAuth(MiddlewareMixin):
     登陆验证中间件,除了登陆接口所有接口均需要验证
     """
     def process_request(self, request):
-        auth_ignore_path = ['/api/auth/','/api/v2/auth/']
+        auth_ignore_path = ['/api/auth/','/api/v2/auth/','/api/v2/auth_refresh/']
+        print(request.path)
         if request.path not in auth_ignore_path:
             bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
             if bearer_token is None:
-                ret = {"status": "error", "message": "用户未登陆", "code": 1201}
+                ret = {"status": "error", "message": StatusCode.ERR_NOT_LOGIN.errmsg, "code": StatusCode.ERR_NOT_LOGIN.code}
                 return HttpResponse(json.dumps(ret), content_type='application/json')
             try:
                 token = bearer_token.split(' ')[1]
             except Exception as e:
-                ret = {"status": "error", "message": "token格式不合法"}
+                ret = {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.errmsg, "code":StatusCode.ERR_LOGIN_FAIL.code}
                 return HttpResponse(json.dumps(ret), content_type='application/json')
             # ret = v1_auth(token)
             ret = v2_auth(token)
@@ -34,7 +36,7 @@ class TokenAuth(MiddlewareMixin):
 
     def process_exception(self, request, exception):  # 引发错误 才会触发这个方法
         print("md1  process_exception 方法！")
-        content = {"status": "error", "message": "后端出现异常", "code": 2201}
+        content = {"status": "error", "message": "后端出现异常", "code": StatusCode.ERROR.code}
         return HttpResponse(json.dumps(content), content_type='application/json')
 
 
@@ -46,8 +48,8 @@ def v1_auth(token):
     """
     sql = "select 1 from authtoken_token where `key`='{}'".format(token)
     login_ret = db_helper.find_all(sql)
-    if login_ret['status'] != "ok": return {"status": "error", "message": "登陆过期", "code": 1202}
-    if len(login_ret['data']) == 0: return {"status": "error", "message": "用户登陆验证失败", "code": 1203}
+    if login_ret['status'] != "ok": return {"status": "error", "message": StatusCode.ERR_LOGIN_EXPIRE.errmsg, "code": StatusCode.ERR_LOGIN_EXPIRE.code}
+    if len(login_ret['data']) == 0: return {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.errmsg, "code": StatusCode.ERR_LOGIN_FAIL.code}
 
 
 def v2_auth(token):
@@ -62,11 +64,11 @@ def v2_auth(token):
     try:
         token_user = jwt_decode_handler(token)
     except jwt.ExpiredSignatureError as e:
-        content = {"status": "error", "message": "登陆过期","code": "1202"}
+        content = {"status": "error", "message": StatusCode.ERR_LOGIN_EXPIRE.errmsg, "code": StatusCode.ERR_LOGIN_EXPIRE.code}
         logger.error(e)
     except Exception as e:
         logger.exception(e)
-        content = {"status": "error", "message": "用户登陆验证失败", "code": "1203"}
+        content = {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.errmsg, "code": StatusCode.ERR_LOGIN_FAIL.code}
     return content
 
 
