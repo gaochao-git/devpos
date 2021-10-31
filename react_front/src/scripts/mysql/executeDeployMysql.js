@@ -132,6 +132,7 @@ export default class ExecuteDeployMysql extends Component {
         if( this.state.deploy_status == "执行成功" || this.state.deploy_status === "执行失败"){
             window.clearInterval(this.timerId);
             console.log("工单执完毕，关闭定时器");
+            console.log(this.state.deploy_status);
         } else{
              console.log("工单执行中，定时id为:",this.timerId);
              console.log("工单执行状态:",this.state.deploy_status);
@@ -270,11 +271,12 @@ export default class ExecuteDeployMysql extends Component {
                         <TabPane tab="部署日志" key="1">
                                 <CodeMirror
                                     value={this.state.stdout_log}
+                                    scroll={{x: 0,y: 500}}
                                     options={{
                                       lineNumbers: true,
+                                      autoScroll:true,
                                       mode: {name: "text/x-mysql"},
                                       theme: 'ambiance',
-//                                      fullScreen: true
                                     }}
                                 />
                         </TabPane>

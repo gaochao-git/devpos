@@ -14,6 +14,11 @@ const FormItem = Form.Item;
 const { Option } = Select;
 const { TextArea } = Input
 const { Panel } = Collapse;
+//let codemirrorScroll = document.getElementsByClassName('CodeMirror-scroll')[0]
+//codemirrorScroll.scrollTop = codemirrorScroll.scrollHeight
+
+
+
 
 export default class DeployMysql extends Component  {
     constructor(props) {
