@@ -480,26 +480,28 @@ def update_recreate_sql_flag_dao(flag, split_sql_file_path):
     finally:
         return update_status
 
-def set_execute_status(submit_sql_uuid, split_sql_file_path, status, execute_user_name):
+def set_execute_status(submit_sql_uuid, split_sql_file_path, is_execute, execute_status, execute_user_name):
     # 更新工单状态为执行中
     cursor = connection.cursor()
     try:
-        sql_update_executing = "update sql_submit_info set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1,dba_execute_user_name='{}' where submit_sql_uuid='{}'".format(status, status, execute_user_name, submit_sql_uuid)
+        sql_update_executing = "update sql_submit_info set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1,dba_execute_user_name='{}' where submit_sql_uuid='{}'".format(is_execute, execute_status, execute_user_name, submit_sql_uuid)
         sql_execute_executing = "update sql_execute_split set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1 where split_sql_file_path='{}'".format(
-            status,status,split_sql_file_path)
+            is_execute,execute_status,split_sql_file_path)
         cursor.execute(sql_update_executing)
         cursor.execute(sql_execute_executing)
         connection.commit()
         logger.info("工单:%s,更新工单状态为执行中成功", submit_sql_uuid)
-        update_status = "ok"
+        status = "ok"
+        message = "更新工单成功"
     except Exception as e:
         logger.info("工单:%s,更新工单状态为执行中失败:%s", submit_sql_uuid, str(e))
-        update_status = "error"
+        status = "error"
+        message = "更新工单失败"
         connection.rollback()
     finally:
         cursor.close()
         connection.close()
-        return update_status
+        return {"status": status, "message":message}
 
 # 查看该SQL文件是否已经下发给celery
 def get_task_send_celery(split_sql_file_path):

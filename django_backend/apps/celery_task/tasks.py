@@ -26,13 +26,23 @@ def sendmail(mail):
 
 # ======================================= 异步任务================================
 @task
-def inception_execute(params):
+def inception_execute(des_ip, des_port, inc_bak, inc_war, inc_err,file_path, submit_sql_uuid, inc_sleep, exe_user_name):
     """
-    执行单个SQL任务
-    :param params:
+    执行单个SQL文件任务
+    :param des_ip:
+    :param des_port:
+    :param inc_bak:
+    :param inc_war:
+    :param inc_err:
+    :param file_path:
+    :param submit_sql_uuid:
+    :param osc_config_sql:
+    :param inc_sleep:
+    :param exe_user_name:
     :return:
     """
-    execute_sql_task = ExecuteSql(params)
+    execute_sql_task = ExecuteSql(des_ip, des_port, inc_bak, inc_war, inc_err,file_path, submit_sql_uuid,
+                                  inc_sleep, exe_user_name)
     execute_sql_task.task_run()
 
 

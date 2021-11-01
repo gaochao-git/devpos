@@ -354,7 +354,6 @@ class ExecuteSqlByFilePath:
             self.get_ticket_info()
             self.judge_source_ip_port()
             self.pre_check()
-            self.osc_config()
             self.send_celery()
             content = {"status": "ok", "message": "推送任务成功"}
         except Exception as e:
@@ -401,34 +400,17 @@ class ExecuteSqlByFilePath:
         else:
             self.des_ip, self.des_port = self.ticket_info["master_ip"], self.ticket_info["master_port"]
 
-    def osc_config(self):
-        # inception执行osc配置
-        inception_osc_config = self.ticket_info["inception_osc_config"]
-        if inception_osc_config == "" or inception_osc_config == '{}':
-            osc_config_sql = "show databases;"
-        else:
-            osc_config_sql = ""
-            osc_config_dict = json.loads(inception_osc_config)
-            osc_config_sql_list = []
-            for k in osc_config_dict:
-                osc_config_sql = "inception set session {}={};".format(k, osc_config_dict[k])
-                osc_config_sql_list.append(osc_config_sql)
-                osc_config_sql_list_str = [str(i) for i in osc_config_sql_list]
-                osc_config_sql = ''.join(osc_config_sql_list_str)
-        self.osc_config_sql = osc_config_sql
-
     def send_celery(self):
         # 调用celery异步执行,异获取到task_id则表示任务已经放入队列，后续具体操作交给worker处理，如果当时worker没有启动，后来再启动,worker会去队列获取任务执行
         task_id = inception_execute.delay(self.des_ip, self.des_port, self.inc_bak, self.inc_war, self.inc_err,
-                                          self.file_path, self.submit_sql_uuid, self.osc_config_sql,
-                                          self.inc_sleep, self.exe_user_name)
+                                          self.file_path, self.submit_sql_uuid, self.inc_sleep, self.exe_user_name)
         if task_id:
             logger.info("celery返回task_id:%s" % task_id)
             update_task_ret = audit_sql_dao.set_task_send_celery(self.file_path)
             if update_task_ret['status'] != 'ok':
                 raise Exception("发送task任务成功,更新task表出现异常")
         else:
-            logger.info("发送task任务失败")
+            raise Exception("发送task任务失败")
 
 
 def execute_submit_sql_by_file_path(submit_sql_uuid, file_path, exe_user_name,inc_bak, inc_war, inc_err, inc_sleep):

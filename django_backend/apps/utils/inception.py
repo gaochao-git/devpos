@@ -89,12 +89,12 @@ def get_ddl_process(sqlsha1):
 
 
 # inception执行SQL
-def execute_sql(des_master_ip, des_master_port, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, execute_sql,submit_sql_uuid,osc_config_sql):
-    logger.info("[工单:%s],调用inception开始执行SQL", submit_sql_uuid)
+def execute_sql(des_ip, des_port, inc_backup,inc_ignore_warn, inc_ignore_err, execute_sql, split_sql_file_path, osc_config_sql):
+    logger.info("工单:%s调用inception开始执行SQL", split_sql_file_path)
     sql = """/*--user=gaochao;--password=fffjjj;--host={};--port={};--execute=1;--enable-remote-backup={};--enable-ignore-warnings={};--enable-force={};*/\
         inception_magic_start;
         {}   
-        inception_magic_commit;""".format(des_master_ip, des_master_port, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, execute_sql)
+        inception_magic_commit;""".format(des_ip, des_port, inc_backup, inc_ignore_warn, inc_ignore_err, execute_sql)
     try:
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port,charset="utf8")  # inception服务器
         cur = conn.cursor()
@@ -106,10 +106,10 @@ def execute_sql(des_master_ip, des_master_port, inception_backup, inception_chec
             cur.execute(sql)
             results = cur.fetchall()
         content = {"status": "ok", "message": "ok", "data":results}
-        logger.info("[工单:%s],调用inception执行SQL正常结束", submit_sql_uuid)
+        logger.info("工单%s调用inception执行SQL正常结束", split_sql_file_path)
     except Exception as e:
         content = {"status":"error", "message":e}
-        logger.error("[工单:%s],调用inception执行SQL异常结束", submit_sql_uuid)
+        logger.error("工单%s调用inception执行SQL异常结束", split_sql_file_path)
     finally:
         if conn: cur.close()
         if conn: conn.close()
