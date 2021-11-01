@@ -265,6 +265,7 @@ def pass_submit_sql_by_uuid_dao(submit_sql_uuid,check_comment,check_status,login
 
 # 获取拆分后的每条SQL信息
 def get_split_sql_info_dao(submit_sql_uuid):
+    print(55555)
     sql = """
                  select 
                     a.title,                
@@ -383,15 +384,21 @@ def get_split_sql_by_uuid_dao(submit_sql_uuid):
 
 # 获取执行SQL需要的目的ip、port、claster_name、osc配置
 def get_master_info_by_split_sql_file_path_dao(split_sql_file_path):
-    sql = "select a.master_ip,a.master_port,a.cluster_name,b.inception_osc_config,b.dba_execute,b.execute_status from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid =b.submit_sql_uuid where split_sql_file_path='{}'".format(
-        split_sql_file_path)
-    rows = []
-    try:
-        rows = db_helper.findall(sql)
-    except Exception as e:
-        logger.error(e)
-    finally:
-        return rows
+    sql = """
+            select 
+                a.master_ip,
+                a.master_port,
+                a.cluster_name,
+                b.inception_osc_config,
+                b.dba_execute,
+                b.execute_status,
+                b.task_send_celery 
+            from sql_submit_info a inner join sql_execute_split b 
+            on a.submit_sql_uuid = b.submit_sql_uuid 
+            where split_sql_file_path='{}'
+         """.format(split_sql_file_path)
+    return db_helper.find_all(sql)
+
 
 # 工单执行失败点击生成重做数据
 def recreate_sql_dao(split_sql_file_path, recreate_sql_flag):

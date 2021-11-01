@@ -91,7 +91,7 @@ export default class ExecuteSql extends Component {
              console.log("SQL执行状态:",this.state.execute_status);
         }
         let res = await MyAxios.post(`${backendServerApiRoot}/get_apply_sql_by_uuid/`,params);
-        let res_split_sql = await axios.post(`${backendServerApiRoot}/get_split_sql_by_uuid/`,params);
+        let res_split_sql = await MyAxios.post(`${backendServerApiRoot}/get_split_sql_by_uuid/`,params);
         if (res.data.data[0]["cluster_name"].length>0){
             this.setState({
                 cluster_name:res.data.data[0]["cluster_name"]
@@ -207,8 +207,10 @@ export default class ExecuteSql extends Component {
             inception_backup: this.state.inception_backup,
             inception_check_ignore_warning: this.state.inception_check_ignore_warning,
             inception_execute_ignore_error: this.state.inception_execute_ignore_error,
+            inception_execute_sleep_ms: 1,
             split_sql_file_path:split_sql_file_path,
-            execute_user_name:this.state.login_user_name
+            execute_user_name:this.state.login_user_name,
+
         };
         let file_execute_dict = {};
         for ( var item=0;item<this.state.view_submit_split_sql_info.length;item++){
@@ -670,13 +672,13 @@ export default class ExecuteSql extends Component {
                         </Col>
                     </Row>
                     <br/>
-                    {(this.state.login_user_name_role==="dba" || this.state.login_user_name_role==="leader" || this.state.login_user_name_role==="qa") && this.state.sql_check_results_loading===false ?
+                    {(this.state.login_user_name_role!=="dba") ?
                         <div>
                             <h3>审核操作</h3>
                             <div className="input-padding">
                                 { (this.state.leader_check==="未审核" && this.state.login_user_name_role==="leader") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核</Button>:null}
                                 { (this.state.qa_check === '未审核' && this.state.login_user_name_role==="qa") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核</Button>:null}
-                                { (this.state.dba_check === '未审核' && this.state.login_user_name_role==="dba") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核</Button>:null}
+                                { (this.state.dba_check === '未审核' && this.state.login_user_name_role!=="dba") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核</Button>:null}
 
                             </div>
                         </div>
@@ -684,7 +686,7 @@ export default class ExecuteSql extends Component {
                         null
                     }
                     <br/>
-                    {this.state.login_user_name_role==="dba" && this.state.sql_check_results_loading===false ?
+                    {this.state.sql_check_results_loading===false ?
                         <div>
                             <div>
                                 <h3>执行选项</h3>
@@ -721,7 +723,7 @@ export default class ExecuteSql extends Component {
                                 />
                                 <Column title="执行SQL"
                                         render={(text, row) => {
-                                            if (this.state.dba_check ==="通过" && row.execute_status === '未执行' && this.state.login_user_name_role==="dba")  {
+                                            if (row.execute_status === '未执行')  {
                                                 return (
                                                     <div>
                                                         <Button className="link-button" onClick={()=>{this.ExecuteBySplitSqlFilePath(row.split_sql_file_path)}}>平台执行</Button>

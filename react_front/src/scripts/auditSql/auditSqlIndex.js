@@ -155,9 +155,8 @@ class AuditSqlIndex extends Component {
         });
         let params = {
             submit_type:this.state.submit_type,
-            cluster_name:this.state.cluster_name,
-            db_ip: this.state.des_ip,
-            db_port: this.state.des_port,
+            cluster_name:this.state.current_cluster_name,
+            instance_name: this.state.current_instance_name,
             check_sql: this.state.check_sql,
             title:value["Title"],
             env:value["ENV"],
@@ -165,6 +164,7 @@ class AuditSqlIndex extends Component {
             check_sql_results: value["check_sql_results"],
             submit_sql_execute_type: value["执行类型"],
             comment_info: value["comment_info"],
+            submit_source_db_type: this.state.submit_type,
         };
         let res = await MyAxios.post('/submit_sql/',params);
         if( res.data.status === 'ok'){

@@ -71,7 +71,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # 自定义中间件登陆认证
-    'apps.utils.auth.TokenAuth',
+    'apps.utils.auth.Middleware',
 ]
 
 

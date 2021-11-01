@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger('devops')
 
 
-class TokenAuth(MiddlewareMixin):
+class Middleware(MiddlewareMixin):
     """
     登陆验证中间件,除了登陆接口所有接口均需要验证
     """

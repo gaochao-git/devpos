@@ -20,7 +20,7 @@ def get_server_info_controller(request):
     """
     try:
         search_server_name = request.GET.get("search_server_name")      # None或者str
-        ret = server_info.get_server_info()
+        ret = server_info.get_server_info(search_server_name)
     except KeyError as e:
         logger.exception(e)
         ret = {"status": "error", "message": "参数不符合"}

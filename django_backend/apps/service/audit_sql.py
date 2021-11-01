@@ -96,18 +96,16 @@ def get_cluster_name():
 
 
 # 页面提交SQL工单
-def submit_sql(token, request_body):
+def submit_sql(request_body):
     """
     按照这个顺序,如果提交过程中出现失败在SQL工单列表中不会给用户展示垃圾数据
     SQL写文件--->SQL审核结果写数据库--->工单信息写数据库
-    :param token:
     :param request_body:
     :return:
     """
     ############################ SQL写文件 #############################
     # 确定文件名
-    data = login_dao.get_login_user_name_by_token_dao(token)
-    login_user_name = data["username"]
+    login_user_name = 'gaochao'
     now_date = strftime("%Y%m%d", gmtime())
     uuid_str = str(uuid.uuid4())
     file_name = "%s_%s.sql" % (login_user_name, uuid_str)
@@ -118,7 +116,7 @@ def submit_sql(token, request_body):
     file_path = now_date + '/' + file_name
     # 拼接文件名路径,提取提交SQL,并将SQL写入文件
     upfile = os.path.join(upload_path, file_name)
-    check_sql = request_body['params']['check_sql']
+    check_sql = request_body['check_sql']
     try:
         with open(upfile, 'w') as f:
             f.write(check_sql)
@@ -136,22 +134,23 @@ def submit_sql(token, request_body):
     dba_name = ''
     ############################ SQL审核结果写数据库 #############################
     # SQL审核结果写入数据库
-    check_sql_results = request_body['params']['check_sql_results']
+    check_sql_results = request_body['check_sql_results']
     ret = audit_sql_dao.submit_sql_results(uuid_str, check_sql_results)
     if ret['status'] != "ok":
         return ret
 
     ############################ 工单信息写数据库 #############################
     # 页面提交的工单信息写入数据库
-    sql_title = request_body['params']['title']
-    submit_sql_execute_type = request_body['params']['submit_sql_execute_type']
-    comment_info = request_body['params']['comment_info']
-    if (request_body['params']['submit_source_db_type'] == "cluster"):
-        cluster_name = request_body['params']['cluster_name']
+    sql_title = request_body['title']
+    submit_sql_execute_type = request_body['submit_sql_execute_type']
+    comment_info = request_body['comment_info']
+    if (request_body['submit_source_db_type'] == "cluster"):
+        cluster_name = request_body['current_cluster_name']
         ret = audit_sql_dao.submit_sql_by_cluster_name_dao(login_user_name, sql_title, cluster_name, file_path, leader_name, qa_name, dba_name, submit_sql_execute_type, comment_info, uuid_str)
     else:
-        db_ip = request_body['params']['db_ip'].strip()
-        db_port = request_body['params']['db_port'].strip()
+        instance_name = request_body['instance_name']
+        db_ip = instance_name.split('_')[0]
+        db_port = instance_name.split('_')[1]
         ret = audit_sql_dao.submit_sql_by_ip_port_dao(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name, submit_sql_execute_type, comment_info, uuid_str)
     logger.info("页面提交的工单信息写入数据库:%s", ret['status'])
     return ret
@@ -220,11 +219,10 @@ def update_inception_variable(request_body_json,split_sql_file_path):
         return content
 
 # 审核通过并拆分SQL
-def pass_submit_sql_by_uuid(token,submit_sql_uuid,apply_results,check_comment,check_status):
+def pass_submit_sql_by_uuid(submit_sql_uuid,apply_results,check_comment,check_status):
     # 标记工单审核通过或者不通过
-    data = login_dao.get_login_user_name_by_token_dao(token)
-    login_user_name = data["username"]
-    login_user_name_role = data["title"]
+    login_user_name = 'gaochao'
+    login_user_name_role = 'dba'
     mark_ret = audit_sql_dao.pass_submit_sql_by_uuid_dao(submit_sql_uuid,check_comment,check_status,login_user_name,login_user_name_role)
     if mark_ret['status'] != "ok":
         return mark_ret
@@ -337,48 +335,130 @@ def get_execute_process_by_uuid(split_sql_file_path):
 
 
 # 获取SQL文件路径,调用inception执行,执行之前先判断是否已经执行过
-def execute_submit_sql_by_file_path(submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path, execute_user_name):
+class ExecuteSqlByFilePath:
+    def __init__(self,submit_sql_uuid, file_path, exe_user_name,inc_bak, inc_war, inc_err, inc_sleep):
+        self.submit_sql_uuid = submit_sql_uuid
+        self.file_path = file_path
+        self.exe_user_name = exe_user_name
+        self.inc_bak = inc_bak
+        self.inc_war = inc_war
+        self.inc_err = inc_err
+        self.inc_sleep = inc_sleep
+        self.osc_config_sql = ""
+        self.ticket_info = ""
+        self.des_ip = ""
+        self.des_port = ""
+
+    def execute_submit_sql_by_file_path(self):
+        try:
+            self.get_ticket_info()
+            self.judge_source_ip_port()
+            self.pre_check()
+            self.osc_config()
+            self.send_celery()
+            content = {"status": "ok", "message": "推送任务成功"}
+        except Exception as e:
+            logger.exception('工单%s执行失败,错误信息:%s', self.file_path, e)
+            content = {"status": "error", "message": "执行工单出现异常:%s" % e}
+        finally:
+            return content
+
+    def get_ticket_info(self):
+        ticket_info = audit_sql_dao.get_master_info_by_split_sql_file_path_dao(self.file_path)
+        if ticket_info['status'] != "ok":
+            raise Exception("获取工单信息失败")
+        self.ticket_info = ticket_info['data'][0]
+
+    def pre_check(self):
+        # check1,判断任务是否已经发送到celery
+        task_send_celery = self.ticket_info["task_send_celery"]
+        if task_send_celery == 1:
+            raise Exception("该工单已被注册到celery")
+        # check2，判断工单是否已执行
+        dba_execute = self.ticket_info["dba_execute"]
+        execute_status = self.ticket_info["execute_status"]
+        if dba_execute != 1 or execute_status != 1:
+            raise Exception("该工单已执行")
+        # check3,判断当前实例read_only状态
+        read_only_ret = common.get_read_only(self.des_ip, self.des_port)
+        print(read_only_ret)
+        if read_only_ret['status'] != 'ok':
+            raise Exception("执行SQL获取read_only出现异常")
+        if read_only_ret['data'][0]['read_only'] != 'OFF':
+            raise Exception("read_only角色不满足")
+
+    def judge_source_ip_port(self):
+        cluster_name = self.ticket_info["cluster_name"]
+        if cluster_name:
+            instance_ret = common.get_cluster_node(cluster_name, 'M')
+            if instance_ret['status'] != "ok":
+                raise Exception("获取写节点失败")
+            elif len(instance_ret['data']) == 0:
+                raise Exception("没有获取到写节点")
+            else:
+                instance_name = instance_ret['data'][0]['instance_name']
+                self.des_ip, self.des_port = instance_name.split('_')[0], instance_name.split('_')[1]
+        else:
+            self.des_ip, self.des_port = self.ticket_info["master_ip"], self.ticket_info["master_port"]
+
+    def osc_config(self):
+        # inception执行osc配置
+        inception_osc_config = self.ticket_info["inception_osc_config"]
+        if inception_osc_config == "" or inception_osc_config == '{}':
+            osc_config_sql = "show databases;"
+        else:
+            osc_config_sql = ""
+            osc_config_dict = json.loads(inception_osc_config)
+            osc_config_sql_list = []
+            for k in osc_config_dict:
+                osc_config_sql = "inception set session {}={};".format(k, osc_config_dict[k])
+                osc_config_sql_list.append(osc_config_sql)
+                osc_config_sql_list_str = [str(i) for i in osc_config_sql_list]
+                osc_config_sql = ''.join(osc_config_sql_list_str)
+        self.osc_config_sql = osc_config_sql
+
+    def send_celery(self):
+        # 调用celery异步执行,异获取到task_id则表示任务已经放入队列，后续具体操作交给worker处理，如果当时worker没有启动，后来再启动,worker会去队列获取任务执行
+        task_id = inception_execute.delay(self.des_ip, self.des_port, self.inc_bak, self.inc_war, self.inc_err,
+                                          self.file_path, self.submit_sql_uuid, self.osc_config_sql,
+                                          self.inc_sleep, self.exe_user_name)
+        if task_id:
+            logger.info("celery返回task_id:%s" % task_id)
+            update_task_ret = audit_sql_dao.set_task_send_celery(self.file_path)
+            if update_task_ret['status'] != 'ok':
+                raise Exception("发送task任务成功,更新task表出现异常")
+        else:
+            logger.info("发送task任务失败")
+
+
+def execute_submit_sql_by_file_path(submit_sql_uuid, file_path, exe_user_name,inc_bak, inc_war, inc_err, inc_sleep):
     # 获取执行SQL对应的master信息与osc信息
-    data = audit_sql_dao.get_master_info_by_split_sql_file_path_dao(split_sql_file_path)
-    logger.info(data)
-    inception_osc_config = data[0]["inception_osc_config"]
+    data = audit_sql_dao.get_master_info_by_split_sql_file_path_dao(file_path)
     cluster_name = data[0]["cluster_name"]
     dba_execute = data[0]["dba_execute"]
     execute_status = data[0]["execute_status"]
-    # 如果该SQL已执行则直接return
-    if dba_execute != 1 or execute_status != 1:
-        content = {'status': "error", 'message': "该工单已执行"}
-        return content
-    if cluster_name:
-        des_master_ip,des_master_port = common.get_cluster_node(cluster_name)
-        logger.info(des_master_ip)
-        logger.info(des_master_port)
-        if des_master_ip == "no_write_node":
-            content = {'status': "error", 'message': "根据集群名没有获取到写节点"}
-            return content
-    else:
-        des_master_ip = data[0]["master_ip"]
-        des_master_port = data[0]["master_port"]
+    task_send_celery = data[0]["task_send_celery"]
+    if task_send_celery == 1: return {'status': "error", 'message': "该工单已被注册到celery"}
 
-    # 判断当前实例read_only状态
-    try:
-        target_connection = pymysql.connect(host='39.97.247.142', port=des_master_port, user='wthong',
-                                            password='fffjjj', charset='utf8')
-        target_cursor = target_connection.cursor()
-        target_cursor.execute("show global variables like 'read_only'")
-        row = target_cursor.fetchone()
-        read_only_value = row[1]
-    except Exception as e:
-        logging.error(str(e))
-    finally:
-        target_cursor.close()
-        target_connection.close()
-    logging.info("工单:%s,获取master信息成功:%s_%s,read_only:%s", submit_sql_uuid, des_master_ip, des_master_port,
-                 read_only_value)
-    if read_only_value != "OFF":
-        logging.error("当前实例read_only是on,退出执行")
-        content = {'status': "error", 'message': "当前实例read_only是on,退出执行"}
-        return content
+    # pre_check1,如果该SQL已执行则直接return
+    if dba_execute != 1 or execute_status != 1: return {'status': "error", 'message': "该工单已执行"}
+
+    # 确定数据源类型
+    if cluster_name:
+        instance_ret = common.get_cluster_node(cluster_name, 'M')
+        if instance_ret['status'] != "ok": return instance_ret
+        elif len(instance_ret['data']) == 0: return {"status": "error", "message": "没有获取到写节点"}
+        else: instance_name = instance_ret['data'][0]['instance_name']
+    else:
+        instance_name = data[0]['instance_name']
+    des_master_ip, des_master_port = instance_name.split('_')[0], instance_name.split('_')[1]
+
+    # pre_check2,判断当前实例read_only状态
+    read_only_ret = common.get_read_only(instance_name)
+    if read_only_ret['status'] != 'ok': return read_only_ret
+    if read_only_ret['data'][0]['read_only'] != 'OFF': return {"status": "error", "message": "节点read_only不满足"}
+    # inception执行osc配置
+    inception_osc_config = data[0]["inception_osc_config"]
     osc_config_sql = ""
     if inception_osc_config == "" or inception_osc_config == '{}':
         osc_config_sql = "show databases;"
@@ -391,16 +471,17 @@ def execute_submit_sql_by_file_path(submit_sql_uuid, inception_backup, inception
             osc_config_sql_list.append(osc_config_sql)
             osc_config_sql_list_str = [str(i) for i in osc_config_sql_list]
             osc_config_sql = ''.join(osc_config_sql_list_str)
+    # 调用celery异步执行
     try:
         # 调用celery异步执行,异获取到task_id则表示任务已经放入队列，后续具体操作交给worker处理，如果当时worker没有启动，后来再启动,worker会去队列获取任务执行
-        row_list = audit_sql_dao.get_task_send_celery(split_sql_file_path)
+        row_list = audit_sql_dao.get_task_send_celery(file_path)
         if int(row_list[0]["task_send_celery"]) == 0:
-            task_id = inception_execute.delay(des_master_ip, des_master_port, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error,split_sql_file_path,submit_sql_uuid,osc_config_sql,execute_user_name)
+            task_id = inception_execute.delay(des_master_ip, des_master_port, inc_bak, inc_war, inc_err,file_path,submit_sql_uuid,osc_config_sql,exe_user_name)
             if task_id:
                 logger.info("celery返回task_id:%s" % task_id)
                 status = "ok"
                 message = "推送celery成功"
-                update_status = audit_sql_dao.set_task_send_celery(split_sql_file_path)
+                update_status = audit_sql_dao.set_task_send_celery(file_path)
                 if update_status == "ok":
                     message = message + "," + "更新task_send_celery成功"
                 else:

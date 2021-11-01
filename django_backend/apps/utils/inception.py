@@ -25,8 +25,6 @@ def check_sql(des_master_ip, des_master_port, check_sql_info):
         cur.execute(sql)
         result = cur.fetchall()
         data = [dict(zip([col[0] for col in cur.description], row)) for row in result]
-        cur.close()
-        conn.close()
         content = {'status': "ok", 'inception审核完成': "ok",'data': data}
     except Exception as e:
         logger.exception("inception审核失败",str(e))

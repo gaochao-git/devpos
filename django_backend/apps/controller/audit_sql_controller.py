@@ -71,10 +71,8 @@ def check_sql_controller(request):
 
 # 页面提交SQL工单
 def submit_sql_controller(request):
-    token = request.META.get('HTTP_AUTHORIZATION')
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    ret = audit_sql.submit_sql(token, request_body)
+    request_body = json.loads(str(request.body, encoding="utf-8"))
+    ret = audit_sql.submit_sql(request_body)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
@@ -98,8 +96,7 @@ def get_inception_variable_config_info_controller(request):
 
 # 页面修改inception变量配置
 def update_inception_variable_controller(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
+    request_body = json.loads(str(request.body, encoding="utf-8"))
     split_sql_file_path = request_body['split_sql_file_path']
     new_config = request_body["params"]["new_config_json"]
     request_body_json = json.dumps(new_config)
@@ -108,36 +105,35 @@ def update_inception_variable_controller(request):
 
 # 页面查看审核结果
 def get_check_sql_results_by_uuid_controller(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
+    request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body['submit_sql_uuid']
     ret = audit_sql.get_check_sql_results_by_uuid(submit_sql_uuid)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 # 审核通过并拆分SQL
 def pass_submit_sql_by_uuid_controller(request):
-    token = request.META.get('HTTP_AUTHORIZATION')
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
+    request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body['submit_sql_uuid']
     apply_results = request_body['apply_results']
     check_comment = request_body['check_comment']
     check_status = 2 if apply_results == "通过" else 3
-    ret = audit_sql.pass_submit_sql_by_uuid(token,submit_sql_uuid,apply_results,check_comment,check_status)
+    ret = audit_sql.pass_submit_sql_by_uuid(submit_sql_uuid,apply_results,check_comment,check_status)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
 # 获取SQL文件路径,调用inception执行
 def execute_submit_sql_by_file_path_controller(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
+    request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body['submit_sql_uuid']
-    split_sql_file_path = request_body['split_sql_file_path']
-    inception_backup = request_body['inception_backup']
-    inception_check_ignore_warning = request_body['inception_check_ignore_warning']
-    inception_execute_ignore_error = request_body['inception_execute_ignore_error']
-    execute_user_name = request_body["execute_user_name"]
-    ret = audit_sql.execute_submit_sql_by_file_path( submit_sql_uuid, inception_backup, inception_check_ignore_warning, inception_execute_ignore_error, split_sql_file_path,execute_user_name)
+    file_path = request_body['split_sql_file_path']
+    inc_bak = request_body['inception_backup']
+    inc_war = request_body['inception_check_ignore_warning']
+    inc_err = request_body['inception_execute_ignore_error']
+    inc_sleep = request_body['inception_execute_sleep_ms']
+    exe_user_name = request_body["execute_user_name"]
+    # ret = audit_sql.execute_submit_sql_by_file_path( submit_sql_uuid, file_path, exe_user_name,inc_bak, inc_war, inc_err, inc_sleep)
+    obj = audit_sql.ExecuteSqlByFilePath(submit_sql_uuid, file_path, exe_user_name,inc_bak, inc_war, inc_err, inc_sleep)
+    ret = obj.execute_submit_sql_by_file_path()
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
@@ -203,8 +199,8 @@ def get_execute_process_by_uuid_controller(request):
 
 # 获取页面拆分SQL
 def get_split_sql_by_uuid_controller(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
+    print(5555555)
+    request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body['submit_sql_uuid']
     ret = audit_sql.get_split_sql_by_uuid(submit_sql_uuid)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')

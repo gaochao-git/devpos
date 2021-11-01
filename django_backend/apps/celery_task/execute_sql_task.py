@@ -29,8 +29,7 @@ class ExecuteSql:
             return content
         try:
             flag = 2
-            update_status = audit_sql_dao.set_execute_status(submit_sql_uuid, split_sql_file_path, flag,
-                                                             execute_user_name)
+            update_status = audit_sql_dao.set_execute_status(submit_sql_uuid, split_sql_file_path, flag, execute_user_name)
             if update_status == "ok":
                 update_message = "更新工单状态为执行中成功"
             else:
