@@ -243,7 +243,7 @@ class SubmitSql:
 
 
 class PassSubmitSql:
-    # 审核SQL
+    # 审核工单
     def __init__(self, submit_sql_uuid, check_comment, check_status):
         self.submit_sql_uuid = submit_sql_uuid
         self.check_comment = check_comment
