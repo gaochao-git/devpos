@@ -174,7 +174,7 @@ class AuditSqlIndex extends Component {
             this.setState({
                 sql_submit_loading:false
             });
-            message.success(res.data.message);
+            message.error(res.data.message);
         }
     }
 

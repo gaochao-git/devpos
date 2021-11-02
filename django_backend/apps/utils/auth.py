@@ -15,7 +15,6 @@ class Middleware(MiddlewareMixin):
     """
     def process_request(self, request):
         auth_ignore_path = ['/api/auth/','/api/v2/auth/','/api/v2/auth_refresh/']
-        print(request.path)
         if request.path not in auth_ignore_path:
             bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
             if bearer_token is None:

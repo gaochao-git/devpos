@@ -95,67 +95,6 @@ def get_cluster_name():
     return ret
 
 
-# 页面提交SQL工单
-def submit_sql(request_body):
-    """
-    按照这个顺序,如果提交过程中出现失败在SQL工单列表中不会给用户展示垃圾数据
-    SQL写文件--->SQL审核结果写数据库--->工单信息写数据库
-    :param request_body:
-    :return:
-    """
-    ############################ SQL写文件 #############################
-    # 确定文件名
-    login_user_name = 'gaochao'
-    now_date = strftime("%Y%m%d", gmtime())
-    uuid_str = str(uuid.uuid4())
-    file_name = "%s_%s.sql" % (login_user_name, uuid_str)
-    # 确定存放路径
-    upload_path = "./upload/" + now_date
-    if not os.path.isdir(upload_path):
-        os.makedirs(upload_path)
-    file_path = now_date + '/' + file_name
-    # 拼接文件名路径,提取提交SQL,并将SQL写入文件
-    upfile = os.path.join(upload_path, file_name)
-    check_sql = request_body['check_sql']
-    try:
-        with open(upfile, 'w') as f:
-            f.write(check_sql)
-            f.close()
-        logger.info("提交的SQL写入文件成功")
-        print("提交的SQL写入文件成功")
-    except Exception as e:
-        message = "提交的SQL写入文件失败:%s",str(e)
-        logger.exception(message)
-        return {'status': "error", 'message': message}
-    # 获取工单相关人员信息
-    login_user_info = common.get_login_user_info(login_user_name)
-    qa_name = ''
-    leader_name = ''
-    dba_name = ''
-    ############################ SQL审核结果写数据库 #############################
-    # SQL审核结果写入数据库
-    check_sql_results = request_body['check_sql_results']
-    ret = audit_sql_dao.submit_sql_results(uuid_str, check_sql_results)
-    if ret['status'] != "ok":
-        return ret
-
-    ############################ 工单信息写数据库 #############################
-    # 页面提交的工单信息写入数据库
-    sql_title = request_body['title']
-    submit_sql_execute_type = request_body['submit_sql_execute_type']
-    comment_info = request_body['comment_info']
-    if (request_body['submit_source_db_type'] == "cluster"):
-        cluster_name = request_body['current_cluster_name']
-        ret = audit_sql_dao.submit_sql_by_cluster_name_dao(login_user_name, sql_title, cluster_name, file_path, leader_name, qa_name, dba_name, submit_sql_execute_type, comment_info, uuid_str)
-    else:
-        instance_name = request_body['instance_name']
-        db_ip = instance_name.split('_')[0]
-        db_port = instance_name.split('_')[1]
-        ret = audit_sql_dao.submit_sql_by_ip_port_dao(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name, submit_sql_execute_type, comment_info, uuid_str)
-    logger.info("页面提交的工单信息写入数据库:%s", ret['status'])
-    return ret
-
-
 # 页面预览指定的拆分SQL
 def get_submit_split_sql_by_file_path(split_sql_file_path):
     try:
@@ -219,26 +158,115 @@ def update_inception_variable(request_body_json,split_sql_file_path):
         return content
 
 
+class SubmitSql:
+    def __init__(self, request_body):
+        self.check_sql = request_body['check_sql']
+        self.check_sql_results = request_body['check_sql_results']
+        self.title = request_body['title']
+        self.submit_sql_execute_type = request_body['submit_sql_execute_type']
+        self.comment_info = request_body['comment_info']
+        self.submit_source_db_type = request_body['submit_source_db_type']
+        self.instance_name = request_body['instance_name']
+        self.cluster_name = request_body['cluster_name']
+        self.submit_sql_uuid = str(uuid.uuid4())
+        self.login_user_name = "gaochao"
+
+    def process_submit_sql(self):
+        """
+        审核通过才会拆分SQL，否则只标记状态
+        :return:
+        """
+        content = {"status": "ok", "message": "ok"}
+        try:
+            self.write_sql_to_file()
+            self.write_check_results()
+            self.write_info_to_db()
+            content = {"status": "ok", "message": "ok"}
+        except Exception as e:
+            logger.exception('工单%s审核失败,错误信息:%s', self.submit_sql_uuid, e)
+            content = {"status": "error", "message": "审核工单出现异常:%s" % e}
+        finally:
+            return content
+
+    def write_sql_to_file(self):
+        """
+        sql写入文件
+        :return:
+        """
+        # 每天产生一个目录
+        now_date = strftime("%Y%m%d", gmtime())
+        # 确定存放路径
+        upload_path = "./upload/" + now_date
+        # 确定文件名
+        file_name = "%s_%s.sql" % (self.login_user_name, self.submit_sql_uuid)
+        upfile = os.path.join(upload_path, file_name)
+        try:
+            with open(upfile, 'w') as f:
+                f.write(self.check_sql)
+        except Exception as e:
+            raise Exception("提交的SQL写入文件失败:%s",e)
+
+    def write_check_results(self):
+        """
+        sql审核结果写入数据库
+        :return:
+        """
+        ret = audit_sql_dao.submit_sql_results(self.submit_sql_uuid, self.check_sql_results)
+        if ret['status'] != "ok": raise Exception("sql审核结果写入数据库失败")
+
+    def write_info_to_db(self):
+        """
+        工单信息写入数据库
+        :return:
+        """
+        qa_name = ''
+        leader_name = ''
+        dba_name = ''
+        # 确定存入数据库的文件路径
+        now_date = strftime("%Y%m%d", gmtime())
+        file_name = "%s_%s.sql" % (self.login_user_name, self.submit_sql_uuid)
+        file_path = now_date + '/' + file_name
+        des_ip = ""
+        des_port = 0
+        if self.submit_source_db_type == "master_ip_port":
+            submit_source_db_type = 0
+            des_ip = self.instance_name.split('_')[0]
+            des_port = self.instance_name.split('_')[1]
+        elif self.submit_source_db_type == "cluster":
+            submit_source_db_type = 1
+        else:
+            raise Exception("数据源类型不合法")
+        ret = audit_sql_dao.submit_sql_dao(self.login_user_name, self.title, des_ip, des_port, file_path,leader_name,
+                                       qa_name, dba_name, self.submit_sql_execute_type, self.comment_info,
+                                       self.submit_sql_uuid, submit_source_db_type, self.cluster_name)
+        if ret['status'] != "ok": raise Exception("工单详情写入数据库失败")
+
+
 class PassSubmitSql:
-    def __init__(self, submit_sql_uuid, apply_results, check_comment, check_status):
+    # 审核SQL
+    def __init__(self, submit_sql_uuid, check_comment, check_status):
         self.submit_sql_uuid = submit_sql_uuid
-        self.apply_results = apply_results
         self.check_comment = check_comment
         self.check_status = check_status
         self.login_user_name = "gaochao"
         self.login_user_name_role = "dba"
         self.ticket_info = ""
         self.des_ip = ""
-        self.des_port = ""
+        self.des_port = 0
         self.cluster_name = ""
         self.split_data = ""
 
     def pass_submit_sql_by_uuid(self):
+        """
+        审核通过才会拆分SQL，否则只标记状态
+        :return:
+        """
         try:
-            self.get_ticket_info()
-            self.judge_source_ip_port()
-            self.split_sql()
-            self.write_split_sql_to_new_file()
+            if self.check_status == 2:
+                self.get_ticket_info()
+                self.judge_source_ip_port()
+                self.split_sql()
+                self.write_split_sql_to_new_file()
             self.mark_check_status()
             content = {"status": "ok", "message": "ok"}
         except Exception as e:
@@ -254,8 +282,12 @@ class PassSubmitSql:
         self.ticket_info = ticket_info['data'][0]
 
     def judge_source_ip_port(self):
+        """
+        通过审核工具连接上数据源进行拆分SQL,如果是集群模式则通过集群名获取ip、port，如果是ip_port模式则用该ip_port
+        :return:
+        """
         self.cluster_name = self.ticket_info["cluster_name"]
-        if self.cluster_name:
+        if self.ticket_info["submit_source_db_type"] == 1:
             instance_ret = common.get_cluster_node(self.cluster_name, 'M')
             if instance_ret['status'] != "ok":
                 raise Exception("获取写节点失败")
@@ -266,6 +298,7 @@ class PassSubmitSql:
                 self.des_ip, self.des_port = instance_name.split('_')[0], instance_name.split('_')[1]
         else:
             self.des_ip, self.des_port = self.ticket_info["master_ip"], self.ticket_info["master_port"]
+
 
     def mark_check_status(self):
         """
@@ -296,7 +329,11 @@ class PassSubmitSql:
         """
         将审核工具返回的拆分SQL写入子文件
         将审核工具返回的拆分子工单详情写入数据库
+        数据源保持原始工单数据源，不能动态获取
         """
+        des_ip = self.ticket_info["master_ip"]
+        des_port = self.ticket_info["master_port"]
+        cluster_name = self.ticket_info["cluster_name"]
         try:
             result = []
             result_tmp = {}
@@ -327,133 +364,16 @@ class PassSubmitSql:
                 logger.info("拆分SQL写入对应文件成功：%s", upfile)
                 # 拆分SQL详细信息写入数据库
                 ret = audit_sql_dao.write_split_sql_to_new_file_dao(self.submit_sql_uuid, split_seq,split_sql_file_path,
-                                                                    sql_num, ddlflag, self.des_ip, self.des_port,
-                                                                    self.cluster_name, rerun_sequence, rerun_seq,
-                                                                    inception_osc_config)
+                                                                    sql_num, ddlflag, des_ip, des_port, cluster_name,
+                                                                    rerun_sequence, rerun_seq, inception_osc_config)
                 if ret['status'] != "ok": raise Exception("拆分子工单详细信息写入数据库失败")
                 else: logger.info("拆分子工单详细信息写入数据库成功:%s", upfile)
         except Exception as e:
             raise Exception("处理拆分结果出现异常:%s" % e)
 
 
-# 审核通过并拆分SQL
-# def pass_submit_sql_by_uuid(submit_sql_uuid,apply_results,check_comment,check_status):
-#     # 标记工单审核通过或者不通过
-#     login_user_name = 'gaochao'
-#     login_user_name_role = 'dba'
-#     mark_ret = audit_sql_dao.pass_submit_sql_by_uuid_dao(submit_sql_uuid,check_comment,check_status,login_user_name,login_user_name_role)
-#     if mark_ret['status'] != "ok":
-#         return mark_ret
-#     # 如果是审核通过并且标记状态成功则走下面流程
-#     if apply_results == "通过":
-#         # 拆分SQL
-#         if login_user_name_role == "dba":
-#             ret = split_sql_func(submit_sql_uuid)
-#             if ret['status'] !="ok":
-#                 return ret
-#             else:
-#                 return {'status': "ok", 'message': "拆分SQL成功"}
-#     elif apply_results == "不通过":
-#         return {'status': "ok", 'message': "审核不通过"}
-
-
-# 手动执行SQL更改工单状态
-def execute_submit_sql_by_file_path_manual(token,submit_sql_uuid,split_sql_file_path):
-    data = login_dao.get_login_user_name_by_token_dao(token)
-    login_user_name = data["username"]
-    try:
-        update_status = audit_sql_dao.execute_submit_sql_by_file_path_manual_dao(submit_sql_uuid,split_sql_file_path,login_user_name)
-        status = "ok"
-        if update_status == "ok":
-            message = "手动标记SQL为已执行，成功"
-        else:
-            message = "手动标记SQL为已执行，失败"
-    except Exception as e:
-        message = e
-        logger.error(e)
-    finally:
-        content = {'status': status, 'message': message}
-        return content
-
-# 查看执行结果
-def get_execute_results_by_split_sql_file_path(split_sql_file_path):
-    data = []
-    try:
-        data = audit_sql_dao.get_execute_results_by_split_sql_file_path_dao(split_sql_file_path)
-        status = "ok"
-        message = "ok"
-    except Exception as e:
-        status = "error"
-        message = e
-        logger.error(e)
-    finally:
-        content = {'status': status, 'message': message, 'data': data}
-        return content
-
-
-# inception拆分SQL
-# def split_sql_func(submit_sql_uuid):
-#     # 查询工单信息
-#     try:
-#         # 获取用户提供的SQL文件路径、数据源
-#         data = audit_sql_dao.get_submit_sql_file_path_info_dao(submit_sql_uuid)
-#         sql_file_path = data[0]["submit_sql_file_path"]
-#         cluster_name = data[0]["cluster_name"]
-#         if cluster_name:
-#             des_master_ip, des_master_port = common.get_cluster_node(cluster_name)
-#         else:
-#             des_master_ip = data[0]["master_ip"]
-#             des_master_port = data[0]["master_port"]
-#         # 从文件获取用户提交的SQL
-#         with open("./upload/{}".format(sql_file_path), "rb") as f:
-#             execute_sql = f.read()
-#             execute_sql = execute_sql.decode('utf-8')
-#         # 调用inception连接数据源拆分SQL
-#         split_sql_ret = inception.start_split_sql(des_master_ip, des_master_port, execute_sql)
-#         if split_sql_ret['status'] == 'ok':
-#             process_split_sql_ret = write_split_sql_to_new_file(des_master_ip, des_master_port, submit_sql_uuid, split_sql_ret['data'], sql_file_path,cluster_name)
-#             if process_split_sql_ret['status'] == "ok":
-#                 status = "ok"
-#                 message = "调用inception拆分sql成功,处理拆分后结果成功"
-#             else:
-#                 status = "error"
-#                 message = "调用inception拆分sql成功,处理拆分后结果失败"
-#         else:
-#             status = "error"
-#             message = "调用inception拆分sql失败"
-#     except Exception as e:
-#         status = "error"
-#         message = "拆分SQL任务出现异常"
-#         logger.exception(str(e))
-#     finally:
-#         return {"status": status, "message": message}
-
-
-# 根据uuid获取sqlsha1,根据sqlsha1连接inception查看执行进度
-def get_execute_process_by_uuid(split_sql_file_path):
-    rows = audit_sql_dao.get_sqlsha1_by_uuid_dao(split_sql_file_path)
-    sql_all_process = []
-    logger.error(rows)
-    for row in rows:
-        sqlsha1 = row["inception_sqlsha1"]
-        sql_sigle_process = {}
-        if sqlsha1 == '':
-            sql_sigle_process['inception_execute_percent'] = 100
-            sql_sigle_process['inception_sql'] = row["inception_sql"]
-            sql_all_process.append(sql_sigle_process)
-        else:
-            sql_sigle_process['inception_sql'] = row["inception_sql"]
-            sql_sigle_process['inception_execute_percent'] = inception.get_ddl_process(sqlsha1)
-            sql_all_process.append(sql_sigle_process)
-        status = 'ok'
-        message = 'ok'
-    logger.error(sql_all_process)
-    content = {'status': status, 'message': message, 'data': sql_all_process}
-    return content
-
-
 class ExecuteSqlByFilePath:
-    # 获取SQL文件路径,调用inception执行,执行之前先判断是否已经执行过
+    # 执行SQL
     def __init__(self,submit_sql_uuid, file_path, exe_user_name,inc_bak, inc_war, inc_err, inc_sleep):
         self.submit_sql_uuid = submit_sql_uuid
         self.file_path = file_path
@@ -464,7 +384,7 @@ class ExecuteSqlByFilePath:
         self.inc_sleep = inc_sleep
         self.osc_config_sql = ""
         self.ticket_info = ""
-        self.des_ip = ""
+        self.des_ip = 0
         self.des_port = ""
 
     def execute_submit_sql_by_file_path(self):
@@ -533,133 +453,61 @@ class ExecuteSqlByFilePath:
             common.audit_sql_log(self.file_path, 1, "发送celery任务失败")
 
 
-# def execute_submit_sql_by_file_path(submit_sql_uuid, file_path, exe_user_name,inc_bak, inc_war, inc_err, inc_sleep):
-#     # 获取执行SQL对应的master信息与osc信息
-#     data = audit_sql_dao.get_master_info_by_split_sql_file_path_dao(file_path)
-#     cluster_name = data[0]["cluster_name"]
-#     dba_execute = data[0]["dba_execute"]
-#     execute_status = data[0]["execute_status"]
-#     task_send_celery = data[0]["task_send_celery"]
-#     if task_send_celery == 1: return {'status': "error", 'message': "该工单已被注册到celery"}
-#
-#     # pre_check1,如果该SQL已执行则直接return
-#     if dba_execute != 1 or execute_status != 1: return {'status': "error", 'message': "该工单已执行"}
-#
-#     # 确定数据源类型
-#     if cluster_name:
-#         instance_ret = common.get_cluster_node(cluster_name, 'M')
-#         if instance_ret['status'] != "ok": return instance_ret
-#         elif len(instance_ret['data']) == 0: return {"status": "error", "message": "没有获取到写节点"}
-#         else: instance_name = instance_ret['data'][0]['instance_name']
-#     else:
-#         instance_name = data[0]['instance_name']
-#     des_master_ip, des_master_port = instance_name.split('_')[0], instance_name.split('_')[1]
-#
-#     # pre_check2,判断当前实例read_only状态
-#     read_only_ret = common.get_read_only(instance_name)
-#     if read_only_ret['status'] != 'ok': return read_only_ret
-#     if read_only_ret['data'][0]['read_only'] != 'OFF': return {"status": "error", "message": "节点read_only不满足"}
-#     # inception执行osc配置
-#     inception_osc_config = data[0]["inception_osc_config"]
-#     osc_config_sql = ""
-#     if inception_osc_config == "" or inception_osc_config == '{}':
-#         osc_config_sql = "show databases;"
-#         logger.info(osc_config_sql)
-#     else:
-#         osc_config_dict = json.loads(inception_osc_config)
-#         osc_config_sql_list = []
-#         for k in osc_config_dict:
-#             osc_config_sql = "inception set session {}={};".format(k, osc_config_dict[k])
-#             osc_config_sql_list.append(osc_config_sql)
-#             osc_config_sql_list_str = [str(i) for i in osc_config_sql_list]
-#             osc_config_sql = ''.join(osc_config_sql_list_str)
-#     # 调用celery异步执行
-#     try:
-#         # 调用celery异步执行,异获取到task_id则表示任务已经放入队列，后续具体操作交给worker处理，如果当时worker没有启动，后来再启动,worker会去队列获取任务执行
-#         row_list = audit_sql_dao.get_task_send_celery(file_path)
-#         if int(row_list[0]["task_send_celery"]) == 0:
-#             task_id = inception_execute.delay(des_master_ip, des_master_port, inc_bak, inc_war, inc_err,file_path,submit_sql_uuid,osc_config_sql,exe_user_name)
-#             if task_id:
-#                 logger.info("celery返回task_id:%s" % task_id)
-#                 status = "ok"
-#                 message = "推送celery成功"
-#                 update_status = audit_sql_dao.set_task_send_celery(file_path)
-#                 if update_status == "ok":
-#                     message = message + "," + "更新task_send_celery成功"
-#                 else:
-#                     message = message + "," + "更新task_send_celery失败"
-#             else:
-#                 status = "error"
-#                 message = "推送celery失败"
-#         else:
-#             status = "ok"
-#             message = "任务已注册到celery,等待celery执行,请勿多次提交"
-#     except Exception as e:
-#         status = "error"
-#         message = e
-#         logger.error(e)
-#     finally:
-#         content = {'status': status, 'message': message}
-#         logger.info(content)
-#         return content
+# 手动执行SQL更改工单状态
+def execute_submit_sql_by_file_path_manual(token,submit_sql_uuid,split_sql_file_path):
+    data = login_dao.get_login_user_name_by_token_dao(token)
+    login_user_name = data["username"]
+    try:
+        update_status = audit_sql_dao.execute_submit_sql_by_file_path_manual_dao(submit_sql_uuid,split_sql_file_path,login_user_name)
+        status = "ok"
+        if update_status == "ok":
+            message = "手动标记SQL为已执行，成功"
+        else:
+            message = "手动标记SQL为已执行，失败"
+    except Exception as e:
+        message = e
+        logger.error(e)
+    finally:
+        content = {'status': status, 'message': message}
+        return content
+
+# 查看执行结果
+def get_execute_results_by_split_sql_file_path(split_sql_file_path):
+    data = []
+    try:
+        data = audit_sql_dao.get_execute_results_by_split_sql_file_path_dao(split_sql_file_path)
+        status = "ok"
+        message = "ok"
+    except Exception as e:
+        status = "error"
+        message = e
+        logger.error(e)
+    finally:
+        content = {'status': status, 'message': message, 'data': data}
+        return content
 
 
-# 将拆分SQL写入拆分文件,并将自任务写入sql_execute_split
-# def write_split_sql_to_new_file(master_ip, master_port,submit_sql_uuid,split_sql_data,sql_file_path,cluster_name):
-#     """
-#     拆分SQL写文件--->拆分SQL工单信息写入数据库
-#     :param master_ip:
-#     :param master_port:
-#     :param submit_sql_uuid:
-#     :param split_sql_data:
-#     :param sql_file_path:
-#     :param cluster_name:
-#     :return:
-#     """
-#     try:
-#         result = []
-#         result_tmp = {}
-#         for tup in split_sql_data:
-#             result_tmp['split_seq'] = tup['ID']
-#             result_tmp['sql'] = tup['sql_statement']
-#             result_tmp['ddlflag'] = tup['ddlflag']
-#             result_tmp['sql_num'] = len(split_sql_data)
-#             result_copy = result_tmp.copy()
-#             result.append(result_copy)
-#             result_tmp.clear()
-#         for i in result:
-#             ddlflag = i["ddlflag"]
-#             split_seq = i["split_seq"]
-#             sql_num = i["sql_num"]
-#             sql = i["sql"]
-#             dir_name = sql_file_path.split('/')[0]
-#             file_name = sql_file_path.split('/')[1]
-#             split_file_name = str(split_seq) + '_' + file_name
-#             upfile = './upload/' + dir_name + '/' + split_file_name
-#             split_sql_file_path = dir_name + '/' + split_file_name
-#             rerun_sequence = ""
-#             rerun_seq = 0
-#             inception_osc_config = ""
-#             # 拆分SQL写入文件
-#             with open(upfile, 'w') as f:
-#                 f.write(sql)
-#             logger.info("拆分SQL写入对应文件成功：%s", upfile)
-#             # 拆分SQL详细信息写入数据库
-#             split_sql_info_to_db_ret = audit_sql_dao.write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence, rerun_seq, inception_osc_config)
-#             if split_sql_info_to_db_ret['status'] == "ok":
-#                 logger.info("拆分SQL工单信息写入sql_execute_split表成功：%s", split_sql_file_path)
-#                 status = "ok"
-#                 message = "拆分SQL写入对应文件成功，拆分SQL工单信息写入sql_execute_split表成功"
-#             else:
-#                 status = "error"
-#                 message = "拆分SQL写入对应文件成功，拆分SQL工单信息写入sql_execute_split表失败"
-#                 logger.error("拆分SQL工单信息写入sql_execute_split表失败：%s", split_sql_file_path)
-#     except Exception as e:
-#         status = "error"
-#         message = "拆分SQL写文件或者写入数据库失败:%s" % str(e)
-#         logger.exception(message)
-#     finally:
-#         return {"status": status, "message": message}
+# 根据uuid获取sqlsha1,根据sqlsha1连接inception查看执行进度
+def get_execute_process_by_uuid(split_sql_file_path):
+    rows = audit_sql_dao.get_sqlsha1_by_uuid_dao(split_sql_file_path)
+    sql_all_process = []
+    logger.error(rows)
+    for row in rows:
+        sqlsha1 = row["inception_sqlsha1"]
+        sql_sigle_process = {}
+        if sqlsha1 == '':
+            sql_sigle_process['inception_execute_percent'] = 100
+            sql_sigle_process['inception_sql'] = row["inception_sql"]
+            sql_all_process.append(sql_sigle_process)
+        else:
+            sql_sigle_process['inception_sql'] = row["inception_sql"]
+            sql_sigle_process['inception_execute_percent'] = inception.get_ddl_process(sqlsha1)
+            sql_all_process.append(sql_sigle_process)
+        status = 'ok'
+        message = 'ok'
+    logger.error(sql_all_process)
+    content = {'status': status, 'message': message, 'data': sql_all_process}
+    return content
 
 
 # 获取页面拆分SQL

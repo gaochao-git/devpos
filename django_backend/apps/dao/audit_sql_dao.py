@@ -148,28 +148,29 @@ def update_inception_variable_dao(request_body_json,split_sql_file_path):
 
 
 # 页面提交SQL工单,类型为cluster_name
-def submit_sql_by_cluster_name_dao(login_user_name,sql_title, cluster_name, file_path, leader_name, qa_name,dba_name,submit_sql_execute_type, comment_info, uuid_str):
-    sql = """insert into sql_submit_info(submit_sql_user,
-                                         title,
-                                         cluster_name,
-                                         submit_sql_file_path,
-                                         leader_user_name,
-                                         leader_check,
-                                         qa_user_name,
-                                         qa_check,
-                                         dba_check_user_name,
-                                         dba_check,
-                                         submit_sql_execute_type,
-                                         comment_info,
-                                         submit_sql_uuid) 
-                 values('{}','{}','{}','{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
-            """.format(login_user_name, sql_title, cluster_name, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str)
-    return db_helper.dml(sql)
+# def submit_sql_by_cluster_name_dao(login_user_name,sql_title, cluster_name, file_path, leader_name, qa_name,dba_name,submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type):
+#     sql = """insert into sql_submit_info(submit_sql_user,
+#                                          title,
+#                                          cluster_name,
+#                                          submit_sql_file_path,
+#                                          leader_user_name,
+#                                          leader_check,
+#                                          qa_user_name,
+#                                          qa_check,
+#                                          dba_check_user_name,
+#                                          dba_check,
+#                                          submit_sql_execute_type,
+#                                          comment_info,
+#                                          submit_sql_uuid,
+#                                          submit_source_db_type)
+#                  values('{}','{}','{}','{}','{}',1,'{}',1,'{}',1,'{}','{}','{}','{}')
+#             """.format(login_user_name, sql_title, cluster_name, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type)
+#     return db_helper.dml(sql)
 
 
 
 # 页面提交SQL工单,类型为ip,port
-def submit_sql_by_ip_port_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str):
+def submit_sql_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type,cluster_name):
     sql = """insert into sql_submit_info(submit_sql_user,
                                          title,
                                          master_ip,
@@ -183,9 +184,11 @@ def submit_sql_by_ip_port_dao(login_user_name,sql_title, db_ip, db_port, file_pa
                                          dba_check,
                                          submit_sql_execute_type,
                                          comment_info,
-                                         submit_sql_uuid) 
-                 values('{}','{}','{}',{},'{}','{}',1,'{}',1,'{}',1,'{}','{}','{}')
-        """.format(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str)
+                                         submit_sql_uuid,
+                                         submit_source_db_type,
+                                         cluster_name) 
+                 values('{}','{}','{}',{},'{}','{}',1,'{}',1,'{}',1,'{}','{}','{}',{},'{}')
+        """.format(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type,cluster_name)
     return db_helper.dml(sql)
 
 
@@ -419,9 +422,6 @@ def recreate_sql_dao(split_sql_file_path, recreate_sql_flag):
 
 # 拆分SQL结果入库
 def write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,rerun_seq, inception_osc_config):
-    if cluster_name != "":
-        master_ip = ""
-        master_port = ""
     sql = """insert into sql_execute_split(
                                         submit_sql_uuid,
                                         split_seq,
@@ -441,7 +441,7 @@ def write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_p
 
 # 获取执工单基础新
 def get_submit_sql_file_path_info_dao(submit_sql_uuid):
-    sql = "select master_ip,master_port,cluster_name,submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    sql = "select master_ip,master_port,cluster_name,submit_source_db_type,submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
     return db_helper.find_all(sql)
 
 # 获取重做数据需要的信息

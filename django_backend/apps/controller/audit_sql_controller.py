@@ -72,7 +72,9 @@ def check_sql_controller(request):
 # 页面提交SQL工单
 def submit_sql_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
-    ret = audit_sql.submit_sql(request_body)
+    # ret = audit_sql.submit_sql(request_body)
+    abj = audit_sql.SubmitSql(request_body)
+    ret = abj.process_submit_sql()
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
@@ -114,11 +116,11 @@ def get_check_sql_results_by_uuid_controller(request):
 def pass_submit_sql_by_uuid_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body['submit_sql_uuid']
-    apply_results = request_body['apply_results']
+    apply_results = request_body['apply_results']   # 通过/不通过
     check_comment = request_body['check_comment']
     check_status = 2 if apply_results == "通过" else 3
     # ret = audit_sql.pass_submit_sql_by_uuid(submit_sql_uuid,apply_results,check_comment,check_status)
-    obj = audit_sql.PassSubmitSql(submit_sql_uuid,apply_results,check_comment,check_status)
+    obj = audit_sql.PassSubmitSql(submit_sql_uuid,check_comment,check_status)
     ret = obj.pass_submit_sql_by_uuid()
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
