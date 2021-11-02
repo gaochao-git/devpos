@@ -181,14 +181,25 @@ export default class ExecuteSql extends Component {
             check_user_name_role:this.state.login_user_name_role,
             check_comment:this.state.check_comment,
         };
-        let res = await MyAxios.post(`${backendServerApiRoot}/pass_submit_sql_by_uuid/`,params);
-        message.success(res.data.message);
-        this.setState({
-            ApplyModalVisible: false,
-            view_submit_sql_info:res.data.data,
-            sql_check_pass_loading:false
-        });
-        this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
+        await MyAxios.post(`${backendServerApiRoot}/pass_submit_sql_by_uuid/`,params).then(
+            res=>{
+                if (res.data.status === "ok"){
+                    this.setState({
+                        ApplyModalVisible: false,
+                        view_submit_sql_info:res.data.data,
+                        sql_check_pass_loading:false
+                    });
+                    this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
+                    message.success(res.data.message);
+                }else{
+                    this.setState({
+                        ApplyModalVisible: false,
+                        sql_check_pass_loading:false
+                    });
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err=>{message.error(err.message)})
     };
 
     //间隔执行

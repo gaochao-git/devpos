@@ -419,6 +419,9 @@ def recreate_sql_dao(split_sql_file_path, recreate_sql_flag):
 
 # 拆分SQL结果入库
 def write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,rerun_seq, inception_osc_config):
+    if cluster_name != "":
+        master_ip = ""
+        master_port = ""
     sql = """insert into sql_execute_split(
                                         submit_sql_uuid,
                                         split_seq,
@@ -435,16 +438,11 @@ def write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_p
                                     """.format(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,rerun_seq, inception_osc_config)
     return db_helper.dml(sql)
 
+
 # 获取执工单基础新
 def get_submit_sql_file_path_info_dao(submit_sql_uuid):
     sql = "select master_ip,master_port,cluster_name,submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
-    rows = []
-    try:
-        rows = db_helper.findall(sql)
-    except Exception as e:
-        logger.error(e)
-    finally:
-        return rows
+    return db_helper.find_all(sql)
 
 # 获取重做数据需要的信息
 def get_recreate_sql_info_dao(split_sql_file_path):

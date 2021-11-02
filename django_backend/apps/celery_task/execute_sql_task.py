@@ -57,14 +57,20 @@ class ExecuteSql:
         if read_only_ret['data'][0]['read_only'] != 'OFF': raise Exception("read_only角色不满足")
 
     def get_ticket_info(self):
+        """
+        获取工单信息
+        :return:
+        """
         ticket_info = audit_sql_dao.get_master_info_by_split_sql_file_path_dao(self.file_path)
         if ticket_info['status'] != "ok":
             raise Exception("获取工单信息失败")
         self.ticket_info = ticket_info['data'][0]
 
-
     def osc_config(self):
-        # inception执行osc配置
+        """
+        生成osc配置
+        :return:
+        """
         inception_osc_config = self.ticket_info["inception_osc_config"]
         if inception_osc_config == "" or inception_osc_config == '{}':
             osc_config_sql = "show databases;"
@@ -80,6 +86,10 @@ class ExecuteSql:
         self.osc_config_sql = osc_config_sql
 
     def generate_sql(self):
+        """
+        读取文件生成SQL
+        :return:
+        """
         try:
             with open("./upload/{}".format(self.file_path), "rb") as f:
                 self.execute_sql = f.read().decode('utf-8')
@@ -88,6 +98,10 @@ class ExecuteSql:
             raise Exception("读取SQL文件失败")
 
     def send_inception(self):
+        """
+        SQL发送到inception执行
+        :return:
+        """
         common.audit_sql_log(self.file_path, 0, "任务发送到审核工具执行")
         ret = inception.execute_sql(self.des_ip, self.des_port, self.inc_backup,self.inc_ignore_warn,
                                     self.inc_ignore_err, self.execute_sql, self.file_path, self.osc_config_sql)
@@ -99,8 +113,11 @@ class ExecuteSql:
             self.inc_ret_rows = ret['data']
             common.audit_sql_log(self.file_path, 0, "任务发送到审核工具执行完成")
 
-    # 处理inception执行结果,为了加快插入速度不用公共的db_helper
     def process_execute_results(self):
+        """
+        处理inception执行结果,为了加快插入速度不用公共的db_helper
+        :return:
+        """
         cursor = connection.cursor()
         try:
             result_error_level_list = []
@@ -134,6 +151,12 @@ class ExecuteSql:
             connection.close()
 
     def mark_ticket_status(self, is_execute, execute_status):
+        """
+        标记工单状态公共方法
+        :param is_execute:
+        :param execute_status:
+        :return:
+        """
         ret = audit_sql_dao.set_execute_status(self.submit_sql_uuid, self.file_path, is_execute, execute_status, self.exe_user_name)
         if ret['status'] != 'ok': raise Exception("更新工单状态出现异常")
 

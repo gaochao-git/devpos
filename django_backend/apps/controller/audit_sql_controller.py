@@ -117,7 +117,9 @@ def pass_submit_sql_by_uuid_controller(request):
     apply_results = request_body['apply_results']
     check_comment = request_body['check_comment']
     check_status = 2 if apply_results == "通过" else 3
-    ret = audit_sql.pass_submit_sql_by_uuid(submit_sql_uuid,apply_results,check_comment,check_status)
+    # ret = audit_sql.pass_submit_sql_by_uuid(submit_sql_uuid,apply_results,check_comment,check_status)
+    obj = audit_sql.PassSubmitSql(submit_sql_uuid,apply_results,check_comment,check_status)
+    ret = obj.pass_submit_sql_by_uuid()
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
@@ -131,7 +133,6 @@ def execute_submit_sql_by_file_path_controller(request):
     inc_err = request_body['inception_execute_ignore_error']
     inc_sleep = request_body['inception_execute_sleep_ms']
     exe_user_name = request_body["execute_user_name"]
-    # ret = audit_sql.execute_submit_sql_by_file_path( submit_sql_uuid, file_path, exe_user_name,inc_bak, inc_war, inc_err, inc_sleep)
     obj = audit_sql.ExecuteSqlByFilePath(submit_sql_uuid, file_path, exe_user_name,inc_bak, inc_war, inc_err, inc_sleep)
     ret = obj.execute_submit_sql_by_file_path()
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
