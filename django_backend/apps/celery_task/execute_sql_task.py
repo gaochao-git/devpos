@@ -17,7 +17,7 @@ class ExecuteSql:
         self.inc_ignore_warn = inc_war
         self.inc_ignore_err = inc_err
         self.inc_sleep = inc_sleep
-        self.exe_user_name= exe_user_name
+        self.exe_user_name = exe_user_name
         self.des_ip = des_ip
         self.des_port = des_port
         self.osc_config_sql = ""
@@ -26,6 +26,8 @@ class ExecuteSql:
         self.inc_ret_rows = ""
 
     def task_run(self):
+        # 执行工单---->推送到celery----->获取到任务------->预检查----->发送审核工具执行----->处理审核工具返回结果----->标记工单状态
+        common.audit_sql_log(self.file_path, 0, "celery 消费者获取到任务")
         try:
             self.get_ticket_info()
             self.pre_check()
@@ -35,13 +37,19 @@ class ExecuteSql:
             self.process_execute_results()
         except Exception as e:
             logger.exception('工单%s执行失败,错误信息:%s', self.file_path, e)
+        finally:
+            common.audit_sql_log(self.file_path, 0, "======================end=================")
 
     def pre_check(self):
         # 判断工单是否已执行
         dba_execute = self.ticket_info["dba_execute"]
         execute_status = self.ticket_info["execute_status"]
-        if dba_execute != 1 or execute_status != 1: raise Exception("该工单已执行")
-        else: self.mark_ticket_status(2, 2) # 更新工单状态为已执行
+        if dba_execute != 1 or execute_status != 1:
+            common.audit_sql_log(self.file_path, 1, "该工单已执行")
+            raise Exception("该工单已执行")
+        else:
+            self.mark_ticket_status(2, 2) # 更新工单状态为已执行
+            common.audit_sql_log(self.file_path, 0, "预检查完成")
 
         # check2,判断当前实例read_only状态
         read_only_ret = common.get_read_only(self.des_ip, self.des_port)
@@ -53,6 +61,7 @@ class ExecuteSql:
         if ticket_info['status'] != "ok":
             raise Exception("获取工单信息失败")
         self.ticket_info = ticket_info['data'][0]
+
 
     def osc_config(self):
         # inception执行osc配置
@@ -79,13 +88,16 @@ class ExecuteSql:
             raise Exception("读取SQL文件失败")
 
     def send_inception(self):
+        common.audit_sql_log(self.file_path, 0, "任务发送到审核工具执行")
         ret = inception.execute_sql(self.des_ip, self.des_port, self.inc_backup,self.inc_ignore_warn,
                                     self.inc_ignore_err, self.execute_sql, self.file_path, self.osc_config_sql)
         if ret['status'] != "ok": 
             self.mark_ticket_status(2,4)
+            common.audit_sql_log(self.file_path, 1, "任务发送到审核工具执行出现异常:%s" % ret['message'])
             raise Exception(ret['message'])
         else: 
             self.inc_ret_rows = ret['data']
+            common.audit_sql_log(self.file_path, 0, "任务发送到审核工具执行完成")
 
     # 处理inception执行结果,为了加快插入速度不用公共的db_helper
     def process_execute_results(self):
@@ -108,12 +120,13 @@ class ExecuteSql:
                            inc_affected_rows, inc_execute_time, self.file_path)
                 cursor.execute(sql)
             connection.commit()
-            logger.info('工单%sinception执行结果插入表中成功', self.submit_sql_uuid)
+            common.audit_sql_log(self.file_path, 0, "执行结果写入数据库完成")
             if max(result_error_level_list) == 0: self.mark_ticket_status(2, 3)
             if max(result_error_level_list) == 1: self.mark_ticket_status(2, 5)
             if max(result_error_level_list) == 2: self.mark_ticket_status(2, 4)
+            common.audit_sql_log(self.file_path, 0, "标记工单状态完成")
         except Exception as e:
-            logger.error('[工单:%s],inception执行结果插入表中失败:%s', self.submit_sql_uuid, str(e))
+            common.audit_sql_log(self.file_path, 1, "处理执行结果出现异常:%s" % e)
             self.mark_ticket_status(2, 7)
             connection.rollback()
         finally:

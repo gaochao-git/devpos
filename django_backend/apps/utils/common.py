@@ -60,3 +60,18 @@ def generate_server_id(host):
     :return:
     """
     return random.randint(100, 10000) + int(host.split('.')[-1])
+
+
+def audit_sql_log(file_path, status, msg):
+    """
+    将SQL工单关键步骤写入数据库
+    :param file_path:
+    :param msg:
+    :return:
+    """
+    logger.exception('工单%s执行失败,错误信息:%s', file_path, msg)
+    sql = """
+            insert into audit_sql_log(split_file,step_status,audit_log_info,create_time,update_time) 
+                                    values('{}',{},'{}',now(),now()) 
+          """.format(file_path, status, msg)
+    db_helper.dml(sql)

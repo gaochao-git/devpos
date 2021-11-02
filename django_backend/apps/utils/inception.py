@@ -91,7 +91,7 @@ def get_ddl_process(sqlsha1):
 # inception执行SQL
 def execute_sql(des_ip, des_port, inc_backup,inc_ignore_warn, inc_ignore_err, execute_sql, split_sql_file_path, osc_config_sql):
     logger.info("工单:%s调用inception开始执行SQL", split_sql_file_path)
-    sql = """/*--user=gaochao;--password=fffjjj;--host={};--port={};--execute=1;--enable-remote-backup={};--enable-ignore-warnings={};--enable-force={};*/\
+    sql = """/*--user=gaochaoo;--password=fffjjj;--host={};--port={};--execute=1;--enable-remote-backup={};--enable-ignore-warnings={};--enable-force={};*/\
         inception_magic_start;
         {}   
         inception_magic_commit;""".format(des_ip, des_port, inc_backup, inc_ignore_warn, inc_ignore_err, execute_sql)
