@@ -12,6 +12,7 @@ from apps.utils import inception
 from apps.dao import audit_sql_dao
 from apps.celery_task.execute_sql_task import ExecuteSql
 from apps.celery_task.check_sql_task import AsyncCheckSql
+from apps.celery_task.split_sql_task import AsyncSplitSql
 from apps.celery_task.install_mysql import InstallMysql
 import logging
 logger = logging.getLogger('inception_execute_logger')
@@ -59,6 +60,19 @@ def inception_check(des_ip, des_port, submit_sql_uuid,check_sql, check_user_name
     """
     check_sql_task = AsyncCheckSql(des_ip, des_port, submit_sql_uuid,check_sql, check_user_name)
     check_sql_task.task_run()
+
+
+@task
+def inception_split(submit_sql_uuid, ticket_info, des_ip, des_port):
+    """
+    异步拆分SQL
+    :param ticket_info:
+    :param des_ip:
+    :param des_port:
+    :return:
+    """
+    split_sql_task = AsyncSplitSql(submit_sql_uuid, ticket_info, des_ip, des_port)
+    split_sql_task.task_run()
 
 
 @task

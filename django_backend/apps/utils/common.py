@@ -88,7 +88,7 @@ def write_celery_task(task_id, submit_id):
     :return:
     """
     sql = """
-            replace into celery_task_status(task_id,submit_uuid,task_status,create_time,update_time) 
+            replace into my_celery_task_status(task_id,submit_uuid,task_status,create_time,update_time) 
                                     values('{}','{}',0,now(),now()) 
           """.format(task_id, submit_id)
     return db_helper.dml(sql)
@@ -101,5 +101,5 @@ def mark_celery_task(submit_id, task_status):
     :param task_status:
     :return:
     """
-    sql = "update celery_task_status set task_status={} where submit_uuid='{}'".format(task_status, submit_id)
+    sql = "update my_celery_task_status set task_status={} where submit_uuid='{}'".format(task_status, submit_id)
     return db_helper.dml(sql)

@@ -48,7 +48,8 @@ CELERY_QUEUES = (
 
 # 定义celery路由
 CELERY_ROUTES = {
-    "apps.celery_task.tasks.inception_execute": {"queue": "async_task", "routing_key": "async_task"},
+    "apps.celery_task.tasks.inception_split": {"queue": "async_task", "routing_key": "async_task"},
     "apps.celery_task.tasks.inception_check": {"queue": "async_task", "routing_key": "async_task"},
+    "apps.celery_task.tasks.inception_execute": {"queue": "async_task", "routing_key": "async_task"},
     "apps.celery_task.tasks.install_mysql": {"queue": "async_task", "routing_key": "async_task"},
 }

@@ -121,20 +121,38 @@ class ExecuteSql:
         cursor = connection.cursor()
         try:
             result_error_level_list = []
-            for row in self.inc_ret_rows:
-                result_error_level_list.append(row[2])
-                inc_id = row[0]
-                inc_stage = row[1]
-                inc_error_level = row[2]
-                inc_error_message = row[4]
-                inc_sql = row[5]
-                inc_affected_rows = row[6]
-                inc_execute_time = row[9]
-                sql = """insert into sql_execute_results(submit_sql_uuid,inception_id,inception_stage,inception_error_level,inception_error_message,inception_sql,inception_affected_rows,inception_execute_time,split_sql_file_path) 
-                                                                                values('{}',{},'{}',{},'{}','{}',{},'{}','{}')
-                """.format(self.submit_sql_uuid, inc_id, inc_stage, inc_error_level,
-                           pymysql.escape_string(inc_error_message), pymysql.escape_string(inc_sql),
-                           inc_affected_rows, inc_execute_time, self.file_path)
+            for check_sql_result in self.inc_ret_rows:
+                result_error_level_list.append(check_sql_result["errlevel"])
+                id = check_sql_result["ID"]
+                stage = check_sql_result["stage"]
+                error_level = check_sql_result["errlevel"]
+                stage_status = check_sql_result["stagestatus"]
+                error_message = pymysql.escape_string(check_sql_result["errormessage"])
+                sql = pymysql.escape_string(check_sql_result["SQL"])
+                sequence = pymysql.escape_string(check_sql_result["sequence"])
+                backup_dbnames = check_sql_result["backup_dbname"]
+                execute_time = check_sql_result["execute_time"]
+                sqlsha1 = check_sql_result["sqlsha1"]
+                command = check_sql_result["command"]
+                affected_rows = check_sql_result["Affected_rows"]
+                sql = """
+                        insert into sql_execute_results(submit_sql_uuid,
+                                                        inception_id,
+                                                        inception_stage,
+                                                        inception_error_level,
+                                                        inception_error_message,
+                                                        inception_sql,
+                                                        inception_affected_rows,
+                                                        inception_execute_time,
+                                                        inception_backup_dbname,
+                                                        inception_sqlsha1,
+                                                        inception_command,
+                                                        inception_stage_status,
+                                                        inception_sequence,
+                                                        split_sql_file_path) 
+                                                  values('{}',{},'{}',{},'{}','{}',{},'{}','{}','{}','{}','{}','{}','{}')
+                """.format(self.submit_sql_uuid, id, stage, error_level, error_message, sql, affected_rows,
+                           execute_time, backup_dbnames, sqlsha1, command, stage_status, sequence, self.file_path)
                 cursor.execute(sql)
             connection.commit()
             common.audit_sql_log(self.file_path, 0, "执行结果写入数据库完成")
@@ -153,8 +171,8 @@ class ExecuteSql:
     def mark_ticket_status(self, is_execute, execute_status):
         """
         标记工单状态公共方法
-        :param is_execute:
-        :param execute_status:
+        :param is_execute:1-->未执行,2-->已执行'
+        :param execute_status:1-->未执行,2-->执行中,3-->执行成功,4-->执行失败,5-->执行成功含警告
         :return:
         """
         ret = audit_sql_dao.set_execute_status(self.submit_sql_uuid, self.file_path, is_execute, execute_status, self.exe_user_name)

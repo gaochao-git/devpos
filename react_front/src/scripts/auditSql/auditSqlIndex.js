@@ -266,6 +266,7 @@ class AuditSqlIndex extends Component {
             submit_sql_execute_type: value["执行类型"],
             comment_info: value["comment_info"],
             submit_source_db_type: this.state.submit_type,
+            check_sql_uuid: this.state.check_sql_uuid,
         };
         let res = await MyAxios.post('/submit_sql/',params);
         if( res.data.status === 'ok'){
