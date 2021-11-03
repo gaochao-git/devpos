@@ -23,8 +23,8 @@ def check_sql(des_master_ip, des_master_port, check_sql_info):
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port, charset="utf8")  # inception服务器
         cur = conn.cursor()
         cur.execute(sql)
-        result = cur.fetchall()
-        data = [dict(zip([col[0] for col in cur.description], row)) for row in result]
+        results = cur.fetchall()
+        data = [dict(zip([col[0] for col in cur.description], row)) for row in results]
         content = {'status': "ok", 'inception审核完成': "ok",'data': data}
     except Exception as e:
         logger.exception("inception审核失败",str(e))
@@ -51,8 +51,8 @@ def start_split_sql(master_ip, master_port, execute_sql):
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port, charset="utf8")  # inception服务器
         cur = conn.cursor()
         cur.execute(sql)
-        sql_tuple = cur.fetchall()
-        data = [dict(zip([col[0] for col in cur.description], row)) for row in sql_tuple]
+        results = cur.fetchall()
+        data = [dict(zip([col[0] for col in cur.description], row)) for row in results]
         content = {'status': "ok", 'inception审核完成': "ok", 'data': data}
     except Exception as e:
         logger.exception("inception拆分失败", str(e))
@@ -71,9 +71,9 @@ def get_ddl_process(sqlsha1):
         inception_get_osc_percent_sql = "inception get osc_percent '{}'".format(sqlsha1)
         logger.info(inception_get_osc_percent_sql)
         cur.execute(inception_get_osc_percent_sql)
-        result = cur.fetchall()
-        if result:
-            data = [dict(zip([col[0] for col in cur.description], row)) for row in result]
+        results = cur.fetchall()
+        if results:
+            data = [dict(zip([col[0] for col in cur.description], row)) for row in results]
             inception_execute_percent = data[0]['Percent']
         else:
             inception_execute_percent = 0
@@ -105,7 +105,8 @@ def execute_sql(des_ip, des_port, inc_backup,inc_ignore_warn, inc_ignore_err, ex
             cur.execute(osc_config_sql)
             cur.execute(sql)
             results = cur.fetchall()
-        content = {"status": "ok", "message": "ok", "data":results}
+        data = [dict(zip([col[0] for col in cur.description], row)) for row in results]
+        content = {"status": "ok", "message": "ok", "data":data}
         logger.info("工单%s调用inception执行SQL正常结束", split_sql_file_path)
     except Exception as e:
         content = {"status":"error", "message":e}

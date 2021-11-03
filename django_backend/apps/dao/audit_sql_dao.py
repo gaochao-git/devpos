@@ -147,30 +147,25 @@ def update_inception_variable_dao(request_body_json,split_sql_file_path):
         return update_status
 
 
-# 页面提交SQL工单,类型为cluster_name
-# def submit_sql_by_cluster_name_dao(login_user_name,sql_title, cluster_name, file_path, leader_name, qa_name,dba_name,submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type):
-#     sql = """insert into sql_submit_info(submit_sql_user,
-#                                          title,
-#                                          cluster_name,
-#                                          submit_sql_file_path,
-#                                          leader_user_name,
-#                                          leader_check,
-#                                          qa_user_name,
-#                                          qa_check,
-#                                          dba_check_user_name,
-#                                          dba_check,
-#                                          submit_sql_execute_type,
-#                                          comment_info,
-#                                          submit_sql_uuid,
-#                                          submit_source_db_type)
-#                  values('{}','{}','{}','{}','{}',1,'{}',1,'{}',1,'{}','{}','{}','{}')
-#             """.format(login_user_name, sql_title, cluster_name, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type)
-#     return db_helper.dml(sql)
-
-
-
-# 页面提交SQL工单,类型为ip,port
-def submit_sql_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type,cluster_name):
+def submit_sql_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name,
+                   dba_name,submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type,cluster_name):
+    """
+    将工单详情写入工单表
+    :param login_user_name:
+    :param sql_title:
+    :param db_ip:
+    :param db_port:
+    :param file_path:
+    :param leader_name:
+    :param qa_name:
+    :param dba_name:
+    :param submit_sql_execute_type:
+    :param comment_info:
+    :param uuid_str:
+    :param submit_source_db_type:
+    :param cluster_name:
+    :return:
+    """
     sql = """insert into sql_submit_info(submit_sql_user,
                                          title,
                                          master_ip,
@@ -192,26 +187,34 @@ def submit_sql_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_
     return db_helper.dml(sql)
 
 
-
-# SQL审核结果写入数据库,使用db_helper会创建多次连接,效率太低
-def submit_sql_results(uuid_str, check_sql_results):
+def submit_sql_results_dao(uuid_str, check_sql_results, is_submit):
+    """
+    将提交的审核结果写入数据库,使用db_helper会创建多次连接,效率太低
+    如果uuid_str是None，说明是用的同步审核同步提交，需要将审核结果写入数据库,is_submit为1
+    如果uuid_str不是None，说明采用的是异步审核同步提交，is_submit为0，确认工单提交时会改为1
+    :param uuid_str:
+    :param check_sql_results:
+    :param table_name:
+    :return:
+    """
     # SQL审核结果写入数据库
     cursor = connection.cursor()
     try:
         sql_key = """
             insert into sql_check_results(submit_sql_uuid,
-                                          inception_id,
-                                          inception_stage,
-                                          inception_error_level,
-                                          inception_stage_status,
-                                          inception_error_message,
-                                          inception_sql,
-                                          inception_affected_rows,
-                                          inception_sequence,
-                                          inception_backup_dbnames,
-                                          inception_execute_time,
-                                          inception_sqlsha1,
-                                          inception_command) values
+                           inception_id,
+                           inception_stage,
+                           inception_error_level,
+                           inception_stage_status,
+                           inception_error_message,
+                           inception_sql,
+                           inception_affected_rows,
+                           inception_sequence,
+                           inception_backup_dbnames,
+                           inception_execute_time,
+                           inception_sqlsha1,
+                           inception_command,
+                           is_submit) values
         """
         sql_values = ""
         total = len(check_sql_results)
@@ -224,23 +227,25 @@ def submit_sql_results(uuid_str, check_sql_results):
             error_message = pymysql.escape_string(check_sql_result["errormessage"])
             sql = pymysql.escape_string(check_sql_result["SQL"])
             affected_rows = check_sql_result["Affected_rows"]
-            sequence = check_sql_result["sequence"]
+            sequence = pymysql.escape_string(check_sql_result["sequence"])
             backup_dbnames = check_sql_result["backup_dbname"]
             execute_time = check_sql_result["execute_time"]
             sqlsha1 = check_sql_result["sqlsha1"]
             command = check_sql_result["command"]
             value = """
-                    ('{}',{},'{}',{},'{}','{}','{}','{}',{},'{}','{}','{}','{}') 
+                    ('{}',{},'{}',{},'{}','{}','{}','{}','{}','{}','{}','{}','{}',{}) 
                 """.format(uuid_str, id, stage, error_level, stage_status,error_message, sql,
-                           affected_rows, sequence, backup_dbnames, execute_time, sqlsha1, command)
+                           affected_rows, sequence, backup_dbnames, execute_time, sqlsha1, command, is_submit)
             sql_values = sql_values + value + ','
             i = i + 1
             total = total - 1
             if i < 50 and total == 0:  # 总数小于50或者最后一批不足50
                 sql_results_insert = sql_key + sql_values.rstrip(',')
+                print(sql_results_insert)
                 cursor.execute(sql_results_insert)
             elif i == 50: # 达到50就执行一批
                 sql_results_insert = sql_key + sql_values.rstrip(',')
+                print(sql_results_insert)
                 cursor.execute(sql_results_insert)
                 sql_values = ""
                 i = 0
@@ -529,7 +534,7 @@ def get_check_task_status_dao(submit_uuid):
     :param submit_uuid:
     :return:
     """
-    sql = "select task_status from celery_task_status where submit_uuid='{}'".format(submit_uuid)
+    sql = "select task_status from my_celery_task_status where submit_uuid='{}'".format(submit_uuid)
     return db_helper.find_all(sql)
 
 
@@ -548,8 +553,23 @@ def get_pre_check_result_dao(submit_uuid):
             inception_error_message as errormessage,
             inception_sql as `SQL`,
             inception_affected_rows as Affected_rows,
-            inception_command as command
-        from sql_pre_check_results
+            inception_command as command,
+            inception_executed_time as execute_time,
+            inception_sequence as sequence,
+            inception_sqlsha1 as sqlsha1,
+            inception_backup_dbnames as backup_dbname
+        from sql_check_results
         where submit_sql_uuid = '{}'
     """.format(submit_uuid)
     return db_helper.find_all(sql)
+
+
+def mark_sql_check_results_dao(submit_sql_uuid):
+    """
+    修改SQL审核结果状态为已提交
+    :param submit_sql_uuid:
+    :return:
+    """
+    sql = "update sql_check_results set is_submit=1 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    print(sql)
+    return db_helper.dml(sql)

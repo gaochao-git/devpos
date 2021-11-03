@@ -8,11 +8,12 @@ import uuid
 from time import gmtime, strftime
 import os
 import json
+import os,sys
 from apps.dao import login_dao
 from apps.utils import common
 from apps.utils import inception
 from apps.dao import audit_sql_dao
-from apps.celery_task.tasks import inception_execute,inception_check
+from apps.celery_task.tasks import inception_execute,inception_check,inception_split
 from io import StringIO
 
 import logging
@@ -196,7 +197,8 @@ class SubmitSql:
         self.submit_source_db_type = request_body['submit_source_db_type']
         self.instance_name = request_body['instance_name']
         self.cluster_name = request_body['cluster_name']
-        self.submit_sql_uuid = str(uuid.uuid4())
+        self.submit_sql_uuid = ""
+        self.check_sql_uuid = request_body['check_sql_uuid']
         self.login_user_name = "gaochao"
 
     def process_submit_sql(self):
@@ -205,8 +207,14 @@ class SubmitSql:
         :return:
         """
         try:
+            if self.check_sql_uuid != "":
+                self.submit_sql_uuid = self.check_sql_uuid
+                self.mark_check_results()
+
+            else:
+                self.submit_sql_uuid = str(uuid.uuid4())
+                self.write_check_results()
             self.write_sql_to_file()
-            self.write_check_results()
             self.write_info_to_db()
             content = {"status": "ok", "message": "ok"}
         except Exception as e:
@@ -224,10 +232,12 @@ class SubmitSql:
         now_date = strftime("%Y%m%d", gmtime())
         # 确定存放路径
         upload_path = "./upload/" + now_date
+        if not os.path.isdir(upload_path): os.makedirs(upload_path)
         # 确定文件名
         file_name = "%s_%s.sql" % (self.login_user_name, self.submit_sql_uuid)
         upfile = os.path.join(upload_path, file_name)
         try:
+            print(upfile)
             with open(upfile, 'w') as f:
                 f.write(self.check_sql)
         except Exception as e:
@@ -238,8 +248,16 @@ class SubmitSql:
         sql审核结果写入数据库
         :return:
         """
-        ret = audit_sql_dao.submit_sql_results(self.submit_sql_uuid, self.check_sql_results)
+        ret = audit_sql_dao.submit_sql_results_dao(self.submit_sql_uuid, self.check_sql_results, 1)
         if ret['status'] != "ok": raise Exception("sql审核结果写入数据库失败")
+
+    def mark_check_results(self):
+        """
+        sql审核结果写入数据库
+        :return:
+        """
+        ret = audit_sql_dao.mark_sql_check_results_dao(self.submit_sql_uuid)
+        if ret['status'] != "ok": raise Exception("修改sql审核结果为已提交失败")
 
     def write_info_to_db(self):
         """
@@ -336,6 +354,14 @@ class PassSubmitSql:
                                                              self.check_status, self.login_user_name,
                                                              self.login_user_name_role)
         if mark_ret['status'] != 'ok': raise Exception("审核状态异常")
+
+    def v2_split_sql(self):
+        task_id = inception_split.delay(self.ticket_info,self.des_ip, self.des_port)
+        if task_id:
+            common.write_celery_task(task_id)
+            logger.info("celery发送拆分任务成功返回task_id:%s" % task_id)
+        else:
+            raise Exception("发送拆分任务失败")
 
     def split_sql(self):
         # 审核通过调用inception拆分DDL/DML
