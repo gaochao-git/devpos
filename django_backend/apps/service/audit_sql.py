@@ -310,9 +310,12 @@ class PassSubmitSql:
             if self.check_status == 2:
                 self.get_ticket_info()
                 self.judge_source_ip_port()
-                self.split_sql()
-                self.write_split_sql_to_new_file()
-            self.mark_check_status()
+                self.mark_check_status()
+                # self.split_sql()
+                # self.write_split_sql_to_new_file()
+                self.v2_split_sql()
+            else:
+                self.mark_check_status()
             content = {"status": "ok", "message": "ok"}
         except Exception as e:
             logger.exception('工单%s审核失败,错误信息:%s', self.submit_sql_uuid, e)
@@ -356,9 +359,9 @@ class PassSubmitSql:
         if mark_ret['status'] != 'ok': raise Exception("审核状态异常")
 
     def v2_split_sql(self):
-        task_id = inception_split.delay(self.ticket_info,self.des_ip, self.des_port)
+        task_id = inception_split.delay(self.submit_sql_uuid, self.ticket_info, self.des_ip, self.des_port)
         if task_id:
-            common.write_celery_task(task_id)
+            common.write_celery_task(task_id,'xxxxxxxx')
             logger.info("celery发送拆分任务成功返回task_id:%s" % task_id)
         else:
             raise Exception("发送拆分任务失败")
