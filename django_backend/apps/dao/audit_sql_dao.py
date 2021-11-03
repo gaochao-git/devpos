@@ -521,3 +521,35 @@ def set_task_send_celery(split_sql_file_path):
         logger.error(e)
     finally:
         return update_status
+
+
+def get_check_task_status_dao(submit_uuid):
+    """
+    获取审核任务状态
+    :param submit_uuid:
+    :return:
+    """
+    sql = "select task_status from celery_task_status where submit_uuid='{}'".format(submit_uuid)
+    return db_helper.find_all(sql)
+
+
+def get_pre_check_result_dao(submit_uuid):
+    """
+    获取预审核结果
+    :param submit_uuid:
+    :return:
+    """
+    sql = """
+        select 
+            inception_id as ID,
+            inception_stage as stage,
+            inception_error_level as errlevel,
+            inception_stage_status as stagestatus,
+            inception_error_message as errormessage,
+            inception_sql as `SQL`,
+            inception_affected_rows as Affected_rows,
+            inception_command as command
+        from sql_pre_check_results
+        where submit_sql_uuid = '{}'
+    """.format(submit_uuid)
+    return db_helper.find_all(sql)

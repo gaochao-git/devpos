@@ -48,6 +48,7 @@ class AuditSqlIndex extends Component {
             create_sql_content:"",
             rebuild_table:"",
             set_value:"",
+            check_sql_uuid:"",
 
         }
     }
@@ -121,14 +122,20 @@ class AuditSqlIndex extends Component {
             submit_sql_button_disabled:"hide"
         });
         await MyAxios.post('/v1/service/ticket/audit_sql/check_sql/',params).then(
-            res => {res.data.status==="ok"?
-                this.setState({
-                    check_sql_results: res.data.data,
-                    submit_sql_button_disabled:"show",
-                    sql_check_loading:false,
-                })
-                :
-                message.error(res.data.message,3) && this.setState({check_sql_results: [],sql_check_loading:false,})
+            res => {
+                if (res.data.status==="ok"){
+                   this.setState({
+                        check_sql_results: res.data.data,
+                        submit_sql_button_disabled:"show",
+                        sql_check_loading:false,
+                    })
+                }else{
+                    message.error(res.data.message,3)
+                    this.setState({
+                        check_sql_results: [],
+                        sql_check_loading:false,
+                    })
+                }
             }
         ).catch(err => {
             message.error(err, 3);
@@ -138,6 +145,100 @@ class AuditSqlIndex extends Component {
             });
         })
     }
+
+
+    //获取预审核结果
+    async getPreCheckResultsByUuid() {
+        let params = {
+            submit_uuid:this.state.check_sql_uuid
+        };
+        await MyAxios.get('/v1/service/ticket/audit_sql/get_pre_check_result/',{params}).then(
+            res => {
+                if (res.data.status==="ok"){
+                   this.setState({
+                        check_sql_results: res.data.data,
+                        submit_sql_button_disabled:"show",
+                        sql_check_loading:false,
+                    })
+                }else{
+                    message.error(res.data.message,3)
+                }
+            }
+        ).catch(err => {
+            message.error(err, 3);
+            this.setState({
+                check_sql_results: [],
+                sql_check_loading:false,
+            });
+        })
+    }
+
+    //检测SQL
+    async v2_handleSqlCheck() {
+        let params = {
+            cluster_name:this.state.current_cluster_name,
+            instance_name: this.state.current_instance_name,
+            check_sql_info: this.state.check_sql,
+            submit_type:this.state.submit_type
+        };
+        this.setState({
+            check_sql_results: [],
+            sql_check_loading:true,
+            submit_sql_button_disabled:"hide"
+        });
+        await MyAxios.post('/v1/service/ticket/audit_sql/check_sql/',params).then(
+            res => {
+                if (res.data.status==="ok"){
+                   message.success("异步任务已发起,请等待");
+                   console.log(res.data.data)
+                   this.setState({
+                        check_sql_uuid: res.data.data,
+                    },()=>{this.setInterVal()})
+                }else{
+                    message.error(res.data.message,3)
+                    this.setState({
+                        check_sql_results: [],
+                        sql_check_loading:false,
+                    })
+                }
+            }
+        ).catch(err => {
+            message.error(err, 3);
+            this.setState({
+                check_sql_results: [],
+                sql_check_loading:false,
+            });
+        })
+    }
+    //间隔执行
+    setInterVal = () => {
+         this.timerId = window.setInterval(()=>this.getSubmitInfoInterval(),2000);
+    }
+    //定时执行下面方法
+    getSubmitInfoInterval(){
+        this.getCheckStatusByUuid();
+    }
+
+    //获取审核状态
+    async getCheckStatusByUuid() {
+        let params = {
+            submit_uuid: this.state.check_sql_uuid
+        };
+        console.log(this.state.check_sql_uuid)
+        await MyAxios.get('/v1/service/ticket/get_check_task_status/',{params}).then(
+            res => {
+                if (res.data.status==="ok"){
+                   if (res.data.data[0]['task_status'] === 2 || res.data.data[0]['task_status']===3){
+                       window.clearInterval(this.timerId);
+                       this.getPreCheckResultsByUuid();
+                   }
+                }else{
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err => {message.error(err.message)})
+    };
+
 
     //组装提交SQL信息,防止多次提交
     handleSubmit = e => {
@@ -409,7 +510,7 @@ class AuditSqlIndex extends Component {
                     </div>
                     <div>
                         <TextArea rows={10} placeholder="输入SQL,每条SQL以 ; 结尾"  onChange={e => this.handleSqlChange(e.target.value)}/>
-                        <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.handleSqlCheck()}}>检测SQL</Button>
+                        <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.v2_handleSqlCheck()}}>检测SQL</Button>
                         {this.state.submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>:null}
                     </div>
                     <Table

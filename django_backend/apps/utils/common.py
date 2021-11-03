@@ -69,9 +69,37 @@ def audit_sql_log(file_path, status, msg):
     :param msg:
     :return:
     """
-    logger.exception('工单%s执行失败,错误信息:%s', file_path, msg)
+    if status == 0:
+        logger.info('工单%s:%s', file_path, msg)
+    else:
+        logger.error('工单%s:%s', file_path, msg)
     sql = """
             insert into audit_sql_log(split_file,step_status,audit_log_info,create_time,update_time) 
                                     values('{}',{},'{}',now(),now()) 
           """.format(file_path, status, msg)
     db_helper.dml(sql)
+
+
+def write_celery_task(task_id, submit_id):
+    """
+    celery任务写入任务表
+    :param task_id:
+    :param submit_id:
+    :return:
+    """
+    sql = """
+            replace into celery_task_status(task_id,submit_uuid,task_status,create_time,update_time) 
+                                    values('{}','{}',0,now(),now()) 
+          """.format(task_id, submit_id)
+    return db_helper.dml(sql)
+
+
+def mark_celery_task(submit_id, task_status):
+    """
+    更改celery状态
+    :param submit_id:
+    :param task_status:
+    :return:
+    """
+    sql = "update celery_task_status set task_status={} where submit_uuid='{}'".format(task_status, submit_id)
+    return db_helper.dml(sql)

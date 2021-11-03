@@ -12,7 +12,7 @@ from apps.dao import login_dao
 from apps.utils import common
 from apps.utils import inception
 from apps.dao import audit_sql_dao
-from apps.celery_task.tasks import inception_execute
+from apps.celery_task.tasks import inception_execute,inception_check
 from io import StringIO
 
 import logging
@@ -34,19 +34,47 @@ def check_sql(submit_type, check_sql_info, cluster_name, instance_name):
     :param instance_name:
     :return:
     """
+    check_type = 'async'
     if submit_type == "cluster":
         instance_ret = common.get_cluster_node(cluster_name, 'M')
-        if instance_ret['status'] !="ok":
-            return instance_ret
-        elif len(instance_ret['data']) ==0:
-            return {"status": "error", "message":"没有获取到写节点"}
-        else:
-            instance_name = instance_ret['data'][0]['instance_name']
+        if instance_ret['status'] !="ok": return instance_ret
+        elif len(instance_ret['data']) ==0: return {"status": "error", "message":"没有获取到写节点"}
+        else: instance_name = instance_ret['data'][0]['instance_name']
     elif submit_type == "template":
         pass
-    print(instance_name)
-    des_master_ip, des_master_port = instance_name.split('_')[0], instance_name.split('_')[1]
-    ret = inception.check_sql(des_master_ip, des_master_port, check_sql_info)
+    des_ip, des_port = instance_name.split('_')[0], instance_name.split('_')[1]
+    if check_type != "async":
+        ret = inception.check_sql(des_ip, des_port, check_sql_info)
+    else:
+        submit_sql_uuid = str(uuid.uuid4())
+        check_user = "gaochao"
+        task_id = inception_check.delay(des_ip, des_port, submit_sql_uuid, check_sql_info, check_user)
+        if task_id:
+            common.write_celery_task(task_id, submit_sql_uuid)
+            logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_id, submit_sql_uuid))
+            ret = {"status": "ok", "message": "发送任务成功", "data": submit_sql_uuid}
+        else:
+            ret = {"status": "error", "message": "发送任务失败"}
+    return ret
+
+
+def get_check_task_status(submit_uuid):
+    """
+    获取异步审核工单状态
+    :param submit_uuid:
+    :return:
+    """
+    ret = audit_sql_dao.get_check_task_status_dao(submit_uuid)
+    return ret
+
+
+def get_pre_check_result(submit_uuid):
+    """
+    获取预审核结果
+    :param submit_uuid:
+    :return:
+    """
+    ret = audit_sql_dao.get_pre_check_result_dao(submit_uuid)
     return ret
 
 
@@ -176,7 +204,6 @@ class SubmitSql:
         审核通过才会拆分SQL，否则只标记状态
         :return:
         """
-        content = {"status": "ok", "message": "ok"}
         try:
             self.write_sql_to_file()
             self.write_check_results()

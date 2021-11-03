@@ -11,6 +11,7 @@ from django.db import connection
 from apps.utils import inception
 from apps.dao import audit_sql_dao
 from apps.celery_task.execute_sql_task import ExecuteSql
+from apps.celery_task.check_sql_task import AsyncCheckSql
 from apps.celery_task.install_mysql import InstallMysql
 import logging
 logger = logging.getLogger('inception_execute_logger')
@@ -44,6 +45,20 @@ def inception_execute(des_ip, des_port, inc_bak, inc_war, inc_err,file_path, sub
     execute_sql_task = ExecuteSql(des_ip, des_port, inc_bak, inc_war, inc_err,file_path, submit_sql_uuid,
                                   inc_sleep, exe_user_name)
     execute_sql_task.task_run()
+
+@task
+def inception_check(des_ip, des_port, submit_sql_uuid,check_sql, check_user_name):
+    """
+    异步审核SQL
+    :param des_ip:
+    :param des_port:
+    :param submit_sql_uuid:
+    :param check_sql:
+    :param check_user_name:
+    :return:
+    """
+    check_sql_task = AsyncCheckSql(des_ip, des_port, submit_sql_uuid,check_sql, check_user_name)
+    check_sql_task.task_run()
 
 
 @task
