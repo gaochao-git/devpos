@@ -19,6 +19,8 @@ def check_sql(des_master_ip, des_master_port, check_sql_info):
         inception_magic_start;
         {}
         inception_magic_commit;""".format(des_master_ip, des_master_port, check_sql_info)
+    conn = None
+    print(sql)
     try:
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port, charset="utf8")  # inception服务器
         cur = conn.cursor()
@@ -47,6 +49,7 @@ def start_split_sql(master_ip, master_port, execute_sql):
         inception_magic_start;
         {}
         inception_magic_commit;""".format(master_ip, master_port,execute_sql)
+    conn = None
     try:
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port, charset="utf8")  # inception服务器
         cur = conn.cursor()
@@ -65,6 +68,7 @@ def start_split_sql(master_ip, master_port, execute_sql):
 
 # inception获取DDL执行进度
 def get_ddl_process(sqlsha1):
+    conn = None
     try:
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port,charset="utf8")  # inception服务器
         cur = conn.cursor()
@@ -95,6 +99,7 @@ def execute_sql(des_ip, des_port, inc_backup,inc_ignore_warn, inc_ignore_err, ex
         inception_magic_start;
         {}   
         inception_magic_commit;""".format(des_ip, des_port, inc_backup, inc_ignore_warn, inc_ignore_err, execute_sql)
+    conn = None
     try:
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port,charset="utf8")  # inception服务器
         cur = conn.cursor()

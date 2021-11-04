@@ -95,7 +95,7 @@ def write_celery_task(task_id, submit_id, task_type):
     return db_helper.dml(sql)
 
 
-def mark_celery_task(submit_id, task_type, task_status):
+def mark_celery_task(submit_id, task_type, task_status, msg=""):
     """
     更改celery状态
     :param submit_id:
@@ -103,8 +103,8 @@ def mark_celery_task(submit_id, task_type, task_status):
     :return:
     """
     sql = """
-            update my_celery_task_status set task_status={} where submit_id='{}' and task_type='{}'
-          """.format(task_status, submit_id, task_type)
+            update my_celery_task_status set task_status={},content='{}' where submit_id='{}' and task_type='{}'
+          """.format(task_status, msg, submit_id, task_type)
     return db_helper.dml(sql)
 
 
@@ -115,7 +115,7 @@ def get_celery_task_status_dao(submit_id, task_type):
     :return:
     """
     sql = """
-            select task_status from my_celery_task_status 
+            select task_status,content as message from my_celery_task_status 
             where submit_id='{}' and task_type='{}'
          """.format(submit_id, task_type)
     return db_helper.find_all(sql)

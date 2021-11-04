@@ -222,15 +222,18 @@ class AuditSqlIndex extends Component {
         await MyAxios.get('/v1/service/ticket/get_celery_task_status/',{params}).then(
             res => {
                 if (res.data.status==="ok"){
-                   if (res.data.data[0]['task_status'] === 2 || res.data.data[0]['task_status']===3){
-                       message.success("异步审核任务完成",3)
+                   if (res.data.data[0]['task_status'] === 2){
                        window.clearInterval(this.timerId);
+                       message.success("异步审核任务完成",3);
                        this.getPreCheckResultsByUuid();
-                       this.setState({
-                           global_loading:false
-                       });
+                       this.setState({global_loading:false});
+                   }else if (res.data.data[0]['task_status']===3){
+                        window.clearInterval(this.timerId);
+                        message.error(res.data.data[0]['message'],3);
+                        this.setState({global_loading:false});
                    }
                 }else{
+                    window.clearInterval(this.timerId);
                     message.error(res.data.message)
                 }
             }

@@ -1,5 +1,6 @@
 from apps.utils import db_helper
 from django.db import connection
+import pymysql
 from apps.utils import inception
 from apps.dao import audit_sql_dao
 from apps.utils import common
@@ -19,16 +20,15 @@ class AsyncCheckSql:
 
     def task_run(self):
         # 发送审核SQL---->推送到celery----->celery获取到任务----->发送审核工具审核----->处理审核工具返回结果----->标记celery任务状态
-        common.mark_celery_task(self.submit_sql_uuid, self.task_type, 1)
-        common.audit_sql_log(self.submit_sql_uuid, 0, "======================开始审核SQL=================")
         try:
+            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 1)
+            common.audit_sql_log(self.submit_sql_uuid, 0, "======================开始审核SQL=================")
             self.send_inception()
             self.process_check_results()
             common.mark_celery_task(self.submit_sql_uuid, self.task_type, 2)
             common.audit_sql_log(self.submit_sql_uuid, 0, "任务审核完成")
         except Exception as e:
             logger.exception('工单%s审核失败,错误信息:%s', self.submit_sql_uuid, e)
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3)
             common.audit_sql_log(self.submit_sql_uuid, 1, "任务审核失败:%s" % e)
         finally:
             common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核SQL结束=================")
@@ -42,6 +42,7 @@ class AsyncCheckSql:
         ret = inception.check_sql(self.des_ip, self.des_port, self.check_sql)
         if ret['status'] != "ok":
             common.audit_sql_log(self.submit_sql_uuid, 1, "任务发送到审核工具审核失败")
+            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3, pymysql.escape_string(ret['message']))
             raise Exception(ret['message'])
         else:
             self.inc_ret_rows = ret['data']
@@ -53,6 +54,8 @@ class AsyncCheckSql:
         :return:
         """
         ret = audit_sql_dao.submit_sql_results_dao(self.submit_sql_uuid, self.inc_ret_rows, 0)
-        if ret['status'] != "ok": raise Exception(ret['message'])
+        if ret['status'] != "ok":
+            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3, "审核结果写入数据库失败")
+            raise Exception(ret['message'])
 
 

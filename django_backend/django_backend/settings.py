@@ -153,10 +153,9 @@ STATIC_URL = '/static/'
 
 
 ################# inception配置 ##################
-
 INCEPTION_ADDRESS = {
     'inception_host': '47.104.2.74',
-    'inception_port': 6669
+    'inception_port': 6669,
 }
 
 ################# 日志配置 ##################

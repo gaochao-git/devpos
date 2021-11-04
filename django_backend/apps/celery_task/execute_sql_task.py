@@ -170,8 +170,6 @@ class ExecuteSql:
                     cursor.execute(sql_results_insert)
                     sql_values = ""
                     i = 0
-                cursor.execute(sql)
-            connection.commit()
             common.audit_sql_log(self.file_path, 0, "执行结果写入数据库完成")
             if max(result_error_level_list) == 0: self.mark_ticket_status(2, 3)
             if max(result_error_level_list) == 1: self.mark_ticket_status(2, 5)
@@ -181,50 +179,96 @@ class ExecuteSql:
             logger.exception(e)
             common.audit_sql_log(self.file_path, 1, "处理执行结果出现异常:%s" % e)
             self.mark_ticket_status(2, 7)
-            connection.rollback()
         finally:
             cursor.close()
             connection.close()
 
+    # def mark_ticket_status(self, is_execute, execute_status):
+    #     """
+    #     所有子工单全部处理完后在处理主工单
+    #     不要被后面成功的工单覆盖前面失败的工单
+    #     标记子工单--->计算所有子工单---->标记主工单
+    #     :param is_execute:1-->未执行,2-->已执行'
+    #     :param execute_status:1-->未执行,2-->执行中,3-->执行成功,4-->执行失败,5-->执行成功含警告
+    #     :return:
+    #     """
+    #     # 标记子工单
+    #     child_sql = """
+    #             update sql_execute_split
+    #                 set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1
+    #             where split_sql_file_path='{}'
+    #          """.format(is_execute, execute_status, self.file_path)
+    #     parent_sql = """
+    #              update sql_submit_info
+    #                  set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1,dba_execute_user_name='{}'
+    #              where submit_sql_uuid='{}'
+    #           """.format(is_execute, execute_status, self.exe_user_name, self.submit_sql_uuid)
+    #     get_code_sql = """
+    #                         select execute_status from sql_execute_split where submit_sql_uuid='{}'
+    #                      """.format(self.submit_sql_uuid)
+    #     if execute_status == 2:
+    #         sql_list = []
+    #         sql_list.append(child_sql)
+    #         sql_list.append(parent_sql)
+    #         c_p_ret = db_helper.dml_many(sql_list)
+    #         if c_p_ret['status'] != 'ok': raise Exception("更新工单状态出现异常")
+    #     else:
+    #         c_ret = db_helper.dml(child_sql)
+    #         if c_ret['status'] != 'ok': raise Exception("更新子工单状态出现异常")
+    #         max_code_ret = db_helper.find_all(get_code_sql)
+    #         if max_code_ret['status'] != 'ok': raise Exception("获取所有子工单状态出现异常")
+    #         p_ret = db_helper.dml(parent_sql)
+    #         if p_ret['status'] != 'ok': raise Exception("更新主工单状态出现异常")
+
     def mark_ticket_status(self, is_execute, execute_status):
         """
-        所有子工单全部处理完后在处理主工单
-        不要被后面成功的工单覆盖前面失败的工单
         标记子工单--->计算所有子工单---->标记主工单
         :param is_execute:1-->未执行,2-->已执行'
         :param execute_status:1-->未执行,2-->执行中,3-->执行成功,4-->执行失败,5-->执行成功含警告
         :return:
         """
         # 标记子工单
-        child_sql = """
+        sql = """
                 update sql_execute_split 
                     set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1 
                 where split_sql_file_path='{}'
              """.format(is_execute, execute_status, self.file_path)
-        parent_sql = """
+        ret = db_helper.dml(sql)
+        if ret['status'] != 'ok': raise Exception("更新子工单状态出现异常")
+        # 判断所有子工单标记主工单
+        get_code_sql = """
+                    select distinct(execute_status) as execute_status from sql_execute_split where submit_sql_uuid='{}'
+                """.format(self.submit_sql_uuid)
+        get_code_ret = db_helper.find_all(get_code_sql)
+        if get_code_ret['status'] != "ok": raise Exception("获取子工单执行状态出现异常")
+        if len(get_code_ret['data']) == 0: raise Exception("获取子工单执行状态为空")
+        code_list = []
+        for i in get_code_ret['data']:
+            code_list.append(i['execute_status'])
+        if {4}.issubset(code_list):
+            self.mark_parent_ticket_status(2, 4)
+        elif {2}.issubset(code_list):
+            self.mark_parent_ticket_status(2, 2)
+        elif {5,1}.issubset(code_list):
+            self.mark_parent_ticket_status(2, 2)
+        elif {3,1}.issubset(code_list):
+            self.mark_parent_ticket_status(2, 2)
+        elif {5}.issubset(code_list):
+            self.mark_parent_ticket_status(2, 5)
+        elif {3}.issubset(code_list):
+            self.mark_parent_ticket_status(2, 3)
+
+    def mark_parent_ticket_status(self, is_execute, execute_status):
+        """
+        :param is_execute:1-->未执行,2-->已执行'
+        :param execute_status:1-->未执行,2-->执行中,3-->执行成功,4-->执行失败,5-->执行成功含警告
+        :return:
+        """
+        sql = """
                  update sql_submit_info 
                      set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1,dba_execute_user_name='{}' 
                  where submit_sql_uuid='{}'
               """.format(is_execute, execute_status, self.exe_user_name, self.submit_sql_uuid)
-        max_code_sql = """
-                            select max(execute_status) from sql_execute_split where submit_sql_uuid='{}'
-                         """.format(self.submit_sql_uuid)
-        print(child_sql)
-        print(parent_sql)
-        print(max_code_sql)
-        if execute_status == 2:
-            sql_list = []
-            sql_list.append(child_sql)
-            sql_list.append(parent_sql)
-            c_p_ret = db_helper.dml_many(sql_list)
-            if c_p_ret['status'] != 'ok': raise Exception("更新工单状态出现异常")
-        else:
-            c_ret = db_helper.dml(child_sql)
-            if c_ret['status'] != 'ok': raise Exception("更新子工单状态出现异常")
-            max_code_ret = db_helper.find_all(max_code_sql)
-            if max_code_ret['status'] != 'ok': raise Exception("获取所有子工单状态出现异常")
-            p_ret = db_helper.dml(parent_sql)
-            if p_ret['status'] != 'ok': raise Exception("更新主工单状态出现异常")
-
-
+        c_p_ret = db_helper.dml(sql)
+        if c_p_ret['status'] != 'ok': raise Exception("更新工单状态出现异常")
 
