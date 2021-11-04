@@ -178,6 +178,7 @@ class ExecuteSql:
             if max(result_error_level_list) == 2: self.mark_ticket_status(2, 4)
             common.audit_sql_log(self.file_path, 0, "标记工单状态完成")
         except Exception as e:
+            logger.exception(e)
             common.audit_sql_log(self.file_path, 1, "处理执行结果出现异常:%s" % e)
             self.mark_ticket_status(2, 7)
             connection.rollback()
@@ -208,7 +209,10 @@ class ExecuteSql:
         max_code_sql = """
                             select max(execute_status) from sql_execute_split where submit_sql_uuid='{}'
                          """.format(self.submit_sql_uuid)
-        if execute_status ==2:
+        print(child_sql)
+        print(parent_sql)
+        print(max_code_sql)
+        if execute_status == 2:
             sql_list = []
             sql_list.append(child_sql)
             sql_list.append(parent_sql)

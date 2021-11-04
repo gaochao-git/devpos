@@ -30,7 +30,6 @@ def findall(sql):
         message = "执行SQL失败"
         logger.exception("sql执行失败:%s", e)
     finally:
-        logger.info("sql:%s" % (sql))
         cursor.close()
         connection.close()
 
@@ -105,7 +104,6 @@ def dml(sql):
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:
-        logger.info("sql:%s" % (sql))
         cursor.close()
         connection.close()
         return {"status": status, "message": message, "code": code}
@@ -131,7 +129,6 @@ def dml_many(sql_list):
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:
-        logger.info("sql:%s" % (sql))
         cursor.close()
         connection.close()
         return {"status": status, "message": message, "code": code}

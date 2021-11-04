@@ -4,8 +4,6 @@ from apps.utils import inception
 from apps.dao import audit_sql_dao
 from apps.utils import common
 import logging
-import pymysql
-import json
 logger = logging.getLogger('inception_execute_logger')
 
 
