@@ -80,26 +80,42 @@ def audit_sql_log(file_path, status, msg):
     db_helper.dml(sql)
 
 
-def write_celery_task(task_id, submit_id):
+def write_celery_task(task_id, submit_id, task_type):
     """
     celery任务写入任务表
     :param task_id:
     :param submit_id:
+    :param task_type:
     :return:
     """
     sql = """
-            replace into my_celery_task_status(task_id,submit_uuid,task_status,create_time,update_time) 
-                                    values('{}','{}',0,now(),now()) 
-          """.format(task_id, submit_id)
+            insert into my_celery_task_status(task_id,submit_id,task_type,task_status,create_time,update_time) 
+                                    values('{}','{}','{}',0,now(),now()) 
+          """.format(task_id, submit_id, task_type)
     return db_helper.dml(sql)
 
 
-def mark_celery_task(submit_id, task_status):
+def mark_celery_task(submit_id, task_type, task_status):
     """
     更改celery状态
     :param submit_id:
     :param task_status:
     :return:
     """
-    sql = "update my_celery_task_status set task_status={} where submit_uuid='{}'".format(task_status, submit_id)
+    sql = """
+            update my_celery_task_status set task_status={} where submit_id='{}' and task_type='{}'
+          """.format(task_status, submit_id, task_type)
     return db_helper.dml(sql)
+
+
+def get_celery_task_status_dao(submit_id, task_type):
+    """
+    获取celery状态
+    :param submit_id:
+    :return:
+    """
+    sql = """
+            select task_status from my_celery_task_status 
+            where submit_id='{}' and task_type='{}'
+         """.format(submit_id, task_type)
+    return db_helper.find_all(sql)

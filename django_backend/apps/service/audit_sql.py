@@ -47,35 +47,26 @@ def check_sql(submit_type, check_sql_info, cluster_name, instance_name):
     if check_type != "async":
         ret = inception.check_sql(des_ip, des_port, check_sql_info)
     else:
-        submit_sql_uuid = str(uuid.uuid4())
+        check_sql_uuid = str(uuid.uuid4())
         check_user = "gaochao"
-        task_id = inception_check.delay(des_ip, des_port, submit_sql_uuid, check_sql_info, check_user)
+        task_id = inception_check.delay(des_ip, des_port, check_sql_uuid, check_sql_info, check_user)
         if task_id:
-            common.write_celery_task(task_id, submit_sql_uuid)
-            logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_id, submit_sql_uuid))
-            ret = {"status": "ok", "message": "发送任务成功", "data": submit_sql_uuid}
+            common.write_celery_task(task_id, check_sql_uuid, 'check_sql')
+            logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_id, check_sql_uuid))
+            data = {"check_sql_uuid": check_sql_uuid}
+            ret = {"status": "ok", "message": "发送任务成功", "data": data}
         else:
             ret = {"status": "error", "message": "发送任务失败"}
     return ret
 
 
-def get_check_task_status(submit_uuid):
-    """
-    获取异步审核工单状态
-    :param submit_uuid:
-    :return:
-    """
-    ret = audit_sql_dao.get_check_task_status_dao(submit_uuid)
-    return ret
-
-
-def get_pre_check_result(submit_uuid):
+def get_pre_check_result(check_sql_uuid):
     """
     获取预审核结果
-    :param submit_uuid:
+    :param check_sql_uuid:
     :return:
     """
-    ret = audit_sql_dao.get_pre_check_result_dao(submit_uuid)
+    ret = audit_sql_dao.get_pre_check_result_dao(check_sql_uuid)
     return ret
 
 
@@ -361,7 +352,7 @@ class PassSubmitSql:
     def v2_split_sql(self):
         task_id = inception_split.delay(self.submit_sql_uuid, self.ticket_info, self.des_ip, self.des_port)
         if task_id:
-            common.write_celery_task(task_id,'xxxxxxxx')
+            common.write_celery_task(task_id, self.submit_sql_uuid, "split_sql")
             logger.info("celery发送拆分任务成功返回task_id:%s" % task_id)
         else:
             raise Exception("发送拆分任务失败")

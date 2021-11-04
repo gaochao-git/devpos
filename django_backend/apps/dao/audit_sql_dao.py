@@ -241,11 +241,9 @@ def submit_sql_results_dao(uuid_str, check_sql_results, is_submit):
             total = total - 1
             if i < 50 and total == 0:  # 总数小于50或者最后一批不足50
                 sql_results_insert = sql_key + sql_values.rstrip(',')
-                print(sql_results_insert)
                 cursor.execute(sql_results_insert)
             elif i == 50: # 达到50就执行一批
                 sql_results_insert = sql_key + sql_values.rstrip(',')
-                print(sql_results_insert)
                 cursor.execute(sql_results_insert)
                 sql_values = ""
                 i = 0
@@ -483,28 +481,6 @@ def update_recreate_sql_flag_dao(flag, split_sql_file_path):
     finally:
         return update_status
 
-def set_execute_status(submit_sql_uuid, split_sql_file_path, is_execute, execute_status, execute_user_name):
-    # 更新工单状态为执行中
-    cursor = connection.cursor()
-    try:
-        sql_update_executing = "update sql_submit_info set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1,dba_execute_user_name='{}' where submit_sql_uuid='{}'".format(is_execute, execute_status, execute_user_name, submit_sql_uuid)
-        sql_execute_executing = "update sql_execute_split set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1 where split_sql_file_path='{}'".format(
-            is_execute,execute_status,split_sql_file_path)
-        cursor.execute(sql_update_executing)
-        cursor.execute(sql_execute_executing)
-        connection.commit()
-        logger.info("工单:%s,更新工单状态为执行中成功", submit_sql_uuid)
-        status = "ok"
-        message = "更新工单成功"
-    except Exception as e:
-        logger.info("工单:%s,更新工单状态为执行中失败:%s", submit_sql_uuid, str(e))
-        status = "error"
-        message = "更新工单失败"
-        connection.rollback()
-    finally:
-        cursor.close()
-        connection.close()
-        return {"status": status, "message":message}
 
 # 查看该SQL文件是否已经下发给celery
 def get_task_send_celery(split_sql_file_path):
@@ -528,20 +504,10 @@ def set_task_send_celery(split_sql_file_path):
         return update_status
 
 
-def get_check_task_status_dao(submit_uuid):
-    """
-    获取审核任务状态
-    :param submit_uuid:
-    :return:
-    """
-    sql = "select task_status from my_celery_task_status where submit_uuid='{}'".format(submit_uuid)
-    return db_helper.find_all(sql)
-
-
-def get_pre_check_result_dao(submit_uuid):
+def get_pre_check_result_dao(check_sql_uuid):
     """
     获取预审核结果
-    :param submit_uuid:
+    :param check_sql_uuid:
     :return:
     """
     sql = """
@@ -560,7 +526,7 @@ def get_pre_check_result_dao(submit_uuid):
             inception_backup_dbnames as backup_dbname
         from sql_check_results
         where submit_sql_uuid = '{}'
-    """.format(submit_uuid)
+    """.format(check_sql_uuid)
     return db_helper.find_all(sql)
 
 
@@ -571,5 +537,4 @@ def mark_sql_check_results_dao(submit_sql_uuid):
     :return:
     """
     sql = "update sql_check_results set is_submit=1 where submit_sql_uuid='{}'".format(submit_sql_uuid)
-    print(sql)
     return db_helper.dml(sql)

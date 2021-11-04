@@ -18,15 +18,16 @@ def get_submit_sql_info_controller(request):
     return HttpResponse(json.dumps(ret,default=str), content_type='application/json')
 
 
-def get_check_task_status_controller(request):
+def get_celery_task_status_controller(request):
     """
     获取审核工单状态
     :param request:
     :return:
     """
     try:
-        submit_uuid = request.GET.get("submit_uuid")  # None或者str
-        ret = audit_sql.get_check_task_status(submit_uuid)
+        submit_id = request.GET.get("submit_id")  # None或者str
+        task_type = request.GET.get("task_type")  # None或者str
+        ret = common.get_celery_task_status_dao(submit_id, task_type)
     except KeyError as e:
         logger.exception(e)
         ret = {"status": "error", "message": "参数不符合"}
@@ -40,8 +41,8 @@ def get_pre_check_result_controller(request):
     :return:
     """
     try:
-        submit_uuid = request.GET.get("submit_uuid")  # None或者str
-        ret = audit_sql.get_pre_check_result(submit_uuid)
+        check_sql_uuid = request.GET.get("check_sql_uuid")  # None或者str
+        ret = audit_sql.get_pre_check_result(check_sql_uuid)
     except KeyError as e:
         logger.exception(e)
         ret = {"status": "error", "message": "参数不符合"}

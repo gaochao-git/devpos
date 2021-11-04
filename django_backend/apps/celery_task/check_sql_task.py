@@ -17,21 +17,23 @@ class AsyncCheckSql:
         self.des_port = des_port
         self.check_sql = check_sql
         self.inc_ret_rows = ""
+        self.task_type = "check_sql"
 
     def task_run(self):
-        # 审核SQL---->推送到celery----->获取到任务------->预检查----->发送审核工具审核----->处理审核工具返回结果----->标记工单状态
-        common.mark_celery_task(self.submit_sql_uuid, 1)
+        # 发送审核SQL---->推送到celery----->celery获取到任务----->发送审核工具审核----->处理审核工具返回结果----->标记celery任务状态
+        common.mark_celery_task(self.submit_sql_uuid, self.task_type, 1)
+        common.audit_sql_log(self.submit_sql_uuid, 0, "======================开始审核SQL=================")
         try:
             self.send_inception()
             self.process_check_results()
-            common.mark_celery_task(self.submit_sql_uuid, 2)
+            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 2)
             common.audit_sql_log(self.submit_sql_uuid, 0, "任务审核完成")
         except Exception as e:
             logger.exception('工单%s审核失败,错误信息:%s', self.submit_sql_uuid, e)
-            common.mark_celery_task(self.submit_sql_uuid, 3)
+            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3)
             common.audit_sql_log(self.submit_sql_uuid, 1, "任务审核失败:%s" % e)
         finally:
-            common.audit_sql_log(self.submit_sql_uuid, 0, "======================end=================")
+            common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核SQL结束=================")
 
     def send_inception(self):
         """
@@ -41,10 +43,11 @@ class AsyncCheckSql:
         common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到审核工具审核")
         ret = inception.check_sql(self.des_ip, self.des_port, self.check_sql)
         if ret['status'] != "ok":
+            common.audit_sql_log(self.submit_sql_uuid, 1, "任务发送到审核工具审核失败")
             raise Exception(ret['message'])
         else:
             self.inc_ret_rows = ret['data']
-            common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到审核工具执行完成")
+            common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到审核工具审核完成")
 
     def process_check_results(self):
         """

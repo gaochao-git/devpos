@@ -120,7 +120,26 @@ class ExecuteSql:
         """
         cursor = connection.cursor()
         try:
+            sql_key = """
+                insert into sql_execute_results(submit_sql_uuid,
+                                                inception_id,
+                                                inception_stage,
+                                                inception_error_level,
+                                                inception_error_message,
+                                                inception_sql,
+                                                inception_affected_rows,
+                                                inception_execute_time,
+                                                inception_backup_dbname,
+                                                inception_sqlsha1,
+                                                inception_command,
+                                                inception_stage_status,
+                                                inception_sequence,
+                                                split_sql_file_path) values
+            """
             result_error_level_list = []
+            sql_values = ""
+            total = len(self.inc_ret_rows)
+            i = 0
             for check_sql_result in self.inc_ret_rows:
                 result_error_level_list.append(check_sql_result["errlevel"])
                 id = check_sql_result["ID"]
@@ -135,24 +154,22 @@ class ExecuteSql:
                 sqlsha1 = check_sql_result["sqlsha1"]
                 command = check_sql_result["command"]
                 affected_rows = check_sql_result["Affected_rows"]
-                sql = """
-                        insert into sql_execute_results(submit_sql_uuid,
-                                                        inception_id,
-                                                        inception_stage,
-                                                        inception_error_level,
-                                                        inception_error_message,
-                                                        inception_sql,
-                                                        inception_affected_rows,
-                                                        inception_execute_time,
-                                                        inception_backup_dbname,
-                                                        inception_sqlsha1,
-                                                        inception_command,
-                                                        inception_stage_status,
-                                                        inception_sequence,
-                                                        split_sql_file_path) 
-                                                  values('{}',{},'{}',{},'{}','{}',{},'{}','{}','{}','{}','{}','{}','{}')
-                """.format(self.submit_sql_uuid, id, stage, error_level, error_message, sql, affected_rows,
-                           execute_time, backup_dbnames, sqlsha1, command, stage_status, sequence, self.file_path)
+                value = """
+                            ('{}',{},'{}',{},'{}','{}',{},'{}','{}','{}','{}','{}','{}','{}')
+                        """.format(self.submit_sql_uuid, id, stage, error_level, error_message, sql, affected_rows,
+                                   execute_time, backup_dbnames, sqlsha1, command, stage_status, sequence,
+                                   self.file_path)
+                sql_values = sql_values + value + ','
+                i = i + 1
+                total = total - 1
+                if i < 50 and total == 0:  # 总数小于50或者最后一批不足50
+                    sql_results_insert = sql_key + sql_values.rstrip(',')
+                    cursor.execute(sql_results_insert)
+                elif i == 50:  # 达到50就执行一批
+                    sql_results_insert = sql_key + sql_values.rstrip(',')
+                    cursor.execute(sql_results_insert)
+                    sql_values = ""
+                    i = 0
                 cursor.execute(sql)
             connection.commit()
             common.audit_sql_log(self.file_path, 0, "执行结果写入数据库完成")
@@ -170,11 +187,40 @@ class ExecuteSql:
 
     def mark_ticket_status(self, is_execute, execute_status):
         """
-        标记工单状态公共方法
+        所有子工单全部处理完后在处理主工单
+        不要被后面成功的工单覆盖前面失败的工单
+        标记子工单--->计算所有子工单---->标记主工单
         :param is_execute:1-->未执行,2-->已执行'
         :param execute_status:1-->未执行,2-->执行中,3-->执行成功,4-->执行失败,5-->执行成功含警告
         :return:
         """
-        ret = audit_sql_dao.set_execute_status(self.submit_sql_uuid, self.file_path, is_execute, execute_status, self.exe_user_name)
-        if ret['status'] != 'ok': raise Exception("更新工单状态出现异常")
+        # 标记子工单
+        child_sql = """
+                update sql_execute_split 
+                    set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1 
+                where split_sql_file_path='{}'
+             """.format(is_execute, execute_status, self.file_path)
+        parent_sql = """
+                 update sql_submit_info 
+                     set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1,dba_execute_user_name='{}' 
+                 where submit_sql_uuid='{}'
+              """.format(is_execute, execute_status, self.exe_user_name, self.submit_sql_uuid)
+        max_code_sql = """
+                            select max(execute_status) from sql_execute_split where submit_sql_uuid='{}'
+                         """.format(self.submit_sql_uuid)
+        if execute_status ==2:
+            sql_list = []
+            sql_list.append(child_sql)
+            sql_list.append(parent_sql)
+            c_p_ret = db_helper.dml_many(sql_list)
+            if c_p_ret['status'] != 'ok': raise Exception("更新工单状态出现异常")
+        else:
+            c_ret = db_helper.dml(child_sql)
+            if c_ret['status'] != 'ok': raise Exception("更新子工单状态出现异常")
+            max_code_ret = db_helper.find_all(max_code_sql)
+            if max_code_ret['status'] != 'ok': raise Exception("获取所有子工单状态出现异常")
+            p_ret = db_helper.dml(parent_sql)
+            if p_ret['status'] != 'ok': raise Exception("更新主工单状态出现异常")
+
+
 

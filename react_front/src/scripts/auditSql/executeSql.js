@@ -75,7 +75,6 @@ export default class ExecuteSql extends Component {
         let submit_sql_uuid = this.props.match.params["submit_sql_uuid"];
         this.GetSqlApplyByUuid(submit_sql_uuid)
         this.GetSqlCheckResultsByUuid(submit_sql_uuid);
-        console.log(33333)
     };
     //获取提交SQL的详细信息
     async GetSqlApplyByUuid(sql_uuid) {
@@ -200,6 +199,65 @@ export default class ExecuteSql extends Component {
                 }
             }
         ).catch(err=>{message.error(err.message)})
+    };
+
+    //审核通过或不通过
+    async v2_PassSubmitSqlByUuid(value) {
+        this.setState({
+            sql_check_pass_loading:true
+        });
+        let params = {
+            submit_sql_uuid: this.state.submit_sql_uuid,
+            apply_results:value,
+            check_user_name:this.state.login_user_name,
+            check_user_name_role:this.state.login_user_name_role,
+            check_comment:this.state.check_comment,
+        };
+        await MyAxios.post('/pass_submit_sql_by_uuid/',params).then(
+            res=>{
+                if (res.data.status === "ok"){
+                    this.v2_setInterVal();
+                    message.success("工单审核通过,DDL/DML任务拆分中,请耐心等待",3);
+                }else{
+                    this.setState({
+                        ApplyModalVisible: false,
+                        sql_check_pass_loading:false
+                    });
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err=>{message.error(err.message)})
+    };
+
+    //间隔执行
+    v2_setInterVal = () => {
+         this.splitTimerId = window.setInterval(this.getSplitStatusByUuid.bind(this),2000);
+    }
+
+    //获取拆分任务状态
+    async getSplitStatusByUuid() {
+        let params = {
+            submit_id: this.state.submit_sql_uuid,
+            task_type:"split_sql"
+            };
+        await MyAxios.get('/v1/service/ticket/get_celery_task_status/',{params}).then(
+            res => {
+                if (res.data.status==="ok"){
+                    console.log(res.data)
+                   if (res.data.data[0]['task_status'] === 2 || res.data.data[0]['task_status']===3){
+                       this.setState({
+                           ApplyModalVisible: false,
+                           sql_check_pass_loading:false
+                        });
+                       message.success("DDL/DML任务拆分完毕",3)
+                       window.clearInterval(this.splitTimerId);
+                       this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
+                   }
+                }else{
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err => {message.error(err.message)})
     };
 
     //间隔执行
@@ -830,8 +888,8 @@ export default class ExecuteSql extends Component {
                     >
                         <TextArea rows={6} placeholder="审核说明"  onChange={e => this.setState({check_comment:e.target.value})}/>
                         <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
-                            <Button onClick={this.PassSubmitSqlByUuid.bind(this,'通过')} loading={this.state.sql_check_pass_loading} type="primary" style={{ marginRight: '10px' }}>通过</Button>
-                            <Button onClick={this.PassSubmitSqlByUuid.bind(this,'不通过')} loading={this.state.sql_check_pass_loading} type="primary">不通过</Button>
+                            <Button onClick={this.v2_PassSubmitSqlByUuid.bind(this,'通过')} loading={this.state.sql_check_pass_loading} type="primary" style={{ marginRight: '10px' }}>通过</Button>
+                            <Button onClick={this.v2_PassSubmitSqlByUuid.bind(this,'不通过')} loading={this.state.sql_check_pass_loading} type="primary">不通过</Button>
                         </Row>
                     </Modal>
                     <Modal visible={this.state.ViewExecuteSubmitSqlModalVisible}

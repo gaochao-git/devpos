@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Button, Table, Input, Modal, Tabs, Form, Row, Select, data, Card, AutoComplete, Tooltip,message} from "antd";
+import {Button, Table, Input, Modal, Tabs, Form, Row, Select, data, Card, AutoComplete, Tooltip,message,Spin} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -33,7 +33,6 @@ class AuditSqlIndex extends Component {
             submit_sql_info:[],
             submit_sql_button_disabled:"hide",
             submit_sql_flag:"未提交",
-            sql_check_loading:false,
             sql_submit_loading:false,
             des_ip_list:[],
             cluster_name_list:[],
@@ -49,6 +48,7 @@ class AuditSqlIndex extends Component {
             rebuild_table:"",
             set_value:"",
             check_sql_uuid:"",
+            global_loading:false
 
         }
     }
@@ -118,7 +118,7 @@ class AuditSqlIndex extends Component {
         };
         this.setState({
             check_sql_results: [],
-            sql_check_loading:true,
+            global_loading:true,
             submit_sql_button_disabled:"hide"
         });
         await MyAxios.post('/v1/service/ticket/audit_sql/check_sql/',params).then(
@@ -127,13 +127,13 @@ class AuditSqlIndex extends Component {
                    this.setState({
                         check_sql_results: res.data.data,
                         submit_sql_button_disabled:"show",
-                        sql_check_loading:false,
+                        global_loading:false,
                     })
                 }else{
                     message.error(res.data.message,3)
                     this.setState({
                         check_sql_results: [],
-                        sql_check_loading:false,
+                        global_loading:false,
                     })
                 }
             }
@@ -141,7 +141,7 @@ class AuditSqlIndex extends Component {
             message.error(err, 3);
             this.setState({
                 check_sql_results: [],
-                sql_check_loading:false,
+                global_loading:false,
             });
         })
     }
@@ -149,16 +149,14 @@ class AuditSqlIndex extends Component {
 
     //获取预审核结果
     async getPreCheckResultsByUuid() {
-        let params = {
-            submit_uuid:this.state.check_sql_uuid
-        };
+        let params = {check_sql_uuid:this.state.check_sql_uuid};
         await MyAxios.get('/v1/service/ticket/audit_sql/get_pre_check_result/',{params}).then(
             res => {
                 if (res.data.status==="ok"){
                    this.setState({
                         check_sql_results: res.data.data,
                         submit_sql_button_disabled:"show",
-                        sql_check_loading:false,
+                        global_loading:false,
                     })
                 }else{
                     message.error(res.data.message,3)
@@ -168,7 +166,7 @@ class AuditSqlIndex extends Component {
             message.error(err, 3);
             this.setState({
                 check_sql_results: [],
-                sql_check_loading:false,
+                global_loading:false,
             });
         })
     }
@@ -183,22 +181,22 @@ class AuditSqlIndex extends Component {
         };
         this.setState({
             check_sql_results: [],
-            sql_check_loading:true,
-            submit_sql_button_disabled:"hide"
+            submit_sql_button_disabled:"hide",
+            global_loading:true
         });
         await MyAxios.post('/v1/service/ticket/audit_sql/check_sql/',params).then(
             res => {
                 if (res.data.status==="ok"){
-                   message.success("异步任务已发起,请等待");
+                   message.success("异步审核任务已发起,请等待",3);
                    console.log(res.data.data)
                    this.setState({
-                        check_sql_uuid: res.data.data,
+                        check_sql_uuid: res.data.data["check_sql_uuid"],
                     },()=>{this.setInterVal()})
                 }else{
                     message.error(res.data.message,3)
                     this.setState({
                         check_sql_results: [],
-                        sql_check_loading:false,
+                        global_loading:false,
                     })
                 }
             }
@@ -206,31 +204,31 @@ class AuditSqlIndex extends Component {
             message.error(err, 3);
             this.setState({
                 check_sql_results: [],
-                sql_check_loading:false,
+                global_loading:false,
             });
         })
     }
     //间隔执行
     setInterVal = () => {
-         this.timerId = window.setInterval(()=>this.getSubmitInfoInterval(),2000);
-    }
-    //定时执行下面方法
-    getSubmitInfoInterval(){
-        this.getCheckStatusByUuid();
+         this.timerId = window.setInterval(()=>this.getCheckStatusByUuid(),2000);
     }
 
-    //获取审核状态
+    //获取审核任务状态
     async getCheckStatusByUuid() {
         let params = {
-            submit_uuid: this.state.check_sql_uuid
-        };
-        console.log(this.state.check_sql_uuid)
-        await MyAxios.get('/v1/service/ticket/get_check_task_status/',{params}).then(
+            submit_id: this.state.check_sql_uuid,
+            task_type:"check_sql"
+            };
+        await MyAxios.get('/v1/service/ticket/get_celery_task_status/',{params}).then(
             res => {
                 if (res.data.status==="ok"){
                    if (res.data.data[0]['task_status'] === 2 || res.data.data[0]['task_status']===3){
+                       message.success("异步审核任务完成",3)
                        window.clearInterval(this.timerId);
                        this.getPreCheckResultsByUuid();
+                       this.setState({
+                           global_loading:false
+                       });
                    }
                 }else{
                     message.error(res.data.message)
@@ -468,6 +466,7 @@ class AuditSqlIndex extends Component {
                     </Table>
                 </TabPane>
                 <TabPane tab="SQL新建工单" key="2">
+                <Spin spinning={this.state.global_loading}>
                     <div className="sub-title-input">
                         <Select defaultValue="master_ip_port" style={{ width: 150 }} onChange={e => this.handleDbSourceTypeChange(e)}>
                             <Option value="cluster">集群名</Option>
@@ -511,7 +510,7 @@ class AuditSqlIndex extends Component {
                     </div>
                     <div>
                         <TextArea rows={10} placeholder="输入SQL,每条SQL以 ; 结尾"  onChange={e => this.handleSqlChange(e.target.value)}/>
-                        <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.v2_handleSqlCheck()}}>检测SQL</Button>
+                        <Button type="primary" onClick={()=>{this.v2_handleSqlCheck()}}>检测SQL</Button>
                         {this.state.submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>:null}
                     </div>
                     <Table
@@ -577,6 +576,7 @@ class AuditSqlIndex extends Component {
                             </Row>
                         </Form>
                     </Modal>
+                </Spin>
                 </TabPane>
                 <TabPane tab="生成块SQL" key="3">
                     <div className="sub-title-input">
@@ -608,7 +608,7 @@ class AuditSqlIndex extends Component {
                         <Input size="default" style={{width: 800}} placeholder="where 条件(不要输入where关键字,不要输入结束符),正确输入案例:name='张三' and age=18" onChange={e => this.setState({where_condition:e.target.value})}/>
                     </div>
                     <div className="sub-title-input">
-                        <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.handlerCreateBlockSql()}}>生成SQL</Button>
+                        <Button type="primary" onClick={()=>{this.handlerCreateBlockSql()}}>生成SQL</Button>
                     </div>
                     <div className="sub-title-input">
                         {this.state.create_sql_content === "" ? null : <TextArea rows={5} value={this.state.create_sql_content} onChange={e => this.setState({where_condition:e.target.value})}/>}
