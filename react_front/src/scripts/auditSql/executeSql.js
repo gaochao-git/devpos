@@ -35,6 +35,7 @@ export default class ExecuteSql extends Component {
             execute_status:"",
             execute_sql_process_results:[],
             check_sql_results:[],
+            recheck_sql_results:[],
             view_check_sql_result:[],
             view_submit_sql_info:[],
             view_submit_split_sql_info:[],
@@ -68,17 +69,20 @@ export default class ExecuteSql extends Component {
             sql_check_code_explain:"",
             cluster_name:"",
             check_comment:"",
+            modifySubmitSqlVisible:false,
+            modify_sql:"",
+            submit_type:"",
+            is_submit:"",
         }
         this.cacheData = this.state.data.map(item => ({ ...item }));
     }
 
     componentDidMount() {
-        let submit_sql_uuid = this.props.match.params["submit_sql_uuid"];
-        this.GetSqlApplyByUuid(submit_sql_uuid)
-        this.GetSqlCheckResultsByUuid(submit_sql_uuid);
+        this.GetSqlApplyByUuid()
+        this.GetSqlCheckResultsByUuid();
     };
     //获取提交SQL的详细信息
-    async GetSqlApplyByUuid(sql_uuid) {
+    async GetSqlApplyByUuid() {
         let params = {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
@@ -92,8 +96,8 @@ export default class ExecuteSql extends Component {
              console.log("SQL执行中，定时id为:",this.timerId);
              console.log("SQL执行状态:",this.state.execute_status);
         }
-        let res = await MyAxios.post(`${backendServerApiRoot}/get_apply_sql_by_uuid/`,params);
-        let res_split_sql = await MyAxios.post(`${backendServerApiRoot}/get_split_sql_by_uuid/`,params);
+        let res = await MyAxios.post("/get_apply_sql_by_uuid/",params);
+        let res_split_sql = await MyAxios.post("/get_split_sql_by_uuid/",params);
         if (res.data.data[0]["cluster_name"].length>0){
             this.setState({
                 cluster_name:res.data.data[0]["cluster_name"]
@@ -121,6 +125,7 @@ export default class ExecuteSql extends Component {
             submit_sql_affect_rows:res.data.data[0]["submit_sql_affect_rows"],
             submit_sql_execute_type:res.data.data[0]["submit_sql_execute_type"],
             comment_info:res.data.data[0]["comment_info"],
+            is_submit:res.data.data[0]["is_submit"],
             view_submit_split_sql_info:res_split_sql.data.data,
         })
     };
@@ -128,7 +133,7 @@ export default class ExecuteSql extends Component {
     async GetSubmitSqlByUuid(uuid) {
         this.setState({sql_view_loading:true,})
         let params = {submit_sql_uuid: this.state.submit_sql_uuid,};
-        let res = await MyAxios.post(`${backendServerApiRoot}/get_submit_sql_by_uuid/`,params);
+        let res = await MyAxios.post('/get_submit_sql_by_uuid/',params);
         if (res.data.status==="ok"){
             this.setState({
                 showSubmitSqlViewVisible: true,
@@ -141,14 +146,28 @@ export default class ExecuteSql extends Component {
         }
     };
 
+    //获取修改前SQL
+    async GetModifySqlByUuid(uuid) {
+        let params = {submit_sql_uuid: this.state.submit_sql_uuid,};
+        let res = await MyAxios.post('/get_submit_sql_by_uuid/',params);
+        if (res.data.status==="ok"){
+            this.setState({
+                modifySubmitSqlVisible: true,
+                modify_sql:res.data.data,
+            })
+        }else{
+            message.error(res.data.message)
+        }
+    };
+
     //查看SQL审核结果
-    async GetSqlCheckResultsByUuid(uuid) {
+    async GetSqlCheckResultsByUuid() {
         this.setState({sql_check_results_loading:true})
         let params = {submit_sql_uuid: this.props.match.params["submit_sql_uuid"],};
-        let res = await MyAxios.post(`${backendServerApiRoot}/get_check_sql_results_by_uuid/`,params);
+        let res = await MyAxios.post("/get_check_sql_results_by_uuid/",params);
         let inception_error_level_rray=[];
         for(var i=0;i<res.data.data.length;i++){
-            inception_error_level_rray.push(res.data.data[i]["inception_error_level"])
+            inception_error_level_rray.push(res.data.data[i]["errlevel"])
         };
         this.setState({
             view_check_sql_result:res.data.data,
@@ -216,6 +235,45 @@ export default class ExecuteSql extends Component {
          this.splitTimerId = window.setInterval(this.getSplitStatusByUuid.bind(this),2000);
     }
 
+    async handleReCheckSql() {
+        let params = {
+            cluster_name:this.state.cluster_name,
+            instance_name: this.state.master_ip + "_" + this.state.master_port,
+            check_sql_info: this.state.modify_sql,
+            submit_type:this.state.submit_type,
+            submit_sql_uuid:this.state.submit_sql_uuid,
+        };
+        this.setState({
+            pre_check_sql_results: [],
+            re_submit_sql_button_disabled:"hide",
+            global_loading:true,
+            showReCheckVisible:false
+        });
+        await MyAxios.post('/v1/service/ticket/audit_sql/recheck_sql/',params).then(
+            res => {
+                if (res.data.status==="ok"){
+                   message.success("异步审核任务已发起,请等待",3);
+                   console.log(res.data.data)
+                   this.setState({
+                        check_sql_uuid: res.data.data["check_sql_uuid"],
+                    },()=>{this.reChecksetInterVal()})
+                }else{
+                    message.error(res.data.message,3)
+                    this.setState({
+                        check_sql_results: [],
+                        global_loading:false,
+                    })
+                }
+            }
+        ).catch(err => {
+            message.error(err, 3);
+            this.setState({
+                pre_check_sql_results: [],
+                global_loading:false,
+            });
+        })
+    }
+
     //获取拆分任务状态
     async getSplitStatusByUuid() {
         let params = {
@@ -249,6 +307,59 @@ export default class ExecuteSql extends Component {
          this.timerId = window.setInterval(this.GetSqlApplyByUuid.bind(this),1000);
          // this.timerProcessId = window.setInterval(this.getExecuteProcessByUuidTimeInterval.bind(this),1000);
     }
+    //重新审核间隔执行
+    reChecksetInterVal = () => {
+         this.timerId = window.setInterval(this.getCheckStatusByUuid.bind(this),1000);
+         // this.timerProcessId = window.setInterval(this.getExecuteProcessByUuidTimeInterval.bind(this),1000);
+    }
+
+    //获取重新审核任务状态
+    async getCheckStatusByUuid() {
+        let params = {
+            submit_id: this.props.match.params["submit_sql_uuid"],
+            task_type:"recheck_sql"
+            };
+        await MyAxios.get('/v1/service/ticket/get_celery_task_status/',{params}).then(
+            res => {
+                if (res.data.status==="ok"){
+                   if (res.data.data[0]['task_status'] === 2){
+                       window.clearInterval(this.timerId);
+                       message.success("异步审核任务完成",3);
+                       this.GetSqlCheckResultsByUuid();
+                       this.GetSqlApplyByUuid()
+                       this.setState({global_loading:false,re_submit_sql_button_disabled:"show"});
+                   }else if (res.data.data[0]['task_status']===3){
+                        window.clearInterval(this.timerId);
+                        message.error(res.data.data[0]['message'],3);
+                        this.setState({global_loading:false});
+                   }
+                }else{
+                    window.clearInterval(this.timerId);
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err => {message.error(err.message)})
+    };
+    
+    //提交工单
+    async submitReChecksql() {
+        let params = {
+            submit_sql_uuid: this.state.submit_sql_uuid,
+            modify_sql: this.state.modify_sql,
+        };
+        await MyAxios.post('/submit_recheck_sql/',params).then(
+            res => {
+                if(res.data.status==="ok") {
+                    this.setState({showReSubmitVisible:false,modifySubmitSqlVisible:false});
+                    this.GetSqlApplyByUuid();
+                    message.success("提交任务成功");
+                }else{
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err => {message.error(err.message)})
+    }
+
     //平台自动执行SQL
     async ExecuteBySplitSqlFilePath(split_sql_file_path) {
         //如果current_split_seq是最小则直接执行,否则判断他前面的是否已经执行,如果前面没执行,后面不允许执行,代码需要code
@@ -305,7 +416,7 @@ export default class ExecuteSql extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path
         };
-        await MyAxios.post(`${backendServerApiRoot}/execute_submit_sql_by_file_path_manual/`, params).then(
+        await MyAxios.post("/execute_submit_sql_by_file_path_manual/", params).then(
             res => {
                 res.data.status === "ok" ? this.GetSqlApplyByUuid(this.state.submit_sql_uuid) && message.success(res.data.message) : message.error(res.data.message);
             })
@@ -332,7 +443,7 @@ export default class ExecuteSql extends Component {
         let params = {
             split_sql_file_path:split_sql_file_path
         };
-        let res = await MyAxios.post(`${backendServerApiRoot}/get_submit_split_sql_by_file_path/`,params);
+        let res = await MyAxios.post("/get_submit_split_sql_by_file_path/",params);
         if (res.data.status==="ok"){
             this.setState({
                 SplitSQLModalVisible: true,
@@ -622,36 +733,45 @@ export default class ExecuteSql extends Component {
         const check_results_columns = [
             {
               title: 'ID',
-              dataIndex: 'inception_id',
-              key: "inception_id",
+              dataIndex: 'ID',
+              key: "ID",
+            },
+            {
+              title: 'stage',
+              dataIndex: 'stage',
+              key: "stage",
             },
             {
               title: 'SQL',
-              dataIndex: 'inception_sql',
-              key: "inception_sql",
-              width:500
+              dataIndex: 'SQL',
+              key: "SQL",
             },
             {
               title: '状态',
-              dataIndex: 'inception_stage_status',
-              key:"inception_stage_status",
+              dataIndex: 'stagestatus',
+              key:"stagestatus",
             },
             {
               title: '错误代码',
-              dataIndex: 'inception_error_level',
-              key:"inception_error_level",
-              sorter: (a, b) => a.inception_error_level - b.inception_error_level,
+              dataIndex: 'errlevel',
+              key:"errlevel",
+              sorter: (a, b) => a.Error_Level - b.Error_Level,
             },
             {
               title: '错误信息',
-              dataIndex: 'inception_error_message',
-              key:"inception_error_message",
+              dataIndex: 'errormessage',
+              key:"errormessage",
             },
             {
               title: '影响行数',
-              dataIndex: 'inception_affected_rows',
-              key:"inception_affected_rows",
-            }
+              dataIndex: 'Affected_rows',
+              key:"Affected_rows",
+            },
+            {
+              title: 'SQL类型',
+              dataIndex: 'command',
+              key:"command",
+            },
         ];
 
         const split_sql_columns = [
@@ -764,6 +884,7 @@ export default class ExecuteSql extends Component {
                     <Row type='flex' justify="space-around">
                         <Col span={11} className="col-detail">
                             <Row gutter={8}><Col style={{padding:5}} span={8}>主题:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_title}</Col></Row>
+                            <Row gutter={8}><Col style={{padding:5}} span={8}>是否提交:</Col><Col style={{padding:5}} span={16}>{this.state.is_submit}</Col></Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={8}>SQL预览:</Col>
                                 <Button className="link-button" loading={this.state.sql_view_loading} onClick={this.GetSubmitSqlByUuid.bind(this)} style={{padding:5}} span={16}>查看</Button>
@@ -816,13 +937,14 @@ export default class ExecuteSql extends Component {
                         </Col>
                     </Row>
                     <br/>
+                    <Button type="primary" loading={this.state.sql_view_loading} onClick={this.GetModifySqlByUuid.bind(this)}>修改SQL</Button>
                     {(this.state.login_user_name_role!=="dba") ?
                         <div>
                             <h3>审核操作</h3>
                             <div className="input-padding">
-                                { (this.state.leader_check==="未审核" && this.state.login_user_name_role==="leader") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核</Button>:null}
-                                { (this.state.qa_check === '未审核' && this.state.login_user_name_role==="qa") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核</Button>:null}
-                                { (this.state.dba_check === '未审核' && this.state.login_user_name_role!=="dba") ? <Button type="primary" style={{marginLeft:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核</Button>:null}
+                                { (this.state.leader_check==="未审核" && this.state.login_user_name_role==="leader") ? <Button type="primary" style={{marginRight:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核工单</Button>:null}
+                                { (this.state.qa_check === '未审核' && this.state.login_user_name_role==="qa") ? <Button type="primary" style={{marginRight:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核工单</Button>:null}
+                                { (this.state.dba_check === '未审核' && this.state.login_user_name_role!=="dba") ? <Button type="primary" style={{marginRight:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核工单</Button>:null}
 
                             </div>
                         </div>
@@ -958,6 +1080,65 @@ export default class ExecuteSql extends Component {
                         width={960}
                     >
                         <TextArea wrap="off" style={{minHeight:300,overflow:"scroll"}} value={this.state.submit_split_sql}/>
+                    </Modal>
+                    <Modal visible={this.state.modifySubmitSqlVisible}
+                        onCancel={() => this.setState({modifySubmitSqlVisible:false})}
+                        title="修改SQL"
+                        footer={false}
+                        width={960}
+                    >
+                        <Spin spinning={this.state.global_loading} size="default">
+                            <div>
+                                <TextArea wrap="off" style={{minHeight:300,overflow:"scroll"}} value={this.state.modify_sql} onChange={e => this.setState({modify_sql:e.target.value})}/>
+                                <Button type="primary" onClick={() => this.setState({showReCheckVisible:true})}>检测SQL</Button>
+                                {this.state.re_submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.setState({showReSubmitVisible:true})}}>提交SQL</Button>:null}
+                            </div>
+                            <Table
+                              dataSource={this.state.view_check_sql_result}
+                              rowKey={(row ,index) => index}
+                                                        rowClassName={(record, index) => {
+                                                    let className = 'row-detail-default ';
+                                                    if (record.Error_Level === 2) {
+                                                        className = 'row-detail-error';
+                                                        return className;
+                                                    }else if (record.Error_Level  === 0){
+                                                        className = 'row-detail-success';
+                                                        return className;
+                                                    }else if (record.Error_Level  === 1){
+                                                        className = 'row-detail-warning';
+                                                        return className;
+                                                    }else {
+                                                        return className;
+                                                    }
+                                        }}
+                                pagination={true}
+                                size="small"
+                                columns={check_results_columns}
+
+                            />
+                        </Spin>
+                    </Modal>
+                    <Modal visible={this.state.showReSubmitVisible}
+                        onCancel={() => this.setState({showReSubmitVisible:false})}
+                        title="确认提交?"
+                        footer={false}
+                        width={300}
+                    >
+                        <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
+                            <Button onClick={()=>this.submitReChecksql()} type="primary" style={{ marginRight: '10px' }}>执行</Button>
+                            <Button onClick={() => this.setState({showReSubmitVisible:false})} type="primary">返回</Button>
+                        </Row>
+                    </Modal>
+                    <Modal visible={this.state.showReCheckVisible}
+                        onCancel={() => this.setState({showReCheckVisible:false})}
+                        title="重新审核会覆盖原有审核结果和提交的SQL,确认执行?"
+                        footer={false}
+                        width={600}
+                    >
+                        <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
+                            <Button type="danger" onClick={()=>{this.handleReCheckSql()}} style={{ marginRight: '10px' }}>执行</Button>
+                            <Button onClick={() => this.setState({showReCheckVisible:false})} type="primary">返回</Button>
+                        </Row>
                     </Modal>
                 </div>
                 </div>

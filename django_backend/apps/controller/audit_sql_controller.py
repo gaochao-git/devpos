@@ -100,13 +100,49 @@ def check_sql_controller(request):
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
+def recheck_sql_controller(request):
+    """
+    request_body.get('xx')参数为选填参数
+    request_body['xx']参数为必选参数
+    :param request:
+    :return:
+    """
+    try:
+        request_body = json.loads(str(request.body, encoding="utf-8"))
+        cluster_name = request_body.get('cluster_name').strip()
+        instance_name = request_body.get('instance_name').strip()
+        check_sql_info = request_body['check_sql_info']
+        submit_type = request_body['submit_type']
+        submit_sql_uuid =  request_body['submit_sql_uuid']
+        ret = audit_sql.recheck_sql(submit_sql_uuid, submit_type, check_sql_info, cluster_name, instance_name)
+    except Exception as e:
+        logger.exception(e)
+        ret = {"status": "error", "message": "参数不符合"}
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+
 # 页面提交SQL工单
 def submit_sql_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
-    # ret = audit_sql.submit_sql(request_body)
     abj = audit_sql.SubmitSql(request_body)
     ret = abj.process_submit_sql()
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+
+
+def submit_recheck_sql_controller(request):
+    """
+    重新提交工单
+    :param request:
+    :return:
+    """
+    try:
+        request_body = json.loads(str(request.body, encoding="utf-8"))
+        submit_sql_uuid = request_body['submit_sql_uuid']
+        ret = audit_sql.submit_recheck_sql(submit_sql_uuid, 1)
+    except Exception as e:
+        logger.exception(e)
+        ret = {"status": "error", "message": "参数不符合"}
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+
 
 
 

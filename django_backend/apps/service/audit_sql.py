@@ -60,6 +60,36 @@ def check_sql(submit_type, check_sql_info, cluster_name, instance_name):
     return ret
 
 
+def recheck_sql(submit_sql_uuid, submit_type, check_sql_info, cluster_name, instance_name):
+    """
+    检查SQL语法
+    :param submit_type
+    :param check_sql_info:
+    :param cluster_name:
+    :param instance_name:
+    :return:
+    """
+    if submit_type == "cluster":
+        instance_ret = common.get_cluster_node(cluster_name, 'M')
+        if instance_ret['status'] !="ok": return instance_ret
+        elif len(instance_ret['data']) ==0: return {"status": "error", "message":"没有获取到写节点"}
+        else: instance_name = instance_ret['data'][0]['instance_name']
+    elif submit_type == "template":
+        pass
+    des_ip, des_port = instance_name.split('_')[0], instance_name.split('_')[1]
+    check_sql_uuid = submit_sql_uuid
+    check_user = "gaochao"
+    task_id = inception_check.delay(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,"recheck_sql")
+    if task_id:
+        common.write_celery_task(task_id, check_sql_uuid, 'recheck_sql')
+        logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_id, check_sql_uuid))
+        data = {"check_sql_uuid": check_sql_uuid}
+        ret = {"status": "ok", "message": "发送任务成功", "data": data}
+    else:
+        ret = {"status": "error", "message": "发送任务失败"}
+    return ret
+
+
 def get_pre_check_result(check_sql_uuid):
     """
     获取预审核结果
@@ -131,18 +161,9 @@ def get_submit_split_sql_by_file_path(split_sql_file_path):
 
 # 页面查看审核结果
 def get_check_sql_results_by_uuid(submit_sql_uuid):
-    data = []
-    try:
-        data = audit_sql_dao.get_check_sql_results_by_uuid_dao(submit_sql_uuid)
-        status = "ok"
-        message = "ok"
-    except Exception as e:
-        status = "error"
-        message = e
-        logger.error(e)
-    finally:
-        content = {'status': status, 'message': message, 'data': data}
-        return content
+    ret = audit_sql_dao.get_pre_check_result_dao(submit_sql_uuid)
+    return ret
+
 
 
 # 页面查看inception变量配置
@@ -176,6 +197,17 @@ def update_inception_variable(request_body_json,split_sql_file_path):
     finally:
         content = {'status': status, 'message': message}
         return content
+
+
+def submit_recheck_sql(submit_sql_uuid, is_submit):
+    """
+    修改工单为提交
+    :param submit_sql_uuid:
+    :param is_submit:
+    :return:
+    """
+    ret = audit_sql_dao.mark_ticket_dao(submit_sql_uuid, is_submit)
+    return ret
 
 
 class SubmitSql:

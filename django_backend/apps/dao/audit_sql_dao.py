@@ -31,7 +31,8 @@ def get_submit_sql_info_dao():
             a.dba_check_user_name,
             a.dba_execute_user_name,
             a.ctime,
-            a.utime
+            a.utime,
+            case a.is_submit when 0 then '暂不提交' when 1 then '提交' end as is_submit
         FROM sql_submit_info a inner join team_user b on a.submit_sql_user=b.uname where 1=1 {} order by a.ctime desc, a.utime desc
     """.format(where_condition)
     return db_helper.find_all(sql)
@@ -67,15 +68,16 @@ def get_apply_sql_by_uuid_dao(submit_sql_uuid):
                cluster_name,
                comment_info,
                submit_sql_uuid,
-               (select count(*) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_rows,
-               (select sum(inception_affected_rows) from  sql_check_results where submit_sql_uuid='{}') as submit_sql_affect_rows,
-               (select sum(inception_execute_time) from sql_execute_results where submit_sql_uuid='{}') as inception_execute_time,
+               (select count(*) from  sql_check_results where submit_sql_uuid='{0}') as submit_sql_rows,
+               (select sum(inception_affected_rows) from  sql_check_results where submit_sql_uuid='{0}') as submit_sql_affect_rows,
+               (select sum(inception_execute_time) from sql_execute_results where submit_sql_uuid='{0}') as inception_execute_time,
                submit_sql_execute_type,
                comment_info,
-               submit_sql_file_path
+               submit_sql_file_path,
+               case is_submit when 0 then '暂不提交' when 1 then '提交' end as is_submit
         from sql_submit_info
-        where submit_sql_uuid='{}'
-    """.format(submit_sql_uuid,submit_sql_uuid,submit_sql_uuid,submit_sql_uuid)
+        where submit_sql_uuid='{0}'
+    """.format(submit_sql_uuid)
     rows = []
     try:
         rows = db_helper.findall(sql)
@@ -99,15 +101,18 @@ def get_master_ip_dao():
 
 
 # 页面查看审核结果
-def get_check_sql_results_by_uuid_dao(submit_sql_uuid):
-    sql = "select inception_id,inception_sql,inception_stage_status,inception_error_level,inception_error_message,inception_affected_rows from sql_check_results where submit_sql_uuid='{}'".format(submit_sql_uuid)
-    rows = []
-    try:
-        rows = db_helper.findall(sql)
-    except Exception as e:
-        logger.error(e)
-    finally:
-        return rows
+# def get_check_sql_results_by_uuid_dao(submit_sql_uuid):
+#     sql = "select inception_id,inception_sql,inception_stage_status,inception_error_level,inception_error_message,inception_affected_rows from sql_check_results where submit_sql_uuid='{}'".format(submit_sql_uuid)
+#     return db_helper.find_all(sql)
+
+def remove_last_results_dao(submit_sql_uuid):
+    """
+    删除历史审核结果
+    :param submit_sql_uuid:
+    :return:
+    """
+    sql = "delete from sql_check_results where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    return db_helper.dml(sql)
 
 
 # 页面查看inception变量配置
@@ -537,4 +542,15 @@ def mark_sql_check_results_dao(submit_sql_uuid):
     :return:
     """
     sql = "update sql_check_results set is_submit=1 where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    return db_helper.dml(sql)
+
+
+def mark_ticket_dao(submit_sql_uuid, is_submit):
+    """
+    标记工单为提交或不提交，主要是用来处理用户修改已经提交的SQL
+    :param submit_sql_uuid:0不提交,1提交
+    :param is_submit:
+    :return:
+    """
+    sql = "update sql_submit_info set is_submit={} where submit_sql_uuid='{}'".format(is_submit, submit_sql_uuid)
     return db_helper.dml(sql)

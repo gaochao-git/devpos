@@ -39,7 +39,9 @@ urlpatterns = [
     path('api/get_inception_variable_config_info/', audit_sql_controller.get_inception_variable_config_info_controller), # 获取osc参数
     path('api/update_inception_variable/', audit_sql_controller.update_inception_variable_controller), # 更新 osc参数
     path('api/v1/service/ticket/audit_sql/check_sql/', audit_sql_controller.check_sql_controller),   # 检测sql
+    path('api/v1/service/ticket/audit_sql/recheck_sql/', audit_sql_controller.recheck_sql_controller),   # 修改并检测已提交sql
     path('api/submit_sql/', audit_sql_controller.submit_sql_controller), # 提交SQL
+    path('api/submit_recheck_sql/', audit_sql_controller.submit_recheck_sql_controller), # 重新提交SQL
     path('api/pass_submit_sql_by_uuid/', audit_sql_controller.pass_submit_sql_by_uuid_controller), # 审核SQL
     path('api/get_master_ip/', audit_sql_controller.get_master_ip_controller), # sql审核--获取主库ip
     path('api/get_cluster_name/', audit_sql_controller.get_cluster_name_controller), # sql审核--根据cluster_name输入框自动补全
