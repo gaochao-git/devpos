@@ -82,13 +82,12 @@ export default class ExecuteSql extends Component {
         let params = {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
-        if( this.state.execute_status === "执行成功" || this.state.execute_status === "执行失败"  || this.state.execute_status === "执行成功(含警告)"){
+        let arr_execute_status = ['执行成功','执行失败','执行成功(含警告)']
+        if(arr_execute_status.includes(this.state.execute_status)){
             window.clearInterval(this.timerId);
             window.clearInterval(this.timerProcessId);
             console.log("SQL执完毕，关闭定时器");
-            this.setState({
-                global_loading:false
-            })
+            this.setState({global_loading:false})
         } else{
              console.log("SQL执行中，定时id为:",this.timerId);
              console.log("SQL执行状态:",this.state.execute_status);
@@ -124,18 +123,11 @@ export default class ExecuteSql extends Component {
             comment_info:res.data.data[0]["comment_info"],
             view_submit_split_sql_info:res_split_sql.data.data,
         })
-        console.log(111)
-        console.log(this.state.view_submit_split_sql_info)
-        console.log(2222)
     };
     //提交预览SQL
     async GetSubmitSqlByUuid(uuid) {
-        this.setState({
-            sql_view_loading:true,
-        })
-        let params = {
-            submit_sql_uuid: this.state.submit_sql_uuid,
-        };
+        this.setState({sql_view_loading:true,})
+        let params = {submit_sql_uuid: this.state.submit_sql_uuid,};
         let res = await MyAxios.post(`${backendServerApiRoot}/get_submit_sql_by_uuid/`,params);
         if (res.data.status==="ok"){
             this.setState({
@@ -145,21 +137,14 @@ export default class ExecuteSql extends Component {
             })
         }else{
             message.error(res.data.message)
-            this.setState({
-                sql_view_loading:false,
-            })
+            this.setState({sql_view_loading:false,})
         }
     };
 
     //查看SQL审核结果
     async GetSqlCheckResultsByUuid(uuid) {
-        this.setState({
-            sql_check_results_loading:true
-        })
-        // let token = window.localStorage.getItem('token')
-        let params = {
-            submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
-        };
+        this.setState({sql_check_results_loading:true})
+        let params = {submit_sql_uuid: this.props.match.params["submit_sql_uuid"],};
         let res = await MyAxios.post(`${backendServerApiRoot}/get_check_sql_results_by_uuid/`,params);
         let inception_error_level_rray=[];
         for(var i=0;i<res.data.data.length;i++){
@@ -174,9 +159,7 @@ export default class ExecuteSql extends Component {
     };
     //审核通过或不通过
     async PassSubmitSqlByUuid(value) {
-        this.setState({
-            global_loading:true
-        });
+        this.setState({global_loading:true});
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
             apply_results:value,
@@ -184,7 +167,7 @@ export default class ExecuteSql extends Component {
             check_user_name_role:this.state.login_user_name_role,
             check_comment:this.state.check_comment,
         };
-        await MyAxios.post(`${backendServerApiRoot}/pass_submit_sql_by_uuid/`,params).then(
+        await MyAxios.post('/pass_submit_sql_by_uuid/',params).then(
             res=>{
                 if (res.data.status === "ok"){
                     this.setState({
@@ -207,9 +190,7 @@ export default class ExecuteSql extends Component {
 
     //审核通过或不通过
     async v2_PassSubmitSqlByUuid(value) {
-        this.setState({
-            modal_loading:true
-        });
+        this.setState({modal_loading:true});
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
             apply_results:value,
@@ -223,10 +204,7 @@ export default class ExecuteSql extends Component {
                     this.v2_setInterVal();
                     message.success("工单审核通过,DDL/DML任务拆分中,请耐心等待",3);
                 }else{
-                    this.setState({
-                        ApplyModalVisible: false,
-                        modal_loading:false
-                    });
+                    this.setState({ApplyModalVisible: false,modal_loading:false});
                     message.error(res.data.message)
                 }
             }
@@ -274,10 +252,6 @@ export default class ExecuteSql extends Component {
     //平台自动执行SQL
     async ExecuteBySplitSqlFilePath(split_sql_file_path) {
         //如果current_split_seq是最小则直接执行,否则判断他前面的是否已经执行,如果前面没执行,后面不允许执行,代码需要code
-        this.setState({
-            execute_status: "执行中",
-            global_loading:true
-        });
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
             inception_backup: this.state.inception_backup,
@@ -308,9 +282,11 @@ export default class ExecuteSql extends Component {
         }else {
             if (this.state.execute_sql_flag !== split_sql_file_path) {
                 this.setState({
-                    execute_sql_flag: split_sql_file_path
+                    execute_sql_flag: split_sql_file_path,
+                    execute_status: "执行中",
+                    global_loading:true
                 });
-                await MyAxios.post(`${backendServerApiRoot}/execute_submit_sql_by_file_path/`, params).then(
+                await MyAxios.post('/execute_submit_sql_by_file_path/', params).then(
                     res => {
                         res.data.status === "ok" ? message.success(res.data.message,3) && this.setInterVal() : message.error(res.data.message);
                     }
@@ -736,8 +712,9 @@ export default class ExecuteSql extends Component {
             {
               title: '查看结果',
               render: (text, row) => {
+                let arr_execute_status = ['执行成功','执行失败','执行成功(含警告)'];
                 return (
-                  (row.execute_status === '执行成功' || row.execute_status === '执行失败' || row.execute_status === '执行成功(含警告)') ?
+                  arr_execute_status.includes(row.execute_status) ?
                   <button className="link-button" onClick={()=>{this.ViewExecuteSubmitSqlResultsByUuid(row.split_sql_file_path)}}>查看</button>
                   :null
                 )
@@ -777,13 +754,9 @@ export default class ExecuteSql extends Component {
                 <div className="server-list">
                 <div className="sub-title">
                     <div>
-                        <Link className="title-text" to="/">
-                            Home
-                        </Link>
+                        <Link className="title-text" to="/">Home</Link>
                         >
-                        <Link className="title-text" to="/AuditSqlIndex">
-                            SQL审核
-                        </Link>
+                        <Link className="title-text" to="/AuditSqlIndex">SQL审核</Link>
                     </div>
                 </div>
                 <div className="padding-container">
