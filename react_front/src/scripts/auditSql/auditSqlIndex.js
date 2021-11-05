@@ -469,7 +469,7 @@ class AuditSqlIndex extends Component {
                     </Table>
                 </TabPane>
                 <TabPane tab="SQL新建工单" key="2">
-                <Spin spinning={this.state.global_loading}>
+                <Spin spinning={this.state.global_loading} size="large">
                     <div className="sub-title-input">
                         <Select defaultValue="master_ip_port" style={{ width: 150 }} onChange={e => this.handleDbSourceTypeChange(e)}>
                             <Option value="cluster">集群名</Option>

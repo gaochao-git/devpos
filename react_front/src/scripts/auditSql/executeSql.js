@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm, } from 'antd';
+import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm,Spin } from 'antd';
 import { Link } from 'react-router-dom';
 import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
@@ -63,7 +63,8 @@ export default class ExecuteSql extends Component {
             login_user_name_role:"",
             sql_view_loading:false,
             sql_check_results_loading:false,
-            sql_check_pass_loading:false,
+            global_loading:false,
+            modal_loading:false,
             sql_check_code_explain:"",
             cluster_name:"",
             check_comment:"",
@@ -85,6 +86,9 @@ export default class ExecuteSql extends Component {
             window.clearInterval(this.timerId);
             window.clearInterval(this.timerProcessId);
             console.log("SQL执完毕，关闭定时器");
+            this.setState({
+                global_loading:false
+            })
         } else{
              console.log("SQL执行中，定时id为:",this.timerId);
              console.log("SQL执行状态:",this.state.execute_status);
@@ -171,7 +175,7 @@ export default class ExecuteSql extends Component {
     //审核通过或不通过
     async PassSubmitSqlByUuid(value) {
         this.setState({
-            sql_check_pass_loading:true
+            global_loading:true
         });
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
@@ -186,14 +190,14 @@ export default class ExecuteSql extends Component {
                     this.setState({
                         ApplyModalVisible: false,
                         view_submit_sql_info:res.data.data,
-                        sql_check_pass_loading:false
+                        global_loading:false
                     });
                     this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
                     message.success(res.data.message);
                 }else{
                     this.setState({
                         ApplyModalVisible: false,
-                        sql_check_pass_loading:false
+                        global_loading:false
                     });
                     message.error(res.data.message)
                 }
@@ -204,7 +208,7 @@ export default class ExecuteSql extends Component {
     //审核通过或不通过
     async v2_PassSubmitSqlByUuid(value) {
         this.setState({
-            sql_check_pass_loading:true
+            modal_loading:true
         });
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
@@ -221,7 +225,7 @@ export default class ExecuteSql extends Component {
                 }else{
                     this.setState({
                         ApplyModalVisible: false,
-                        sql_check_pass_loading:false
+                        modal_loading:false
                     });
                     message.error(res.data.message)
                 }
@@ -244,17 +248,19 @@ export default class ExecuteSql extends Component {
             res => {
                 if (res.data.status==="ok"){
                     console.log(res.data)
-                   if (res.data.data[0]['task_status'] === 2 || res.data.data[0]['task_status']===3){
-                       this.setState({
-                           ApplyModalVisible: false,
-                           sql_check_pass_loading:false
-                        });
-                       message.success("DDL/DML任务拆分完毕",3)
+                    this.setState({ApplyModalVisible: false,modal_loading:false});
+                   if (res.data.data[0]['task_status']===2){
+                       message.success("DDL/DML任务拆分成功",3)
+                       window.clearInterval(this.splitTimerId);
+                       this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
+                   } else if(res.data.data[0]['task_status']===3){
+                       message.error("DDL/DML任务拆分失败",3)
                        window.clearInterval(this.splitTimerId);
                        this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
                    }
                 }else{
-                    message.error(res.data.message)
+                    this.setState({ApplyModalVisible: false,modal_loading:false});
+                    message.error(res.data.message);
                 }
             }
         ).catch(err => {message.error(err.message)})
@@ -269,7 +275,8 @@ export default class ExecuteSql extends Component {
     async ExecuteBySplitSqlFilePath(split_sql_file_path) {
         //如果current_split_seq是最小则直接执行,否则判断他前面的是否已经执行,如果前面没执行,后面不允许执行,代码需要code
         this.setState({
-            execute_status: "执行中"
+            execute_status: "执行中",
+            global_loading:true
         });
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
@@ -672,6 +679,7 @@ export default class ExecuteSql extends Component {
         ];
         return (
             <section>
+            <Spin spinning={this.state.global_loading} size="default">
                 <div className="server-list">
                 <div className="sub-title">
                     <div>
@@ -757,6 +765,7 @@ export default class ExecuteSql extends Component {
                     <br/>
                     {this.state.sql_check_results_loading===false ?
                         <div>
+
                             <div>
                                 <h3>执行选项</h3>
                                 <Checkbox defaultChecked onChange={this.inceptionBackupCheckBoxOnChange.bind(this)}>备份</Checkbox>
@@ -839,7 +848,9 @@ export default class ExecuteSql extends Component {
                                 <Column title="执行方式" dataIndex="submit_sql_execute_plat_or_manual"/>
                                 <Column title="耗时(秒)" dataIndex="inception_execute_time"/>
                             </Table>
+
                         </div>
+
 
                         :null
                     }
@@ -881,17 +892,21 @@ export default class ExecuteSql extends Component {
                         >
                         </Table>
                     </Modal>
-                    <Modal visible={this.state.ApplyModalVisible}
-                        onCancel={() => this.setState({ApplyModalVisible:false})}
-                        title="审核"
-                        footer={false}
-                    >
-                        <TextArea rows={6} placeholder="审核说明"  onChange={e => this.setState({check_comment:e.target.value})}/>
-                        <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
-                            <Button onClick={this.v2_PassSubmitSqlByUuid.bind(this,'通过')} loading={this.state.sql_check_pass_loading} type="primary" style={{ marginRight: '10px' }}>通过</Button>
-                            <Button onClick={this.v2_PassSubmitSqlByUuid.bind(this,'不通过')} loading={this.state.sql_check_pass_loading} type="primary">不通过</Button>
-                        </Row>
-                    </Modal>
+
+                        <Modal visible={this.state.ApplyModalVisible}
+                            onCancel={() => this.setState({ApplyModalVisible:false})}
+                            title="审核"
+                            footer={false}
+                        >
+                            <Spin spinning={this.state.modal_loading} size="default">
+                                <TextArea rows={6} placeholder="审核说明"  onChange={e => this.setState({check_comment:e.target.value})}/>
+                                <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
+                                    <Button onClick={this.v2_PassSubmitSqlByUuid.bind(this,'通过')}  type="primary" style={{ marginRight: '10px' }}>通过</Button>
+                                    <Button onClick={this.v2_PassSubmitSqlByUuid.bind(this,'不通过')}  type="primary">不通过</Button>
+                                </Row>
+                            </Spin>
+                        </Modal>
+
                     <Modal visible={this.state.ViewExecuteSubmitSqlModalVisible}
                         onCancel={() => this.setState({ViewExecuteSubmitSqlModalVisible:false})}
                         title="执行结果"
@@ -953,6 +968,7 @@ export default class ExecuteSql extends Component {
                     </Modal>
                 </div>
                 </div>
+                </Spin>
             </section>
         )
     }
