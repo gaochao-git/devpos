@@ -74,6 +74,11 @@ class AsyncCheckSql:
             common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3, "标记工单为不提交失败")
             common.audit_sql_log(self.submit_sql_uuid, 1, "标记工单为不提交失败")
             raise Exception(ret['message'])
+        # 删除历史审核记录
+        ret = audit_sql_dao.remove_last_results_dao(self.submit_sql_uuid)
+        if ret['status'] != "ok":
+            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3, "删除历史审核数据失败")
+            raise Exception(ret['message'])
         # 重写SQL文件
         try:
             file_path_data = audit_sql_dao.get_submit_sql_by_uuid_dao(self.submit_sql_uuid)
@@ -85,11 +90,6 @@ class AsyncCheckSql:
             common.audit_sql_log(self.submit_sql_uuid, 1, "修改后SQL写入文件失败")
             common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3, "修改后SQL写入文件失败")
             raise Exception("修改后SQL写入文件失败")
-        # 删除历史审核记录
-        ret = audit_sql_dao.remove_last_results_dao(self.submit_sql_uuid)
-        if ret['status'] != "ok":
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3, "删除历史审核数据失败")
-            raise Exception(ret['message'])
         # 重写审核结果
         ret = audit_sql_dao.submit_sql_results_dao(self.submit_sql_uuid, self.inc_ret_rows, 1)
         if ret['status'] != "ok":

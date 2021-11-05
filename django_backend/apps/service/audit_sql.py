@@ -56,6 +56,7 @@ def check_sql(submit_type, check_sql_info, cluster_name, instance_name):
             data = {"check_sql_uuid": check_sql_uuid}
             ret = {"status": "ok", "message": "发送任务成功", "data": data}
         else:
+            print(444444)
             ret = {"status": "error", "message": "发送任务失败"}
     return ret
 
@@ -81,7 +82,8 @@ def recheck_sql(submit_sql_uuid, submit_type, check_sql_info, cluster_name, inst
     check_user = "gaochao"
     task_id = inception_check.delay(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,"recheck_sql")
     if task_id:
-        common.write_celery_task(task_id, check_sql_uuid, 'recheck_sql')
+        write_task_ret = common.write_celery_task(task_id, check_sql_uuid, 'recheck_sql')
+        if write_task_ret['status'] !="ok":return write_task_ret
         logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_id, check_sql_uuid))
         data = {"check_sql_uuid": check_sql_uuid}
         ret = {"status": "ok", "message": "发送任务成功", "data": data}

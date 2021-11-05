@@ -224,6 +224,7 @@ def submit_sql_results_dao(uuid_str, check_sql_results, is_submit):
         sql_values = ""
         total = len(check_sql_results)
         i = 0
+        cursor.execute("set autocommit=off")
         for check_sql_result in check_sql_results:
             id = check_sql_result["ID"]
             stage = check_sql_result["stage"]
@@ -252,9 +253,11 @@ def submit_sql_results_dao(uuid_str, check_sql_results, is_submit):
                 cursor.execute(sql_results_insert)
                 sql_values = ""
                 i = 0
+        connection.commit()
         status = "ok"
         message = "审核结果写入数据库成功"
     except Exception as e:
+        connection.rollback()
         logger.exception(str(e))
         status = 'error'
         message = "审核结果写入数据库失败"

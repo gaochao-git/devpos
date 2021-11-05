@@ -88,11 +88,18 @@ def write_celery_task(task_id, submit_id, task_type):
     :param task_type:
     :return:
     """
-    sql = """
+    int_sql = """
             insert into my_celery_task_status(task_id,submit_id,task_type,task_status,create_time,update_time) 
                                     values('{}','{}','{}',0,now(),now()) 
           """.format(task_id, submit_id, task_type)
-    return db_helper.dml(sql)
+    del_sql = "delete from my_celery_task_status where submit_id='{}' and task_type='{}'".format(submit_id, task_type)
+    if task_type == 'recheck_sql':
+        sql_list = []
+        sql_list.append(del_sql)
+        sql_list.append(int_sql)
+        return db_helper.dml_many(sql_list)
+    else:
+        return db_helper.dml(int_sql)
 
 
 def mark_celery_task(submit_id, task_type, task_status, msg=""):

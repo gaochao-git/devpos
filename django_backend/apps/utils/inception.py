@@ -20,7 +20,6 @@ def check_sql(des_master_ip, des_master_port, check_sql_info):
         {}
         inception_magic_commit;""".format(des_master_ip, des_master_port, check_sql_info)
     conn = None
-    print(sql)
     try:
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port, charset="utf8")  # inception服务器
         cur = conn.cursor()

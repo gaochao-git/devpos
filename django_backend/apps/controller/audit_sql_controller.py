@@ -269,7 +269,6 @@ def get_execute_process_by_uuid_controller(request):
 
 # 获取页面拆分SQL
 def get_split_sql_by_uuid_controller(request):
-    print(5555555)
     request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body['submit_sql_uuid']
     ret = audit_sql.get_split_sql_by_uuid(submit_sql_uuid)

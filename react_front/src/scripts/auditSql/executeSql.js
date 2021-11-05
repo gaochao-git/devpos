@@ -4,6 +4,17 @@ import { Link } from 'react-router-dom';
 import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
 import MyAxios from "../common/interface"
+import { UnControlled as CodeMirror } from 'react-codemirror2';
+import 'codemirror/lib/codemirror.css';
+import 'codemirror/mode/sql/sql';
+import 'codemirror/addon/hint/show-hint.css';
+import 'codemirror/addon/hint/show-hint.js';
+import 'codemirror/addon/hint/sql-hint.js';
+import 'codemirror/theme/ambiance.css';
+import 'codemirror/addon/selection/active-line';
+import 'codemirror/addon/display/fullscreen.js'
+import 'codemirror/addon/scroll/simplescrollbars.js'
+import 'codemirror/addon/scroll/simplescrollbars.css'
 const Column = Table.Column;
 const TextArea = Input.TextArea;
 const EditableCell = ({ editable, value, onChange }) => (
@@ -148,12 +159,14 @@ export default class ExecuteSql extends Component {
 
     //获取修改前SQL
     async GetModifySqlByUuid(uuid) {
+        this.setState({global_loading:true})
         let params = {submit_sql_uuid: this.state.submit_sql_uuid,};
         let res = await MyAxios.post('/get_submit_sql_by_uuid/',params);
         if (res.data.status==="ok"){
             this.setState({
                 modifySubmitSqlVisible: true,
                 modify_sql:res.data.data,
+                global_loading:false
             })
         }else{
             message.error(res.data.message)
@@ -162,7 +175,7 @@ export default class ExecuteSql extends Component {
 
     //查看SQL审核结果
     async GetSqlCheckResultsByUuid() {
-        this.setState({sql_check_results_loading:true})
+        this.setState({global_loading:true,view_check_sql_result:[]})
         let params = {submit_sql_uuid: this.props.match.params["submit_sql_uuid"],};
         let res = await MyAxios.post("/get_check_sql_results_by_uuid/",params);
         let inception_error_level_rray=[];
@@ -173,7 +186,7 @@ export default class ExecuteSql extends Component {
             view_check_sql_result:res.data.data,
             sql_check_max_code: Math.max.apply(null,inception_error_level_rray),
             sql_check_code_explain: Math.max.apply(null,inception_error_level_rray)!==0 ? "异常":"正常",
-            sql_check_results_loading:false
+            global_loading:false
         });
     };
     //审核通过或不通过
@@ -247,7 +260,8 @@ export default class ExecuteSql extends Component {
             pre_check_sql_results: [],
             re_submit_sql_button_disabled:"hide",
             global_loading:true,
-            showReCheckVisible:false
+            showReCheckVisible:false,
+            view_check_sql_result:[]
         });
         await MyAxios.post('/v1/service/ticket/audit_sql/recheck_sql/',params).then(
             res => {
@@ -734,38 +748,32 @@ export default class ExecuteSql extends Component {
             {
               title: 'ID',
               dataIndex: 'ID',
-              key: "ID",
             },
             {
               title: 'stage',
               dataIndex: 'stage',
-              key: "stage",
             },
             {
               title: 'SQL',
               dataIndex: 'SQL',
-              key: "SQL",
             },
             {
               title: '状态',
               dataIndex: 'stagestatus',
-              key:"stagestatus",
             },
             {
               title: '错误代码',
               dataIndex: 'errlevel',
-              key:"errlevel",
-              sorter: (a, b) => a.Error_Level - b.Error_Level,
+              sorter: (a, b) => a.errlevel - b.errlevel,
             },
             {
               title: '错误信息',
               dataIndex: 'errormessage',
-              key:"errormessage",
             },
             {
               title: '影响行数',
               dataIndex: 'Affected_rows',
-              key:"Affected_rows",
+              sorter: (a, b) => a.Affected_rows - b.Affected_rows,
             },
             {
               title: 'SQL类型',
@@ -869,8 +877,8 @@ export default class ExecuteSql extends Component {
             },
         ];
         return (
-            <section>
-            <Spin spinning={this.state.global_loading} size="default">
+            <div>
+            <Spin spinning={this.state.global_loading} size="large">
                 <div className="server-list">
                 <div className="sub-title">
                     <div>
@@ -892,7 +900,7 @@ export default class ExecuteSql extends Component {
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={8}>SQL审核结果:</Col>
                                 <Col >
-                                    <Button style={{padding:5}} span={16} className="link-button" loading={this.state.sql_check_results_loading} onClick={() => this.setState({showSubmitSqlResultsVisible:true})} >查看</Button>
+                                    <Button style={{padding:5}} span={16} className="link-button" onClick={() => this.setState({showSubmitSqlResultsVisible:true})} >查看</Button>
                                     {this.state.sql_check_max_code !== 0 ? <span style={{color:"red"}}>{[this.state.sql_check_code_explain]}</span>:<span  style={{color:"#52c41a"}}>[正常]</span>}
                                 </Col>
                             </Row>
@@ -937,7 +945,7 @@ export default class ExecuteSql extends Component {
                         </Col>
                     </Row>
                     <br/>
-                    <Button type="primary" loading={this.state.sql_view_loading} onClick={this.GetModifySqlByUuid.bind(this)}>修改SQL</Button>
+                    <Button type="primary" onClick={this.GetModifySqlByUuid.bind(this)}>修改SQL</Button>
                     {(this.state.login_user_name_role!=="dba") ?
                         <div>
                             <h3>审核操作</h3>
@@ -977,7 +985,18 @@ export default class ExecuteSql extends Component {
                         footer={false}
                         width={960}
                     >
-                        <TextArea wrap="off" style={{minHeight:300,overflow:"scroll"}} value={this.state.submit_sql}/>
+                        <CodeMirror
+                          value={this.state.submit_sql}
+                          options={{
+                            lineNumbers: true,
+                            mode: {name: "text/x-mysql"},
+                            extraKeys: {"Tab": "autocomplete"},
+                            theme: 'idea',
+                            styleActiveLine: true,
+                            lineWrapping:true,
+                            scrollbarStyle:"overlay"
+                          }}
+                        />
                     </Modal>
                     <Modal visible={this.state.showSubmitSqlResultsVisible}
                         onCancel={() => this.setState({showSubmitSqlResultsVisible:false})}
@@ -1079,17 +1098,35 @@ export default class ExecuteSql extends Component {
                         footer={false}
                         width={960}
                     >
-                        <TextArea wrap="off" style={{minHeight:300,overflow:"scroll"}} value={this.state.submit_split_sql}/>
+                        <CodeMirror
+                  value={this.state.submit_split_sql}
+                  options={{
+                    lineNumbers: true,
+                    mode: {name: "text/x-mysql"},
+                    extraKeys: {"Tab": "autocomplete"},
+                    theme: 'idea',
+                    styleActiveLine: true,
+                    lineWrapping:true,
+                    readOnly:true
+                  }}
+
+                  onChange={(cm) => console.log(1)} // sql变化事件
+                  onFocus={(cm) => console.log(1)}
+                  onCursorActivity={(cm) => console.log(1)} // 用来完善选中监听
+                  onInputRead={// 自动补全
+                     console.log(1)
+                  }
+                />
                     </Modal>
                     <Modal visible={this.state.modifySubmitSqlVisible}
                         onCancel={() => this.setState({modifySubmitSqlVisible:false})}
                         title="修改SQL"
                         footer={false}
-                        width={960}
+                        width={1240}
                     >
                         <Spin spinning={this.state.global_loading} size="default">
                             <div>
-                                <TextArea wrap="off" style={{minHeight:300,overflow:"scroll"}} value={this.state.modify_sql} onChange={e => this.setState({modify_sql:e.target.value})}/>
+                                <TextArea wrap="off" style={{minHeight:200,overflow:"scroll"}} value={this.state.modify_sql} onChange={e => this.setState({modify_sql:e.target.value})}/>
                                 <Button type="primary" onClick={() => this.setState({showReCheckVisible:true})}>检测SQL</Button>
                                 {this.state.re_submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.setState({showReSubmitVisible:true})}}>提交SQL</Button>:null}
                             </div>
@@ -1143,7 +1180,7 @@ export default class ExecuteSql extends Component {
                 </div>
                 </div>
                 </Spin>
-            </section>
+            </div>
         )
     }
 }
