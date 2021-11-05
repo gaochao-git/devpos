@@ -677,6 +677,100 @@ export default class ExecuteSql extends Component {
               key:"inception_affected_rows",
             }
         ];
+
+        const split_sql_columns = [
+            {
+              title: 'split_seq',
+              dataIndex: 'split_seq',
+              render:(text, row) => {
+                const obj = {children: text,props: {}};
+                obj.props.rowSpan = mergeCells(row.split_seq, this.state.view_submit_split_sql_info, 'split_seq');
+                return obj;
+              }
+            },
+            {
+              title: 'SQL路径',
+              dataIndex:"split_sql_file_path",
+              width:300
+            },
+            {
+              title: 'SQL',
+              render:(text, row) => {
+                return <button className="link-button" onClick={()=>{this.ViewSplitSQL(row.split_sql_file_path)}}>查看</button>
+              }
+            },
+            {
+              title: 'OSC配置',
+              render: (text, row) => {
+                return (
+                     this.state.dba_check ==="通过" && this.state.execute_status !== '执行中'
+                     ? <button className="link-button" onClick={()=>{this.ShowInceptionVariableConfigModal(row.split_sql_file_path)}}>OSC配置</button>
+                     : null
+                )
+              }
+            },
+            {
+              title: '执行SQL',
+              render:(text, row) => {
+                return (
+                    row.execute_status === '未执行'?
+                    <div>
+                        <Button className="link-button" onClick={()=>{this.ExecuteBySplitSqlFilePath(row.split_sql_file_path)}}>平台执行</Button>
+                        <Button className="link-button" style={{marginLeft:15}} onClick={()=>{this.ExecuteBySplitSqlFilePathManual(row.split_sql_file_path)}}>手动执行</Button>
+                    </div>
+                    :null
+
+                )
+              }
+            },
+            {
+              title: '查看进度',
+              render: (text, row) => {
+                return (
+                  this.state.dba_check ==="通过" && row.execute_status === '执行中' ?
+                  <button className="link-button" onClick={()=>{this.getExecuteProcessByUuid(row.split_sql_file_path)}}>查看</button>
+                  :null
+                )
+              }
+            },
+            {
+              title: '查看结果',
+              render: (text, row) => {
+                return (
+                  (row.execute_status === '执行成功' || row.execute_status === '执行失败' || row.execute_status === '执行成功(含警告)') ?
+                  <button className="link-button" onClick={()=>{this.ViewExecuteSubmitSqlResultsByUuid(row.split_sql_file_path)}}>查看</button>
+                  :null
+                )
+              }
+            },
+            {
+              title: '执行结果',
+              dataIndex: "execute_status",
+              render: (val, row) => {
+                    if (val === "执行成功"){
+                        return <span style={{color:"#52c41a"}}>{val}</span>
+                    }else if (val === "执行失败" && row.rerun_flag !==0 ){
+                        return <React.Fragment>
+                                   <div><span style={{color:"#fa541c"}}>{val}</span></div>
+                                   <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"include_error_sql")}}>生成重做SQL含错误SQL</button></div>
+                                   <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"ignore_error_sql")}}>生成重做SQL忽略错误SQL</button></div>
+                               </React.Fragment>
+                    }else if (val === '执行成功(含警告)'){
+                        return <span style={{color:"#ffbb96"}}>{val}</span>
+                    }else {
+                        return <span style={{color:"#bfbfbf"}}>{val}</span>
+                    }
+                }
+            },
+            {
+              title: '执行方式',
+              dataIndex:"submit_sql_execute_plat_or_manual"
+            },
+            {
+              title: '耗时(秒)',
+              dataIndex: "inception_execute_time",
+            },
+        ];
         return (
             <section>
             <Spin spinning={this.state.global_loading} size="default">
@@ -765,7 +859,6 @@ export default class ExecuteSql extends Component {
                     <br/>
                     {this.state.sql_check_results_loading===false ?
                         <div>
-
                             <div>
                                 <h3>执行选项</h3>
                                 <Checkbox defaultChecked onChange={this.inceptionBackupCheckBoxOnChange.bind(this)}>备份</Checkbox>
@@ -778,80 +871,9 @@ export default class ExecuteSql extends Component {
                                 rowKey={(row ,index) => index}
                                 size="small"
                                 bordered
-                            >
-                                <Column title="split_seq"
-                                        dataIndex='split_seq'
-                                        key='split_seq'
-                                        render={(text, row) => {
-                                            const obj = {
-                                                children: text,
-                                                props: {},
-                                            };
-                                            obj.props.rowSpan = mergeCells(row.split_seq, this.state.view_submit_split_sql_info, 'split_seq');
-                                            return obj;
-                                        }}
-                                />
-                                <Column title="SQL路径" dataIndex="split_sql_file_path" width={300}/>
-                                <Column title="SQL"
-                                        render={(text, row) => <button className="link-button" onClick={()=>{this.ViewSplitSQL(row.split_sql_file_path)}}>查看</button>}
-                                />
-                                <Column title="OSC配置"
-                                        dataIndex="inception_osc_config"
-                                        render = {(text, row) => this.state.dba_check ==="通过" && this.state.execute_status !== '执行中' ? <button className="link-button" onClick={()=>{this.ShowInceptionVariableConfigModal(row.split_sql_file_path)}}>OSC配置</button>: null}
-                                />
-                                <Column title="执行SQL"
-                                        render={(text, row) => {
-                                            if (row.execute_status === '未执行')  {
-                                                return (
-                                                    <div>
-                                                        <Button className="link-button" onClick={()=>{this.ExecuteBySplitSqlFilePath(row.split_sql_file_path)}}>平台执行</Button>
-                                                        <Button className="link-button" style={{marginLeft:15}} onClick={()=>{this.ExecuteBySplitSqlFilePathManual(row.split_sql_file_path)}}>手动执行</Button>
-                                                    </div>
-
-                                                )
-                                            }
-                                        }}
-                                />
-                                <Column title="查看进度"
-                                        render={(text, row) => {
-                                            if (this.state.dba_check ==="通过" && row.execute_status === '执行中')  {
-                                                return (<button className="link-button" onClick={()=>{this.getExecuteProcessByUuid(row.split_sql_file_path)}}>查看</button>)
-                                            }
-                                        }}
-                                />
-                                <Column title="查看结果"
-                                        render={(text, row) => {
-                                            if (row.execute_status === '执行成功' || row.execute_status === '执行失败' || row.execute_status === '执行成功(含警告)')  {
-                                                return (<button className="link-button" onClick={()=>{this.ViewExecuteSubmitSqlResultsByUuid(row.split_sql_file_path)}}>查看</button>)
-                                            }
-                                        }}
-                                />
-                                <Column title="执行结果"
-                                        dataIndex="execute_status"
-                                        render={(val, row) => {
-                                            if (val === "执行成功"){
-                                                return <span style={{color:"#52c41a"}}>{val}</span>
-                                            }else if (val === "执行失败" && row.rerun_flag !==0 ){
-                                                //React.Fragment可以包含多个元素,使用div可以实现换行功能
-                                                return <React.Fragment>
-                                                           <div><span style={{color:"#fa541c"}}>{val}</span></div>
-                                                           <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"include_error_sql")}}>生成重做SQL含错误SQL</button></div>
-                                                           <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"ignore_error_sql")}}>生成重做SQL忽略错误SQL</button></div>
-                                                       </React.Fragment>
-                                            }else if (val === '执行成功(含警告)'){
-                                                return <span style={{color:"#ffbb96"}}>{val}</span>
-                                            }else {
-                                                return <span style={{color:"#bfbfbf"}}>{val}</span>
-                                            }
-                                        }}
-                                />
-                                <Column title="执行方式" dataIndex="submit_sql_execute_plat_or_manual"/>
-                                <Column title="耗时(秒)" dataIndex="inception_execute_time"/>
-                            </Table>
-
+                                columns={split_sql_columns}
+                            />
                         </div>
-
-
                         :null
                     }
                     <Modal visible={this.state.showSubmitSqlViewVisible}
@@ -892,21 +914,19 @@ export default class ExecuteSql extends Component {
                         >
                         </Table>
                     </Modal>
-
-                        <Modal visible={this.state.ApplyModalVisible}
-                            onCancel={() => this.setState({ApplyModalVisible:false})}
-                            title="审核"
-                            footer={false}
-                        >
-                            <Spin spinning={this.state.modal_loading} size="default">
-                                <TextArea rows={6} placeholder="审核说明"  onChange={e => this.setState({check_comment:e.target.value})}/>
-                                <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
-                                    <Button onClick={this.v2_PassSubmitSqlByUuid.bind(this,'通过')}  type="primary" style={{ marginRight: '10px' }}>通过</Button>
-                                    <Button onClick={this.v2_PassSubmitSqlByUuid.bind(this,'不通过')}  type="primary">不通过</Button>
-                                </Row>
-                            </Spin>
-                        </Modal>
-
+                    <Modal visible={this.state.ApplyModalVisible}
+                        onCancel={() => this.setState({ApplyModalVisible:false})}
+                        title="审核"
+                        footer={false}
+                    >
+                        <Spin spinning={this.state.modal_loading} size="default">
+                            <TextArea rows={6} placeholder="审核说明"  onChange={e => this.setState({check_comment:e.target.value})}/>
+                            <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
+                                <Button onClick={this.v2_PassSubmitSqlByUuid.bind(this,'通过')}  type="primary" style={{ marginRight: '10px' }}>通过</Button>
+                                <Button onClick={this.v2_PassSubmitSqlByUuid.bind(this,'不通过')}  type="primary">不通过</Button>
+                            </Row>
+                        </Spin>
+                    </Modal>
                     <Modal visible={this.state.ViewExecuteSubmitSqlModalVisible}
                         onCancel={() => this.setState({ViewExecuteSubmitSqlModalVisible:false})}
                         title="执行结果"
