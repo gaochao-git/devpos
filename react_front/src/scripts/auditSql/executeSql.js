@@ -1099,24 +1099,14 @@ export default class ExecuteSql extends Component {
                         width={960}
                     >
                         <CodeMirror
-                  value={this.state.submit_split_sql}
-                  options={{
-                    lineNumbers: true,
-                    mode: {name: "text/x-mysql"},
-                    extraKeys: {"Tab": "autocomplete"},
-                    theme: 'idea',
-                    styleActiveLine: true,
-                    lineWrapping:true,
-                    readOnly:true
-                  }}
-
-                  onChange={(cm) => console.log(1)} // sql变化事件
-                  onFocus={(cm) => console.log(1)}
-                  onCursorActivity={(cm) => console.log(1)} // 用来完善选中监听
-                  onInputRead={// 自动补全
-                     console.log(1)
-                  }
-                />
+                          value={this.state.submit_split_sql}
+                          options={{
+                            lineNumbers: true,
+                            mode: {name: "text/x-mysql"},
+                            theme: 'idea',
+                            scrollbarStyle:"overlay",
+                          }}
+                        />
                     </Modal>
                     <Modal visible={this.state.modifySubmitSqlVisible}
                         onCancel={() => this.setState({modifySubmitSqlVisible:false})}
