@@ -5,6 +5,17 @@ import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import MyAxios from "../common/interface"
+import { UnControlled as CodeMirror } from 'react-codemirror2';
+import 'codemirror/lib/codemirror.css';
+import 'codemirror/mode/sql/sql';
+import 'codemirror/addon/hint/show-hint.css';
+import 'codemirror/addon/hint/show-hint.js';
+import 'codemirror/addon/hint/sql-hint.js';
+import 'codemirror/theme/ambiance.css';
+import 'codemirror/addon/selection/active-line';
+import 'codemirror/addon/display/fullscreen.js'
+import 'codemirror/addon/scroll/simplescrollbars.js'
+import 'codemirror/addon/scroll/simplescrollbars.css'
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { TextArea } = Input
@@ -316,13 +327,6 @@ class AuditSqlIndex extends Component {
 
     }
 
-    //sql输入框
-    handleSqlChange = (value) => {
-        this.setState({
-            check_sql: value,
-            check_sql_results:[],
-        })
-    }
     //工单提交modal弹出按钮
     showDataModalHandle = (e) => {
         if (this.state.check_sql.length===0|| this.state.check_sql_results.length===0){
@@ -512,7 +516,18 @@ class AuditSqlIndex extends Component {
                         }
                     </div>
                     <div>
-                        <TextArea rows={10} placeholder="输入SQL,每条SQL以 ; 结尾"  onChange={e => this.handleSqlChange(e.target.value)}/>
+                        <CodeMirror
+                          value={this.state.check_sql}
+                          options={{
+                            lineNumbers: true,
+                            mode: {name: "text/x-mysql"},
+                            theme: 'idea',
+                            styleActiveLine: true,
+                            lineWrapping:true,
+                          }}
+                          onBlur={(cm) => this.setState({check_sql:cm.getValue()})}
+                          onChange={(cm) => this.setState({check_sql_results:[]})}
+                        />
                         <Button type="primary" onClick={()=>{this.v2_handleSqlCheck()}}>检测SQL</Button>
                         {this.state.submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>:null}
                     </div>

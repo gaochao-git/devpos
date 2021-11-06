@@ -64,15 +64,23 @@ def inception_check(des_ip, des_port, submit_sql_uuid,check_sql, check_user_name
 
 
 @task
-def inception_split(submit_sql_uuid, ticket_info, des_ip, des_port):
+def inception_split(submit_sql_uuid, ticket_info, cal_des_ip, cal_des_port, check_status, check_comment,
+                    login_user_name, login_user_name_role):
     """
-    异步拆分SQL
-    :param ticket_info:
-    :param des_ip:
-    :param des_port:
-    :return:
+    异步拆分SQL并标记工单审核状态
+    :param submit_sql_uuid: 
+    :param ticket_info: 
+    :param cal_des_ip: 
+    :param cal_des_port: 
+    :param check_status: 
+    :param check_comment: 
+    :param login_user_name: 
+    :param login_user_name_role: 
+    :return: 
+    """"""
     """
-    split_sql_task = AsyncSplitSql(submit_sql_uuid, ticket_info, des_ip, des_port)
+    split_sql_task = AsyncSplitSql(submit_sql_uuid, ticket_info, cal_des_ip, cal_des_port, check_status, check_comment,
+                                   login_user_name, login_user_name_role)
     split_sql_task.task_run()
 
 

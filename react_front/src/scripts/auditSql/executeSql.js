@@ -297,16 +297,16 @@ export default class ExecuteSql extends Component {
         await MyAxios.get('/v1/service/ticket/get_celery_task_status/',{params}).then(
             res => {
                 if (res.data.status==="ok"){
-                    console.log(res.data)
-                    this.setState({ApplyModalVisible: false,modal_loading:false});
                    if (res.data.data[0]['task_status']===2){
                        message.success("DDL/DML任务拆分成功",3)
                        window.clearInterval(this.splitTimerId);
                        this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
+                       this.setState({ApplyModalVisible: false,modal_loading:false});
                    } else if(res.data.data[0]['task_status']===3){
                        message.error("DDL/DML任务拆分失败",3)
                        window.clearInterval(this.splitTimerId);
                        this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
+                       this.setState({ApplyModalVisible: false,modal_loading:false});
                    }
                 }else{
                     this.setState({ApplyModalVisible: false,modal_loading:false});
@@ -1116,7 +1116,17 @@ export default class ExecuteSql extends Component {
                     >
                         <Spin spinning={this.state.global_loading} size="default">
                             <div>
-                                <TextArea wrap="off" style={{minHeight:200,overflow:"scroll"}} value={this.state.modify_sql} onChange={e => this.setState({modify_sql:e.target.value})}/>
+                                <CodeMirror
+                                  value={this.state.modify_sql}
+                                  options={{
+                                    lineNumbers: true,
+                                    mode: {name: "text/x-mysql"},
+                                    theme: 'idea',
+                                    styleActiveLine: true,
+                                    lineWrapping:true,
+                                  }}
+                                  onBlur={(cm) => this.setState({modify_sql:cm.getValue()})}
+                                />
                                 <Button type="primary" onClick={() => this.setState({showReCheckVisible:true})}>检测SQL</Button>
                                 {this.state.re_submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.setState({showReSubmitVisible:true})}}>提交SQL</Button>:null}
                             </div>

@@ -321,8 +321,8 @@ class PassSubmitSql:
         self.login_user_name = "gaochao"
         self.login_user_name_role = "dba"
         self.ticket_info = ""
-        self.des_ip = ""
-        self.des_port = 0
+        self.cal_des_ip = ""
+        self.cal_des_port = 0
         self.cluster_name = ""
         self.split_data = ""
 
@@ -335,10 +335,7 @@ class PassSubmitSql:
             if self.check_status == 2:
                 self.get_ticket_info()
                 self.judge_source_ip_port()
-                self.mark_check_status()
-                # self.split_sql()
-                # self.write_split_sql_to_new_file()
-                self.v2_split_sql()
+                self.split_sql()
             else:
                 self.mark_check_status()
             content = {"status": "ok", "message": "ok"}
@@ -368,9 +365,9 @@ class PassSubmitSql:
                 raise Exception("没有获取到写节点")
             else:
                 instance_name = instance_ret['data'][0]['instance_name']
-                self.des_ip, self.des_port = instance_name.split('_')[0], instance_name.split('_')[1]
+                self.cal_des_ip, self.cal_des_port = instance_name.split('_')[0], instance_name.split('_')[1]
         else:
-            self.des_ip, self.des_port = self.ticket_info["master_ip"], self.ticket_info["master_port"]
+            self.cal_des_ip, self.cal_des_port = self.ticket_info["master_ip"], self.ticket_info["master_port"]
 
 
     def mark_check_status(self):
@@ -383,74 +380,15 @@ class PassSubmitSql:
                                                              self.login_user_name_role)
         if mark_ret['status'] != 'ok': raise Exception("审核状态异常")
 
-    def v2_split_sql(self):
-        task_id = inception_split.delay(self.submit_sql_uuid, self.ticket_info, self.des_ip, self.des_port)
+    def split_sql(self):
+        task_id = inception_split.delay(self.submit_sql_uuid, self.ticket_info, self.cal_des_ip, self.cal_des_port,
+                                        self.check_status,self.check_comment,self.login_user_name,
+                                        self.login_user_name_role)
         if task_id:
             common.write_celery_task(task_id, self.submit_sql_uuid, "split_sql")
             logger.info("celery发送拆分任务成功返回task_id:%s" % task_id)
         else:
             raise Exception("发送拆分任务失败")
-
-    def split_sql(self):
-        # 审核通过调用inception拆分DDL/DML
-        try:
-            # 从文件获取用户提交的SQL
-            with open("./upload/{}".format(self.ticket_info["submit_sql_file_path"]), "rb") as f:
-                execute_sql = f.read().decode('utf-8')
-        except Exception as e:
-            raise Exception("读取拆分源文件失败%s" % e)
-        # 调用inception连接数据源拆分SQL
-        split_ret = inception.start_split_sql(self.des_ip, self.des_port, execute_sql)
-        if split_ret['status'] == 'ok':
-            self.split_data = split_ret['data']
-        else:
-            raise Exception("审核工具拆分SQL失败%s" % split_ret['message'])
-
-    def write_split_sql_to_new_file(self):
-        """
-        将审核工具返回的拆分SQL写入子文件
-        将审核工具返回的拆分子工单详情写入数据库
-        数据源保持原始工单数据源，不能动态获取
-        """
-        des_ip = self.ticket_info["master_ip"]
-        des_port = self.ticket_info["master_port"]
-        cluster_name = self.ticket_info["cluster_name"]
-        try:
-            result = []
-            result_tmp = {}
-            for tup in self.split_data:
-                result_tmp['split_seq'] = tup['ID']
-                result_tmp['sql'] = tup['sql_statement']
-                result_tmp['ddlflag'] = tup['ddlflag']
-                result_tmp['sql_num'] = len(self.split_data)
-                result_copy = result_tmp.copy()
-                result.append(result_copy)
-                result_tmp.clear()
-            for i in result:
-                ddlflag = i["ddlflag"]
-                split_seq = i["split_seq"]
-                sql_num = i["sql_num"]
-                sql = i["sql"]
-                dir_name = self.ticket_info["submit_sql_file_path"].split('/')[0]
-                file_name = self.ticket_info["submit_sql_file_path"].split('/')[1]
-                split_file_name = str(split_seq) + '_' + file_name
-                upfile = './upload/' + dir_name + '/' + split_file_name
-                split_sql_file_path = dir_name + '/' + split_file_name
-                rerun_sequence = ""
-                rerun_seq = 0
-                inception_osc_config = ""
-                # 拆分SQL写入文件
-                with open(upfile, 'w') as f:
-                    f.write(sql)
-                logger.info("拆分SQL写入对应文件成功：%s", upfile)
-                # 拆分SQL详细信息写入数据库
-                ret = audit_sql_dao.write_split_sql_to_new_file_dao(self.submit_sql_uuid, split_seq,split_sql_file_path,
-                                                                    sql_num, ddlflag, des_ip, des_port, cluster_name,
-                                                                    rerun_sequence, rerun_seq, inception_osc_config)
-                if ret['status'] != "ok": raise Exception("拆分子工单详细信息写入数据库失败")
-                else: logger.info("拆分子工单详细信息写入数据库成功:%s", upfile)
-        except Exception as e:
-            raise Exception("处理拆分结果出现异常:%s" % e)
 
 
 class ExecuteSqlByFilePath:

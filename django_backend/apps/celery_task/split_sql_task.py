@@ -14,7 +14,8 @@ class AsyncSplitSql:
     cal_des_ip,cal_des_port是通过集群名实时计算出来的
     des_ip,des_port是工单提交时指定的
     """
-    def __init__(self, submit_sql_uuid, ticket_info, cal_des_ip, cal_des_port):
+    def __init__(self, submit_sql_uuid, ticket_info, cal_des_ip, cal_des_port, check_status, check_comment,
+                                   login_user_name, login_user_name_role):
         self.submit_sql_uuid = submit_sql_uuid
         self.des_ip = ticket_info['master_ip']
         self.des_port = ticket_info['master_port']
@@ -22,8 +23,11 @@ class AsyncSplitSql:
         self.cal_des_port = cal_des_port
         self.cluster_name = ticket_info['cluster_name']
         self.submit_sql_file_path = ticket_info['submit_sql_file_path']
+        self.user_name = login_user_name
+        self.user_role = login_user_name_role
+        self.check_status = check_status
+        self.check_comment = check_comment
         self.inc_ret_rows = ""
-        self.exe_user_name = "gaochao"
         self.task_type = "split_sql"
 
     def task_run(self):
@@ -33,6 +37,7 @@ class AsyncSplitSql:
         try:
             self.send_inception()
             self.write_split_sql_to_new_file()
+            self.mark_check_status()
             common.mark_celery_task(self.submit_sql_uuid, self.task_type, 2)
             common.audit_sql_log(self.submit_sql_uuid, 0, "任务拆分完成")
         except Exception as e:
@@ -111,13 +116,12 @@ class AsyncSplitSql:
             common.audit_sql_log(self.submit_sql_uuid, 1, "拆分SQL处理失败(拆分DDL/DML文件，拆分DDL/DML子工单)")
             raise Exception("处理拆分结果出现异常:%s" % e)
 
-    # def mark_celery_status(self, execute_status):
-    #     """
-    #     标记审核工单状态公共方法
-    #     :param is_execute:
-    #     :param execute_status:
-    #     :return:
-    #     """
-    #     ret = audit_sql_dao.set_celery_task_status(self.submit_sql_uuid, execute_status, self.exe_user_name)
-    #     if ret['status'] != 'ok': raise Exception("更新工单状态出现异常")
+    def mark_check_status(self):
+        """
+        标记审核状态
+        :return:
+        """
+        mark_ret = audit_sql_dao.pass_submit_sql_by_uuid_dao(self.submit_sql_uuid, self.check_comment,
+                                                             self.check_status, self.user_name, self.user_role)
+        if mark_ret['status'] != 'ok': raise Exception("审核为通过时出现异常")
 
