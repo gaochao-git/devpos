@@ -84,6 +84,7 @@ export default class ExecuteSql extends Component {
             modify_sql:"",
             submit_type:"",
             is_submit:"",
+            celery_id:"",
         }
         this.cacheData = this.state.data.map(item => ({ ...item }));
     }
@@ -233,7 +234,9 @@ export default class ExecuteSql extends Component {
         await MyAxios.post('/pass_submit_sql_by_uuid/',params).then(
             res=>{
                 if (res.data.status === "ok"){
-                    this.v2_setInterVal();
+                    this.setState({
+                        celery_id: res.data.data["celery_id"],
+                    },()=>{this.v2_setInterVal()})
                     message.success("工单审核通过,DDL/DML任务拆分中,请耐心等待",3);
                 }else{
                     this.setState({ApplyModalVisible: false,modal_loading:false});
@@ -254,7 +257,8 @@ export default class ExecuteSql extends Component {
             instance_name: this.state.master_ip + "_" + this.state.master_port,
             check_sql_info: this.state.modify_sql,
             submit_type:this.state.submit_type,
-            submit_sql_uuid:this.state.submit_sql_uuid,
+            check_sql_uuid:this.state.submit_sql_uuid,
+            check_type:"recheck_sql"
         };
         this.setState({
             pre_check_sql_results: [],
@@ -263,13 +267,12 @@ export default class ExecuteSql extends Component {
             showReCheckVisible:false,
             view_check_sql_result:[]
         });
-        await MyAxios.post('/v1/service/ticket/audit_sql/recheck_sql/',params).then(
+        await MyAxios.post('/v1/service/ticket/audit_sql/check_sql/',params).then(
             res => {
                 if (res.data.status==="ok"){
                    message.success("异步审核任务已发起,请等待",3);
-                   console.log(res.data.data)
                    this.setState({
-                        check_sql_uuid: res.data.data["check_sql_uuid"],
+                        celery_id: res.data.data["celery_id"],
                     },()=>{this.reChecksetInterVal()})
                 }else{
                     message.error(res.data.message,3)
@@ -290,27 +293,21 @@ export default class ExecuteSql extends Component {
 
     //获取拆分任务状态
     async getSplitStatusByUuid() {
-        let params = {
-            submit_id: this.state.submit_sql_uuid,
-            task_type:"split_sql"
-            };
-        await MyAxios.get('/v1/service/ticket/get_celery_task_status/',{params}).then(
+        let params = {celery_id: this.state.celery_id};
+        await MyAxios.post('/v1/service/ticket/get_celery_task_status/',params).then(
             res => {
                 if (res.data.status==="ok"){
-                   if (res.data.data[0]['task_status']===2){
-                       message.success("DDL/DML任务拆分成功",3)
-                       window.clearInterval(this.splitTimerId);
-                       this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
-                       this.setState({ApplyModalVisible: false,modal_loading:false});
-                   } else if(res.data.data[0]['task_status']===3){
-                       message.error("DDL/DML任务拆分失败",3)
-                       window.clearInterval(this.splitTimerId);
-                       this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
-                       this.setState({ApplyModalVisible: false,modal_loading:false});
-                   }
-                }else{
+                    message.success("DDL/DML任务拆分成功",3)
+                    window.clearInterval(this.splitTimerId);
+                    this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
                     this.setState({ApplyModalVisible: false,modal_loading:false});
-                    message.error(res.data.message);
+                }else if (res.data.status==="error"){
+                   message.error("DDL/DML任务拆分失败",3)
+                   window.clearInterval(this.splitTimerId);
+                   this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
+                   this.setState({ApplyModalVisible: false,modal_loading:false});
+                }else {
+                   message.warning(res.data.message)
                 }
             }
         ).catch(err => {message.error(err.message)})
@@ -318,38 +315,32 @@ export default class ExecuteSql extends Component {
 
     //间隔执行
     setInterVal = () => {
-         this.timerId = window.setInterval(this.GetSqlApplyByUuid.bind(this),1000);
+         this.timerId = window.setInterval(this.GetSqlApplyByUuid.bind(this),2000);
          // this.timerProcessId = window.setInterval(this.getExecuteProcessByUuidTimeInterval.bind(this),1000);
     }
     //重新审核间隔执行
     reChecksetInterVal = () => {
-         this.timerId = window.setInterval(this.getCheckStatusByUuid.bind(this),1000);
+         this.timerId = window.setInterval(this.getCheckStatusByUuid.bind(this),2000);
          // this.timerProcessId = window.setInterval(this.getExecuteProcessByUuidTimeInterval.bind(this),1000);
     }
 
     //获取重新审核任务状态
     async getCheckStatusByUuid() {
-        let params = {
-            submit_id: this.props.match.params["submit_sql_uuid"],
-            task_type:"recheck_sql"
-            };
-        await MyAxios.get('/v1/service/ticket/get_celery_task_status/',{params}).then(
+        let params = {celery_id: this.state.celery_id};
+        await MyAxios.post('/v1/service/ticket/get_celery_task_status/',params).then(
             res => {
                 if (res.data.status==="ok"){
-                   if (res.data.data[0]['task_status'] === 2){
-                       window.clearInterval(this.timerId);
-                       message.success("异步审核任务完成",3);
-                       this.GetSqlCheckResultsByUuid();
-                       this.GetSqlApplyByUuid()
-                       this.setState({global_loading:false,re_submit_sql_button_disabled:"show"});
-                   }else if (res.data.data[0]['task_status']===3){
-                        window.clearInterval(this.timerId);
-                        message.error(res.data.data[0]['message'],3);
-                        this.setState({global_loading:false});
-                   }
-                }else{
-                    window.clearInterval(this.timerId);
-                    message.error(res.data.message)
+                   window.clearInterval(this.timerId);
+                   message.success("异步审核任务完成",3);
+                   this.GetSqlCheckResultsByUuid();
+                   this.GetSqlApplyByUuid()
+                   this.setState({global_loading:false,re_submit_sql_button_disabled:"show"});
+                }else if (res.data.status==="error"){
+                   window.clearInterval(this.timerId);
+                   message.error("异步审核任务失败",3)
+                   this.setState({global_loading:false});
+                }else {
+                   message.warning(res.data.message)
                 }
             }
         ).catch(err => {message.error(err.message)})
@@ -442,7 +433,6 @@ export default class ExecuteSql extends Component {
             split_sql_file_path:split_sql_file_path
         };
         let res = await MyAxios.post(`${backendServerApiRoot}/get_inception_variable_config_info/`,params);
-        console.log(res.data);
         this.setState({
             data: res.data.data,
         });
@@ -471,7 +461,6 @@ export default class ExecuteSql extends Component {
 
     //查看执行SQL结果
     async ViewExecuteSubmitSqlResultsByUuid(split_sql_file_path) {
-        console.log(split_sql_file_path)
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path
@@ -484,7 +473,6 @@ export default class ExecuteSql extends Component {
     };
     //生成重做SQL忽略错误SQL
     async RecreateSql(split_sql_file_path,flag) {
-        console.log(split_sql_file_path,flag)
         let params = {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path,
@@ -493,7 +481,6 @@ export default class ExecuteSql extends Component {
         let res = await MyAxios.post(`${backendServerApiRoot}/recreate_sql/`,params);
         window.location.reload()
         message.error(res.data.message)
-        console.log(res)
     };
 
 
@@ -550,7 +537,6 @@ export default class ExecuteSql extends Component {
     //获取inception变量配置
     async GetInceptionVariableConfig() {
         let res = await MyAxios.get(`${backendServerApiRoot}/get_inception_variable_config_info/`);
-        console.log(res.data);
         this.setState({
             data: res.data.data,
         });
@@ -667,7 +653,6 @@ export default class ExecuteSql extends Component {
           if (text !== temp[columns]) {
             temp[columns] = text;
             array.forEach((item) => {
-                console.log(item.split_seq)
               if (item.split_seq === temp[columns]) {
                 i += 1;
               }

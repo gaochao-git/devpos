@@ -3,7 +3,7 @@ from apps.utils import inception
 from apps.dao import audit_sql_dao
 from apps.utils import common
 import logging
-logger = logging.getLogger('inception_execute_logger')
+logger = logging.getLogger('devops')
 
 
 class AsyncCheckSql:
@@ -16,46 +16,22 @@ class AsyncCheckSql:
         self.inc_ret_rows = ""
         self.task_type = check_type       # check_sql|recheck_sql
 
-    def task_run(self):
-        raise Exception("hhhhhhhhh")
-        # 发送审核SQL---->推送到celery----->celery获取到任务----->发送审核工具审核----->处理审核工具返回结果----->标记celery任务状态
-        try:
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 1)
-            common.audit_sql_log(self.submit_sql_uuid, 0, "======================开始审核SQL=================")
-            self.send_inception()
-            if self.task_type == "check_sql":
-                self.process_check_results()
-            elif self.task_type == "recheck_sql":
-                self.process_recheck_results()
-            else:
-                common.audit_sql_log(self.submit_sql_uuid, 1, "审核类型不存在")
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 2)
-            common.audit_sql_log(self.submit_sql_uuid, 0, "任务审核完成")
-        except Exception as e:
-            logger.exception('工单%s审核失败,错误信息:%s', self.submit_sql_uuid, e)
-            common.audit_sql_log(self.submit_sql_uuid, 1, "任务审核失败:%s" % e)
-        finally:
-            common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核SQL结束=================")
 
-    def v2_task_run(self):
+    def task_run(self):
         # 发送审核SQL---->推送到celery----->celery获取到任务----->发送审核工具审核----->处理审核工具返回结果----->标记celery任务状态
         try:
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 1)
             common.audit_sql_log(self.submit_sql_uuid, 0, "======================开始审核SQL=================")
             self.send_inception()
-            if self.task_type == "check_sql":
-                self.process_check_results()
-            elif self.task_type == "recheck_sql":
-                self.process_recheck_results()
+            if self.task_type == "check_sql": self.process_check_results()
+            elif self.task_type == "recheck_sql": self.process_recheck_results()
             else:
                 common.audit_sql_log(self.submit_sql_uuid, 1, "审核类型不存在")
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 2)
-            common.audit_sql_log(self.submit_sql_uuid, 0, "任务审核完成")
-        except Exception as e:
-            logger.exception('工单%s审核失败,错误信息:%s', self.submit_sql_uuid, e)
-            common.audit_sql_log(self.submit_sql_uuid, 1, "任务审核失败:%s" % e)
-        finally:
+                raise Exception("审核类型不存在")
             common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核SQL结束=================")
+        except Exception as e:
+            logger.error('工单%s审核失败,错误信息:%s', self.submit_sql_uuid, str(e))
+            common.audit_sql_log(self.submit_sql_uuid, 1, "======================审核SQL结束=================")
+            raise Exception(str(e))
 
     def send_inception(self):
         """
@@ -66,7 +42,6 @@ class AsyncCheckSql:
         ret = inception.check_sql(self.des_ip, self.des_port, self.check_sql)
         if ret['status'] != "ok":
             common.audit_sql_log(self.submit_sql_uuid, 1, "任务发送到审核工具审核失败")
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3, pymysql.escape_string(ret['message']))
             raise Exception(ret['message'])
         else:
             self.inc_ret_rows = ret['data']
@@ -79,7 +54,6 @@ class AsyncCheckSql:
         """
         ret = audit_sql_dao.submit_sql_results_dao(self.submit_sql_uuid, self.inc_ret_rows, 0)
         if ret['status'] != "ok":
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3, "审核结果写入数据库失败")
             raise Exception(ret['message'])
 
     def process_recheck_results(self):
@@ -92,13 +66,11 @@ class AsyncCheckSql:
         # 标记工单为不提交
         ret = audit_sql_dao.mark_ticket_dao(self.submit_sql_uuid, 0)
         if ret['status'] != "ok":
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3, "标记工单为不提交失败")
             common.audit_sql_log(self.submit_sql_uuid, 1, "标记工单为不提交失败")
             raise Exception(ret['message'])
         # 删除历史审核记录
         ret = audit_sql_dao.remove_last_results_dao(self.submit_sql_uuid)
         if ret['status'] != "ok":
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3, "删除历史审核数据失败")
             raise Exception(ret['message'])
         # 重写SQL文件
         try:
@@ -109,12 +81,11 @@ class AsyncCheckSql:
             common.audit_sql_log(self.submit_sql_uuid, 0, "修改后SQL写入文件成功")
         except Exception as e:
             common.audit_sql_log(self.submit_sql_uuid, 1, "修改后SQL写入文件失败")
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3, "修改后SQL写入文件失败")
             raise Exception("修改后SQL写入文件失败")
         # 重写审核结果
         ret = audit_sql_dao.submit_sql_results_dao(self.submit_sql_uuid, self.inc_ret_rows, 1)
         if ret['status'] != "ok":
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3, "审核结果写入数据库失败")
+            common.audit_sql_log(self.submit_sql_uuid, 1, "审核结果写入数据库失败")
             raise Exception(ret['message'])
 
 

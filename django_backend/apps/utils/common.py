@@ -1,7 +1,9 @@
-from django.db import connection
+from django.http import HttpResponse
 import logging
 import random
 from apps.utils import db_helper
+from celery.result import AsyncResult
+import json
 
 logger = logging.getLogger('devops')
 
@@ -115,14 +117,24 @@ def mark_celery_task(submit_id, task_type, task_status, msg=""):
     return db_helper.dml(sql)
 
 
-def get_celery_task_status_dao(submit_id, task_type):
+def get_celery_task_status(request):
     """
-    获取celery状态
-    :param submit_id:
+    获取celery工单状态
+    PENDING -> STARTED -> RETRY -> STARTED -> RETRY -> STARTED -> SUCCESS
+    :param request:
     :return:
     """
-    sql = """
-            select task_status,content as message from my_celery_task_status 
-            where submit_id='{}' and task_type='{}'
-         """.format(submit_id, task_type)
-    return db_helper.find_all(sql)
+    try:
+        request_body = json.loads(str(request.body, encoding="utf-8"))
+        celery_id = request_body["celery_id"]  # None或者str
+        res = AsyncResult(celery_id)
+        if res.successful():
+            ret = {"status": "ok", "message": "审核成功"}
+        elif res.failed():
+            ret = {"status": "error", "message": "审核异常:%s" % (res.info)}
+        else:
+            ret = {"status": "warn", "message": "执行中:%s" % res.state}
+    except KeyError as e:
+        logger.exception(e)
+        ret = {"status": "error", "message": "参数不符合"}
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')

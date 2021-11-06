@@ -28,8 +28,8 @@ def check_sql(des_master_ip, des_master_port, check_sql_info):
         data = [dict(zip([col[0] for col in cur.description], row)) for row in results]
         content = {'status': "ok", 'inception审核完成': "ok",'data': data}
     except Exception as e:
-        logger.exception("inception审核失败",str(e))
-        message = str(e)
+        logger.exception("inception审核失败:%s",str(e))
+        message = "调用inception出现异常"
         if re.findall('1875', str(e)):
             message = "语法错误"
         elif re.findall('2003', str(e)):

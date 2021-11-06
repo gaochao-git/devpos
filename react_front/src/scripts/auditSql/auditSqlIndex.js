@@ -193,7 +193,7 @@ class AuditSqlIndex extends Component {
         this.setState({
             check_sql_results: [],
             submit_sql_button_disabled:"hide",
-            global_loading:true
+            global_loading:true,
         });
         await MyAxios.post('/v1/service/ticket/audit_sql/check_sql/',params).then(
             res => {
@@ -202,7 +202,7 @@ class AuditSqlIndex extends Component {
                    console.log(res.data.data)
                    this.setState({
                         check_sql_uuid: res.data.data["check_sql_uuid"],
-                        check_sql_celery_id: res.data.data["check_sql_celery_id"],
+                        celery_id: res.data.data["celery_id"],
                     },()=>{this.setInterVal()})
                 }else{
                     message.error(res.data.message,3)
@@ -227,27 +227,19 @@ class AuditSqlIndex extends Component {
 
     //获取审核任务状态
     async getCheckStatusByUuid() {
-        let params = {
-            submit_id: this.state.check_sql_uuid,
-            task_type:"check_sql",
-            check_sql_celery_id:this.state.check_sql_celery_id,
-            };
-        await MyAxios.get('/v1/service/ticket/get_celery_task_status/',{params}).then(
+        let params = {celery_id:this.state.celery_id};
+        await MyAxios.post('/v1/service/ticket/get_celery_task_status/',params).then(
             res => {
                 if (res.data.status==="ok"){
-                   if (res.data.data[0]['task_status'] === 2){
-                       window.clearInterval(this.timerId);
-                       message.success("异步审核任务完成",3);
-                       this.getPreCheckResultsByUuid();
-                       this.setState({global_loading:false});
-                   }else if (res.data.data[0]['task_status']===3){
-                        window.clearInterval(this.timerId);
-                        message.error(res.data.data[0]['message'],3);
-                        this.setState({global_loading:false});
-                   }
-                }else{
-                    window.clearInterval(this.timerId);
-                    message.error(res.data.message)
+                   window.clearInterval(this.timerId);
+                   message.success("异步审核任务完成",3);
+                   this.getPreCheckResultsByUuid();
+                   this.setState({global_loading:false});
+                }else if (res.data.status==="error"){
+                   window.clearInterval(this.timerId);
+                   message.error(res.data.message,3)
+                }else {
+                   message.warning(res.data.message)
                 }
             }
         ).catch(err => {message.error(err.message)})

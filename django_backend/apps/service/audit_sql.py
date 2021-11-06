@@ -27,16 +27,17 @@ def get_submit_sql_info():
     return ret
 
 
-def check_sql(submit_type, check_sql_info, cluster_name, instance_name):
+def check_sql(submit_type, check_sql_info, cluster_name, instance_name, check_sql_uuid, check_type):
     """
     检查SQL语法
     :param submit_type
     :param check_sql_info:
     :param cluster_name:
     :param instance_name:
+    :param submit_sql_uuid:None代表预审核、str代表修改已提交的SQL
+    :param check_type:None代表预审核、recheck_sql代表修改已提交的SQL
     :return:
     """
-    check_type = 'async'
     if submit_type == "cluster":
         instance_ret = common.get_cluster_node(cluster_name, 'M')
         if instance_ret['status'] !="ok": return instance_ret
@@ -45,22 +46,20 @@ def check_sql(submit_type, check_sql_info, cluster_name, instance_name):
     elif submit_type == "template":
         pass
     des_ip, des_port = instance_name.split('_')[0], instance_name.split('_')[1]
-    if check_type != "async":
-        ret = inception.check_sql(des_ip, des_port, check_sql_info)
-    else:
-        check_sql_uuid = str(uuid.uuid4())
-        check_user = "gaochao"
-        task_res = inception_check.delay(des_ip, des_port, check_sql_uuid, check_sql_info, check_user)
-        print(task_res.id)
-        print(task_res.state)
-        if task_res:
-            common.write_celery_task(task_res.id, check_sql_uuid, 'check_sql')
-            logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_res.id, check_sql_uuid))
-            data = {"check_sql_uuid": check_sql_uuid, "check_sql_celery_id": task_res.id}
-            ret = {"status": "ok", "message": "发送任务成功", "data": data}
-        else:
-            print(444444)
-            ret = {"status": "error", "message": "发送任务失败"}
+    if check_sql_uuid is None: check_sql_uuid = str(uuid.uuid4())
+    if check_type is None: check_type = "check_sql"
+    check_user = "gaochao"
+    try:
+        """
+        如果任务注册成功则返回task_res,否则出现异常
+        """
+        task_res = inception_check.delay(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type)
+        logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_res.id, check_sql_uuid))
+        data = {"check_sql_uuid": check_sql_uuid, "celery_id": task_res.id}
+        ret = {"status": "ok", "message": "发送任务成功", "data": data}
+    except Exception as e:
+        logger.exception("发送任务失败:%s" % str(e))
+        ret = {"status": "error", "message": "发送任务失败"}
     return ret
 
 
@@ -83,14 +82,13 @@ def recheck_sql(submit_sql_uuid, submit_type, check_sql_info, cluster_name, inst
     des_ip, des_port = instance_name.split('_')[0], instance_name.split('_')[1]
     check_sql_uuid = submit_sql_uuid
     check_user = "gaochao"
-    task_id = inception_check.delay(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,"recheck_sql")
-    if task_id:
-        write_task_ret = common.write_celery_task(task_id, check_sql_uuid, 'recheck_sql')
-        if write_task_ret['status'] !="ok":return write_task_ret
-        logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_id, check_sql_uuid))
-        data = {"check_sql_uuid": check_sql_uuid}
+    try:
+        task_res = inception_check.delay(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,"recheck_sql")
+        logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_res.id, check_sql_uuid))
+        data = {"check_sql_uuid": check_sql_uuid, "celery_id": task_res.id}
         ret = {"status": "ok", "message": "发送任务成功", "data": data}
-    else:
+    except Exception as e:
+        logger.exception("发送任务失败:%s" % str(e))
         ret = {"status": "error", "message": "发送任务失败"}
     return ret
 
@@ -328,6 +326,7 @@ class PassSubmitSql:
         self.cal_des_port = 0
         self.cluster_name = ""
         self.split_data = ""
+        self.celery_id = ""
 
     def pass_submit_sql_by_uuid(self):
         """
@@ -341,7 +340,8 @@ class PassSubmitSql:
                 self.split_sql()
             else:
                 self.mark_check_status()
-            content = {"status": "ok", "message": "ok"}
+            data = {"celery_id": self.celery_id}
+            content = {"status": "ok", "message": "ok","data":data}
         except Exception as e:
             logger.exception('工单%s审核失败,错误信息:%s', self.submit_sql_uuid, e)
             content = {"status": "error", "message": "审核工单出现异常:%s" % e}
@@ -349,6 +349,10 @@ class PassSubmitSql:
             return content
 
     def get_ticket_info(self):
+        """
+        获取工单详情
+        :return:
+        """
         ticket_info = audit_sql_dao.get_submit_sql_file_path_info_dao(self.submit_sql_uuid)
         if ticket_info['status'] != "ok":
             raise Exception("获取工单信息失败")
@@ -372,7 +376,6 @@ class PassSubmitSql:
         else:
             self.cal_des_ip, self.cal_des_port = self.ticket_info["master_ip"], self.ticket_info["master_port"]
 
-
     def mark_check_status(self):
         """
         标记审核状态
@@ -384,13 +387,17 @@ class PassSubmitSql:
         if mark_ret['status'] != 'ok': raise Exception("审核状态异常")
 
     def split_sql(self):
-        task_id = inception_split.delay(self.submit_sql_uuid, self.ticket_info, self.cal_des_ip, self.cal_des_port,
-                                        self.check_status,self.check_comment,self.login_user_name,
-                                        self.login_user_name_role)
-        if task_id:
-            common.write_celery_task(task_id, self.submit_sql_uuid, "split_sql")
-            logger.info("celery发送拆分任务成功返回task_id:%s" % task_id)
-        else:
+        try:
+            """
+            如果任务注册成功则返回task_res,否则出现异常
+            """
+            task_res = inception_split.delay(self.submit_sql_uuid, self.ticket_info, self.cal_des_ip, self.cal_des_port,
+                                            self.check_status, self.check_comment, self.login_user_name,
+                                            self.login_user_name_role)
+            self.celery_id = task_res.id
+            logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_res.id, self.submit_sql_uuid))
+        except Exception as e:
+            logger.exception("发送任务失败:%s" % str(e))
             raise Exception("发送拆分任务失败")
 
 

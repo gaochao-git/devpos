@@ -28,24 +28,22 @@ class AsyncSplitSql:
         self.check_status = check_status
         self.check_comment = check_comment
         self.inc_ret_rows = ""
-        self.task_type = "split_sql"
 
     def task_run(self):
         # 发送拆分任务---->推送到celery----->获取到任务------->发送审核工具拆分----->处理审核工具拆分结果----->标记任务状态
-        common.mark_celery_task(self.submit_sql_uuid, self.task_type, 1)
-        common.audit_sql_log(self.submit_sql_uuid, 0, "======================开始拆分SQL=================")
         try:
+            common.audit_sql_log(self.submit_sql_uuid, 0, "======================开始审核=================")
             self.send_inception()
             self.write_split_sql_to_new_file()
             self.mark_check_status()
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 2)
-            common.audit_sql_log(self.submit_sql_uuid, 0, "任务拆分完成")
+            common.audit_sql_log(self.submit_sql_uuid, 0, "审核任务完成")
+            common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核结束=================")
         except Exception as e:
-            logger.exception('工单%s拆分失败,错误信息:%s', self.submit_sql_uuid, e)
-            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 3)
-            common.audit_sql_log(self.submit_sql_uuid, 1, "任务拆分失败:%s" % e)
-        finally:
-            common.audit_sql_log(self.submit_sql_uuid, 0, "======================拆分SQL结束=================")
+            logger.exception('工单%s审核失败,错误信息:%s', self.submit_sql_uuid, e)
+            common.audit_sql_log(self.submit_sql_uuid, 1, "审核任务失败:%s" % e)
+            common.audit_sql_log(self.submit_sql_uuid, 1, "======================审核结束=================")
+            raise Exception("审核出现异常")
+
 
     def send_inception(self):
         """

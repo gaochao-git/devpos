@@ -5,9 +5,6 @@
 
 from django.http import HttpResponse
 import json
-from apps.utils import common
-from apps.utils import inception
-from celery.result import AsyncResult
 from apps.service import audit_sql
 import logging
 logger = logging.getLogger('devops')
@@ -17,32 +14,6 @@ logger = logging.getLogger('devops')
 def get_submit_sql_info_controller(request):
     ret = audit_sql.get_submit_sql_info()
     return HttpResponse(json.dumps(ret,default=str), content_type='application/json')
-
-
-def get_celery_task_status_controller(request):
-    """
-    获取审核工单状态
-    :param request:
-    :return:
-    """
-    try:
-        submit_id = request.GET.get("submit_id")  # None或者str
-        check_sql_celery_id = request.GET.get("check_sql_celery_id")  # None或者str
-        task_type = request.GET.get("task_type")  # None或者str
-        res = AsyncResult(check_sql_celery_id)
-        if res.successful():
-            print("执行成功")
-        elif res.failed():
-            print("执行失败")
-        else:
-            print(res.state)
-        print(res.result)
-        print(res.info)
-        ret = common.get_celery_task_status_dao(submit_id, task_type)
-    except KeyError as e:
-        logger.exception(e)
-        ret = {"status": "error", "message": "参数不符合"}
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
 def get_pre_check_result_controller(request):
@@ -104,7 +75,10 @@ def check_sql_controller(request):
         instance_name = request_body.get('instance_name').strip()
         check_sql_info = request_body['check_sql_info']
         submit_type = request_body['submit_type']
-        ret = audit_sql.check_sql(submit_type, check_sql_info, cluster_name, instance_name)
+        check_sql_uuid = request_body.get('check_sql_uuid')
+        check_type = request_body.get('check_type')
+        print(request_body)
+        ret = audit_sql.check_sql(submit_type, check_sql_info, cluster_name, instance_name, check_sql_uuid, check_type)
     except Exception as e:
         logger.exception(e)
         ret = {"status": "error", "message": "参数不符合"}
