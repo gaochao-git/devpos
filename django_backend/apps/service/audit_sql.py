@@ -8,6 +8,7 @@ import uuid
 from time import gmtime, strftime
 import os
 import json
+
 import os,sys
 from apps.dao import login_dao
 from apps.utils import common
@@ -49,11 +50,13 @@ def check_sql(submit_type, check_sql_info, cluster_name, instance_name):
     else:
         check_sql_uuid = str(uuid.uuid4())
         check_user = "gaochao"
-        task_id = inception_check.delay(des_ip, des_port, check_sql_uuid, check_sql_info, check_user)
-        if task_id:
-            common.write_celery_task(task_id, check_sql_uuid, 'check_sql')
-            logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_id, check_sql_uuid))
-            data = {"check_sql_uuid": check_sql_uuid}
+        task_res = inception_check.delay(des_ip, des_port, check_sql_uuid, check_sql_info, check_user)
+        print(task_res.id)
+        print(task_res.state)
+        if task_res:
+            common.write_celery_task(task_res.id, check_sql_uuid, 'check_sql')
+            logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_res.id, check_sql_uuid))
+            data = {"check_sql_uuid": check_sql_uuid, "check_sql_celery_id": task_res.id}
             ret = {"status": "ok", "message": "发送任务成功", "data": data}
         else:
             print(444444)

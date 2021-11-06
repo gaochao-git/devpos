@@ -47,7 +47,7 @@ def inception_execute(des_ip, des_port, inc_bak, inc_war, inc_err,file_path, sub
                                   inc_sleep, exe_user_name)
     execute_sql_task.task_run()
 
-@task
+@task(track_started=True)
 def inception_check(des_ip, des_port, submit_sql_uuid,check_sql, check_user_name,check_type="check_sql"):
     """
     异步审核SQL

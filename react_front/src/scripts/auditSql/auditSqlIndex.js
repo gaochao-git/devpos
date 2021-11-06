@@ -202,6 +202,7 @@ class AuditSqlIndex extends Component {
                    console.log(res.data.data)
                    this.setState({
                         check_sql_uuid: res.data.data["check_sql_uuid"],
+                        check_sql_celery_id: res.data.data["check_sql_celery_id"],
                     },()=>{this.setInterVal()})
                 }else{
                     message.error(res.data.message,3)
@@ -228,7 +229,8 @@ class AuditSqlIndex extends Component {
     async getCheckStatusByUuid() {
         let params = {
             submit_id: this.state.check_sql_uuid,
-            task_type:"check_sql"
+            task_type:"check_sql",
+            check_sql_celery_id:this.state.check_sql_celery_id,
             };
         await MyAxios.get('/v1/service/ticket/get_celery_task_status/',{params}).then(
             res => {

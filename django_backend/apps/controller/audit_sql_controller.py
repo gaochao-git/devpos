@@ -7,6 +7,7 @@ from django.http import HttpResponse
 import json
 from apps.utils import common
 from apps.utils import inception
+from celery.result import AsyncResult
 from apps.service import audit_sql
 import logging
 logger = logging.getLogger('devops')
@@ -26,7 +27,17 @@ def get_celery_task_status_controller(request):
     """
     try:
         submit_id = request.GET.get("submit_id")  # None或者str
+        check_sql_celery_id = request.GET.get("check_sql_celery_id")  # None或者str
         task_type = request.GET.get("task_type")  # None或者str
+        res = AsyncResult(check_sql_celery_id)
+        if res.successful():
+            print("执行成功")
+        elif res.failed():
+            print("执行失败")
+        else:
+            print(res.state)
+        print(res.result)
+        print(res.info)
         ret = common.get_celery_task_status_dao(submit_id, task_type)
     except KeyError as e:
         logger.exception(e)

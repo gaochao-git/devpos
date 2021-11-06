@@ -17,6 +17,27 @@ class AsyncCheckSql:
         self.task_type = check_type       # check_sql|recheck_sql
 
     def task_run(self):
+        raise Exception("hhhhhhhhh")
+        # 发送审核SQL---->推送到celery----->celery获取到任务----->发送审核工具审核----->处理审核工具返回结果----->标记celery任务状态
+        try:
+            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 1)
+            common.audit_sql_log(self.submit_sql_uuid, 0, "======================开始审核SQL=================")
+            self.send_inception()
+            if self.task_type == "check_sql":
+                self.process_check_results()
+            elif self.task_type == "recheck_sql":
+                self.process_recheck_results()
+            else:
+                common.audit_sql_log(self.submit_sql_uuid, 1, "审核类型不存在")
+            common.mark_celery_task(self.submit_sql_uuid, self.task_type, 2)
+            common.audit_sql_log(self.submit_sql_uuid, 0, "任务审核完成")
+        except Exception as e:
+            logger.exception('工单%s审核失败,错误信息:%s', self.submit_sql_uuid, e)
+            common.audit_sql_log(self.submit_sql_uuid, 1, "任务审核失败:%s" % e)
+        finally:
+            common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核SQL结束=================")
+
+    def v2_task_run(self):
         # 发送审核SQL---->推送到celery----->celery获取到任务----->发送审核工具审核----->处理审核工具返回结果----->标记celery任务状态
         try:
             common.mark_celery_task(self.submit_sql_uuid, self.task_type, 1)
