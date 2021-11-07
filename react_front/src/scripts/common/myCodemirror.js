@@ -37,28 +37,3 @@ export class ReadCodemirror extends React.Component {
         )
     }
 }
-
-
-
-export class ModifyCodemirror extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-    render() {
-        return (
-            <CodeMirror
-              value={this.props.value}
-              options={{
-                lineNumbers: true,
-                mode: {name: "text/x-mysql"},
-                theme: 'idea',
-                styleActiveLine: true,
-                lineWrapping:true,
-                scrollbarStyle:"overlay"
-              }}
-              onBlur={this.props.onBlur?this.props.onBlur:null}
-              onChange={this.props.onChange?this.props.onChange:null}
-            />
-        )
-    }
-}
