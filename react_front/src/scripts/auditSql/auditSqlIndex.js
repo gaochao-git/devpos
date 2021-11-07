@@ -6,8 +6,8 @@ import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import MyAxios from "../common/interface"
 import {AditSqlTable} from './auditSqlCommon'
-import { UnControlled as CodeMirror } from 'react-codemirror2';
-import {ModifyCodemirror} from "../common/myCodemirror";
+import { UnControlled as CodeMirror } from 'react-codemirror2'
+import {ReadCodemirror} from "../common/myCodemirror";
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { TextArea } = Input
@@ -459,10 +459,18 @@ class AuditSqlIndex extends Component {
                         }
                     </div>
                     <div>
-                        <ModifyCodemirror
-                            value={this.state.submit_split_sql}
-                            onBlur={(cm) => this.setState({check_sql:cm.getValue()})}
-                            onChange={(cm) => this.setState({check_sql_results:[]})}
+                        <CodeMirror
+                          value={this.state.check_sql}
+                          options={{
+                            lineNumbers: true,
+                            mode: {name: "text/x-mysql"},
+                            theme: 'idea',
+                            styleActiveLine: true,
+                            lineWrapping:true,
+                            scrollbarStyle:"overlay"
+                          }}
+                          onBlur={(cm) => this.setState({check_sql:cm.getValue()})}
+                          onChange={(cm) => this.setState({check_sql_results:[]})}
                         />
                         <Button type="primary" onClick={()=>{this.v2_handleSqlCheck()}}>检测SQL</Button>
                         {this.state.submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>:null}

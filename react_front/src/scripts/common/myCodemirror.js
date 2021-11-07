@@ -27,11 +27,11 @@ export class ReadCodemirror extends React.Component {
               options={{
                 lineNumbers: true,
                 mode: {name: "text/x-mysql"},
-                extraKeys: {"Tab": "autocomplete"},
                 theme: 'idea',
                 styleActiveLine: true,
                 lineWrapping:true,
-                scrollbarStyle:"overlay"
+                scrollbarStyle:"overlay",
+                readOnly:true,
               }}
             />
         )
@@ -51,14 +51,13 @@ export class ModifyCodemirror extends React.Component {
               options={{
                 lineNumbers: true,
                 mode: {name: "text/x-mysql"},
-                extraKeys: {"Tab": "autocomplete"},
                 theme: 'idea',
                 styleActiveLine: true,
                 lineWrapping:true,
                 scrollbarStyle:"overlay"
               }}
-              onBlur={this.props.onBlur}
-              onChange={this.props.onChange}
+              onBlur={this.props.onBlur?this.props.onBlur:null}
+              onChange={this.props.onChange?this.props.onChange:null}
             />
         )
     }

@@ -6,7 +6,7 @@ import {backendServerApiRoot} from "../common/util";
 import MyAxios from "../common/interface"
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import {AditSqlTable} from './auditSqlCommon'
-import {ReadCodemirror, ModifyCodemirror} from "../common/myCodemirror";
+import {ReadCodemirror} from "../common/myCodemirror";
 const Column = Table.Column;
 const TextArea = Input.TextArea;
 const EditableCell = ({ editable, value, onChange }) => (
@@ -869,7 +869,7 @@ export default class ExecuteSql extends Component {
                         footer={false}
                         width={960}
                     >
-                        <ReadCodemirror value={this.state.submit_sql} />
+                        <ReadCodemirror value={this.state.submit_sql}/>
                     </Modal>
                     <Modal visible={this.state.ApplyModalVisible}
                         onCancel={() => this.setState({ApplyModalVisible:false})}
@@ -903,9 +903,17 @@ export default class ExecuteSql extends Component {
                     >
                         <Spin spinning={this.state.global_loading} size="default">
                             <div>
-                                <ModifyCodemirror
-                                    value={this.state.modify_sql}
-                                    onBlur={(cm) => this.setState({modify_sql:cm.getValue()})}
+                                <CodeMirror
+                                  value={this.state.modify_sql}
+                                  options={{
+                                    lineNumbers: true,
+                                    mode: {name: "text/x-mysql"},
+                                    theme: 'idea',
+                                    styleActiveLine: true,
+                                    lineWrapping:true,
+                                    scrollbarStyle:"overlay"
+                                  }}
+                                  onBlur={(cm) => this.setState({modify_sql:cm.getValue()})}
                                 />
                                 <Button type="primary" onClick={() => this.setState({showReCheckVisible:true})}>检测SQL</Button>
                                 {this.state.re_submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.setState({showReSubmitVisible:true})}}>提交SQL</Button>:null}
