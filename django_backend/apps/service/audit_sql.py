@@ -467,8 +467,6 @@ class ExecuteSqlByFilePath:
             self.des_ip, self.des_port = self.ticket_info["master_ip"], self.ticket_info["master_port"]
 
     def send_celery(self):
-        common.audit_sql_log(self.file_path, 0, "======================begin=================")
-        common.audit_sql_log(self.file_path, 0, "celery生产者发送任务")
         # 调用celery异步执行,异获取到task_id则表示任务已经放入队列，后续具体操作交给worker处理，如果当时worker没有启动，后来再启动,worker会去队列获取任务执行
         task_id = inception_execute.delay(self.des_ip, self.des_port, self.inc_bak, self.inc_war, self.inc_err,
                                           self.file_path, self.submit_sql_uuid, self.inc_sleep, self.exe_user_name)
@@ -479,7 +477,6 @@ class ExecuteSqlByFilePath:
                 raise Exception("发送task任务成功,更新task表出现异常")
         else:
             raise Exception("发送task任务失败")
-            common.audit_sql_log(self.file_path, 1, "发送celery任务失败")
 
 
 # 手动执行SQL更改工单状态

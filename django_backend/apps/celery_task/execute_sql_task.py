@@ -27,18 +27,20 @@ class ExecuteSql:
 
     def task_run(self):
         # 执行工单---->推送到celery----->获取到任务------->预检查----->发送审核工具执行----->处理审核工具返回结果----->标记工单状态
-        common.audit_sql_log(self.file_path, 0, "celery 消费者获取到任务")
         try:
+            common.audit_sql_log(self.file_path, 0, "======================执行SQL开始=================")
             self.get_ticket_info()
             self.pre_check()
             self.osc_config()
             self.generate_sql()
             self.send_inception()
             self.process_execute_results()
+            common.audit_sql_log(self.file_path, 0, "执行SQL成功")
         except Exception as e:
-            logger.exception('工单%s执行失败,错误信息:%s', self.file_path, e)
+            common.audit_sql_log(self.file_path, 1, "执行SQL出现异常")
+            raise Exception(str(e))
         finally:
-            common.audit_sql_log(self.file_path, 0, "======================end=================")
+            common.audit_sql_log(self.file_path, 0, "======================执行SQL结束=================")
 
     def pre_check(self):
         # 判断工单是否已执行
@@ -62,9 +64,10 @@ class ExecuteSql:
         :return:
         """
         ticket_info = audit_sql_dao.get_master_info_by_split_sql_file_path_dao(self.file_path)
-        if ticket_info['status'] != "ok":
+        if ticket_info['status'] == "ok":
+            self.ticket_info = ticket_info['data'][0]
+        else:
             raise Exception("获取工单信息失败")
-        self.ticket_info = ticket_info['data'][0]
 
     def osc_config(self):
         """
@@ -93,8 +96,8 @@ class ExecuteSql:
         try:
             with open("./upload/{}".format(self.file_path), "rb") as f:
                 self.execute_sql = f.read().decode('utf-8')
-            logger.info("工单%s读取SQL文件成功", self.file_path)
         except Exception as e:
+            logger.exception(e)
             raise Exception("读取SQL文件失败")
 
     def send_inception(self):
@@ -182,43 +185,6 @@ class ExecuteSql:
         finally:
             cursor.close()
             connection.close()
-
-    # def mark_ticket_status(self, is_execute, execute_status):
-    #     """
-    #     所有子工单全部处理完后在处理主工单
-    #     不要被后面成功的工单覆盖前面失败的工单
-    #     标记子工单--->计算所有子工单---->标记主工单
-    #     :param is_execute:1-->未执行,2-->已执行'
-    #     :param execute_status:1-->未执行,2-->执行中,3-->执行成功,4-->执行失败,5-->执行成功含警告
-    #     :return:
-    #     """
-    #     # 标记子工单
-    #     child_sql = """
-    #             update sql_execute_split
-    #                 set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1
-    #             where split_sql_file_path='{}'
-    #          """.format(is_execute, execute_status, self.file_path)
-    #     parent_sql = """
-    #              update sql_submit_info
-    #                  set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1,dba_execute_user_name='{}'
-    #              where submit_sql_uuid='{}'
-    #           """.format(is_execute, execute_status, self.exe_user_name, self.submit_sql_uuid)
-    #     get_code_sql = """
-    #                         select execute_status from sql_execute_split where submit_sql_uuid='{}'
-    #                      """.format(self.submit_sql_uuid)
-    #     if execute_status == 2:
-    #         sql_list = []
-    #         sql_list.append(child_sql)
-    #         sql_list.append(parent_sql)
-    #         c_p_ret = db_helper.dml_many(sql_list)
-    #         if c_p_ret['status'] != 'ok': raise Exception("更新工单状态出现异常")
-    #     else:
-    #         c_ret = db_helper.dml(child_sql)
-    #         if c_ret['status'] != 'ok': raise Exception("更新子工单状态出现异常")
-    #         max_code_ret = db_helper.find_all(get_code_sql)
-    #         if max_code_ret['status'] != 'ok': raise Exception("获取所有子工单状态出现异常")
-    #         p_ret = db_helper.dml(parent_sql)
-    #         if p_ret['status'] != 'ok': raise Exception("更新主工单状态出现异常")
 
     def mark_ticket_status(self, is_execute, execute_status):
         """

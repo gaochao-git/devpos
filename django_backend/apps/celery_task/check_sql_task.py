@@ -29,8 +29,8 @@ class AsyncCheckSql:
             if self.task_type == "check_sql": self.process_check_results()
             elif self.task_type == "recheck_sql": self.process_recheck_results()
             else:
-                common.audit_sql_log(self.submit_sql_uuid, 1, "审核类型不存在")
-                raise Exception("审核类型不存在")
+                common.audit_sql_log(self.submit_sql_uuid, 1, "检查类型不存在")
+                raise Exception("检查类型不存在")
         except Exception as e:
             common.audit_sql_log(self.submit_sql_uuid, 1, str(e))
             raise Exception(str(e))
@@ -42,12 +42,12 @@ class AsyncCheckSql:
         SQL发送到inception审核
         :return:
         """
-        common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到审核工具审核")
+        common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到工具检查")
         ret = inception.check_sql(self.des_ip, self.des_port, self.check_sql)
         if ret['status'] != "ok": raise Exception(ret['message'])
         else:
             self.inc_ret_rows = ret['data']
-            common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到审核工具审核完成")
+            common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到工具检查完成")
 
     def process_check_results(self):
         """
@@ -55,7 +55,7 @@ class AsyncCheckSql:
         :return:
         """
         ret = audit_sql_dao.submit_sql_results_dao(self.submit_sql_uuid, self.inc_ret_rows, 0)
-        if ret['status'] != "ok": raise Exception("预审核结果写入数据库失败")
+        if ret['status'] != "ok": raise Exception("预检查结果写入数据库失败")
 
     def process_recheck_results(self):
         """
@@ -69,7 +69,7 @@ class AsyncCheckSql:
         if ret['status'] != "ok": raise Exception("标记工单为不提交失败")
         # 删除历史审核记录
         ret = audit_sql_dao.remove_last_results_dao(self.submit_sql_uuid)
-        if ret['status'] != "ok": raise Exception("删除历史审核记录失败")
+        if ret['status'] != "ok": raise Exception("删除历史检查记录失败")
         # 重写SQL文件
         try:
             file_path_data = audit_sql_dao.get_submit_sql_by_uuid_dao(self.submit_sql_uuid)
@@ -82,7 +82,7 @@ class AsyncCheckSql:
             raise Exception("修改后SQL写入文件失败")
         # 重写审核结果
         ret = audit_sql_dao.submit_sql_results_dao(self.submit_sql_uuid, self.inc_ret_rows, 1)
-        if ret['status'] != "ok": raise Exception("审核结果写入数据库失败")
+        if ret['status'] != "ok": raise Exception("检查结果写入数据库失败")
 
 
 

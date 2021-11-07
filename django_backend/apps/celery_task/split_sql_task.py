@@ -32,7 +32,7 @@ class AsyncSplitSql:
     def task_run(self):
         # 发送拆分任务---->推送到celery----->获取到任务------->发送审核工具拆分----->处理审核工具拆分结果----->标记任务状态
         try:
-            common.audit_sql_log(self.submit_sql_uuid, 0, "======================开始审核=================")
+            common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核工单开始=================")
             self.send_inception()
             self.write_split_sql_to_new_file()
             self.mark_check_status()
@@ -41,7 +41,7 @@ class AsyncSplitSql:
             common.audit_sql_log(self.submit_sql_uuid, 1, "审核任务失败:%s" % str(e))
             raise Exception(str(e))
         finally:
-            common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核结束=================")
+            common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核工单结束=================")
 
     def send_inception(self):
         """
