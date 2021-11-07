@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import MyAxios from "../common/interface"
+import {AditSqlTable} from './previewSql'
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/mode/sql/sql';
@@ -525,29 +526,10 @@ class AuditSqlIndex extends Component {
                         <Button type="primary" onClick={()=>{this.v2_handleSqlCheck()}}>检测SQL</Button>
                         {this.state.submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>:null}
                     </div>
-                    <Table
-                          dataSource={this.state.check_sql_results}
-                          rowKey={(row ,index) => index}
-                                                    rowClassName={(record, index) => {
-                                                let className = 'row-detail-default ';
-                                                if (record.Error_Level === 2) {
-                                                    className = 'row-detail-error';
-                                                    return className;
-                                                }else if (record.Error_Level  === 0){
-                                                    className = 'row-detail-success';
-                                                    return className;
-                                                }else if (record.Error_Level  === 1){
-                                                    className = 'row-detail-warning';
-                                                    return className;
-                                                }else {
-                                                    return className;
-                                                }
-                                    }}
-                            pagination={true}
-                            size="small"
-                            columns={check_results_columns}
-
-                      />
+                    <AditSqlTable
+                        data={this.state.check_sql_results}
+                        pagination={false}
+                    />
                     <Modal
                         title="表单提交"
                         visible={this.state.showDataVisible}

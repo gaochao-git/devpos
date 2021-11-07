@@ -502,18 +502,8 @@ def execute_submit_sql_by_file_path_manual(token,submit_sql_uuid,split_sql_file_
 
 # 查看执行结果
 def get_execute_results_by_split_sql_file_path(split_sql_file_path):
-    data = []
-    try:
-        data = audit_sql_dao.get_execute_results_by_split_sql_file_path_dao(split_sql_file_path)
-        status = "ok"
-        message = "ok"
-    except Exception as e:
-        status = "error"
-        message = e
-        logger.error(e)
-    finally:
-        content = {'status': status, 'message': message, 'data': data}
-        return content
+    ret = audit_sql_dao.get_execute_results_by_split_sql_file_path_dao(split_sql_file_path)
+    return ret
 
 
 # 根据uuid获取sqlsha1,根据sqlsha1连接inception查看执行进度

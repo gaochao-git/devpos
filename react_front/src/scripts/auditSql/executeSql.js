@@ -5,6 +5,7 @@ import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
 import MyAxios from "../common/interface"
 import { UnControlled as CodeMirror } from 'react-codemirror2';
+import {AditSqlTable} from './previewSql'
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/mode/sql/sql';
 import 'codemirror/addon/hint/show-hint.css';
@@ -465,7 +466,7 @@ export default class ExecuteSql extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path
         };
-        let res = await MyAxios.post(`${backendServerApiRoot}/get_execute_results_by_split_sql_file_path/`,params);
+        let res = await MyAxios.post('/get_execute_results_by_split_sql_file_path/',params);
         this.setState({
             execute_sql_results: res.data.data,
             ViewExecuteSubmitSqlModalVisible:true,
@@ -660,76 +661,8 @@ export default class ExecuteSql extends Component {
           }
           return i;
         };
-        const execute_results_columns = [
-            {
-              title: 'Id',
-              dataIndex: 'inception_id',
-              key: "inception_id",
-              width:50,
-            },
-            {
-              title: '错误代码',
-              dataIndex: 'inception_error_level',
-              key:"inception_error_level",
-              width:100,
-              sorter: (a, b) => {
-                var stringA = a.inception_error_level.toUpperCase(); // ignore upper and lowercase
-                var stringB = b.inception_error_level.toUpperCase(); // ignore upper and lowercase
-                if (stringA < stringB) {
-                    return -1;
-                }
-                if (stringA > stringB) {
-                    return 1;
-                }
-                // names must be equal
-                return 0;
-            }
-            },
-            {
-              title: '阶段',
-              dataIndex: 'inception_stage',
-              key:"inception_stage",
-              width:100,
-            },
-            {
-              title: '错误信息',
-              dataIndex: 'inception_error_message',
-              key:"inception_error_message",
-              width:540,
-            },
-            {
-              title: 'sql',
-              dataIndex: 'inception_sql',
-              key:"inception_sql",
-              width:540,
-            },
-            {
-              title: '实际影响行数',
-              dataIndex: 'inception_affected_rows',
-              key: "inception_affected_rows"
-            }
-            ,
-            {
-              title: '执行时间',
-              dataIndex: 'inception_execute_time',
-              key: "inception_execute_time",
-              width:90,
-            },
 
-        ];
-        const execute_process_columns = [
-            {
-              title: 'sql',
-              dataIndex: 'inception_sql',
-              key: "inception_sql",
-            },
-            {
-              title: '执行进度(%)',
-              dataIndex: 'inception_execute_percent',
-              key:"inception_execute_percent",
-            }
-        ];
-        const check_results_columns = [
+        const audit_columns = [
             {
               title: 'ID',
               dataIndex: 'ID',
@@ -763,8 +696,24 @@ export default class ExecuteSql extends Component {
             {
               title: 'SQL类型',
               dataIndex: 'command',
-              key:"command",
             },
+            {
+              title: '执行时间',
+              dataIndex: 'inception_execute_time',
+            },
+        ];
+
+        const execute_process_columns = [
+            {
+              title: 'sql',
+              dataIndex: 'inception_sql',
+              key: "inception_sql",
+            },
+            {
+              title: '执行进度(%)',
+              dataIndex: 'inception_execute_percent',
+              key:"inception_execute_percent",
+            }
         ];
 
         const split_sql_columns = [
@@ -983,36 +932,6 @@ export default class ExecuteSql extends Component {
                           }}
                         />
                     </Modal>
-                    <Modal visible={this.state.showSubmitSqlResultsVisible}
-                        onCancel={() => this.setState({showSubmitSqlResultsVisible:false})}
-                        title="SQL审核结果"
-                        footer={false}
-                        width={1200}
-                    >
-                        <Table
-                            dataSource={this.state.view_check_sql_result}
-                            rowKey={(row ,index) => index}
-                                                    rowClassName={(record, index) => {
-                                                let className = 'row-detail-default ';
-                                                if (record.inception_error_level === 2) {
-                                                    className = 'row-detail-error';
-                                                    return className;
-                                                }else if (record.inception_error_level  === 0){
-                                                    className = 'row-detail-success';
-                                                    return className;
-                                                }else if (record.inception_error_level  === 1){
-                                                    className = 'row-detail-warning';
-                                                    return className;
-                                                }else {
-                                                    return className;
-                                                }
-                                    }}
-                            pagination={true}
-                            size="small"
-                            columns={check_results_columns}
-                        >
-                        </Table>
-                    </Modal>
                     <Modal visible={this.state.ApplyModalVisible}
                         onCancel={() => this.setState({ApplyModalVisible:false})}
                         title="审核"
@@ -1026,34 +945,55 @@ export default class ExecuteSql extends Component {
                             </Row>
                         </Spin>
                     </Modal>
+                    <Modal visible={this.state.showSubmitSqlResultsVisible}
+                        onCancel={() => this.setState({showSubmitSqlResultsVisible:false})}
+                        title="SQL审核结果"
+                        footer={false}
+                        width={1200}
+                    >
+                        <AditSqlTable
+                            data={this.state.view_check_sql_result}
+                            pagination={false}
+                        />
+                    </Modal>
+                    <Modal visible={this.state.modifySubmitSqlVisible}
+                        onCancel={() => this.setState({modifySubmitSqlVisible:false})}
+                        title="修改SQL"
+                        footer={false}
+                        width={1240}
+                    >
+                        <Spin spinning={this.state.global_loading} size="default">
+                            <div>
+                                <CodeMirror
+                                  value={this.state.modify_sql}
+                                  options={{
+                                    lineNumbers: true,
+                                    mode: {name: "text/x-mysql"},
+                                    theme: 'idea',
+                                    styleActiveLine: true,
+                                    lineWrapping:true,
+                                  }}
+                                  onBlur={(cm) => this.setState({modify_sql:cm.getValue()})}
+                                />
+                                <Button type="primary" onClick={() => this.setState({showReCheckVisible:true})}>检测SQL</Button>
+                                {this.state.re_submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.setState({showReSubmitVisible:true})}}>提交SQL</Button>:null}
+                            </div>
+                            <AditSqlTable
+                                data={this.state.view_check_sql_result}
+                                pagination={false}
+                            />
+                        </Spin>
+                    </Modal>
                     <Modal visible={this.state.ViewExecuteSubmitSqlModalVisible}
                         onCancel={() => this.setState({ViewExecuteSubmitSqlModalVisible:false})}
                         title="执行结果"
                         footer={false}
                         width={1340}
                     >
-                    <Table
-                        dataSource={this.state.execute_sql_results}
-                        columns={execute_results_columns}
-                        bordered
-                        rowKey={(row ,index) => index}
-                        rowClassName={(record, index) => {
-                                                let className = 'row-detail-default ';
-                                                if (record.inception_error_level === "执行失败") {
-                                                    className = 'row-detail-error';
-                                                    return className;
-                                                }else if (record.inception_error_level  === "执行成功"){
-                                                    className = 'row-detail-success';
-                                                    return className;
-                                                }else if (record.inception_error_level  === "执行成功(含警告)"){
-                                                    className = 'row-detail-warning';
-                                                    return className;
-                                                }else {
-                                                    return className;
-                                                }
-                        }}
-                        size="small"
-                    />
+                        <AditSqlTable
+                            data={this.state.execute_sql_results}
+                            pagination={false}
+                        />
                     </Modal>
                     <Modal visible={this.state.ViewExecuteSubmitSqlProcessModalVisible}
                         onCancel={() => this.setState({ViewExecuteSubmitSqlProcessModalVisible:false})}
@@ -1092,53 +1032,6 @@ export default class ExecuteSql extends Component {
                             scrollbarStyle:"overlay",
                           }}
                         />
-                    </Modal>
-                    <Modal visible={this.state.modifySubmitSqlVisible}
-                        onCancel={() => this.setState({modifySubmitSqlVisible:false})}
-                        title="修改SQL"
-                        footer={false}
-                        width={1240}
-                    >
-                        <Spin spinning={this.state.global_loading} size="default">
-                            <div>
-                                <CodeMirror
-                                  value={this.state.modify_sql}
-                                  options={{
-                                    lineNumbers: true,
-                                    mode: {name: "text/x-mysql"},
-                                    theme: 'idea',
-                                    styleActiveLine: true,
-                                    lineWrapping:true,
-                                  }}
-                                  onBlur={(cm) => this.setState({modify_sql:cm.getValue()})}
-                                />
-                                <Button type="primary" onClick={() => this.setState({showReCheckVisible:true})}>检测SQL</Button>
-                                {this.state.re_submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.setState({showReSubmitVisible:true})}}>提交SQL</Button>:null}
-                            </div>
-                            <Table
-                              dataSource={this.state.view_check_sql_result}
-                              rowKey={(row ,index) => index}
-                                                        rowClassName={(record, index) => {
-                                                    let className = 'row-detail-default ';
-                                                    if (record.Error_Level === 2) {
-                                                        className = 'row-detail-error';
-                                                        return className;
-                                                    }else if (record.Error_Level  === 0){
-                                                        className = 'row-detail-success';
-                                                        return className;
-                                                    }else if (record.Error_Level  === 1){
-                                                        className = 'row-detail-warning';
-                                                        return className;
-                                                    }else {
-                                                        return className;
-                                                    }
-                                        }}
-                                pagination={true}
-                                size="small"
-                                columns={check_results_columns}
-
-                            />
-                        </Spin>
                     </Modal>
                     <Modal visible={this.state.showReSubmitVisible}
                         onCancel={() => this.setState({showReSubmitVisible:false})}

@@ -279,7 +279,6 @@ def pass_submit_sql_by_uuid_dao(submit_sql_uuid,check_comment,check_status,login
 
 # 获取拆分后的每条SQL信息
 def get_split_sql_info_dao(submit_sql_uuid):
-    print(55555)
     sql = """
                  select 
                     a.title,                
@@ -333,22 +332,20 @@ def execute_submit_sql_by_file_path_manual_dao(submit_sql_uuid,split_sql_file_pa
 
 # 查看执行结果
 def get_execute_results_by_split_sql_file_path_dao(split_sql_file_path):
-    sql = """select a.inception_id,
-                    a.inception_stage,
-                    case a.inception_error_level  when 0 then '执行成功' when 1 then '执行成功(含警告)' when 2 then '执行失败' end as inception_error_level,
-                    a.inception_affected_rows,
-                    a.inception_error_message,
-                    a.inception_sql,
-                    a.inception_execute_time
-             from sql_execute_results a inner join sql_execute_split b on a.split_sql_file_path=b.split_sql_file_path  where b.split_sql_file_path='{}'
+    sql = """select a.inception_id as ID,
+                    a.inception_stage as stage,
+                    a.inception_error_level as errlevel,
+                    a.inception_affected_rows as Affected_rows,
+                    a.inception_error_message as errormessage,
+                    a.inception_sql as `SQL`,
+                    a.inception_execute_time,
+                    a.inception_stage_status as stagestatus,
+                    a.inception_command as command
+             from sql_execute_results a inner join sql_execute_split b 
+             on a.split_sql_file_path=b.split_sql_file_path  where b.split_sql_file_path='{}'
     """.format(split_sql_file_path)
-    rows = []
-    try:
-        rows = db_helper.findall(sql)
-    except Exception as e:
-        logger.error(e)
-    finally:
-        return rows
+    print(sql)
+    return db_helper.find_all(sql)
 
 
 # 根据uuid获取sqlsha1
