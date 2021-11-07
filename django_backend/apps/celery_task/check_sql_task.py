@@ -24,7 +24,7 @@ class AsyncCheckSql:
         :return:
         """
         try:
-            common.audit_sql_log(self.submit_sql_uuid, 0, "======================开始审核SQL=================")
+            common.audit_sql_log(self.submit_sql_uuid, 0, "======================检查SQL开始=================")
             self.send_inception()
             if self.task_type == "check_sql": self.process_check_results()
             elif self.task_type == "recheck_sql": self.process_recheck_results()
@@ -35,7 +35,7 @@ class AsyncCheckSql:
             common.audit_sql_log(self.submit_sql_uuid, 1, str(e))
             raise Exception(str(e))
         finally:
-            common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核SQL结束=================")
+            common.audit_sql_log(self.submit_sql_uuid, 0, "======================检查SQL结束=================")
 
     def send_inception(self):
         """

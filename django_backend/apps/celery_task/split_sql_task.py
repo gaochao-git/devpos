@@ -37,13 +37,11 @@ class AsyncSplitSql:
             self.write_split_sql_to_new_file()
             self.mark_check_status()
             common.audit_sql_log(self.submit_sql_uuid, 0, "审核任务完成")
-            common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核结束=================")
         except Exception as e:
-            logger.exception('工单%s审核失败,错误信息:%s', self.submit_sql_uuid, e)
-            common.audit_sql_log(self.submit_sql_uuid, 1, "审核任务失败:%s" % e)
-            common.audit_sql_log(self.submit_sql_uuid, 1, "======================审核结束=================")
-            raise Exception("审核出现异常")
-
+            common.audit_sql_log(self.submit_sql_uuid, 1, "审核任务失败:%s" % str(e))
+            raise Exception(str(e))
+        finally:
+            common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核结束=================")
 
     def send_inception(self):
         """
@@ -57,14 +55,15 @@ class AsyncSplitSql:
             with open("./upload/{}".format(self.submit_sql_file_path), "rb") as f:
                 split_sql = f.read().decode('utf-8')
         except Exception as e:
-            raise Exception("读取拆分源文件失败%s" % e)
+            logger.exception(e)
+            raise Exception("读取拆分源文件失败")
         # 调用inception连接数据源拆分SQL
         split_ret = inception.start_split_sql(self.cal_des_ip, self.cal_des_port, split_sql)
         if split_ret['status'] == 'ok':
             self.inc_ret_rows = split_ret['data']
             common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到审核工具拆分完成")
         else:
-            raise Exception("任务发送到审核工具拆分失败%s" % split_ret['message'])
+            raise Exception("任务发送到审核工具拆分失败")
 
     def write_split_sql_to_new_file(self):
         """
@@ -99,20 +98,17 @@ class AsyncSplitSql:
                 # 拆分SQL写入文件
                 with open(upfile, 'w') as f:
                     f.write(sql)
-                logger.info("拆分SQL写入对应文件成功：%s", upfile)
                 # 拆分SQL详细信息写入数据库
                 ret = audit_sql_dao.write_split_sql_to_new_file_dao(self.submit_sql_uuid, split_seq,split_sql_file_path,
                                                                     sql_num, ddlflag, self.des_ip, self.des_port,
                                                                     self.cluster_name, rerun_sequence, rerun_seq,
                                                                     inception_osc_config)
-                if ret['status'] != "ok":
-                    raise Exception("拆分子工单详细信息写入数据库失败")
-                else:
-                    logger.info("拆分子工单详细信息写入数据库成功:%s", upfile)
+                if ret['status'] != "ok": raise Exception("拆分子工单详细信息写入数据库失败")
             common.audit_sql_log(self.submit_sql_uuid, 0, "拆分SQL处理成功(拆分DDL/DML文件，拆分DDL/DML子工单)")
         except Exception as e:
+            logger.exception(e)
             common.audit_sql_log(self.submit_sql_uuid, 1, "拆分SQL处理失败(拆分DDL/DML文件，拆分DDL/DML子工单)")
-            raise Exception("处理拆分结果出现异常:%s" % e)
+            raise Exception("处理拆分结果出现异常")
 
     def mark_check_status(self):
         """
