@@ -5,18 +5,9 @@ import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import MyAxios from "../common/interface"
-import {AditSqlTable} from './previewSql'
+import {AditSqlTable} from './auditSqlCommon'
 import { UnControlled as CodeMirror } from 'react-codemirror2';
-import 'codemirror/lib/codemirror.css';
-import 'codemirror/mode/sql/sql';
-import 'codemirror/addon/hint/show-hint.css';
-import 'codemirror/addon/hint/show-hint.js';
-import 'codemirror/addon/hint/sql-hint.js';
-import 'codemirror/theme/ambiance.css';
-import 'codemirror/addon/selection/active-line';
-import 'codemirror/addon/display/fullscreen.js'
-import 'codemirror/addon/scroll/simplescrollbars.js'
-import 'codemirror/addon/scroll/simplescrollbars.css'
+import {ModifyCodemirror} from "../common/myCodemirror";
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { TextArea } = Input
@@ -354,49 +345,6 @@ class AuditSqlIndex extends Component {
       this.setState({ expand: !expand });
     };
     render() {
-              const check_results_columns = [
-            {
-              title: 'ID',
-              dataIndex: 'ID',
-              key: "ID",
-            },
-            {
-              title: 'stage',
-              dataIndex: 'stage',
-              key: "stage",
-            },
-            {
-              title: 'SQL',
-              dataIndex: 'SQL',
-              key: "SQL",
-            },
-            {
-              title: '状态',
-              dataIndex: 'stagestatus',
-              key:"stagestatus",
-            },
-            {
-              title: '错误代码',
-              dataIndex: 'errlevel',
-              key:"errlevel",
-              sorter: (a, b) => a.Error_Level - b.Error_Level,
-            },
-            {
-              title: '错误信息',
-              dataIndex: 'errormessage',
-              key:"errormessage",
-            },
-            {
-              title: '影响行数',
-              dataIndex: 'Affected_rows',
-              key:"Affected_rows",
-            },
-            {
-              title: 'SQL类型',
-              dataIndex: 'command',
-              key:"command",
-            },
-        ];
         const {form} = this.props;
         const {getFieldDecorator} = form;
         return (
@@ -511,17 +459,10 @@ class AuditSqlIndex extends Component {
                         }
                     </div>
                     <div>
-                        <CodeMirror
-                          value={this.state.check_sql}
-                          options={{
-                            lineNumbers: true,
-                            mode: {name: "text/x-mysql"},
-                            theme: 'idea',
-                            styleActiveLine: true,
-                            lineWrapping:true,
-                          }}
-                          onBlur={(cm) => this.setState({check_sql:cm.getValue()})}
-                          onChange={(cm) => this.setState({check_sql_results:[]})}
+                        <ModifyCodemirror
+                            value={this.state.submit_split_sql}
+                            onBlur={(cm) => this.setState({check_sql:cm.getValue()})}
+                            onChange={(cm) => this.setState({check_sql_results:[]})}
                         />
                         <Button type="primary" onClick={()=>{this.v2_handleSqlCheck()}}>检测SQL</Button>
                         {this.state.submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>:null}

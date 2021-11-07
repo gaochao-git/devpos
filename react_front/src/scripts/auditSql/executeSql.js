@@ -5,17 +5,8 @@ import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
 import MyAxios from "../common/interface"
 import { UnControlled as CodeMirror } from 'react-codemirror2';
-import {AditSqlTable} from './previewSql'
-import 'codemirror/lib/codemirror.css';
-import 'codemirror/mode/sql/sql';
-import 'codemirror/addon/hint/show-hint.css';
-import 'codemirror/addon/hint/show-hint.js';
-import 'codemirror/addon/hint/sql-hint.js';
-import 'codemirror/theme/ambiance.css';
-import 'codemirror/addon/selection/active-line';
-import 'codemirror/addon/display/fullscreen.js'
-import 'codemirror/addon/scroll/simplescrollbars.js'
-import 'codemirror/addon/scroll/simplescrollbars.css'
+import {AditSqlTable} from './auditSqlCommon'
+import {ReadCodemirror, ModifyCodemirror} from "../common/myCodemirror";
 const Column = Table.Column;
 const TextArea = Input.TextArea;
 const EditableCell = ({ editable, value, onChange }) => (
@@ -662,47 +653,6 @@ export default class ExecuteSql extends Component {
           return i;
         };
 
-        const audit_columns = [
-            {
-              title: 'ID',
-              dataIndex: 'ID',
-            },
-            {
-              title: 'stage',
-              dataIndex: 'stage',
-            },
-            {
-              title: 'SQL',
-              dataIndex: 'SQL',
-            },
-            {
-              title: '状态',
-              dataIndex: 'stagestatus',
-            },
-            {
-              title: '错误代码',
-              dataIndex: 'errlevel',
-              sorter: (a, b) => a.errlevel - b.errlevel,
-            },
-            {
-              title: '错误信息',
-              dataIndex: 'errormessage',
-            },
-            {
-              title: '影响行数',
-              dataIndex: 'Affected_rows',
-              sorter: (a, b) => a.Affected_rows - b.Affected_rows,
-            },
-            {
-              title: 'SQL类型',
-              dataIndex: 'command',
-            },
-            {
-              title: '执行时间',
-              dataIndex: 'inception_execute_time',
-            },
-        ];
-
         const execute_process_columns = [
             {
               title: 'sql',
@@ -919,18 +869,7 @@ export default class ExecuteSql extends Component {
                         footer={false}
                         width={960}
                     >
-                        <CodeMirror
-                          value={this.state.submit_sql}
-                          options={{
-                            lineNumbers: true,
-                            mode: {name: "text/x-mysql"},
-                            extraKeys: {"Tab": "autocomplete"},
-                            theme: 'idea',
-                            styleActiveLine: true,
-                            lineWrapping:true,
-                            scrollbarStyle:"overlay"
-                          }}
-                        />
+                        <ReadCodemirror value={this.state.submit_sql} />
                     </Modal>
                     <Modal visible={this.state.ApplyModalVisible}
                         onCancel={() => this.setState({ApplyModalVisible:false})}
@@ -964,16 +903,9 @@ export default class ExecuteSql extends Component {
                     >
                         <Spin spinning={this.state.global_loading} size="default">
                             <div>
-                                <CodeMirror
-                                  value={this.state.modify_sql}
-                                  options={{
-                                    lineNumbers: true,
-                                    mode: {name: "text/x-mysql"},
-                                    theme: 'idea',
-                                    styleActiveLine: true,
-                                    lineWrapping:true,
-                                  }}
-                                  onBlur={(cm) => this.setState({modify_sql:cm.getValue()})}
+                                <ModifyCodemirror
+                                    value={this.state.modify_sql}
+                                    onBlur={(cm) => this.setState({modify_sql:cm.getValue()})}
                                 />
                                 <Button type="primary" onClick={() => this.setState({showReCheckVisible:true})}>检测SQL</Button>
                                 {this.state.re_submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.setState({showReSubmitVisible:true})}}>提交SQL</Button>:null}
@@ -1023,15 +955,7 @@ export default class ExecuteSql extends Component {
                         footer={false}
                         width={960}
                     >
-                        <CodeMirror
-                          value={this.state.submit_split_sql}
-                          options={{
-                            lineNumbers: true,
-                            mode: {name: "text/x-mysql"},
-                            theme: 'idea',
-                            scrollbarStyle:"overlay",
-                          }}
-                        />
+                        <ReadCodemirror value={this.state.submit_split_sql}/>
                     </Modal>
                     <Modal visible={this.state.showReSubmitVisible}
                         onCancel={() => this.setState({showReSubmitVisible:false})}
