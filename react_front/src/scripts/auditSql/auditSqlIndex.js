@@ -230,6 +230,9 @@ class AuditSqlIndex extends Component {
                 }else if (res.data.status==="error"){
                    window.clearInterval(this.timerId);
                    message.error(res.data.message,3)
+                   this.setState({
+                       global_loading:false,
+                   });
                 }else {
                    message.warning(res.data.message)
                 }

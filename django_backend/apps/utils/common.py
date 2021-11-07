@@ -71,10 +71,6 @@ def audit_sql_log(file_path, status, msg):
     :param msg:
     :return:
     """
-    if status == 0:
-        logger.info('工单%s:%s', file_path, msg)
-    else:
-        logger.error('工单%s:%s', file_path, msg)
     sql = """
             insert into audit_sql_log(split_file,step_status,audit_log_info,create_time,update_time) 
                                     values('{}',{},'{}',now(),now()) 
