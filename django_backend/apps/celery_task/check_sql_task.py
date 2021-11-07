@@ -28,13 +28,14 @@ class AsyncCheckSql:
             self.send_inception()
             if self.task_type == "check_sql": self.process_check_results()
             elif self.task_type == "recheck_sql": self.process_recheck_results()
-            else: raise Exception("审核类型不存在")
-            common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核SQL结束=================")
+            else:
+                common.audit_sql_log(self.submit_sql_uuid, 1, "审核类型不存在")
+                raise Exception("审核类型不存在")
         except Exception as e:
-            logger.error('工单%s审核失败,错误信息:%s', self.submit_sql_uuid, str(e))
             common.audit_sql_log(self.submit_sql_uuid, 1, str(e))
-            common.audit_sql_log(self.submit_sql_uuid, 1, "======================审核SQL结束=================")
             raise Exception(str(e))
+        finally:
+            common.audit_sql_log(self.submit_sql_uuid, 0, "======================审核SQL结束=================")
 
     def send_inception(self):
         """
