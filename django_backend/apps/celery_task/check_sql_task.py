@@ -8,6 +8,16 @@ logger = logging.getLogger('devops')
 
 class AsyncCheckSql:
     def __init__(self, des_ip, des_port, submit_sql_uuid, check_sql, check_user_name, check_type,user_offer_rollback_sql):
+        """
+        异步检查SQL
+        :param des_ip:
+        :param des_port:
+        :param submit_sql_uuid:
+        :param check_sql:
+        :param check_user_name:
+        :param check_type: check_sql|recheck_sql
+        :param user_offer_rollback_sql:
+        """
         self.submit_sql_uuid = submit_sql_uuid
         self.check_user_name = check_user_name
         self.des_ip = des_ip
@@ -15,8 +25,7 @@ class AsyncCheckSql:
         self.check_sql = check_sql
         self.rollback_sql = user_offer_rollback_sql
         self.inc_ret_rows = ""
-        self.task_type = check_type       # check_sql|recheck_sql
-
+        self.task_type = check_type
 
     def task_run(self):
         """
@@ -45,7 +54,8 @@ class AsyncCheckSql:
         """
         common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到工具检查")
         ret = inception.check_sql(self.des_ip, self.des_port, self.check_sql)
-        if ret['status'] != "ok": raise Exception(ret['message'])
+        if ret['status'] != "ok":
+            raise Exception(ret['message'])
         else:
             self.inc_ret_rows = ret['data']
             common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到工具检查完成")
@@ -71,6 +81,9 @@ class AsyncCheckSql:
         # 删除历史审核记录
         ret = audit_sql_dao.remove_last_results_dao(self.submit_sql_uuid)
         if ret['status'] != "ok": raise Exception("删除历史检查记录失败")
+        # 重写审核结果(放在写文件之前可以避免审核结果为一个事物提交避免大事物,如果写失败则不写文件肯定能发现)
+        ret = audit_sql_dao.submit_sql_results_dao(self.submit_sql_uuid, self.inc_ret_rows, 1)
+        if ret['status'] != "ok": raise Exception("检查结果写入数据库失败")
         # 重写SQL文件,使用数据库里面存放的SQL文件路径
         ret = audit_sql_dao.get_view_sql_by_uuid_dao(self.submit_sql_uuid)
         if ret['status'] != "ok": raise Exception("获取源SQL文件路径出现异常")
@@ -84,9 +97,6 @@ class AsyncCheckSql:
         except Exception as e:
             logger.exception(e)
             raise Exception("修改后SQL写入文件失败")
-        # 重写审核结果
-        ret = audit_sql_dao.submit_sql_results_dao(self.submit_sql_uuid, self.inc_ret_rows, 1)
-        if ret['status'] != "ok": raise Exception("检查结果写入数据库失败")
 
 
 

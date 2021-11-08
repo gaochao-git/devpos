@@ -69,7 +69,6 @@ export default class ExecuteSql extends Component {
             sql_check_results_loading:false,
             global_loading:false,
             modal_loading:false,
-            sql_check_code_explain:"",
             cluster_name:"",
             check_comment:"",
             modifySubmitSqlVisible:false,
@@ -123,6 +122,8 @@ export default class ExecuteSql extends Component {
             submit_sql_execute_type:res.data.data[0]["submit_sql_execute_type"],
             comment_info:res.data.data[0]["comment_info"],
             is_submit:res.data.data[0]["is_submit"],
+            sql_command_type: res.data.data[0]["sql_command_type"],
+            sql_check_max_code: res.data.data[0]["inception_error_level"],
             view_submit_split_sql_info:res_split_sql.data.data,
         })
     };
@@ -176,14 +177,8 @@ export default class ExecuteSql extends Component {
         this.setState({global_loading:true,view_check_sql_result:[]})
         let params = {submit_sql_uuid: this.props.match.params["submit_sql_uuid"],};
         let res = await MyAxios.post("/get_check_sql_results_by_uuid/",params);
-        let inception_error_level_rray=[];
-        for(var i=0;i<res.data.data.length;i++){
-            inception_error_level_rray.push(res.data.data[i]["errlevel"])
-        };
         this.setState({
             view_check_sql_result:res.data.data,
-            sql_check_max_code: Math.max.apply(null,inception_error_level_rray),
-            sql_check_code_explain: Math.max.apply(null,inception_error_level_rray)!==0 ? "异常":"正常",
             global_loading:false
         });
     };
@@ -823,7 +818,7 @@ export default class ExecuteSql extends Component {
                                 <Col style={{padding:5}} span={8}>SQL审核结果:</Col>
                                 <Col >
                                     <Button style={{padding:5}} span={16} className="link-button" onClick={() => this.setState({showSubmitSqlResultsVisible:true})} >查看</Button>
-                                    {this.state.sql_check_max_code !== 0 ? <span style={{color:"red"}}>{[this.state.sql_check_code_explain]}</span>:<span  style={{color:"#52c41a"}}>[正常]</span>}
+                                    {this.state.sql_check_max_code !== 0 ? <span style={{color:"red"}}>[异常]</span>:<span  style={{color:"#52c41a"}}>[正常]</span>}
                                 </Col>
                             </Row>
                             <Row gutter={8}><Col style={{padding:5}} span={8}>SQL总条数:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_rows}</Col></Row>
@@ -864,6 +859,7 @@ export default class ExecuteSql extends Component {
                                     {this.state.dba_execute === "已执行" ? <span style={{color:"#52c41a"}}>[{this.state.dba_execute}]</span>:<span  style={{color:"red"}}>[{this.state.dba_execute}]</span>}
                                 </Col>
                             </Row>
+                            <Row gutter={8}><Col style={{padding:5}} span={8}>SQL类型:</Col><Col style={{padding:5}} span={16}>{this.state.sql_command_type}</Col></Row>
                         </Col>
                     </Row>
                     <br/>

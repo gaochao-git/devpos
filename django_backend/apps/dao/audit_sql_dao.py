@@ -65,6 +65,8 @@ def get_apply_sql_by_uuid_dao(submit_sql_uuid):
                (select count(*) from  sql_check_results where submit_sql_uuid='{0}') as submit_sql_rows,
                (select sum(inception_affected_rows) from  sql_check_results where submit_sql_uuid='{0}') as submit_sql_affect_rows,
                (select sum(inception_execute_time) from sql_execute_results where submit_sql_uuid='{0}') as inception_execute_time,
+               (select group_concat(distinct(inception_command) separator '、') from sql_check_results where submit_sql_uuid='{0}' group by submit_sql_uuid) as sql_command_type,
+               (select max(inception_error_level) from sql_check_results where submit_sql_uuid='{0}') as inception_error_level,
                submit_sql_execute_type,
                comment_info,
                submit_sql_file_path,
@@ -224,7 +226,6 @@ def submit_sql_results_dao(uuid_str, check_sql_results, is_submit):
         sql_values = ""
         total = len(check_sql_results)
         i = 0
-        cursor.execute("set autocommit=off")
         for check_sql_result in check_sql_results:
             id = check_sql_result["ID"]
             stage = check_sql_result["stage"]
@@ -253,11 +254,9 @@ def submit_sql_results_dao(uuid_str, check_sql_results, is_submit):
                 cursor.execute(sql_results_insert)
                 sql_values = ""
                 i = 0
-        connection.commit()
         status = "ok"
         message = "审核结果写入数据库成功"
     except Exception as e:
-        connection.rollback()
         logger.exception(str(e))
         status = 'error'
         message = "审核结果写入数据库失败"
