@@ -6,7 +6,7 @@ import {backendServerApiRoot} from "../common/util";
 import MyAxios from "../common/interface"
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import {AditSqlTable} from './auditSqlCommon'
-import {ReadCodemirror} from "../common/myCodemirror";
+import {ReadCodemirror,AuditSqlModifyCodemirror} from "../common/myCodemirror";
 const Column = Table.Column;
 const TextArea = Input.TextArea;
 const EditableCell = ({ editable, value, onChange }) => (
@@ -23,7 +23,7 @@ export default class ExecuteSql extends Component {
         super(props);
         this.state = {
             submit_sql_title:"",
-            submit_sql:"",
+            view_sql_info:"",
             master_ip:"",
             master_port:"",
             submit_sql_user:"",
@@ -43,7 +43,7 @@ export default class ExecuteSql extends Component {
             view_submit_sql_info:[],
             view_submit_split_sql_info:[],
             submit_sql_uuid:"",
-            showSubmitSqlViewVisible:false,
+            SqlViewVisible:false,
             showSubmitSqlResultsVisible:false,
             ApplyModalVisible:false,
             ViewExecuteSubmitSqlModalVisible:false,
@@ -74,6 +74,7 @@ export default class ExecuteSql extends Component {
             check_comment:"",
             modifySubmitSqlVisible:false,
             modify_sql:"",
+            modify_rollback_sql:"",
             submit_type:"",
             is_submit:"",
             celery_id:"",
@@ -133,32 +134,44 @@ export default class ExecuteSql extends Component {
             view_submit_split_sql_info:res_split_sql.data.data,
         })
     };
-    //提交预览SQL
-    async GetSubmitSqlByUuid(uuid) {
-        this.setState({sql_view_loading:true,})
-        let params = {submit_sql_uuid: this.state.submit_sql_uuid,};
-        let res = await MyAxios.post('/get_submit_sql_by_uuid/',params);
+    //SQL预览
+    async GetViewSqlByUuid() {
+        let params = {submit_sql_uuid: this.state.submit_sql_uuid};
+        let res = await MyAxios.post('/get_view_sql_by_uuid/',params);
         if (res.data.status==="ok"){
             this.setState({
-                showSubmitSqlViewVisible: true,
-                submit_sql:res.data.data,
-                sql_view_loading:false,
+                SqlViewVisible: true,
+                view_sql_info:res.data.data['sql_text'],
             })
         }else{
             message.error(res.data.message)
-            this.setState({sql_view_loading:false,})
+        }
+    };
+
+    //回滚SQL
+    async GetViewRollbackSqlByUuid() {
+        let params = {submit_sql_uuid: this.state.submit_sql_uuid};
+        let res = await MyAxios.post('/get_view_sql_by_uuid/',params);
+        if (res.data.status==="ok"){
+            this.setState({
+                RollbackSqlViewVisible: true,
+                view_rollback_sql_info:res.data.data['rollback_sql_text'],
+            })
+        }else{
+            message.error(res.data.message)
         }
     };
 
     //获取修改前SQL
-    async GetModifySqlByUuid(uuid) {
+    async GetModifySqlByUuid() {
         this.setState({global_loading:true})
-        let params = {submit_sql_uuid: this.state.submit_sql_uuid,};
-        let res = await MyAxios.post('/get_submit_sql_by_uuid/',params);
+        let params = {submit_sql_uuid: this.state.submit_sql_uuid};
+        let res = await MyAxios.post('/get_view_sql_by_uuid/',params);
         if (res.data.status==="ok"){
             this.setState({
                 modifySubmitSqlVisible: true,
-                modify_sql:res.data.data,
+                modify_sql:res.data.data['sql_text'],
+                modify_rollback_sql: res.data.data['rollback_sql_text'],
                 global_loading:false
             })
         }else{
@@ -248,6 +261,7 @@ export default class ExecuteSql extends Component {
             cluster_name:this.state.cluster_name,
             instance_name: this.state.master_ip + "_" + this.state.master_port,
             check_sql_info: this.state.modify_sql,
+            user_offer_rollback_sql: this.state.modify_rollback_sql,
             submit_type:this.state.submit_type,
             check_sql_uuid:this.state.submit_sql_uuid,
             check_type:"recheck_sql"
@@ -778,8 +792,12 @@ export default class ExecuteSql extends Component {
                             <Row gutter={8}><Col style={{padding:5}} span={8}>主题:</Col><Col style={{padding:5}} span={16}>{this.state.submit_sql_title}</Col></Row>
                             <Row gutter={8}><Col style={{padding:5}} span={8}>是否提交:</Col><Col style={{padding:5}} span={16}>{this.state.is_submit}</Col></Row>
                             <Row gutter={8}>
-                                <Col style={{padding:5}} span={8}>SQL预览:</Col>
-                                <Button className="link-button" loading={this.state.sql_view_loading} onClick={this.GetSubmitSqlByUuid.bind(this)} style={{padding:5}} span={16}>查看</Button>
+                                <Col style={{padding:5}} span={8}>执行SQL预览:</Col>
+                                <Button className="link-button" loading={this.state.sql_view_loading} onClick={()=>this.GetViewSqlByUuid()} style={{padding:5}} span={16}>查看</Button>
+                            </Row>
+                            <Row gutter={8}>
+                                <Col style={{padding:5}} span={8}>回滚SQL预览:</Col>
+                                <Button className="link-button" loading={this.state.sql_view_loading} onClick={()=>this.GetViewRollbackSqlByUuid()} style={{padding:5}} span={16}>查看</Button>
                             </Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={8}>SQL审核结果:</Col>
@@ -829,7 +847,7 @@ export default class ExecuteSql extends Component {
                         </Col>
                     </Row>
                     <br/>
-                    <Button type="primary" onClick={this.GetModifySqlByUuid.bind(this)}>修改SQL</Button>
+                    <Button type="primary" onClick={()=>this.GetModifySqlByUuid()}>修改SQL</Button>
                     {(this.state.login_user_name_role!=="dba") ?
                         <div>
                             <h3>审核操作</h3>
@@ -863,13 +881,21 @@ export default class ExecuteSql extends Component {
                         </div>
                         :null
                     }
-                    <Modal visible={this.state.showSubmitSqlViewVisible}
-                        onCancel={() => this.setState({showSubmitSqlViewVisible:false})}
+                    <Modal visible={this.state.SqlViewVisible}
+                        onCancel={() => this.setState({SqlViewVisible:false})}
                         title="SQL预览"
                         footer={false}
                         width={960}
                     >
-                        <ReadCodemirror value={this.state.submit_sql}/>
+                        <ReadCodemirror value={this.state.view_sql_info}/>
+                    </Modal>
+                    <Modal visible={this.state.RollbackSqlViewVisible}
+                        onCancel={() => this.setState({RollbackSqlViewVisible:false})}
+                        title="回滚SQL预览"
+                        footer={false}
+                        width={960}
+                    >
+                        <ReadCodemirror value={this.state.view_rollback_sql_info}/>
                     </Modal>
                     <Modal visible={this.state.ApplyModalVisible}
                         onCancel={() => this.setState({ApplyModalVisible:false})}
@@ -903,17 +929,17 @@ export default class ExecuteSql extends Component {
                     >
                         <Spin spinning={this.state.global_loading} size="default">
                             <div>
-                                <CodeMirror
+                                <span>待执行语句</span>
+                                <AuditSqlModifyCodemirror
                                   value={this.state.modify_sql}
-                                  options={{
-                                    lineNumbers: true,
-                                    mode: {name: "text/x-mysql"},
-                                    theme: 'idea',
-                                    styleActiveLine: true,
-                                    lineWrapping:true,
-                                    scrollbarStyle:"overlay"
-                                  }}
                                   onBlur={(cm) => this.setState({modify_sql:cm.getValue()})}
+                                  onChange={(cm) => this.setState({check_sql_results:[]})}
+                                />
+                                <span>用户提供的回滚语句(不参与审核)</span>
+                                <AuditSqlModifyCodemirror
+                                  value={this.state.modify_rollback_sql}
+                                  onBlur={(cm) => this.setState({modify_rollback_sql:cm.getValue()})}
+                                  onChange={(cm) => this.setState({check_sql_results:[]})}
                                 />
                                 <Button type="primary" onClick={() => this.setState({showReCheckVisible:true})}>检测SQL</Button>
                                 {this.state.re_submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.setState({showReSubmitVisible:true})}}>提交SQL</Button>:null}

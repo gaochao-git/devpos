@@ -7,12 +7,13 @@ logger = logging.getLogger('devops')
 
 
 class AsyncCheckSql:
-    def __init__(self, des_ip, des_port, submit_sql_uuid, check_sql, check_user_name, check_type):
+    def __init__(self, des_ip, des_port, submit_sql_uuid, check_sql, check_user_name, check_type,user_offer_rollback_sql):
         self.submit_sql_uuid = submit_sql_uuid
         self.check_user_name = check_user_name
         self.des_ip = des_ip
         self.des_port = des_port
         self.check_sql = check_sql
+        self.rollback_sql = user_offer_rollback_sql
         self.inc_ret_rows = ""
         self.task_type = check_type       # check_sql|recheck_sql
 
@@ -70,13 +71,16 @@ class AsyncCheckSql:
         # 删除历史审核记录
         ret = audit_sql_dao.remove_last_results_dao(self.submit_sql_uuid)
         if ret['status'] != "ok": raise Exception("删除历史检查记录失败")
-        # 重写SQL文件
+        # 重写SQL文件,使用数据库里面存放的SQL文件路径
+        ret = audit_sql_dao.get_view_sql_by_uuid_dao(self.submit_sql_uuid)
+        if ret['status'] != "ok": raise Exception("获取源SQL文件路径出现异常")
         try:
-            file_path_data = audit_sql_dao.get_submit_sql_by_uuid_dao(self.submit_sql_uuid)
-            file_path = file_path_data[0]["submit_sql_file_path"]
-            with open("./upload/{}".format(file_path), "w") as f:
-                f.write(self.check_sql)
-            common.audit_sql_log(self.submit_sql_uuid, 0, "修改后SQL写入文件成功")
+            sql_file_path = ret['data'][0]["submit_sql_file_path"]
+            rollback_sql_file_path = ret['data'][0]["user_offer_rollback_sql_file_path"]
+            with open("./upload/{}".format(sql_file_path), "w") as f1:
+                f1.write(self.check_sql)
+            with open("./upload/{}".format(rollback_sql_file_path), "w") as f2:
+                f2.write(self.rollback_sql)
         except Exception as e:
             logger.exception(e)
             raise Exception("修改后SQL写入文件失败")

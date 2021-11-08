@@ -39,15 +39,9 @@ def get_submit_sql_info_dao():
 
 
 # 页面预览指定工单提交的SQL
-def get_submit_sql_by_uuid_dao(submit_sql_uuid):
-    sql = "select submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
-    rows = []
-    try:
-        rows = db_helper.findall(sql)
-    except Exception as e:
-        logger.error(e)
-    finally:
-        return rows
+def get_view_sql_by_uuid_dao(submit_sql_uuid):
+    sql = "select submit_sql_file_path, user_offer_rollback_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
+    return db_helper.find_all(sql)
 
 # 查看指定提交工单的详情
 def get_apply_sql_by_uuid_dao(submit_sql_uuid):
@@ -74,7 +68,8 @@ def get_apply_sql_by_uuid_dao(submit_sql_uuid):
                submit_sql_execute_type,
                comment_info,
                submit_sql_file_path,
-               case is_submit when 0 then '暂不提交' when 1 then '提交' end as is_submit
+               case is_submit when 0 then '暂不提交' when 1 then '提交' end as is_submit,
+               user_offer_rollback_sql_file_path
         from sql_submit_info
         where submit_sql_uuid='{0}'
     """.format(submit_sql_uuid)
@@ -152,8 +147,9 @@ def update_inception_variable_dao(request_body_json,split_sql_file_path):
         return update_status
 
 
-def submit_sql_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name,
-                   dba_name,submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type,cluster_name):
+def submit_sql_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,
+                   submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type,cluster_name,
+                   user_offer_rollback_sql_file_path):
     """
     将工单详情写入工单表
     :param login_user_name:
@@ -169,6 +165,7 @@ def submit_sql_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_
     :param uuid_str:
     :param submit_source_db_type:
     :param cluster_name:
+    :param user_offer_rollback_sql_file_path:用户提供的回滚SQL
     :return:
     """
     sql = """insert into sql_submit_info(submit_sql_user,
@@ -186,9 +183,12 @@ def submit_sql_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_
                                          comment_info,
                                          submit_sql_uuid,
                                          submit_source_db_type,
-                                         cluster_name) 
-                 values('{}','{}','{}',{},'{}','{}',1,'{}',1,'{}',1,'{}','{}','{}',{},'{}')
-        """.format(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type,cluster_name)
+                                         cluster_name,
+                                         user_offer_rollback_sql_file_path) 
+                 values('{}','{}','{}',{},'{}','{}',1,'{}',1,'{}',1,'{}','{}','{}',{},'{}','{}')
+        """.format(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,
+                   submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type,
+                   cluster_name,user_offer_rollback_sql_file_path)
     return db_helper.dml(sql)
 
 

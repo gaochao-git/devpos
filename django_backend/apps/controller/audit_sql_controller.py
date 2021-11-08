@@ -37,13 +37,20 @@ def get_cluster_name_controller(request):
     return HttpResponse(json.dumps(ret,default=str), content_type='application/json')
 
 
-# 页面预览指定工单提交的SQL
-def get_submit_sql_by_uuid_controller(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['submit_sql_uuid']
-    ret = audit_sql.get_submit_sql_by_uuid(submit_sql_uuid)
-    return HttpResponse(json.dumps(ret,default=str), content_type='text/xml')
+def get_view_sql_by_uuid_controller(request):
+    """
+    获取用户提供的SQL或者回滚SQL
+    :param request:
+    :return:
+    """
+    try:
+        request_body = json.loads(str(request.body, encoding="utf-8"))
+        submit_sql_uuid = request_body['submit_sql_uuid']
+        ret = audit_sql.get_view_sql_by_uuid(submit_sql_uuid)
+    except Exception as e:
+        logger.exception(e)
+        ret = {"status": "error", "message": "参数不符合"}
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
 # 查看指定提交工单的详情
@@ -66,6 +73,7 @@ def check_sql_controller(request):
     """
     request_body.get('xx')参数为选填参数
     request_body['xx']参数为必选参数
+    check_sql_uuid如果为None表示预检查SQL,如果为str则表示修改已提交SQL再次审核
     :param request:
     :return:
     """
@@ -74,11 +82,11 @@ def check_sql_controller(request):
         cluster_name = request_body.get('cluster_name').strip()
         instance_name = request_body.get('instance_name').strip()
         check_sql_info = request_body['check_sql_info']
+        user_offer_rollback_sql =  request_body['user_offer_rollback_sql']
         submit_type = request_body['submit_type']
         check_sql_uuid = request_body.get('check_sql_uuid')
         check_type = request_body.get('check_type')
-        print(request_body)
-        ret = audit_sql.check_sql(submit_type, check_sql_info, cluster_name, instance_name, check_sql_uuid, check_type)
+        ret = audit_sql.check_sql(submit_type, check_sql_info, cluster_name, instance_name, check_sql_uuid, check_type, user_offer_rollback_sql)
     except Exception as e:
         logger.exception(e)
         ret = {"status": "error", "message": "参数不符合"}

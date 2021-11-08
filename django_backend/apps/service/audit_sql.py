@@ -27,7 +27,7 @@ def get_submit_sql_info():
     return ret
 
 
-def check_sql(submit_type, check_sql_info, cluster_name, instance_name, check_sql_uuid, check_type):
+def check_sql(submit_type, check_sql_info, cluster_name, instance_name, check_sql_uuid, check_type, user_offer_rollback_sql):
     """
     检查SQL语法
     :param submit_type
@@ -53,7 +53,7 @@ def check_sql(submit_type, check_sql_info, cluster_name, instance_name, check_sq
         """
         如果任务注册成功则返回task_res,否则出现异常
         """
-        task_res = inception_check.delay(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type)
+        task_res = inception_check.delay(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type,user_offer_rollback_sql)
         logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_res.id, check_sql_uuid))
         data = {"check_sql_uuid": check_sql_uuid, "celery_id": task_res.id}
         ret = {"status": "ok", "message": "发送任务成功", "data": data}
@@ -103,22 +103,26 @@ def get_pre_check_result(check_sql_uuid):
     return ret
 
 
-# 页面预览指定工单提交的SQL
-def get_submit_sql_by_uuid(submit_sql_uuid):
+# 页面预览指定工单提交的回滚SQL
+def get_view_sql_by_uuid(submit_sql_uuid):
     data = ""
     try:
-        file_path_data = audit_sql_dao.get_submit_sql_by_uuid_dao(submit_sql_uuid)
-        file_path = file_path_data[0]["submit_sql_file_path"]
-        with open("./upload/{}".format(file_path), "rb") as f:
-            data = f.read()
-            data = data.decode('utf-8')
+        ret = audit_sql_dao.get_view_sql_by_uuid_dao(submit_sql_uuid)
+        if ret['status'] != "ok": return ret
+        file_path_data = ret['data']
+        sql_file_path = file_path_data[0]["submit_sql_file_path"]
+        rollback_sql_file_path = file_path_data[0]["user_offer_rollback_sql_file_path"]
+        with open("./upload/{}".format(sql_file_path), "rb") as f1:
+            sql_text = f1.read().decode('utf-8')
+        with open("./upload/{}".format(rollback_sql_file_path), "rb") as f2:
+            rollback_sql_text = f2.read().decode('utf-8')
+        data = {"sql_text": sql_text, "rollback_sql_text": rollback_sql_text}
         content = {'status': "ok", 'message': "获取SQL成功",'data': data}
     except Exception as e:
-        content = {'status': "error", 'message': str(e), 'data': data}
+        content = {'status': "error", 'message': str(e)}
         logger.error(e)
     finally:
         return content
-
 
 # 查看指定提交工单的详情
 def get_apply_sql_by_uuid(submit_sql_uuid):
@@ -216,6 +220,7 @@ def submit_recheck_sql(submit_sql_uuid, is_submit):
 class SubmitSql:
     def __init__(self, request_body):
         self.check_sql = request_body['check_sql']
+        self.user_offer_rollback_sql = request_body['user_offer_rollback_sql']
         self.check_sql_results = request_body['check_sql_results']
         self.title = request_body['title']
         self.submit_sql_execute_type = request_body['submit_sql_execute_type']
@@ -236,7 +241,6 @@ class SubmitSql:
             if self.check_sql_uuid != "":
                 self.submit_sql_uuid = self.check_sql_uuid
                 self.mark_check_results()
-
             else:
                 self.submit_sql_uuid = str(uuid.uuid4())
                 self.write_check_results()
@@ -259,13 +263,17 @@ class SubmitSql:
         # 确定存放路径
         upload_path = "./upload/" + now_date
         if not os.path.isdir(upload_path): os.makedirs(upload_path)
-        # 确定文件名
+        # 确定待执行文件名
         file_name = "%s_%s.sql" % (self.login_user_name, self.submit_sql_uuid)
         upfile = os.path.join(upload_path, file_name)
+        # 确定用户提供的回滚语句文件路径
+        rollback_file_name = "rollback_sql_%s_%s.sql" % (self.login_user_name, self.submit_sql_uuid)
+        rollback_upfile = os.path.join(upload_path, rollback_file_name)
         try:
-            print(upfile)
-            with open(upfile, 'w') as f:
-                f.write(self.check_sql)
+            with open(upfile, 'w', encoding='utf-8') as f1:
+                f1.write(self.check_sql)
+            with open(rollback_upfile, 'w', encoding='utf-8') as f2:
+                f2.write(self.user_offer_rollback_sql)
         except Exception as e:
             raise Exception("提交的SQL写入文件失败:%s",e)
 
@@ -296,7 +304,9 @@ class SubmitSql:
         # 确定存入数据库的文件路径
         now_date = strftime("%Y%m%d", gmtime())
         file_name = "%s_%s.sql" % (self.login_user_name, self.submit_sql_uuid)
+        rollback_file_name = "rollback_sql_%s_%s.sql" % (self.login_user_name, self.submit_sql_uuid)
         file_path = now_date + '/' + file_name
+        user_offer_rollback_sql_file_path = now_date + '/' + rollback_file_name
         des_ip = ""
         des_port = 0
         if self.submit_source_db_type == "master_ip_port":
@@ -309,7 +319,8 @@ class SubmitSql:
             raise Exception("数据源类型不合法")
         ret = audit_sql_dao.submit_sql_dao(self.login_user_name, self.title, des_ip, des_port, file_path,leader_name,
                                        qa_name, dba_name, self.submit_sql_execute_type, self.comment_info,
-                                       self.submit_sql_uuid, submit_source_db_type, self.cluster_name)
+                                       self.submit_sql_uuid, submit_source_db_type, self.cluster_name,
+                                           user_offer_rollback_sql_file_path)
         if ret['status'] != "ok": raise Exception("工单详情写入数据库失败")
 
 

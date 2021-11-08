@@ -29,7 +29,7 @@ urlpatterns = [
     # sql审核begin
     path('api/v1/service/ticket/audit_sql/get_submit_sql_info/', audit_sql_controller.get_submit_sql_info_controller), # 页面获取所有工单列表
     path('api/get_apply_sql_by_uuid/', audit_sql_controller.get_apply_sql_by_uuid_controller), # 查看指定提交工单的详情
-    path('api/get_submit_sql_by_uuid/', audit_sql_controller.get_submit_sql_by_uuid_controller), # 页面预览指定工单提交的SQL
+    path('api/get_view_sql_by_uuid/', audit_sql_controller.get_view_sql_by_uuid_controller), # 页面预览指定工单提交的SQL
     path('api/get_submit_split_sql_by_file_path/', audit_sql_controller.get_submit_split_sql_by_file_path_controller), # 获取指定拆分SQL
     path('api/get_check_sql_results_by_uuid/', audit_sql_controller.get_check_sql_results_by_uuid_controller), # 获取SQL检查结果
     path('api/get_execute_results_by_split_sql_file_path/', audit_sql_controller.get_execute_results_by_split_sql_file_path_controller),   # 根据拆分SQL文件获取SQL执行结果

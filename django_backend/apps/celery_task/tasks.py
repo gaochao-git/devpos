@@ -44,7 +44,7 @@ def inception_execute(des_ip, des_port, inc_bak, inc_war, inc_err,file_path, sub
     execute_sql_task.task_run()
 
 @task(track_started=True,base=MyTaskCallback)
-def inception_check(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type):
+def inception_check(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type,user_offer_rollback_sql):
     """
     异步审核SQL
     :param des_ip:
@@ -55,8 +55,7 @@ def inception_check(des_ip, des_port, check_sql_uuid, check_sql_info, check_user
     :param check_type:
     :return:
     """
-    print(check_type)
-    check_sql_task = AsyncCheckSql(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type)
+    check_sql_task = AsyncCheckSql(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type,user_offer_rollback_sql)
     check_sql_task.task_run()
 
 

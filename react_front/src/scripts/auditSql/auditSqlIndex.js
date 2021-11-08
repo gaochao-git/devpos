@@ -7,7 +7,7 @@ import "../../styles/index.scss"
 import MyAxios from "../common/interface"
 import {AditSqlTable} from './auditSqlCommon'
 import { UnControlled as CodeMirror } from 'react-codemirror2'
-import {ReadCodemirror} from "../common/myCodemirror";
+import {AuditSqlModifyCodemirror} from "../common/myCodemirror";
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { TextArea } = Input
@@ -30,7 +30,7 @@ class AuditSqlIndex extends Component {
             current_instance_name:"",
             current_cluster_name:"",
             check_sql:"",
-            check_sql_info:[],
+            user_offer_rollback_sql:"",
             check_sql_results:[],
             showDataVisible: false,
             submit_sql_info:[],
@@ -111,44 +111,6 @@ class AuditSqlIndex extends Component {
             });
         })
     }
-    //检测SQL
-    async handleSqlCheck() {
-        let params = {
-            cluster_name:this.state.current_cluster_name,
-            instance_name: this.state.current_instance_name,
-            check_sql_info: this.state.check_sql,
-            submit_type:this.state.submit_type
-        };
-        this.setState({
-            check_sql_results: [],
-            global_loading:true,
-            submit_sql_button_disabled:"hide"
-        });
-        await MyAxios.post('/v1/service/ticket/audit_sql/check_sql/',params).then(
-            res => {
-                if (res.data.status==="ok"){
-                   this.setState({
-                        check_sql_results: res.data.data,
-                        submit_sql_button_disabled:"show",
-                        global_loading:false,
-                    })
-                }else{
-                    message.error(res.data.message,3)
-                    this.setState({
-                        check_sql_results: [],
-                        global_loading:false,
-                    })
-                }
-            }
-        ).catch(err => {
-            message.error(err, 3);
-            this.setState({
-                check_sql_results: [],
-                global_loading:false,
-            });
-        })
-    }
-
 
     //获取预审核结果
     async getPreCheckResultsByUuid() {
@@ -175,11 +137,12 @@ class AuditSqlIndex extends Component {
     }
 
     //检测SQL
-    async v2_handleSqlCheck() {
+    async handleSqlCheck() {
         let params = {
             cluster_name:this.state.current_cluster_name,
             instance_name: this.state.current_instance_name,
             check_sql_info: this.state.check_sql,
+            user_offer_rollback_sql: this.state.user_offer_rollback_sql,
             submit_type:this.state.submit_type
         };
         this.setState({
@@ -268,6 +231,7 @@ class AuditSqlIndex extends Component {
             comment_info: value["comment_info"],
             submit_source_db_type: this.state.submit_type,
             check_sql_uuid: this.state.check_sql_uuid,
+            user_offer_rollback_sql: this.state.user_offer_rollback_sql
         };
         let res = await MyAxios.post('/submit_sql/',params);
         if( res.data.status === 'ok'){
@@ -462,20 +426,19 @@ class AuditSqlIndex extends Component {
                         }
                     </div>
                     <div>
-                        <CodeMirror
+                        <span>待执行语句</span>
+                        <AuditSqlModifyCodemirror
                           value={this.state.check_sql}
-                          options={{
-                            lineNumbers: true,
-                            mode: {name: "text/x-mysql"},
-                            theme: 'idea',
-                            styleActiveLine: true,
-                            lineWrapping:true,
-                            scrollbarStyle:"overlay"
-                          }}
                           onBlur={(cm) => this.setState({check_sql:cm.getValue()})}
                           onChange={(cm) => this.setState({check_sql_results:[]})}
                         />
-                        <Button type="primary" onClick={()=>{this.v2_handleSqlCheck()}}>检测SQL</Button>
+                        <span>用户提供的回滚语句(不参与审核)</span>
+                        <AuditSqlModifyCodemirror
+                          value={this.state.user_offer_rollback_sql}
+                          onBlur={(cm) => this.setState({user_offer_rollback_sql:cm.getValue()})}
+                          onChange={(cm) => this.setState({check_sql_results:[]})}
+                        />
+                        <Button type="primary" onClick={()=>{this.handleSqlCheck()}}>检测SQL</Button>
                         {this.state.submit_sql_button_disabled==="show" ? <Button  style={{marginLeft:10}} type="primary" onClick={()=>{this.showDataModalHandle()}}>提交SQL</Button>:null}
                     </div>
                     <AditSqlTable
