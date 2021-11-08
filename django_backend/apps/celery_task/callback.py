@@ -42,9 +42,4 @@ class MyTaskCallback(celery.Task):
         任务返回时
         """
         print("我返回信息了")
-        print(status, retval, task_id, args, kwargs, einfo)
-
-@before_task_publish.connect(sender="inception_check")
-def task_send_handler(sender=None, body=None, **kwargs):
-    print ('after_task_publish: task_id: {body[id]}; sender: {sender}'.format(body=body, sender=sender))
 

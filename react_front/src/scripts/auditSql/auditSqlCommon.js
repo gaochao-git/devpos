@@ -55,7 +55,11 @@ export class AditSqlTable extends React.Component {
                 rowKey={(row ,index) => index}
                 columns={audit_columns}
                 dataSource={this.props.data}
-                pagination={this.props.pagination}
+                pagination={{
+                               pageSizeOptions:[10,20,30,40,50,60,70,80,90,100,300,500],
+                               showSizeChanger:true,
+                               showTotal:(count=this.props.data.length)=>{return '共'+count+'条'}
+                           }}
                 scroll={this.props.scroll}
                 size="small"
                 rowClassName={(record, index) => {

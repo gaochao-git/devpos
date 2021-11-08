@@ -396,6 +396,7 @@ class ExecuteSqlByFilePath:
         self.ticket_info = ""
         self.des_ip = 0
         self.des_port = ""
+        self.celery_id = ""
 
     def execute_submit_sql_by_file_path(self):
         try:
@@ -403,7 +404,8 @@ class ExecuteSqlByFilePath:
             self.judge_source_ip_port()
             self.pre_check()
             self.send_celery()
-            content = {"status": "ok", "message": "推送任务成功"}
+            data = {"celery_id": self.celery_id}
+            content = {"status": "ok", "message": "推送任务成功","data": data}
         except Exception as e:
             logger.exception('工单%s执行失败,错误信息:%s', self.file_path, e)
             content = {"status": "error", "message": "执行工单出现异常:%s" % e}
@@ -428,10 +430,8 @@ class ExecuteSqlByFilePath:
             raise Exception("该工单已执行")
         # check3,判断当前实例read_only状态
         read_only_ret = common.get_read_only(self.des_ip, self.des_port)
-        if read_only_ret['status'] != 'ok':
-            raise Exception("执行SQL获取read_only出现异常")
-        if read_only_ret['data'][0]['read_only'] != 'OFF':
-            raise Exception("read_only角色不满足")
+        if read_only_ret['status'] != 'ok': raise Exception("执行SQL获取read_only出现异常")
+        if read_only_ret['data'][0]['read_only'] != 'OFF': raise Exception("read_only角色不满足")
 
     def judge_source_ip_port(self):
         cluster_name = self.ticket_info["cluster_name"]
@@ -449,15 +449,17 @@ class ExecuteSqlByFilePath:
 
     def send_celery(self):
         # 调用celery异步执行,异获取到task_id则表示任务已经放入队列，后续具体操作交给worker处理，如果当时worker没有启动，后来再启动,worker会去队列获取任务执行
-        task_id = inception_execute.delay(self.des_ip, self.des_port, self.inc_bak, self.inc_war, self.inc_err,
-                                          self.file_path, self.submit_sql_uuid, self.inc_sleep, self.exe_user_name)
-        if task_id:
-            logger.info("celery返回task_id:%s" % task_id)
+        try:
+            task_res = inception_execute.delay(self.des_ip, self.des_port, self.inc_bak, self.inc_war, self.inc_err,
+                                              self.file_path, self.submit_sql_uuid, self.inc_sleep, self.exe_user_name)
+            self.celery_id = task_res.id
             update_task_ret = audit_sql_dao.set_task_send_celery(self.file_path)
-            if update_task_ret['status'] != 'ok':
-                raise Exception("发送task任务成功,更新task表出现异常")
-        else:
-            raise Exception("发送task任务失败")
+            if update_task_ret['status'] != 'ok': raise Exception("发送task任务成功,更新task表出现异常")
+        except Exception as e:
+            logger.exception("发送任务失败:%s" % str(e))
+            raise Exception("发送任务失败")
+
+
 
 
 # 手动执行SQL更改工单状态

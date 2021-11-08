@@ -77,7 +77,9 @@ export default class ExecuteSql extends Component {
             modify_rollback_sql:"",
             submit_type:"",
             is_submit:"",
-            celery_id:"",
+            celery_split_id:"",
+            celery_recheck_id:"",
+            celery_execute_id:"",
         }
         this.cacheData = this.state.data.map(item => ({ ...item }));
     }
@@ -91,16 +93,6 @@ export default class ExecuteSql extends Component {
         let params = {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
-        let arr_execute_status = ['执行成功','执行失败','执行成功(含警告)']
-        if(arr_execute_status.includes(this.state.execute_status)){
-            window.clearInterval(this.timerId);
-            window.clearInterval(this.timerProcessId);
-            console.log("SQL执完毕，关闭定时器");
-            this.setState({global_loading:false})
-        } else{
-             console.log("SQL执行中，定时id为:",this.timerId);
-             console.log("SQL执行状态:",this.state.execute_status);
-        }
         let res = await MyAxios.post("/get_apply_sql_by_uuid/",params);
         let res_split_sql = await MyAxios.post("/get_split_sql_by_uuid/",params);
         if (res.data.data[0]["cluster_name"].length>0){
@@ -240,7 +232,7 @@ export default class ExecuteSql extends Component {
             res=>{
                 if (res.data.status === "ok"){
                     this.setState({
-                        celery_id: res.data.data["celery_id"],
+                        celery_split_id: res.data.data["celery_id"],
                     },()=>{this.v2_setInterVal()})
                     message.success("工单审核通过,DDL/DML任务拆分中,请耐心等待",3);
                 }else{
@@ -278,7 +270,7 @@ export default class ExecuteSql extends Component {
                 if (res.data.status==="ok"){
                    message.success("异步审核任务已发起,请等待",3);
                    this.setState({
-                        celery_id: res.data.data["celery_id"],
+                        celery_recheck_id: res.data.data["celery_id"],
                     },()=>{this.reChecksetInterVal()})
                 }else{
                     message.error(res.data.message,3)
@@ -299,7 +291,7 @@ export default class ExecuteSql extends Component {
 
     //获取拆分任务状态
     async getSplitStatusByUuid() {
-        let params = {celery_id: this.state.celery_id};
+        let params = {celery_id: this.state.celery_split_id};
         await MyAxios.post('/v1/service/ticket/get_celery_task_status/',params).then(
             res => {
                 if (res.data.status==="ok"){
@@ -319,9 +311,31 @@ export default class ExecuteSql extends Component {
         ).catch(err => {message.error(err.message)})
     };
 
+    //获取执行任务状态
+    async getExecuteStatus() {
+        let params = {celery_id: this.state.celery_execute_id};
+        await MyAxios.post('/v1/service/ticket/get_celery_task_status/',params).then(
+            res => {
+                if (res.data.status==="ok"){
+                    message.success("任务执行成功",3)
+                    window.clearInterval(this.timerId);
+                    this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
+                    this.setState({global_loading:false});
+                }else if (res.data.status==="error"){
+                   message.error("任务执行失败",3)
+                   window.clearInterval(this.splitTimerId);
+                   this.GetSqlApplyByUuid(this.state.submit_sql_uuid);
+                   this.setState({global_loading:false});
+                }else {
+                   message.warning(res.data.message)
+                }
+            }
+        ).catch(err => {message.error(err.message)})
+    };
+
     //间隔执行
     setInterVal = () => {
-         this.timerId = window.setInterval(this.GetSqlApplyByUuid.bind(this),2000);
+         this.timerId = window.setInterval(this.getExecuteStatus.bind(this),2000);
          // this.timerProcessId = window.setInterval(this.getExecuteProcessByUuidTimeInterval.bind(this),1000);
     }
     //重新审核间隔执行
@@ -332,7 +346,7 @@ export default class ExecuteSql extends Component {
 
     //获取重新审核任务状态
     async getCheckStatusByUuid() {
-        let params = {celery_id: this.state.celery_id};
+        let params = {celery_id: this.state.celery_recheck_id};
         await MyAxios.post('/v1/service/ticket/get_celery_task_status/',params).then(
             res => {
                 if (res.data.status==="ok"){
@@ -410,9 +424,15 @@ export default class ExecuteSql extends Component {
                 });
                 await MyAxios.post('/execute_submit_sql_by_file_path/', params).then(
                     res => {
-                        res.data.status === "ok" ? message.success(res.data.message,3) && this.setInterVal() : message.error(res.data.message);
+                        if (res.data.status === "ok"){
+                            this.setState({celery_execute_id: res.data.data["celery_id"]});
+                            message.success(res.data.message,3)
+                            this.setInterVal()
+                        }else{
+                             message.error(res.data.message)
+                        }
                     }
-                );
+                ).catch(err=>{message.error(err.message)})
             } else {
                 message.error("该工单正在执行,请误多次点击!!!");
             }
