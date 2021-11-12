@@ -311,6 +311,11 @@ class AuditSqlIndex extends Component {
       const { expand } = this.state;
       this.setState({ expand: !expand });
     };
+    //codemirror框大小设置
+    onEditorDidMount = editor =>{
+        this.editor = editor;
+        editor.setSize("auto","300px")
+    };
     render() {
         const {form} = this.props;
         const {getFieldDecorator} = form;
@@ -428,6 +433,7 @@ class AuditSqlIndex extends Component {
                     <div>
                         <span>待执行语句</span>
                         <AuditSqlModifyCodemirror
+                          editorDidMount={this.onEditorDidMount}
                           value={this.state.check_sql}
                           onBlur={(cm) => this.setState({check_sql:cm.getValue()})}
                           onChange={(cm) => this.setState({check_sql_results:[]})}

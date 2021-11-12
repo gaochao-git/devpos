@@ -24,20 +24,20 @@ class AsyncCheckSql:
         self.des_port = des_port
         self.check_sql = check_sql
         self.rollback_sql = user_offer_rollback_sql
+        self.check_type = check_type
         self.inc_ret_rows = ""
-        self.task_type = check_type
 
     def task_run(self):
         """
-        发送审核SQL---->推送到celery----->celery获取到任务----->发送审核工具审核----->处理审核工具返回结果----->标记celery任务状态
+        发送审核SQL---->推送到celery----->celery获取到任务----->发送审核工具审核----->审核工具返回结果写入数据库
         raise会将失败信息传送给celery做为返回值info
         :return:
         """
         try:
             common.audit_sql_log(self.submit_sql_uuid, 0, "======================检查SQL开始=================")
             self.send_inception()
-            if self.task_type == "check_sql": self.process_check_results()
-            elif self.task_type == "recheck_sql": self.process_recheck_results()
+            if self.check_type == "check_sql": self.process_check_results()
+            elif self.check_type == "recheck_sql": self.process_recheck_results()
             else:
                 common.audit_sql_log(self.submit_sql_uuid, 1, "检查类型不存在")
                 raise Exception("检查类型不存在")
@@ -70,7 +70,7 @@ class AsyncCheckSql:
 
     def process_recheck_results(self):
         """
-        标记工单为不提交=======>重写SQL文件========>删除历史审核记录========>重写审核结果
+        标记工单为不提交========>重写审核结果========>删除历史审核记录=======>重写SQL文件
         SQL写入之前的SQL文件，采用覆盖方式
         审核结果写入数据库，覆盖之前审核结果，is_submit=1
         :return:

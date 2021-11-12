@@ -23,13 +23,14 @@ export class ReadCodemirror extends React.Component {
     render() {
         return (
             <CodeMirror
+              editorDidMount={this.props.editorDidMount}
               value={this.props.value}
               options={{
                 lineNumbers: true,
                 mode: {name: "text/x-mysql"},
                 theme: 'idea',
-                styleActiveLine: true,
-                lineWrapping:true,
+                styleActiveLine: false,
+                lineWrapping:false,
                 scrollbarStyle:"overlay",
                 readOnly:true,
               }}
@@ -46,13 +47,14 @@ export class AuditSqlModifyCodemirror extends React.Component {
     render() {
         return (
             <CodeMirror
+              editorDidMount={this.props.editorDidMount}
               value={this.props.value}
               options={{
                 lineNumbers: true,
                 mode: {name: "text/x-mysql"},
                 theme: 'idea',
                 styleActiveLine: true,
-                lineWrapping:true,
+                lineWrapping:false,
                 scrollbarStyle:"overlay"
               }}
               onBlur={this.props.onBlur}
