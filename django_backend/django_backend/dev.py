@@ -30,6 +30,7 @@ CELERY_REDIRECT_STDOUTS_LEVEL = 'INFO'        #标准输出和标准错误输出
 CELERY_TIMEZONE = 'Asia/Shanghai'
 BROKER_URL = 'redis://:fffjjj@47.104.2.74:6379/0'
 CELERY_RESULT_BACKEND = 'redis://:fffjjj@47.104.2.74:6379/1' # 任务结果存入redis
+CELERY_TASK_TRACK_STARTED = True
 # CELERY_RESULT_BACKEND = 'djcelery.backends.database.DatabaseBackend'  #任务结果存到数据库celery_taskmeta表中
 
 # 配置定时任务

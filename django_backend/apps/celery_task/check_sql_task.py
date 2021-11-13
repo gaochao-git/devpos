@@ -7,7 +7,7 @@ logger = logging.getLogger('devops')
 
 
 class AsyncCheckSql:
-    def __init__(self, des_ip, des_port, submit_sql_uuid, check_sql, check_user_name, check_type,user_offer_rollback_sql):
+    def __init__(self, task,des_ip, des_port, submit_sql_uuid, check_sql, check_user_name, check_type,user_offer_rollback_sql):
         """
         异步检查SQL
         :param des_ip:
@@ -26,6 +26,7 @@ class AsyncCheckSql:
         self.rollback_sql = user_offer_rollback_sql
         self.check_type = check_type
         self.inc_ret_rows = ""
+        self.task = task
 
     def task_run(self):
         """
@@ -65,6 +66,7 @@ class AsyncCheckSql:
         审核结果写入预审核表，预审核结果is_submit=0
         :return:
         """
+        self.task.update_state(state="write_results_to_db")
         ret = audit_sql_dao.submit_sql_results_dao(self.submit_sql_uuid, self.inc_ret_rows, 0)
         if ret['status'] != "ok": raise Exception("预检查结果写入数据库失败")
 

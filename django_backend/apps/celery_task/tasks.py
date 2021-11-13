@@ -43,10 +43,13 @@ def inception_execute(des_ip, des_port, inc_bak, inc_war, inc_err,file_path, sub
                                   inc_sleep, exe_user_name)
     execute_sql_task.task_run()
 
-@task(track_started=True,base=MyTaskCallback)
-def inception_check(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type,user_offer_rollback_sql):
+@task(track_started=True, base=MyTaskCallback, bind=True)
+def inception_check(task, des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type,user_offer_rollback_sql):
     """
     异步审核SQL
+    track_started=False:任务状态为pengding--->success|fail
+    track_started=True:任务状态为pengding--->started--->success|fail
+    如果使用bind=True,则异步方法第一个参数是task任务本身
     :param des_ip:
     :param des_port:
     :param check_sql_uuid:
@@ -55,8 +58,11 @@ def inception_check(des_ip, des_port, check_sql_uuid, check_sql_info, check_user
     :param check_type:
     :return:
     """
-    check_sql_task = AsyncCheckSql(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type,user_offer_rollback_sql)
+    task.update_state(state="recivied")
+    print(dir(task.AsyncResult))
+    check_sql_task = AsyncCheckSql(task,des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type,user_offer_rollback_sql)
     check_sql_task.task_run()
+
 
 
 @task
