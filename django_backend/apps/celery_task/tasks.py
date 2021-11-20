@@ -59,7 +59,6 @@ def inception_check(task, des_ip, des_port, check_sql_uuid, check_sql_info, chec
     :return:
     """
     task.update_state(state="recivied")
-    print(dir(task.AsyncResult))
     check_sql_task = AsyncCheckSql(task,des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type,user_offer_rollback_sql)
     check_sql_task.task_run()
 

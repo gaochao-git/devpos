@@ -4,8 +4,110 @@ import random
 from apps.utils import db_helper
 from celery.result import AsyncResult
 import json
+import validators
 
 logger = logging.getLogger('devops')
+
+
+class CheckParams:
+    @staticmethod
+    def check_ip(my_params):
+        """
+        校验ip
+        :param my_params: ip
+        :return:
+        """
+        if not isinstance(my_params, str):
+            return {"status": "error", "message": "类型不合法"}
+        if validators.ipv4(my_params):
+            return {"status": "ok", "message": "校验通过"}
+        else:
+            return {"status": "error", "message": "ip不合法"}
+
+    @staticmethod
+    def check_port(my_params, min_no=0, max_no=65535):
+        """
+        校验端口号
+        :param my_params:
+        :param min_no:
+        :param max_no:
+        :return:
+        """
+        if not isinstance(my_params, int):
+            return {"status": "error", "message": "类型不合法"}
+        if validators.between(my_params, min=min_no, max=max_no):
+            return {"status": "ok", "message": "校验通过"}
+        else:
+            return {"status": "error", "message": "数字有效范围为%d-%d" % (min_no, max_no)}
+
+    @staticmethod
+    def check_instance_name(my_params):
+        if not isinstance(str, int):
+            return {"status": "error", "message": "类型不合法"}
+        if len(my_params.split) != 2:
+            return {"status": "error", "message": "实例不合法"}
+        if CheckParams.check_ip(my_params.split[0])['status'] != "ok":
+            return {"status": "error", "message": "实例不合法"}
+        if CheckParams.check_port(my_params.split[1])['status'] != "ok":
+            return {"status": "error", "message": "实例不合法"}
+
+
+    @staticmethod
+    def check_cluster_name(cluster_name, min_no, max_no):
+        pass
+
+    @staticmethod
+    def check_str_length(my_params, min_no, max_no):
+        """
+        校验字符串长度
+        :param my_str:
+        :param min_no:
+        :param max_no:
+        :return:
+        """
+        if not isinstance(my_params, str):
+            return {"status": "error", "message": "类型不合法"}
+        if validators.length(my_params, min=min_no, max=max_no):
+            return {"status": "ok", "message": "校验通过"}
+        else:
+            return {"status": "error", "message": "字符串有效长度范围为%d-%d" % (min_no, max_no)}
+
+    @staticmethod
+    def check_int_range(my_params, min_no, max_no):
+        """
+        校验数字类型是否合法
+        :param my_params:
+        :param min_no:
+        :param max_no:
+        :return:
+        """
+        if not isinstance(my_params, int):
+            return {"status": "error", "message": "类型不合法"}
+        if validators.between(my_params, min=min_no, max=max_no):
+            return {"status": "ok", "message": "校验通过"}
+        else:
+            return {"status": "error", "message": "数字有效范围为%d-%d" %(min_no, max_no)}
+
+    @staticmethod
+    def check_uuid(my_params):
+        """
+        校验uuid合法性
+        :param my_params:
+        :return:
+        """
+        if validators.uuid(my_params):
+            return {"status": "error", "message": "uuid不合法"}
+        else:
+            return {"status": "ok", "message": "校验通过"}
+
+
+
+
+
+
+
+
+
 
 
 def get_cluster_node(cluster_name, instance_role):

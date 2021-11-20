@@ -6,6 +6,7 @@
 from django.http import HttpResponse
 import json
 from apps.service import audit_sql
+from apps.utils.common import CheckParams
 import logging
 logger = logging.getLogger('devops')
 
@@ -22,12 +23,8 @@ def get_pre_check_result_controller(request):
     :param request:
     :return:
     """
-    try:
-        check_sql_uuid = request.GET.get("check_sql_uuid")  # None或者str
-        ret = audit_sql.get_pre_check_result(check_sql_uuid)
-    except KeyError as e:
-        logger.exception(e)
-        ret = {"status": "error", "message": "参数不符合"}
+    check_sql_uuid = request.GET.get("check_sql_uuid")  # None或者str
+    ret = audit_sql.get_pre_check_result(check_sql_uuid)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
@@ -43,21 +40,20 @@ def get_view_sql_by_uuid_controller(request):
     :param request:
     :return:
     """
-    try:
-        request_body = json.loads(str(request.body, encoding="utf-8"))
-        submit_sql_uuid = request_body['submit_sql_uuid']
-        ret = audit_sql.get_view_sql_by_uuid(submit_sql_uuid)
-    except Exception as e:
-        logger.exception(e)
-        ret = {"status": "error", "message": "参数不符合"}
+    request_body = json.loads(str(request.body, encoding="utf-8"))
+    submit_sql_uuid = request_body.get('submit_sql_uuid')
+    check_uuid_ret = CheckParams.check_uuid(submit_sql_uuid)
+    if check_uuid_ret['status'] != "ok": return check_uuid_ret
+    ret = audit_sql.get_view_sql_by_uuid(submit_sql_uuid)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
 # 查看指定提交工单的详情
 def get_apply_sql_by_uuid_controller(request):
-    to_str = str(request.body, encoding="utf-8")
-    request_body = json.loads(to_str)
-    submit_sql_uuid = request_body['submit_sql_uuid']
+    request_body = json.loads(str(request.body, encoding="utf-8"))
+    submit_sql_uuid = request_body.get('submit_sql_uuid')
+    check_uuid_ret = CheckParams.check_uuid(submit_sql_uuid)
+    if check_uuid_ret['status'] != "ok": return check_uuid_ret
     ret = audit_sql.get_apply_sql_by_uuid(submit_sql_uuid)
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
@@ -82,7 +78,7 @@ def check_sql_controller(request):
         cluster_name = request_body.get('cluster_name').strip()
         instance_name = request_body.get('instance_name').strip()
         check_sql_info = request_body['check_sql_info']
-        user_offer_rollback_sql =  request_body['user_offer_rollback_sql']
+        user_offer_rollback_sql = request_body['user_offer_rollback_sql']
         submit_type = request_body['submit_type']
         check_sql_uuid = request_body.get('check_sql_uuid')
         check_type = request_body.get('check_type')

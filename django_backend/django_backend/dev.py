@@ -31,7 +31,7 @@ CELERY_TIMEZONE = 'Asia/Shanghai'
 BROKER_URL = 'redis://:fffjjj@47.104.2.74:6379/0'
 CELERY_RESULT_BACKEND = 'redis://:fffjjj@47.104.2.74:6379/1' # 任务结果存入redis
 CELERY_TASK_TRACK_STARTED = True
-# CELERY_RESULT_BACKEND = 'djcelery.backends.database.DatabaseBackend'  #任务结果存到数据库celery_taskmeta表中
+# CELERY_RESULT_BACKEND = 'djcelery.backends.database.DatabaseBackend'  #任务结果存到数据库celery_taskmeta表中,TiDB不支持该类型
 
 # 配置定时任务
 CELERYBEAT_SCHEDULER = {
