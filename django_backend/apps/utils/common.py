@@ -9,7 +9,13 @@ import validators
 logger = logging.getLogger('devops')
 
 
-class CheckParams:
+class CheckValidate:
+    """
+    校验分为3类：
+        权限校验放在controller校验
+        基础校验放在controller校验
+        业务逻辑参数校验放在service或者dao校验
+    """
     @staticmethod
     def check_ip(my_params):
         """
@@ -46,9 +52,9 @@ class CheckParams:
             return {"status": "error", "message": "类型不合法"}
         if len(my_params.split) != 2:
             return {"status": "error", "message": "实例不合法"}
-        if CheckParams.check_ip(my_params.split[0])['status'] != "ok":
+        if CheckValidate.check_ip(my_params.split[0])['status'] != "ok":
             return {"status": "error", "message": "实例不合法"}
-        if CheckParams.check_port(my_params.split[1])['status'] != "ok":
+        if CheckValidate.check_port(my_params.split[1])['status'] != "ok":
             return {"status": "error", "message": "实例不合法"}
 
 
@@ -96,18 +102,19 @@ class CheckParams:
         :return:
         """
         if validators.uuid(my_params):
-            return {"status": "error", "message": "uuid不合法"}
-        else:
             return {"status": "ok", "message": "校验通过"}
+        else:
+            return {"status": "error", "message": "uuid不合法"}
 
 
-
-
-
-
-
-
-
+def my_response(data, content_type='application/json'):
+    """
+    公共返回response
+    :param data:
+    :param content_type:
+    :return:
+    """
+    return HttpResponse(json.dumps(data, default=str), content_type=content_type)
 
 
 def get_cluster_node(cluster_name, instance_role):

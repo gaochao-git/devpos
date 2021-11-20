@@ -3,10 +3,10 @@
 # @Time    : 2019/4/17 3:17 PM
 # @Author  : 高超
 
-from django.http import HttpResponse
+from django.http import HttpResponse,JsonResponse
 import json
 from apps.service import audit_sql
-from apps.utils.common import CheckParams
+from apps.utils.common import CheckValidate,my_response
 import logging
 logger = logging.getLogger('devops')
 
@@ -14,7 +14,7 @@ logger = logging.getLogger('devops')
 # 页面获取所有工单列表
 def get_submit_sql_info_controller(request):
     ret = audit_sql.get_submit_sql_info()
-    return HttpResponse(json.dumps(ret,default=str), content_type='application/json')
+    return my_response(ret)
 
 
 def get_pre_check_result_controller(request):
@@ -25,13 +25,13 @@ def get_pre_check_result_controller(request):
     """
     check_sql_uuid = request.GET.get("check_sql_uuid")  # None或者str
     ret = audit_sql.get_pre_check_result(check_sql_uuid)
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 # 获取所有集群名
 def get_cluster_name_controller(request):
     ret = audit_sql.get_cluster_name()
-    return HttpResponse(json.dumps(ret,default=str), content_type='application/json')
+    return my_response(ret)
 
 
 def get_view_sql_by_uuid_controller(request):
@@ -42,26 +42,29 @@ def get_view_sql_by_uuid_controller(request):
     """
     request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body.get('submit_sql_uuid')
-    check_uuid_ret = CheckParams.check_uuid(submit_sql_uuid)
-    if check_uuid_ret['status'] != "ok": return check_uuid_ret
+    check_uuid_ret = CheckValidate.check_uuid(submit_sql_uuid)
+    if check_uuid_ret['status'] != "ok": return my_response(check_uuid_ret)
     ret = audit_sql.get_view_sql_by_uuid(submit_sql_uuid)
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 # 查看指定提交工单的详情
 def get_apply_sql_by_uuid_controller(request):
+    # 获取参数
     request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body.get('submit_sql_uuid')
-    check_uuid_ret = CheckParams.check_uuid(submit_sql_uuid)
-    if check_uuid_ret['status'] != "ok": return check_uuid_ret
+    # 基础参数校验
+    check_uuid_ret = CheckValidate.check_uuid(submit_sql_uuid)
+    if check_uuid_ret['status'] != "ok": return my_response(check_uuid_ret)
+    # 执行业务逻辑
     ret = audit_sql.get_apply_sql_by_uuid(submit_sql_uuid)
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 # 获取master ip
 def get_master_ip_controller(request):
     ret = audit_sql.get_master_ip()
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 # 页面调用inception检测SQL,如果根据cluster_name则需要先获取到对应的master_ip、master_port
@@ -86,7 +89,7 @@ def check_sql_controller(request):
     except Exception as e:
         logger.exception(e)
         ret = {"status": "error", "message": "参数不符合"}
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 # def recheck_sql_controller(request):
@@ -114,7 +117,7 @@ def submit_sql_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
     abj = audit_sql.SubmitSql(request_body)
     ret = abj.process_submit_sql()
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 def submit_recheck_sql_controller(request):
@@ -130,7 +133,7 @@ def submit_recheck_sql_controller(request):
     except Exception as e:
         logger.exception(e)
         ret = {"status": "error", "message": "参数不符合"}
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 
@@ -141,7 +144,7 @@ def get_submit_split_sql_by_file_path_controller(request):
     request_body = json.loads(to_str)
     split_sql_file_path = request_body['split_sql_file_path']
     ret = audit_sql.get_submit_split_sql_by_file_path(split_sql_file_path)
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 # 页面查看inception变量配置
@@ -150,7 +153,7 @@ def get_inception_variable_config_info_controller(request):
     request_body = json.loads(to_str)
     split_sql_file_path = request_body['split_sql_file_path']
     ret = audit_sql.get_inception_variable_config_info(split_sql_file_path)
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 # 页面修改inception变量配置
 def update_inception_variable_controller(request):
@@ -159,14 +162,14 @@ def update_inception_variable_controller(request):
     new_config = request_body["params"]["new_config_json"]
     request_body_json = json.dumps(new_config)
     ret = audit_sql.update_inception_variable(request_body_json,split_sql_file_path)
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 # 页面查看审核结果
 def get_check_sql_results_by_uuid_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body['submit_sql_uuid']
     ret = audit_sql.get_check_sql_results_by_uuid(submit_sql_uuid)
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 # 审核通过并拆分SQL
 def pass_submit_sql_by_uuid_controller(request):
@@ -178,7 +181,7 @@ def pass_submit_sql_by_uuid_controller(request):
     # ret = audit_sql.pass_submit_sql_by_uuid(submit_sql_uuid,apply_results,check_comment,check_status)
     obj = audit_sql.PassSubmitSql(submit_sql_uuid,check_comment,check_status)
     ret = obj.pass_submit_sql_by_uuid()
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 # 获取SQL文件路径,调用inception执行
@@ -193,7 +196,7 @@ def execute_submit_sql_by_file_path_controller(request):
     exe_user_name = request_body["execute_user_name"]
     obj = audit_sql.ExecuteSqlByFilePath(submit_sql_uuid, file_path, exe_user_name,inc_bak, inc_war, inc_err, inc_sleep)
     ret = obj.execute_submit_sql_by_file_path()
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 # 手动执行SQL更改工单状态
@@ -204,7 +207,7 @@ def execute_submit_sql_by_file_path_manual_controller(request):
     submit_sql_uuid = request_body['submit_sql_uuid']
     split_sql_file_path = request_body['split_sql_file_path']
     ret = audit_sql.execute_submit_sql_by_file_path_manual(token,submit_sql_uuid,split_sql_file_path)
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 # 根据拆分文件名查看对应执行结果
 def get_execute_results_by_split_sql_file_path_controller(request):
@@ -212,7 +215,7 @@ def get_execute_results_by_split_sql_file_path_controller(request):
     request_body = json.loads(to_str)
     split_sql_file_path = request_body['split_sql_file_path']
     ret = audit_sql.get_execute_results_by_split_sql_file_path(split_sql_file_path)
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 # 根据uuid获取sqlsha1,根据sqlsha1连接inception查看执行进度
 def get_execute_process_by_uuid_controller(request):
@@ -220,7 +223,7 @@ def get_execute_process_by_uuid_controller(request):
     request_body = json.loads(to_str)
     split_sql_file_path = request_body['split_sql_file_path']
     ret = audit_sql.get_execute_process_by_uuid(split_sql_file_path)
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 # inception拆分SQL
@@ -261,7 +264,7 @@ def get_split_sql_by_uuid_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body['submit_sql_uuid']
     ret = audit_sql.get_split_sql_by_uuid(submit_sql_uuid)
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 # 工单执行失败点击生成重做数据
@@ -271,11 +274,11 @@ def recreate_sql_controller(request):
     split_sql_file_path = request_body['split_sql_file_path']
     recreate_sql_flag = request_body['recreate_sql_flag']
     ret = audit_sql.recreate_sql(split_sql_file_path, recreate_sql_flag)
-    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+    return my_response(ret)
 
 
 def create_block_sql_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     ret = audit_sql.create_block_sql(request_body)
-    return HttpResponse(json.dumps(ret, default=str), content_type='text/xml')
+    return my_response(ret)
