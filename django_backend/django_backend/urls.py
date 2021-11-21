@@ -69,7 +69,7 @@ urlpatterns = [
     path('api/get_search_mysql_instance_info/', mysql_instance_controller.get_search_mysql_instance_info_handler),         # 根据搜索框获取mysql实例
 
     # 服务器资源
-    path('api/v1/service/server/get_server_info/', server_info_controller.get_server_info_controller, kwargs={"access": "all"}), # server--查看主机信息
+    path('api/v1/service/server/get_server_info/', server_info_controller.get_server_info_controller), # server--查看主机信息
     # mysql资源
     path('api/get_mysql_cluster_info/', mysql_cluster_controller.get_mysql_cluster_controller), # 查看所有mysql集群信息
     path('api/get_search_mysql_cluster_info/', mysql_cluster_controller.get_mysql_cluster_by_cluster_name_controller),        # 根据集群名搜索集群信息

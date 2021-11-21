@@ -50,7 +50,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ),
-    'DEFAULT_PERMISSION_CLASSES': ('apps.utils.permission.IsAuthenticated',)
+    'DEFAULT_PERMISSION_CLASSES': ('apps.utils.permission.RbacPermisson',)
 }
 # AllowAny 允许所有用户
 # IsAuthenticated 仅通过认证的用户

@@ -12,7 +12,6 @@ from apps.utils.common import CheckValidators
 
 
 @api_view(http_method_names=['get'])
-@permission_required
 def get_server_info_controller(request):
     """
     获取主机信息

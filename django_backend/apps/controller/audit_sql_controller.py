@@ -15,7 +15,6 @@ logger = logging.getLogger('devops')
 
 # 页面获取所有工单列表
 class GetSqlSubmitSqlInfoCrotroller(BaseView):
-    permission_classes = (permission.IsAuthenticated,)
     def get(self, request):
         ret = audit_sql.get_submit_sql_info()
         return self.my_response(ret)
@@ -75,7 +74,6 @@ class GetMasterIpController(BaseView):
 
 
 class CheckSqlController(BaseView):
-    permission_classes = (permission.IsAuthenticated,)  # 后面必须添加逗号,不然会报错
     # 页面调用inception检测SQL,如果根据cluster_name则需要先获取到对应的master_ip、master_port
     def post(self, request):
         """
