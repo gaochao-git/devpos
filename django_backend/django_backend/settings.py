@@ -50,12 +50,11 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ),
-    'DEFAULT_PERMISSION_CLASSES': ('apps.utils.permission.RbacPermisson',)
+    'DEFAULT_PERMISSION_CLASSES': (
+        'apps.utils.permission.RbacPermisson',   # 自定义的rbac权限认证
+    )
 }
-# AllowAny 允许所有用户
-# IsAuthenticated 仅通过认证的用户
-# IsAdminUser 仅管理员用户
-# IsAuthenticatedOrReadOnly 认证的用户可以完全操作，否则只能get读取
+
 JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=12),         # access token过期时间
     'JWT_ALLOW_REFRESH': True,
@@ -76,7 +75,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'apps.utils.auth.Middleware',  # 自定义中间件登陆认证
-    'easyaudit.middleware.easyaudit.EasyAuditMiddleware',    # 操作审计
+    'easyaudit.middleware.easyaudit.EasyAuditMiddleware',    # 操作审计，目前没有审计到操作用户，应该是认证方式的原因，暂时自己实现吧
 ]
 
 
