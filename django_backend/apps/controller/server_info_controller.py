@@ -8,7 +8,7 @@ from apps.utils.auth import permission_required
 import logging
 logger = logging.getLogger('devops')
 from rest_framework.decorators import api_view
-from apps.utils.common import CheckValidate
+from apps.utils.common import CheckValidators
 
 
 @api_view(http_method_names=['get'])

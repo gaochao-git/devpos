@@ -6,20 +6,22 @@
 from django.http import HttpResponse,JsonResponse
 import json
 from apps.service import audit_sql
-from apps.utils.common import CheckValidators,BaseView,my_response
-from validator import Required, Not, Truthy, Blank, Range, Equals, In, validate,InstanceOf,Length
-from apps.utils import permission
+from apps.utils.common import CheckValidate,my_response,BaseView
+# from django.views import View
 import logging
 logger = logging.getLogger('devops')
 
 
 # 页面获取所有工单列表
 class GetSqlSubmitSqlInfoCrotroller(BaseView):
-    permission_classes = (permission.IsAuthenticated,)
     def get(self, request):
         ret = audit_sql.get_submit_sql_info()
         return self.my_response(ret)
 
+
+# def get_submit_sql_info_controller(request):
+#     ret = audit_sql.get_submit_sql_info()
+#     return my_response(ret)
 
 class GetPreCheckResultCrotroller(BaseView):
     def get(self, request):
@@ -32,6 +34,16 @@ class GetPreCheckResultCrotroller(BaseView):
         ret = audit_sql.get_pre_check_result(check_sql_uuid)
         return self.my_response(ret)
 
+# def get_pre_check_result_controller(request):
+#     """
+#     获取预审核结果
+#     :param request:
+#     :return:
+#     """
+#     check_sql_uuid = request.GET.get("check_sql_uuid")  # None或者str
+#     ret = audit_sql.get_pre_check_result(check_sql_uuid)
+#     return my_response(ret)
+
 
 # 获取所有集群名
 class GetClusterNameCrotroller(BaseView):
@@ -39,72 +51,68 @@ class GetClusterNameCrotroller(BaseView):
         ret = audit_sql.get_cluster_name()
         return self.my_response(ret)
 
-
-class GetViewSqlByUuidController(BaseView):
-    def get(self, request):
-        """
-        获取用户提供的SQL或者回滚SQL
-        :param request:
-        :return:
-        """
-        submit_sql_uuid = request.GET.get("submit_sql_uuid")
-        check_uuid_ret = CheckValidators.check_uuid(submit_sql_uuid)
-        if check_uuid_ret['status'] != "ok": return self.my_response(check_uuid_ret)
-        ret = audit_sql.get_view_sql_by_uuid(submit_sql_uuid)
-        return self.my_response(ret)
+# 获取所有集群名
+# def get_cluster_name_controller(request):
+#     ret = audit_sql.get_cluster_name()
+#     return my_response(ret)
 
 
-class GetApplySqlByUuidController(BaseView):
-    # 查看指定提交工单的详情
-    def get(self, request):
-        # 获取参数
-        submit_sql_uuid = request.GET.get("submit_sql_uuid")
-        # 基础参数校验
-        check_uuid_ret = CheckValidators.check_uuid(submit_sql_uuid)
-        if check_uuid_ret['status'] != "ok": return self.my_response(check_uuid_ret)
-        # 执行业务逻辑
-        ret = audit_sql.get_apply_sql_by_uuid(submit_sql_uuid)
-        return self.my_response(ret)
+def get_view_sql_by_uuid_controller(request):
+    """
+    获取用户提供的SQL或者回滚SQL
+    :param request:
+    :return:
+    """
+    request_body = json.loads(str(request.body, encoding="utf-8"))
+    submit_sql_uuid = request_body.get('submit_sql_uuid')
+    check_uuid_ret = CheckValidate.check_uuid(submit_sql_uuid)
+    if check_uuid_ret['status'] != "ok": return my_response(check_uuid_ret)
+    ret = audit_sql.get_view_sql_by_uuid(submit_sql_uuid)
+    return my_response(ret)
 
 
-class GetMasterIpController(BaseView):
-    # 获取master ip
-    def get(self, request):
-        ret = audit_sql.get_master_ip()
-        return self.my_response(ret)
+# 查看指定提交工单的详情
+def get_apply_sql_by_uuid_controller(request):
+    # 获取参数
+    request_body = json.loads(str(request.body, encoding="utf-8"))
+    submit_sql_uuid = request_body.get('submit_sql_uuid')
+    # 基础参数校验
+    check_uuid_ret = CheckValidate.check_uuid(submit_sql_uuid)
+    if check_uuid_ret['status'] != "ok": return my_response(check_uuid_ret)
+    # 执行业务逻辑
+    ret = audit_sql.get_apply_sql_by_uuid(submit_sql_uuid)
+    return my_response(ret)
 
 
-class CheckSqlController(BaseView):
-    permission_classes = (permission.IsAuthenticated,)  # 后面必须添加逗号,不然会报错
-    # 页面调用inception检测SQL,如果根据cluster_name则需要先获取到对应的master_ip、master_port
-    def post(self, request):
-        """
-        check_sql_uuid如果为None表示预检查SQL,如果为str则表示修改已提交SQL再次审核
-        :param request:
-        :return:
-        """
+# 获取master ip
+def get_master_ip_controller(request):
+    ret = audit_sql.get_master_ip()
+    return my_response(ret)
+
+
+# 页面调用inception检测SQL,如果根据cluster_name则需要先获取到对应的master_ip、master_port
+def check_sql_controller(request):
+    """
+    request_body.get('xx')参数为选填参数
+    request_body['xx']参数为必选参数
+    check_sql_uuid如果为None表示预检查SQL,如果为str则表示修改已提交SQL再次审核
+    :param request:
+    :return:
+    """
+    try:
         request_body = json.loads(str(request.body, encoding="utf-8"))
-        rules = {
-            "cluster_name": [Length(0, 10)],  # 集群名,存在则校验,不存在则不校验
-            "instance_name": [Length(0, 21)],  # 实例名,存在则校验,不存在则不校验
-            "check_sql_info": [Required, Length(6, 20*1024*1024)],  # SQL长度
-            "user_offer_rollback_sql": [Required, Length(6, 20*1024*1024)],  # SQL长度
-            "submit_type": [Required, In(["master_ip_port", "cluster_name"])],  # 工单类型
-            "check_sql_uuid": [lambda x: check_sql_uuid(x)['status'] == "ok"] ,  # uuid格式
-            "check_type": [In(["check_sql", "recheck_sql"])] # 检查类型
-        }
-        valid_ret = validate(rules, request_body)
-        if not valid_ret.valid:
-            return self.my_response({"status": "error","message": str(valid_ret.errors)})
         cluster_name = request_body.get('cluster_name').strip()
         instance_name = request_body.get('instance_name').strip()
-        check_sql_info = request_body.get('check_sql_info')
-        user_offer_rollback_sql = request_body.get('user_offer_rollback_sql')
-        submit_type = request_body.get('submit_type')
+        check_sql_info = request_body['check_sql_info']
+        user_offer_rollback_sql = request_body['user_offer_rollback_sql']
+        submit_type = request_body['submit_type']
         check_sql_uuid = request_body.get('check_sql_uuid')
         check_type = request_body.get('check_type')
         ret = audit_sql.check_sql(submit_type, check_sql_info, cluster_name, instance_name, check_sql_uuid, check_type, user_offer_rollback_sql)
-        return self.my_response(ret)
+    except Exception as e:
+        logger.exception(e)
+        ret = {"status": "error", "message": "参数不符合"}
+    return my_response(ret)
 
 
 # def recheck_sql_controller(request):

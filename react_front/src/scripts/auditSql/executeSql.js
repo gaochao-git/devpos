@@ -92,7 +92,7 @@ export default class ExecuteSql extends Component {
         let params = {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
-        let res = await MyAxios.post("/get_apply_sql_by_uuid/",params);
+        let res = await MyAxios.get("/get_apply_sql_by_uuid/",{params});
         let res_split_sql = await MyAxios.post("/get_split_sql_by_uuid/",params);
         if (res.data.data[0]["cluster_name"].length>0){
             this.setState({
@@ -130,7 +130,7 @@ export default class ExecuteSql extends Component {
     //SQL预览
     async GetViewSqlByUuid() {
         let params = {submit_sql_uuid: this.state.submit_sql_uuid};
-        let res = await MyAxios.post('/get_view_sql_by_uuid/',params);
+        let res = await MyAxios.get('/get_view_sql_by_uuid/',{params});
         if (res.data.status==="ok"){
             this.setState({
                 SqlViewVisible: true,
@@ -144,7 +144,7 @@ export default class ExecuteSql extends Component {
     //回滚SQL
     async GetViewRollbackSqlByUuid() {
         let params = {submit_sql_uuid: this.state.submit_sql_uuid};
-        let res = await MyAxios.post('/get_view_sql_by_uuid/',params);
+        let res = await MyAxios.get('/get_view_sql_by_uuid/',{params});
         if (res.data.status==="ok"){
             this.setState({
                 RollbackSqlViewVisible: true,
@@ -159,7 +159,7 @@ export default class ExecuteSql extends Component {
     async GetModifySqlByUuid() {
         this.setState({global_loading:true})
         let params = {submit_sql_uuid: this.state.submit_sql_uuid};
-        let res = await MyAxios.post('/get_view_sql_by_uuid/',params);
+        let res = await MyAxios.get('/get_view_sql_by_uuid/',{params});
         if (res.data.status==="ok"){
             this.setState({
                 modifySubmitSqlVisible: true,

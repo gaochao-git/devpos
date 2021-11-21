@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'djcelery',
+    'easyaudit',
 ]
 
 # ===========================JWT认证begin===================================
@@ -49,8 +50,12 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': ('apps.utils.permission.IsAuthenticated',)
 }
-
+# AllowAny 允许所有用户
+# IsAuthenticated 仅通过认证的用户
+# IsAdminUser 仅管理员用户
+# IsAuthenticatedOrReadOnly 认证的用户可以完全操作，否则只能get读取
 JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(hours=12),         # access token过期时间
     'JWT_ALLOW_REFRESH': True,
@@ -62,16 +67,16 @@ JWT_AUTH = {
 
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',    #解决跨域失败，额外添加的不然浏览器console会报错跨域，位置必须放在这
-    #'django.middleware.csrf.CsrfViewMiddleware',   #解决前端post失败
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.middleware.security.SecurityMiddleware',   # 一些安全设置，比如XSS脚本过滤
+    'django.contrib.sessions.middleware.SessionMiddleware',  # django_session的表
+    'corsheaders.middleware.CorsMiddleware',  # 解决跨域问题
+    'django.middleware.common.CommonMiddleware',  # url路径'/'处理
+    #'django.middleware.csrf.CsrfViewMiddleware',   # 注释掉可以解决前后端分离发送post请求失败问题
+    'django.contrib.auth.middleware.AuthenticationMiddleware', # 将代表当前登录用户的用户属性添加到每个传入的 HttpRequest 对象
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 自定义中间件登陆认证
-    'apps.utils.auth.Middleware',
+    'apps.utils.auth.Middleware',  # 自定义中间件登陆认证
+    'easyaudit.middleware.easyaudit.EasyAuditMiddleware',    # 操作审计
 ]
 
 

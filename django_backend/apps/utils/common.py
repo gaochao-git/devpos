@@ -1,15 +1,18 @@
-from django.http import HttpResponse
+from django.http import HttpResponse,HttpResponseServerError,Http404
 import logging
 import random
 from apps.utils import db_helper
 from celery.result import AsyncResult
 import json
 import validators
+from django.views import View
+from rest_framework.views import APIView
+from rest_framework_jwt.utils import jwt_decode_handler
 
 logger = logging.getLogger('devops')
 
 
-class CheckValidate:
+class CheckValidators:
     """
     校验分为3类：
         权限校验放在controller校验
@@ -52,9 +55,9 @@ class CheckValidate:
             return {"status": "error", "message": "类型不合法"}
         if len(my_params.split) != 2:
             return {"status": "error", "message": "实例不合法"}
-        if CheckValidate.check_ip(my_params.split[0])['status'] != "ok":
+        if CheckValidators.check_ip(my_params.split[0])['status'] != "ok":
             return {"status": "error", "message": "实例不合法"}
-        if CheckValidate.check_port(my_params.split[1])['status'] != "ok":
+        if CheckValidators.check_port(my_params.split[1])['status'] != "ok":
             return {"status": "error", "message": "实例不合法"}
 
 
@@ -115,6 +118,31 @@ def my_response(data, content_type='application/json'):
     :return:
     """
     return HttpResponse(json.dumps(data, default=str), content_type=content_type)
+
+
+class BaseView(APIView):
+    def dispatch(self, request, *args, **kwargs):
+        return super(BaseView, self).dispatch(request, *args, **kwargs)
+
+    def my_response(self, data, content_type='application/json'):
+        """
+        公共返回response
+        :param data:
+        :param content_type:
+        :return:
+        """
+        if data.get('status') == "ok" and data.get('code') is None:
+            data['code'] = 200
+        if data.get('status') == "error" and data.get('code') is None:
+            data['code'] = 500
+        return HttpResponse(json.dumps(data, default=str), content_type=content_type)
+
+
+
+
+
+
+
 
 
 def get_cluster_node(cluster_name, instance_role):

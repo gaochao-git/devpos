@@ -60,7 +60,7 @@ def v1_auth(token):
 def v2_auth(token):
     """
     jwt认证
-    token不通过为处罚异常
+    token不通过触发罚异常
     token验证通过返回用户信息:{'user_id': 1, 'username': 'gaochao', 'exp': 1635680388, 'email': ''}
     :param token:
     :return:
@@ -83,11 +83,11 @@ def permission_required(func):
     :param func:
     :return:
     """
-    def wrapper(request, access):
+    def wrapper(request, *args, **kwargs):
         try:
-            if access:
-                print(access)
-            return func(request)
+            if kwargs.get("access"):
+                print(1111)
+            return func(request, *args, **kwargs)
         except Exception as e:
             logger.exception(e)
             print(e)

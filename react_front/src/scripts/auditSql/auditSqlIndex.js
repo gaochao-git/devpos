@@ -128,7 +128,7 @@ class AuditSqlIndex extends Component {
                 }
             }
         ).catch(err => {
-            message.error(err, 3);
+            message.error(err.message, 3);
             this.setState({
                 check_sql_results: [],
                 global_loading:false,
@@ -168,7 +168,7 @@ class AuditSqlIndex extends Component {
                 }
             }
         ).catch(err => {
-            message.error(err, 3);
+            message.error(err.message, 3);
             this.setState({
                 check_sql_results: [],
                 global_loading:false,
@@ -247,7 +247,7 @@ class AuditSqlIndex extends Component {
 
     //获取所有mysql实例
     async handleGetMasterIp() {
-            await MyAxios.post('/get_master_ip/').then(
+            await MyAxios.get('/get_master_ip/').then(
                 res=>{
                     if(res.data.status === 'ok'){
                         this.setState({
@@ -266,7 +266,7 @@ class AuditSqlIndex extends Component {
     }
     //获取所有集群名
     async handleGetClusterName() {
-        await MyAxios.post('/get_cluster_name/').then(
+        await MyAxios.get('/get_cluster_name/').then(
             res=>{
                 if( res.data.status === 'ok'){
                     this.setState({
