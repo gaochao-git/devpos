@@ -75,20 +75,3 @@ def v2_auth(token):
         logger.exception(e)
         content = {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.errmsg, "code": StatusCode.ERR_LOGIN_FAIL.code}
     return content
-
-
-def permission_required(func):
-    """
-    权限验证装饰器
-    :param func:
-    :return:
-    """
-    def wrapper(request, *args, **kwargs):
-        try:
-            if kwargs.get("access"):
-                print(1111)
-            return func(request, *args, **kwargs)
-        except Exception as e:
-            logger.exception(e)
-            print(e)
-    return wrapper
