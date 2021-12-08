@@ -4,7 +4,6 @@
 from django.http import HttpResponse
 import json
 from apps.service import server_info
-from apps.utils.auth import permission_required
 import logging
 logger = logging.getLogger('devops')
 from rest_framework.decorators import api_view
