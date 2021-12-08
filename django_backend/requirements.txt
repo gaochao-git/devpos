@@ -9,3 +9,4 @@ redis==2.10.6
 ConcurrentLogHandler==0.9.1
 concurrent-log-handler==0.9.16
 django-cas-ng==4.1.1
+ansible==3.4.0

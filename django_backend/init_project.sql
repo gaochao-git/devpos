@@ -362,14 +362,14 @@ CREATE TABLE `cloud_user` (
 insert into cloud_user(username,display_username,user_role,department,group_name) values('gaochao','高超','dba','基础设施部','技术组件');
 
 
-CREATE TABLE `cloud_role` (
+CREATE TABLE `cloud_rbac_role` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   role_name varchar(80) NOT NULL default '' comment "角色名称",
   `description` varchar(80) NOT NULL default '' comment "描述",
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_role_name` (role_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 comment '角色表';
-insert into cloud_role(role_name,description) values('dev','开发人员');
-insert into cloud_role(role_name,description) values('qa','测试人员');
-insert into cloud_role(role_name,description) values('dba','数据库运维人员');
-insert into cloud_role(role_name,description) values('sa','主机运维');
+insert into cloud_rbac_role(role_name,description) values('dev','开发人员');
+insert into cloud_rbac_role(role_name,description) values('qa','测试人员');
+insert into cloud_rbac_role(role_name,description) values('dba','数据库运维人员');
+insert into cloud_rbac_role(role_name,description) values('sa','主机运维');
