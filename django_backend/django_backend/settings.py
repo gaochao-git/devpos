@@ -51,7 +51,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'apps.utils.permission.RbacPermisson',   # 自定义的rbac权限认证
+        # 'apps.utils.permission.RbacPermisson',   # 自定义的rbac权限认证，太麻烦，使用url进行权限验证
     )
 }
 
