@@ -40,7 +40,7 @@ class Middleware(MiddlewareMixin):
         :param exception:
         :return:
         """
-        logger.error("未手动捕获的异常%s,%s", request,exception)
+        logger.exception("未手动捕获的异常%s,%s", request,exception)
         content = {"status": "error", "message": "后端服务异常", "code": StatusCode.ERROR.code}
         return HttpResponse(json.dumps(content), content_type='application/json')
 

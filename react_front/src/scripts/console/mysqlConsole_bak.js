@@ -41,13 +41,13 @@ export default class mysqlConsole extends Component {
       multi_table_column:[],
       multi_query_time:[],
       source_slider_info:[],
-      global_loading:true,
-      table_column_list:[]
+      global_loading:true
     }
   }
 
   componentDidMount() {
     this.getClusterName()
+    this.getMySource()
   }
 
     exportBuInfoToExcel = () => {
@@ -64,7 +64,7 @@ export default class mysqlConsole extends Component {
       let params = {
         ip:'47.104.2.74',
         port:3306,
-        schema_name:this.state.current_schema,
+        schema_name:'test',
         sql:this.state.sql_content,
         explain:explain
       };
@@ -153,8 +153,16 @@ export default class mysqlConsole extends Component {
   }
 
   onSelect = (selectedKeys, info) => {
+    console.log(this.state.source_slider_info)
     console.log('selected', selectedKeys, info);
-    this.setState({current_schema:selectedKeys[0]})
+    let database_dir_arr = []
+    let database_dir = {}
+    database_dir['title'] = 'xxx'
+    database_dir['key'] = 'xxx'
+    database_dir_arr.push(database_dir)
+    var database_tree_data = this.state.source_slider_info
+    database_tree_data[0]['children']=database_dir_arr
+    this.setState=({source_slider_info:database_tree_data})
   };
 
 
@@ -201,15 +209,31 @@ export default class mysqlConsole extends Component {
         resolve();
         return;
       }
-      console.log("level",treeNode.props.eventKey)
       if (treeNode.props.eventKey.split(':').length===1){
-        var schema_name = treeNode.props.eventKey.split(':')[0]
-        this.getTable(schema_name)
+        var cluster_name = treeNode.props.eventKey.split(':')[0]
+        cluster_name==="devops_test"?this.getSchema('47.104.2.74_3306'):this.getSchema('47.104.2.74_3308')
       }else if (treeNode.props.eventKey.split(':').length===2){
-        var table_name = treeNode.props.eventKey.split(':')[1]
-        this.getColumn(table_name)
+        var schema_name = treeNode.props.eventKey.split(':')[1]
+        this.getTable(schema_name)
       }
       if (treeNode.props.eventKey.split(':').length===1){
+        setTimeout(() => {
+          var my_child = []
+          console.log(this.state.schema_list)
+          for (var i=0;i<this.state.schema_list.length;i++){
+            let database_dir = {}
+            database_dir['title'] = this.state.schema_list[i]['Database']
+            database_dir['key'] = treeNode.props.eventKey + ':' + this.state.schema_list[i]['Database']
+            database_dir['icon'] = <Icon type="database"/>
+            my_child.push(database_dir)
+          }
+          treeNode.props.dataRef.children = my_child
+          this.setState({
+            treeData: [...this.state.source_slider_info],
+          });
+          resolve();
+        }, 300);
+      }else if (treeNode.props.eventKey.split(':').length===2){
         setTimeout(() => {
           var my_child = []
           console.log('Tables_in_' + schema_name)
@@ -227,25 +251,18 @@ export default class mysqlConsole extends Component {
             treeData: [...this.state.source_slider_info],
           });
           resolve();
-        }, 1000);
-      }else if (treeNode.props.eventKey.split(':').length===2){
+        }, 300);
+      }else if (treeNode.props.eventKey.split(':').length===3){
         setTimeout(() => {
-          var my_child = []
-          console.log(this.state.table_column_list)
-          for (var i=0;i<this.state.table_column_list.length;i++){
-            let column_dir = {}
-            column_dir['title'] = this.state.table_column_list[i]['Field']
-            column_dir['key'] = this.state.table_column_list[i]['Field']
-            column_dir['isLeaf'] = true
-            my_child.push(column_dir)
-          }
-          console.log(my_child)
-          treeNode.props.dataRef.children = my_child
+          treeNode.props.dataRef.children = [
+            { title: 'column1', key: treeNode.props.eventKey+':'+'column1',isLeaf: true },
+            { title: 'column2', key: treeNode.props.eventKey+':'+'column2',isLeaf: true },
+          ];
           this.setState({
             treeData: [...this.state.source_slider_info],
           });
           resolve();
-        }, 1000);
+        }, 300);
       }
 
     });
@@ -315,26 +332,16 @@ export default class mysqlConsole extends Component {
 
   //获取实例库信息
   async getSchema(value) {
-      let params = {instance_name:value,};
+      let params = {
+          instance_name:value,
+      };
       this.setState({instance_name:value,global_loading:false})
       console.log(params)
-      await MyAxios.post('/v1/service/console/get_schema_list/',params,{timeout:1000}).then(
+      await MyAxios.post('/v1/service/console/get_schema_list/',params,{timeout:300}).then(
           res=>{
               if( res.data.status === 'ok'){
                   console.log(res.data.data)
                   this.setState({schema_list: res.data.data,global_loading:true});
-                  let cluster_name_dir_arr = []
-                  for (var i=0;i<res.data.data.length;i++){
-                      let cluster_name_dir = {}
-                      cluster_name_dir['title'] = res.data.data[i]['Database']
-                      cluster_name_dir['key'] = res.data.data[i]['Database']
-//                      cluster_name_dir['selectable'] = false
-                      cluster_name_dir['icon'] = <Icon type="database"/>
-                      cluster_name_dir_arr.push(cluster_name_dir)
-                      console.log(cluster_name_dir_arr)
-                  }
-                  console.log(cluster_name_dir_arr)
-                  this.setState({source_slider_info:cluster_name_dir_arr})
               } else{
                   message.error(res.data.message)
               }
@@ -346,7 +353,6 @@ export default class mysqlConsole extends Component {
   //连接探测
   async getDbConnect(value) {
       let params = {instance_name:value,};
-      this.setState({instance_name:value})
       await MyAxios.post('/v1/service/console/get_db_connect/',params).then(
           res=>{
               if( res.data.status === 'ok'){
@@ -368,36 +374,14 @@ export default class mysqlConsole extends Component {
   async getTable(value) {
       let params = {
           schema_name:value,
-          instance_name:this.state.instance_name
       };
-      this.setState({schema_name:value,})
+      this.setState({schema_name:value})
       console.log(params)
-      await MyAxios.post('/v1/service/console/get_table_list/',params,{timeout:1000}).then(
+      await MyAxios.post('/v1/service/console/get_table_list/',params,{timeout:300}).then(
           res=>{
               if( res.data.status === 'ok'){
                   console.log(res.data.data)
                   this.setState({schema_table_list: res.data.data});
-              } else{
-                  message.error(res.data.message)
-              }
-          }
-      ).catch(err=>message.error(err.message))
-  }
-
-  //获取库表信息
-  async getColumn(value) {
-      let params = {
-          schema_name:this.state.schema_name,
-          table_name:value,
-          instance_name:this.state.instance_name
-      };
-      this.setState({table_name:value,})
-      console.log(params)
-      await MyAxios.post('/v1/service/console/get_column_list/',params,{timeout:1000}).then(
-          res=>{
-              if( res.data.status === 'ok'){
-                  console.log(res.data.data)
-                  this.setState({table_column_list: res.data.data});
               } else{
                   message.error(res.data.message)
               }
@@ -430,7 +414,7 @@ export default class mysqlConsole extends Component {
                     <Tree
                         showIcon
                         loadData={this.onLoadData}
-                        onSelect={this.onSelect}
+                        onExpand={this.onExpand}
                     >
                         {this.renderTreeNodes(this.state.source_slider_info)}
                     </Tree>
@@ -457,7 +441,7 @@ export default class mysqlConsole extends Component {
                         }
                         style={{width:300,marginLeft:2}}
                         value={this.state.instance_name}
-                        onChange={e=>this.getSchema(e)}
+                        onChange={e=>this.getDbConnect(e)}
                     >
                         {this.state.instance_list.map(record =>{
                             return <Option value={record.instance_name} key={record.instance_name}>{record.instance_name}({record.instance_role})</Option>

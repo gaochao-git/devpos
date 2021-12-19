@@ -65,17 +65,26 @@ urlpatterns = [
     path('api/check_order/', create_private_user.check_order_func),                                          # 权限申请--审核工单
     path('api/execute_order/', create_private_user.execute_order_func),                                      # 权限申请--执行工单
     path('api/privilege_view_user/', create_private_user.privilege_view_user_func),                          # 权限申请--查看用户已有权限
-    path('api/get_mysql_instance_info/', mysql_instance_controller.get_mysql_instance_info_handler),                       # 获取mysql实例
-    path('api/get_search_mysql_instance_info/', mysql_instance_controller.get_search_mysql_instance_info_handler),         # 根据搜索框获取mysql实例
 
     # 服务器资源
     path('api/v1/service/server/get_server_info/', server_info_controller.get_server_info_controller), # server--查看主机信息
     # mysql资源
-    path('api/get_mysql_cluster_info/', mysql_cluster_controller.get_mysql_cluster_controller), # 查看所有mysql集群信息
-    path('api/get_search_mysql_cluster_info/', mysql_cluster_controller.get_mysql_cluster_by_cluster_name_controller),        # 根据集群名搜索集群信息
+    path('api/get_mysql_cluster/', mysql_cluster_controller.get_mysql_cluster_controller),  # 获取mysql集群信息
+    path('api/get_mysql_cluster_ins/', mysql_cluster_controller.get_mysql_cluster_ins_controller),  # 获取mysql集群实例信息
+    path('api/get_search_mysql_cluster_info/', mysql_cluster_controller.get_mysql_cluster_by_cluster_name_controller),  # 根据集群名搜索集群信息
+    path('api/get_mysql_instance_info/', mysql_instance_controller.get_mysql_instance_info_handler),  # 获取所有mysql实例
+    path('api/get_search_mysql_instance_info/', mysql_instance_controller.get_search_mysql_instance_info_handler), # 根据搜索框获取mysql实例
 
     # web_console
+    path('api/v1/service/console/get_db_connect/', web_console_controller.get_db_connect_controller),
     path('api/v1/service/console/get_table_data/', web_console_controller.get_table_data_controller),
+    path('api/v1/service/console/get_schema_list/', web_console_controller.get_schema_list_controller),
+    path('api/v1/service/console/get_table_list/', web_console_controller.get_table_list_controller),
+    path('api/v1/service/console/get_column_list/', web_console_controller.get_column_list_controller),
+
+
+
+
 
     # 数据库集群资源申请工单
     path('api/v1/service/ticket/ansible_adhoc/', ansible_adhoc.adhoc),  # ansible api执行命令

@@ -122,3 +122,50 @@ def process_web_console_limit_dao(sql):
     if not limit_flag and result.get_type() == 'SELECT':
         sql = sql.rstrip(';') + ' limit %d;' % max_limit_rows
     return {"status": status, "message": message, "data": sql}
+
+
+def get_schema_list_dao(instance_name):
+    """
+    获取所有库名
+    :param instance_name:
+    :return:
+    """
+    ip = instance_name.split('_')[0]
+    port = instance_name.split('_')[1]
+    sql = "show databases where `database` not in('mysql','information_schema','performance_schema','sys')"
+    return db_helper.target_source_find_all(ip,port,sql)
+
+
+def get_db_connect_dao(instance_name):
+    """
+    探活
+    :param instance_name:
+    :return:
+    """
+    sql = "select 1"
+    ip = instance_name.split('_')[0]
+    port = instance_name.split('_')[1]
+    return db_helper.target_source_find_all(ip,port,sql)
+
+def get_table_list_dao(instance_name,schema_name):
+    """
+    获取所有表
+    :param schema_name:
+    :return:
+    """
+    ip = instance_name.split('_')[0]
+    port = instance_name.split('_')[1]
+    sql = "show tables from {}".format(schema_name)
+    return db_helper.target_source_find_all(ip, port, sql)
+
+
+def get_column_list_dao(instance_name,schema_name,table_name):
+    """
+    获取表中的列
+    :param schema_name:
+    :return:
+    """
+    ip = instance_name.split('_')[0]
+    port = instance_name.split('_')[1]
+    sql = "desc {}.{}".format(schema_name,table_name)
+    return db_helper.target_source_find_all(ip, port, sql)

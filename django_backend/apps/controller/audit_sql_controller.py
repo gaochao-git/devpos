@@ -82,13 +82,14 @@ class CheckSqlController(BaseView):
         :return:
         """
         request_body = json.loads(str(request.body, encoding="utf-8"))
+        print(request_body)
         rules = {
             "cluster_name": [Length(0, 10)],  # 集群名,存在则校验,不存在则不校验
             "instance_name": [Length(0, 21)],  # 实例名,存在则校验,不存在则不校验
             "check_sql_info": [Required, Length(6, 20*1024*1024)],  # SQL长度
-            "user_offer_rollback_sql": [Required, Length(6, 20*1024*1024)],  # SQL长度
-            "submit_type": [Required,  In(["master_ip_port", "cluster_name"])], # 工单类型
-            "check_sql_uuid": [lambda x: check_sql_uuid(x)['status'] == "ok"] ,  # uuid格式
+            "user_offer_rollback_sql": [Required, Length(0, 20*1024*1024)],  # SQL长度
+            "submit_type": [Required,  In(["","master_ip_port", "cluster", "template"])], # 工单类型
+            "check_sql_uuid": [lambda x: CheckValidators.check_uuid(x)['status'] == "ok"] ,  # uuid格式
             "check_type": [In(["check_sql", "recheck_sql"])] # 检查类型
         }
         valid_ret = validate(rules, request_body)

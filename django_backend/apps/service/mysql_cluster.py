@@ -8,20 +8,16 @@ from apps.dao import mysql_cluster_dao
 
 logger = logging.getLogger('devops')
 
+
 # 获取所有集群信息
 def get_mysql_cluster():
-    data = []
-    try:
-        data = mysql_cluster_dao.get_mysql_cluster_dao()
-        status = "ok"
-        message = "ok"
-    except Exception as e:
-        status = "error"
-        message = e
-        logger.error(e)
-    finally:
-        content = {'status': status, 'message': message,'data': data}
-        return content
+    ret = mysql_cluster_dao.get_mysql_cluster_dao()
+    return ret
+
+# 获取mysql实例信息
+def get_mysql_cluster_ins(cluster_name, ins_role):
+    ret = mysql_cluster_dao.get_mysql_cluster_ins_dao(cluster_name, ins_role)
+    return ret
 
 
 # 模糊搜索集群名信息

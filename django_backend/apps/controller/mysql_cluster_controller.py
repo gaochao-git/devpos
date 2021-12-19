@@ -16,6 +16,15 @@ def get_mysql_cluster_controller(request):
     ret = mysql_cluster.get_mysql_cluster()
     return HttpResponse(json.dumps(ret), content_type='application/json')
 
+# 获取集群实例信息
+def get_mysql_cluster_ins_controller(request):
+    request_body = json.loads(str(request.body, encoding="utf-8"))
+    print(request_body)
+    cluster_name = request_body.get('cluster_name')
+    ins_role = request_body.get('ins_role')
+    print(request_body)
+    ret = mysql_cluster.get_mysql_cluster_ins(cluster_name, ins_role)
+    return HttpResponse(json.dumps(ret), content_type='application/json')
 
 # 模糊搜索集群名信息
 def get_mysql_cluster_by_cluster_name_controller(request):

@@ -29,3 +29,35 @@ def get_table_data_controller(request):
         logger.exception('缺少请求参数:%s' % str(e))
         ret = {"status": "error", "code":2002, "message": "参数不合法"}
     return HttpResponse(json.dumps(ret, default=str), 'application/json')
+
+
+
+def get_schema_list_controller(request):
+    request_body = json.loads(str(request.body, encoding="utf-8"))
+    instance_name = request_body['instance_name']
+    ret = web_console.get_schema_list(instance_name)
+    print(instance_name)
+    return HttpResponse(json.dumps(ret, default=str), 'application/json')
+
+
+def get_db_connect_controller(request):
+    request_body = json.loads(str(request.body, encoding="utf-8"))
+    instance_name = request_body['instance_name']
+    ret = web_console.get_db_connect(instance_name)
+    return HttpResponse(json.dumps(ret, default=str), 'application/json')
+
+def get_table_list_controller(request):
+    request_body = json.loads(str(request.body, encoding="utf-8"))
+    instance_name = request_body['instance_name']
+    schema_name = request_body['schema_name']
+    ret = web_console.get_table_list(instance_name,schema_name)
+    return HttpResponse(json.dumps(ret, default=str), 'application/json')
+
+
+def get_column_list_controller(request):
+    request_body = json.loads(str(request.body, encoding="utf-8"))
+    instance_name = request_body['instance_name']
+    schema_name = request_body['schema_name']
+    table_name = request_body['table_name']
+    ret = web_console.get_column_list(instance_name,schema_name,table_name)
+    return HttpResponse(json.dumps(ret, default=str), 'application/json')
