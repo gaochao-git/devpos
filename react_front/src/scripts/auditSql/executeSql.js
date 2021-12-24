@@ -92,8 +92,8 @@ export default class ExecuteSql extends Component {
         let params = {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
-        let res = await MyAxios.get("/get_apply_sql_by_uuid/",{params});
-        let res_split_sql = await MyAxios.post("/get_split_sql_by_uuid/",params);
+        let res = await MyAxios.get("/audit_sql/v1/get_apply_sql/",{params});
+        let res_split_sql = await MyAxios.post("/audit_sql/v1/get_split_sql/",params);
         if (res.data.data[0]["cluster_name"].length>0){
             this.setState({
                 cluster_name:res.data.data[0]["cluster_name"]
@@ -176,7 +176,7 @@ export default class ExecuteSql extends Component {
     async GetSqlCheckResultsByUuid() {
         this.setState({global_loading:true,view_check_sql_result:[]})
         let params = {submit_sql_uuid: this.props.match.params["submit_sql_uuid"],};
-        let res = await MyAxios.post("/get_check_sql_results_by_uuid/",params);
+        let res = await MyAxios.post("/audit_sql/v1/get_check_sql_results/",params);
         this.setState({
             view_check_sql_result:res.data.data,
             global_loading:false
@@ -486,7 +486,7 @@ export default class ExecuteSql extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path
         };
-        let res = await MyAxios.post('/get_execute_results_by_split_sql_file_path/',params);
+        let res = await MyAxios.post('/audit_sql/v1/get_execute_results/',params);
         this.setState({
             execute_sql_results: res.data.data,
             ViewExecuteSubmitSqlModalVisible:true,

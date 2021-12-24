@@ -96,10 +96,10 @@ def get_view_sql_by_uuid(submit_sql_uuid):
         return content
 
 # 查看指定提交工单的详情
-def get_apply_sql(submit_sql_uuid):
+def get_apply_sql_by_uuid(submit_sql_uuid):
     data = []
     try:
-        data = audit_sql_dao.get_apply_sql_dao(submit_sql_uuid)
+        data = audit_sql_dao.get_apply_sql_by_uuid_dao(submit_sql_uuid)
         status = "ok"
         message = "ok"
     except Exception as e:
@@ -138,7 +138,7 @@ def get_submit_split_sql_by_file_path(split_sql_file_path):
 
 
 # 页面查看审核结果
-def get_check_sql_results(submit_sql_uuid):
+def get_check_sql_results_by_uuid(submit_sql_uuid):
     ret = audit_sql_dao.get_pre_check_result_dao(submit_sql_uuid)
     return ret
 
@@ -482,8 +482,8 @@ def execute_submit_sql_by_file_path_manual(token,submit_sql_uuid,split_sql_file_
         return content
 
 # 查看执行结果
-def get_execute_results(split_sql_file_path):
-    ret = audit_sql_dao.get_execute_results_dao(split_sql_file_path)
+def get_execute_results_by_split_sql_file_path(split_sql_file_path):
+    ret = audit_sql_dao.get_execute_results_by_split_sql_file_path_dao(split_sql_file_path)
     return ret
 
 
@@ -511,10 +511,10 @@ def get_execute_process_by_uuid(split_sql_file_path):
 
 
 # 获取页面拆分SQL
-def get_split_sql(submit_sql_uuid):
+def get_split_sql_by_uuid(submit_sql_uuid):
     data = []
     try:
-        data = audit_sql_dao.get_split_sql_dao(submit_sql_uuid)
+        data = audit_sql_dao.get_split_sql_by_uuid_dao(submit_sql_uuid)
         status = "ok"
         message = "ok"
     except Exception as e:

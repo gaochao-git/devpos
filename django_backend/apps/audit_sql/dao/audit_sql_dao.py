@@ -44,7 +44,7 @@ def get_view_sql_by_uuid_dao(submit_sql_uuid):
     return db_helper.find_all(sql)
 
 # 查看指定提交工单的详情
-def get_apply_sql_dao(submit_sql_uuid):
+def get_apply_sql_by_uuid_dao(submit_sql_uuid):
     sql = """
         select title,
                submit_sql_user,
@@ -330,7 +330,7 @@ def execute_submit_sql_by_file_path_manual_dao(submit_sql_uuid,split_sql_file_pa
         return update_status
 
 # 查看执行结果
-def get_execute_results_dao(split_sql_file_path):
+def get_execute_results_by_split_sql_file_path_dao(split_sql_file_path):
     sql = """select a.inception_id as ID,
                     a.inception_stage as stage,
                     a.inception_error_level as errlevel,
@@ -368,7 +368,7 @@ def get_sqlsha1_by_uuid_dao(split_sql_file_path):
 
 
 # 获取页面拆分SQL
-def get_split_sql_dao(submit_sql_uuid):
+def get_split_sql_by_uuid_dao(submit_sql_uuid):
     sql = """
         select
             a.master_ip,

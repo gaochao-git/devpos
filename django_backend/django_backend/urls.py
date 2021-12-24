@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from apps.controller import mysql_cluster_controller
 from apps.controller import mysql_instance_controller
 from apps.controller import audit_sql_controller
@@ -31,12 +31,12 @@ urlpatterns = [
     path('api/get_apply_sql_by_uuid/', audit_sql_controller.GetApplySqlByUuidController.as_view()), # 查看指定提交工单的详情
     path('api/get_view_sql_by_uuid/', audit_sql_controller.GetViewSqlByUuidController.as_view()), # 页面预览指定工单提交的SQL
     path('api/get_submit_split_sql_by_file_path/', audit_sql_controller.get_submit_split_sql_by_file_path_controller), # 获取指定拆分SQL
-    path('api/get_check_sql_results_by_uuid/', audit_sql_controller.get_check_sql_results_by_uuid_controller), # 获取SQL检查结果
-    path('api/get_execute_results_by_split_sql_file_path/', audit_sql_controller.get_execute_results_by_split_sql_file_path_controller),   # 根据拆分SQL文件获取SQL执行结果
+    path('api/get_check_sql_results/', audit_sql_controller.get_check_sql_results_controller), # 获取SQL检查结果
+    path('v1/api/get_execute_results/', audit_sql_controller.get_execute_results_controller),   # 根据拆分SQL文件获取SQL执行结果
     path('api/execute_submit_sql_by_file_path/', audit_sql_controller.execute_submit_sql_by_file_path_controller), # 平台执行SQL工单
     path('api/execute_submit_sql_by_file_path_manual/', audit_sql_controller.execute_submit_sql_by_file_path_manual_controller),   # 手动执行SQL工单
     path('api/get_execute_process_by_uuid/', audit_sql_controller.get_execute_process_by_uuid_controller), # 获取SQL执行进度
-    path('api/get_split_sql_by_uuid/', audit_sql_controller.get_split_sql_by_uuid_controller), # 获取拆分SQL子文件路径等信息前端展示
+    path('api/get_split_sql/', audit_sql_controller.get_split_sql_controller), # 获取拆分SQL子文件路径等信息前端展示
     path('api/get_inception_variable_config_info/', audit_sql_controller.get_inception_variable_config_info_controller), # 获取osc参数
     path('api/update_inception_variable/', audit_sql_controller.update_inception_variable_controller), # 更新 osc参数
     path('api/v1/service/ticket/audit_sql/check_sql/', audit_sql_controller.CheckSqlController.as_view()),   # 检测sql
@@ -82,10 +82,6 @@ urlpatterns = [
     path('api/v1/service/console/get_table_list/', web_console_controller.get_table_list_controller),
     path('api/v1/service/console/get_column_list/', web_console_controller.get_column_list_controller),
 
-
-
-
-
     # 数据库集群资源申请工单
     path('api/v1/service/ticket/ansible_adhoc/', ansible_adhoc.adhoc),  # ansible api执行命令
     path('api/v1/service/ticket/submit_deploy_mysql/', deploy_mysql_controller.submit_install_mysql_controller),  # 提交部署mysql工单
@@ -95,6 +91,7 @@ urlpatterns = [
     path('api/v1/service/ticket/get_ansible_api_log/', deploy_mysql_controller.get_ansible_api_log_controller), # 获取部署日志
     path('api/v1/service/ticket/pass_submit_deploy_mysql_by_uuid/', deploy_mysql_controller.pass_submit_deploy_mysql_by_uuid_controller),  # 审核部署mysql工单
     path('api/v1/service/ticket/get_work_flow_by_uuid/', deploy_mysql_controller.get_work_flow_by_uuid_controller),  # 获取工单流转记录
+    path('api/audit_sql/', include("apps.audit_sql.urls")),
     ]
 
 

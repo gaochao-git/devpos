@@ -62,7 +62,7 @@ class GetApplySqlByUuidController(BaseView):
         check_uuid_ret = CheckValidators.check_uuid(submit_sql_uuid)
         if check_uuid_ret['status'] != "ok": return self.my_response(check_uuid_ret)
         # 执行业务逻辑
-        ret = audit_sql.get_apply_sql(submit_sql_uuid)
+        ret = audit_sql.get_apply_sql_by_uuid(submit_sql_uuid)
         return self.my_response(ret)
 
 
@@ -179,10 +179,10 @@ def update_inception_variable_controller(request):
     return my_response(ret)
 
 # 页面查看审核结果
-def get_check_sql_results_controller(request):
+def get_check_sql_results_by_uuid_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body['submit_sql_uuid']
-    ret = audit_sql.get_check_sql_results(submit_sql_uuid)
+    ret = audit_sql.get_check_sql_results_by_uuid(submit_sql_uuid)
     return my_response(ret)
 
 # 审核通过并拆分SQL
@@ -224,11 +224,11 @@ def execute_submit_sql_by_file_path_manual_controller(request):
     return my_response(ret)
 
 # 根据拆分文件名查看对应执行结果
-def get_execute_results_controller(request):
+def get_execute_results_by_split_sql_file_path_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     split_sql_file_path = request_body['split_sql_file_path']
-    ret = audit_sql.get_execute_results(split_sql_file_path)
+    ret = audit_sql.get_execute_results_by_split_sql_file_path(split_sql_file_path)
     return my_response(ret)
 
 # 根据uuid获取sqlsha1,根据sqlsha1连接inception查看执行进度
@@ -274,10 +274,10 @@ def get_execute_process_by_uuid_controller(request):
 
 
 # 获取页面拆分SQL
-def get_split_sql_controller(request):
+def get_split_sql_by_uuid_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body['submit_sql_uuid']
-    ret = audit_sql.get_split_sql(submit_sql_uuid)
+    ret = audit_sql.get_split_sql_by_uuid(submit_sql_uuid)
     return my_response(ret)
 
 

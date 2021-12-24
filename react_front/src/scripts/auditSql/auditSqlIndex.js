@@ -64,7 +64,7 @@ class AuditSqlIndex extends Component {
     }
     //获取已经提交的SQL列表
     async GetSubmitSqlInfo() {
-        await MyAxios.get('/v1/service/ticket/audit_sql/get_submit_sql_info/').then(
+        await MyAxios.get('/audit_sql/v1/get_submit_sql_info/').then(
             res=>{
                 if (res.data.status==="ok"){
                     this.setState({
@@ -115,7 +115,7 @@ class AuditSqlIndex extends Component {
     //获取预审核结果
     async getPreCheckResultsByUuid() {
         let params = {check_sql_uuid:this.state.check_sql_uuid};
-        await MyAxios.get('/v1/service/ticket/audit_sql/get_pre_check_result/',{params}).then(
+        await MyAxios.get('/audit_sql/v1/get_pre_check_result/',{params}).then(
             res => {
                 if (res.data.status==="ok"){
                    this.setState({
@@ -150,7 +150,7 @@ class AuditSqlIndex extends Component {
             submit_sql_button_disabled:"hide",
             global_loading:true,
         });
-        await MyAxios.post('/v1/service/ticket/audit_sql/check_sql/',params).then(
+        await MyAxios.post('/audit_sql/v1/check_sql/',params).then(
             res => {
                 if (res.data.status==="ok"){
                    message.success("异步审核任务已发起,请等待",3);
@@ -233,7 +233,7 @@ class AuditSqlIndex extends Component {
             check_sql_uuid: this.state.check_sql_uuid,
             user_offer_rollback_sql: this.state.user_offer_rollback_sql
         };
-        let res = await MyAxios.post('/submit_sql/',params);
+        let res = await MyAxios.post('/audit_sql/v1/submit_sql/',params);
         if( res.data.status === 'ok'){
             window.location.reload();
         }
@@ -247,7 +247,7 @@ class AuditSqlIndex extends Component {
 
     //获取所有mysql实例
     async handleGetMasterIp() {
-            await MyAxios.get('/get_master_ip/').then(
+            await MyAxios.get('/audit_sql/v1/get_master_ip/').then(
                 res=>{
                     if(res.data.status === 'ok'){
                         this.setState({
@@ -266,7 +266,7 @@ class AuditSqlIndex extends Component {
     }
     //获取所有集群名
     async handleGetClusterName() {
-        await MyAxios.get('/get_cluster_name/').then(
+        await MyAxios.get('/audit_sql/v1/get_cluster_name/').then(
             res=>{
                 if( res.data.status === 'ok'){
                     this.setState({
