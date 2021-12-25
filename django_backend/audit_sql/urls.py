@@ -24,7 +24,7 @@ urlpatterns = [
     path('v1/get_cluster_name/', audit_sql_controller.GetClusterNameCrotroller.as_view()), # sql审核--根据cluster_name输入框自动补全
     path('v1/recreate_sql/', audit_sql_controller.recreate_sql_controller),  # 根据拆分SQL文件获取SQL执行结果
     path('v1/create_block_sql/', audit_sql_controller.create_block_sql_controller),  # 生成用id切割的SQL用来删除或者更新数据,防止大事物
-    path('v1/service/ticket/get_celery_task_status/', common.get_celery_task_status),  # 获取审核状态
+    path('v1/get_celery_task_status/', common.get_celery_task_status),  # 获取审核状态
     path('v1/get_pre_check_result/', audit_sql_controller.GetPreCheckResultCrotroller.as_view()),  # 生成用id切割的SQL用来删除或者更新数据,防止大事物
     ]
 

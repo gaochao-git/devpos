@@ -6,11 +6,11 @@
 import pymysql
 import re
 import logging
-from django_backend.settings import INCEPTION_ADDRESS
+from django.conf import settings
 logger = logging.getLogger('inception_execute_logger')
 
-inception_host = INCEPTION_ADDRESS["inception_host"]
-inception_port = INCEPTION_ADDRESS["inception_port"]
+inception_host = settings.INCEPTION_ADDRESS["inception_host"]
+inception_port = settings.INCEPTION_ADDRESS["inception_port"]
 
 
 # 页面调用inception检测SQL,如果根据cluster_name则需要先获取到对应的master_ip、master_port

@@ -5,9 +5,7 @@ from apps.utils import db_helper
 from celery.result import AsyncResult
 import json
 import validators
-from django.views import View
 from rest_framework.views import APIView
-from rest_framework_jwt.utils import jwt_decode_handler
 
 logger = logging.getLogger('devops')
 
@@ -136,13 +134,6 @@ class BaseView(APIView):
         if data.get('status') == "error" and data.get('code') is None:
             data['code'] = 500
         return HttpResponse(json.dumps(data, default=str), content_type=content_type)
-
-
-
-
-
-
-
 
 
 def get_cluster_node(cluster_name, instance_role):
