@@ -1,10 +1,9 @@
-from django.urls import path, include
+from django.urls import path
 from audit_sql.controller import audit_sql_controller
 from apps.utils import common
 
 
 urlpatterns = [
-    # sql审核begin
     path('v1/get_submit_sql_info/', audit_sql_controller.GetSqlSubmitSqlInfoCrotroller.as_view()), # 页面获取所有工单列表
     path('v1/get_apply_sql/', audit_sql_controller.GetApplySqlByUuidController.as_view()), # 查看指定提交工单的详情
     path('v1/get_view_sql_by_uuid/', audit_sql_controller.GetViewSqlByUuidController.as_view()), # 页面预览指定工单提交的SQL
