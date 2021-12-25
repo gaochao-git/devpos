@@ -44,7 +44,7 @@ def get_view_sql_by_uuid_dao(submit_sql_uuid):
     return db_helper.find_all(sql)
 
 # 查看指定提交工单的详情
-def get_apply_sql_dao(submit_sql_uuid):
+def get_apply_sql_by_uuid_dao(submit_sql_uuid):
     sql = """
         select title,
                submit_sql_user,

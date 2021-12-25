@@ -130,7 +130,7 @@ export default class ExecuteSql extends Component {
     //SQL预览
     async GetViewSqlByUuid() {
         let params = {submit_sql_uuid: this.state.submit_sql_uuid};
-        let res = await MyAxios.get('/get_view_sql_by_uuid/',{params});
+        let res = await MyAxios.get('/audit_sql/v1/get_view_sql_by_uuid/',{params});
         if (res.data.status==="ok"){
             this.setState({
                 SqlViewVisible: true,
@@ -144,7 +144,7 @@ export default class ExecuteSql extends Component {
     //回滚SQL
     async GetViewRollbackSqlByUuid() {
         let params = {submit_sql_uuid: this.state.submit_sql_uuid};
-        let res = await MyAxios.get('/get_view_sql_by_uuid/',{params});
+        let res = await MyAxios.get('/audit_sql/v1/get_view_sql_by_uuid/',{params});
         if (res.data.status==="ok"){
             this.setState({
                 RollbackSqlViewVisible: true,
@@ -159,7 +159,7 @@ export default class ExecuteSql extends Component {
     async GetModifySqlByUuid() {
         this.setState({global_loading:true})
         let params = {submit_sql_uuid: this.state.submit_sql_uuid};
-        let res = await MyAxios.get('/get_view_sql_by_uuid/',{params});
+        let res = await MyAxios.get('/audit_sql/v1/get_view_sql_by_uuid/',{params});
         if (res.data.status==="ok"){
             this.setState({
                 modifySubmitSqlVisible: true,
@@ -192,7 +192,7 @@ export default class ExecuteSql extends Component {
             check_user_name_role:this.state.login_user_name_role,
             check_comment:this.state.check_comment,
         };
-        await MyAxios.post('/pass_submit_sql_by_uuid/',params).then(
+        await MyAxios.post('/audit_sql/v1/pass_submit_sql_by_uuid/',params).then(
             res=>{
                 if (res.data.status === "ok"){
                     this.setState({
@@ -223,7 +223,7 @@ export default class ExecuteSql extends Component {
             check_user_name_role:this.state.login_user_name_role,
             check_comment:this.state.check_comment,
         };
-        await MyAxios.post('/pass_submit_sql_by_uuid/',params).then(
+        await MyAxios.post('/audit_sql/v1/pass_submit_sql_by_uuid/',params).then(
             res=>{
                 if (res.data.status === "ok"){
                     this.setState({
@@ -260,7 +260,7 @@ export default class ExecuteSql extends Component {
             showReCheckVisible:false,
             view_check_sql_result:[]
         });
-        await MyAxios.post('/v1/service/ticket/audit_sql/check_sql/',params).then(
+        await MyAxios.post('/audit_sql/v1/check_sql/',params).then(
             res => {
                 if (res.data.status==="ok"){
                    message.success("异步审核任务已发起,请等待",3);
@@ -287,7 +287,7 @@ export default class ExecuteSql extends Component {
     //获取拆分任务状态
     async getSplitStatusByUuid() {
         let params = {celery_id: this.state.celery_split_id};
-        await MyAxios.post('/v1/service/ticket/get_celery_task_status/',params).then(
+        await MyAxios.post('/audit_sql/v1/get_celery_task_status/',params).then(
             res => {
                 if (res.data.status==="ok"){
                     message.success("DDL/DML任务拆分成功",3)
@@ -309,7 +309,7 @@ export default class ExecuteSql extends Component {
     //获取执行任务状态
     async getExecuteStatus() {
         let params = {celery_id: this.state.celery_execute_id};
-        await MyAxios.post('/v1/service/ticket/get_celery_task_status/',params).then(
+        await MyAxios.post('/audit_sql/v1/get_celery_task_status/',params).then(
             res => {
                 if (res.data.status==="ok"){
                     message.success("任务执行成功",3)
@@ -342,7 +342,7 @@ export default class ExecuteSql extends Component {
     //获取重新审核任务状态
     async getCheckStatusByUuid() {
         let params = {celery_id: this.state.celery_recheck_id};
-        await MyAxios.post('/v1/service/ticket/get_celery_task_status/',params).then(
+        await MyAxios.post('/audit_sql/v1/get_celery_task_status/',params).then(
             res => {
                 if (res.data.status==="ok"){
                    window.clearInterval(this.timerId);
@@ -367,7 +367,7 @@ export default class ExecuteSql extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
             modify_sql: this.state.modify_sql,
         };
-        await MyAxios.post('/submit_recheck_sql/',params).then(
+        await MyAxios.post('/audit_sql/v1/submit_recheck_sql/',params).then(
             res => {
                 if(res.data.status==="ok") {
                     this.setState({showReSubmitVisible:false,modifySubmitSqlVisible:false});
@@ -417,7 +417,7 @@ export default class ExecuteSql extends Component {
                     execute_status: "执行中",
                     global_loading:true
                 });
-                await MyAxios.post('/execute_submit_sql_by_file_path/', params).then(
+                await MyAxios.post('/audit_sql/v1/execute_submit_sql_by_file_path/', params).then(
                     res => {
                         if (res.data.status === "ok"){
                             this.setState({celery_execute_id: res.data.data["celery_id"]});
@@ -442,7 +442,7 @@ export default class ExecuteSql extends Component {
             submit_sql_uuid: this.state.submit_sql_uuid,
             split_sql_file_path:split_sql_file_path
         };
-        await MyAxios.post("/execute_submit_sql_by_file_path_manual/", params).then(
+        await MyAxios.post("/audit_sql/v1/execute_submit_sql_by_file_path_manual/", params).then(
             res => {
                 res.data.status === "ok" ? this.GetSqlApplyByUuid(this.state.submit_sql_uuid) && message.success(res.data.message) : message.error(res.data.message);
             })
@@ -468,7 +468,7 @@ export default class ExecuteSql extends Component {
         let params = {
             split_sql_file_path:split_sql_file_path
         };
-        let res = await MyAxios.post("/get_submit_split_sql_by_file_path/",params);
+        let res = await MyAxios.post("/audit_sql/v1/get_submit_split_sql_by_file_path/",params);
         if (res.data.status==="ok"){
             this.setState({
                 SplitSQLModalVisible: true,
@@ -569,7 +569,7 @@ export default class ExecuteSql extends Component {
             split_sql_file_path: this.state.split_sql_file_path,
             new_config_json: this.state.newConfig,
         };
-        MyAxios.post('/update_inception_variable/',params).then(
+        MyAxios.post('/audit_sql/v1/update_inception_variable/',params).then(
            res => {res.data.status==="ok" ? message.success(res.data.message) : message.error(res.data.message)}
         ).catch(err => {message.error(err.message)})
         this.setState({

@@ -1,7 +1,10 @@
 [run]
 omit =
-    apps/unit_test/*
+    django_backend/*
+    */unit_test/*
+    */migrations/*
+    */fixtures/*
+    */models.py
+    */urls.py
     *__init__.py
-    apps/migrations/*
-    apps/models.py
-    apps/celery_task/tasks.py
+    manage.py

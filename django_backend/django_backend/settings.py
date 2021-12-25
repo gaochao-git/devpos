@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'djcelery',
+    'audit_sql',
 ]
 
 # ===========================JWT认证begin===================================

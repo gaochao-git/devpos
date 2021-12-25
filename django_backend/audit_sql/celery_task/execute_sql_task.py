@@ -1,7 +1,7 @@
 from apps.utils import db_helper
 from django.db import connection
-from apps.utils import inception
-from apps.dao import audit_sql_dao
+from audit_sql.utils import inception
+from audit_sql.dao import audit_sql_dao
 from apps.utils import common
 import logging
 import pymysql
@@ -94,7 +94,7 @@ class ExecuteSql:
         :return:
         """
         try:
-            with open("./upload/{}".format(self.file_path), "rb") as f:
+            with open("./audit_sql/upload/{}".format(self.file_path), "rb") as f:
                 self.execute_sql = f.read().decode('utf-8')
         except Exception as e:
             logger.exception(e)
@@ -106,7 +106,7 @@ class ExecuteSql:
         :return:
         """
         common.audit_sql_log(self.file_path, 0, "任务发送到审核工具执行")
-        ret = inception.execute_sql(self.des_ip, self.des_port, self.inc_backup,self.inc_ignore_warn,
+        ret = inception.execute_sql(self.des_ip, self.des_port, self.inc_backup, self.inc_ignore_warn,
                                     self.inc_ignore_err, self.execute_sql, self.file_path, self.osc_config_sql)
         if ret['status'] != "ok": 
             self.mark_ticket_status(2,4)

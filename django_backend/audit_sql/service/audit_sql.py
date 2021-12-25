@@ -3,19 +3,14 @@
 # @Time    : 2019/4/17 3:17 PM
 # @Author  : 高超
 
-import pymysql
 import uuid
 from time import gmtime, strftime
-import os
-import json
-import time
 
-import os,sys
-from apps.dao import login_dao
+import os
 from apps.utils import common
-from apps.utils import inception
-from apps.dao import audit_sql_dao
-from apps.celery_task.tasks import inception_execute,inception_check,inception_split
+from audit_sql.utils import inception
+from audit_sql.dao import audit_sql_dao
+from audit_sql.tasks import inception_execute,inception_check,inception_split
 from io import StringIO
 
 import logging
@@ -83,9 +78,9 @@ def get_view_sql_by_uuid(submit_sql_uuid):
         file_path_data = ret['data']
         sql_file_path = file_path_data[0]["submit_sql_file_path"]
         rollback_sql_file_path = file_path_data[0]["user_offer_rollback_sql_file_path"]
-        with open("./upload/{}".format(sql_file_path), "rb") as f1:
+        with open("./audit_sql/upload/{}".format(sql_file_path), "rb") as f1:
             sql_text = f1.read().decode('utf-8')
-        with open("./upload/{}".format(rollback_sql_file_path), "rb") as f2:
+        with open("./audit_sql/upload/{}".format(rollback_sql_file_path), "rb") as f2:
             rollback_sql_text = f2.read().decode('utf-8')
         data = {"sql_text": sql_text, "rollback_sql_text": rollback_sql_text}
         content = {'status': "ok", 'message': "获取SQL成功",'data': data}
@@ -126,7 +121,7 @@ def get_cluster_name():
 # 页面预览指定的拆分SQL
 def get_submit_split_sql_by_file_path(split_sql_file_path):
     try:
-        with open("./upload/{}".format(split_sql_file_path), "rb") as f:
+        with open("./audit_sql/upload/{}".format(split_sql_file_path), "rb") as f:
             data = f.read()
             data = data.decode('utf-8')
         content = {'status': "ok", 'message': "获取SQL成功",'data': data}
@@ -138,7 +133,7 @@ def get_submit_split_sql_by_file_path(split_sql_file_path):
 
 
 # 页面查看审核结果
-def get_check_sql_results_by_uuid(submit_sql_uuid):
+def get_check_sql_results(submit_sql_uuid):
     ret = audit_sql_dao.get_pre_check_result_dao(submit_sql_uuid)
     return ret
 
@@ -232,7 +227,7 @@ class SubmitSql:
         # 每天产生一个目录
         now_date = strftime("%Y%m%d", gmtime())
         # 确定存放路径
-        upload_path = "./upload/" + now_date
+        upload_path = "./audit_sql/upload/" + now_date
         if not os.path.isdir(upload_path): os.makedirs(upload_path)
         # 确定待执行文件名
         file_name = "%s_%s.sql" % (self.login_user_name, self.submit_sql_uuid)
@@ -482,8 +477,8 @@ def execute_submit_sql_by_file_path_manual(token,submit_sql_uuid,split_sql_file_
         return content
 
 # 查看执行结果
-def get_execute_results_by_split_sql_file_path(split_sql_file_path):
-    ret = audit_sql_dao.get_execute_results_by_split_sql_file_path_dao(split_sql_file_path)
+def get_execute_results(split_sql_file_path):
+    ret = audit_sql_dao.get_execute_results_dao(split_sql_file_path)
     return ret
 
 
@@ -511,10 +506,10 @@ def get_execute_process_by_uuid(split_sql_file_path):
 
 
 # 获取页面拆分SQL
-def get_split_sql_by_uuid(submit_sql_uuid):
+def get_split_sql(submit_sql_uuid):
     data = []
     try:
-        data = audit_sql_dao.get_split_sql_by_uuid_dao(submit_sql_uuid)
+        data = audit_sql_dao.get_split_sql_dao(submit_sql_uuid)
         status = "ok"
         message = "ok"
     except Exception as e:
@@ -542,7 +537,7 @@ def recreate_sql(split_sql_file_path, recreate_sql_flag):
     rerun_sequence = submit_sql_uuid + "_" + str(split_seq) + "_" + str(new_rerun_seq)
     # 重做SQL写入文件
     rerun_file = split_sql_file_path.split('.')[0] + ".sql_{}".format(new_rerun_seq)
-    rerun_file_path = "./upload/{}".format(rerun_file)
+    rerun_file_path = "./audit_sql/upload/{}".format(rerun_file)
     try:
         rerun_sql_list = audit_sql_dao.recreate_sql_dao( split_sql_file_path, recreate_sql_flag)
         with open(rerun_file_path, 'w') as f:

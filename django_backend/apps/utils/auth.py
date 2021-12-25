@@ -75,3 +75,61 @@ def v2_auth(token):
         logger.exception(e)
         content = {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.errmsg, "code": StatusCode.ERR_LOGIN_FAIL.code}
     return content
+
+
+def get_login_user_info_controller(request):
+    """
+    根据登陆token获取用户详情
+    :param request:
+    :return:
+    """
+    bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
+    token = bearer_token.split(' ')[1]
+    ret = get_login_user_info(token)
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+
+
+def v2_get_login_user_info_controller(request):
+    """
+    根据登陆jwt token获取用户详情
+    :param request:
+    :return:
+    """
+    bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
+    token = bearer_token.split(' ')[1]
+    data = []
+    try:
+        token_user = jwt_decode_handler(token)
+        status = "ok"
+        message = "获取用户信息成功"
+        data.append(token_user)
+    except Exception as e:
+        status = "error"
+        message = "获取用户信息失败"
+        logger.exception(e)
+    ret = {"status": status, "message": message, "data":data}
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+
+
+def get_login_user_info(token):
+    """
+    根据登陆token获取用户详情
+    :param token:
+    :return:
+    """
+    ret = get_login_user_info_dao(token)
+    return ret
+
+def get_login_user_info_dao(token):
+    """
+    根据登陆token获取用户详情
+    :param token:
+    :return:
+    """
+    sql="""select a.username,
+                  a.email,
+                  case c.title when 0 then '前端开发' when 1 then '后端开发' when 2 then 'qa' when 3 then 'leader' when 4 then 'dba' end title
+               from auth_user a inner join authtoken_token b on a.id=b.user_id 
+               inner join team_user c on a.username=c.uname
+               where b.`key`='{}'""".format(token)
+    return db_helper.find_all(sql)

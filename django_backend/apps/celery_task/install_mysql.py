@@ -1,10 +1,4 @@
-from apps.utils import db_helper
-from django.db import connection
-from apps.utils import inception
-from apps.dao import audit_sql_dao
-from apps.utils import common
 import logging
-import pymysql
 from apps.ansible_task.playbook.mysql.roles.install_mysql import install_mysql_playbook
 logger = logging.getLogger('devops')
 from multiprocessing import current_process

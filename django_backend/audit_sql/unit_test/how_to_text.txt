@@ -21,12 +21,8 @@ python3.6 manage.py dumpdata sessions.session --natural-primary --indent=4 >apps
 1.运行单元测试
 python3.6 manage.py test apps.unit_test.test_mysql_cluster.TestMysqlCluster
 2.运行单元测试并跑覆盖率(一般用这个)
-coverage run manage.py test -t ../django_backend   # 测试所有app全部case
-coverage run --source='./audit_sql' manage.py test -t ../django_backend audit_sql  # 测试指定app下的所有case
-coverage run --source='./audit_sql' manage.py test -t ../django_backend audit_sql.unit_test  # 测试指定app下的所有case
-# coverage run manage.py test -t ../django_backend
-# coverage run --source='./apps' manage.py test apps.unit_test
-# coverage run --source='./apps' manage.py test apps.unit_test.test_mysql_cluster.TestMysqlCluster
+coverage run --source='./apps' manage.py test apps.unit_test
+coverage run --source='./apps' manage.py test apps.unit_test.test_mysql_cluster.TestMysqlCluster
 2.显示覆盖率
 coverage report      # 输出覆盖率
 coverage report -m   # 显示哪些没有被覆盖

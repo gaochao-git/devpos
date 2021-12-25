@@ -5,7 +5,7 @@
 
 from django.http import HttpResponse,JsonResponse
 import json
-from apps.service import audit_sql
+from audit_sql.service import audit_sql
 from apps.utils.common import CheckValidators,BaseView,my_response
 from validator import Required, Not, Truthy, Blank, Range, Equals, In, validate,InstanceOf,Length
 from apps.utils import permission
@@ -179,10 +179,10 @@ def update_inception_variable_controller(request):
     return my_response(ret)
 
 # 页面查看审核结果
-def get_check_sql_results_by_uuid_controller(request):
+def get_check_sql_results_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body['submit_sql_uuid']
-    ret = audit_sql.get_check_sql_results_by_uuid(submit_sql_uuid)
+    ret = audit_sql.get_check_sql_results(submit_sql_uuid)
     return my_response(ret)
 
 # 审核通过并拆分SQL
@@ -224,11 +224,11 @@ def execute_submit_sql_by_file_path_manual_controller(request):
     return my_response(ret)
 
 # 根据拆分文件名查看对应执行结果
-def get_execute_results_by_split_sql_file_path_controller(request):
+def get_execute_results_controller(request):
     to_str = str(request.body, encoding="utf-8")
     request_body = json.loads(to_str)
     split_sql_file_path = request_body['split_sql_file_path']
-    ret = audit_sql.get_execute_results_by_split_sql_file_path(split_sql_file_path)
+    ret = audit_sql.get_execute_results(split_sql_file_path)
     return my_response(ret)
 
 # 根据uuid获取sqlsha1,根据sqlsha1连接inception查看执行进度
@@ -240,44 +240,11 @@ def get_execute_process_by_uuid_controller(request):
     return my_response(ret)
 
 
-# inception拆分SQL
-# def split_sql_func(submit_sql_uuid):
-#     # 查询工单信息
-#     try:
-#         cursor = connection.cursor()
-#         sql_select = "select master_ip,master_port,cluster_name,submit_sql_file_path from sql_submit_info where submit_sql_uuid='{}'".format(submit_sql_uuid)
-#         cursor.execute("%s" % sql_select)
-#         rows = cursor.fetchall()
-#         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-#         sql_file_path = data[0]["submit_sql_file_path"]
-#         cluster_name = data[0]["cluster_name"]
-#         if cluster_name:
-#             des_master_ip, des_master_port = common.get_cluster_node(cluster_name)
-#         else:
-#             des_master_ip = data[0]["master_ip"]
-#             des_master_port = data[0]["master_port"]
-#         with open("./upload/{}".format(sql_file_path), "rb") as f:
-#             execute_sql = f.read()
-#             execute_sql = execute_sql.decode('utf-8')
-#         ret = audit_sql.start_split_sql(cursor,submit_sql_uuid,des_master_ip, des_master_port, execute_sql, sql_file_path,cluster_name)
-#         if ret == "拆分SQL成功":
-#             message = "拆分任务成功"
-#         else:
-#             message = "拆分任务失败"
-#     except Exception as e:
-#         message = "拆分任务失败"
-#         print(e)
-#     finally:
-#         cursor.close()
-#         connection.close()
-#         return message
-
-
 # 获取页面拆分SQL
-def get_split_sql_by_uuid_controller(request):
+def get_split_sql_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
     submit_sql_uuid = request_body['submit_sql_uuid']
-    ret = audit_sql.get_split_sql_by_uuid(submit_sql_uuid)
+    ret = audit_sql.get_split_sql(submit_sql_uuid)
     return my_response(ret)
 
 

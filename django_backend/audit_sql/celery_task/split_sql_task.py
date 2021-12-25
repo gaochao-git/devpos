@@ -1,11 +1,7 @@
-from apps.utils import db_helper
-from django.db import connection
-from apps.utils import inception
-from apps.dao import audit_sql_dao
+from audit_sql.utils import inception
+from audit_sql.dao import audit_sql_dao
 from apps.utils import common
 import logging
-import pymysql
-import json
 logger = logging.getLogger('inception_execute_logger')
 
 
@@ -52,7 +48,7 @@ class AsyncSplitSql:
         common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到审核工具拆分")
         try:
             # 从文件获取用户提交的SQL
-            with open("./upload/{}".format(self.submit_sql_file_path), "rb") as f:
+            with open("./audit_sql/upload/{}".format(self.submit_sql_file_path), "rb") as f:
                 split_sql = f.read().decode('utf-8')
         except Exception as e:
             logger.exception(e)
@@ -90,7 +86,7 @@ class AsyncSplitSql:
                 dir_name = self.submit_sql_file_path.split('/')[0]
                 file_name = self.submit_sql_file_path.split('/')[1]
                 split_file_name = str(split_seq) + '_' + file_name
-                upfile = './upload/' + dir_name + '/' + split_file_name
+                upfile = './audit_sql/upload/' + dir_name + '/' + split_file_name
                 split_sql_file_path = dir_name + '/' + split_file_name
                 rerun_sequence = ""
                 rerun_seq = 0

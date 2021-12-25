@@ -1,5 +1,5 @@
 /react_front/node_modules
-/django_backend/upload
+/django_backend/audit_sql/upload
 *.pyc
 *.log
 *.log.*
