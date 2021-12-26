@@ -4,7 +4,7 @@
 # @Author  : 高超
 
 
-from apps.dao import privilege_apply_dao
+from db_dcl.dao import db_dcl_dao
 import logging
 logger = logging.getLogger('devops')
 
@@ -12,7 +12,7 @@ logger = logging.getLogger('devops')
 def get_application_form(search_applicant):
     data = []
     try:
-        data = privilege_apply_dao.get_application_from_info_dao(search_applicant)
+        data = db_dcl_dao.get_application_from_info_dao(search_applicant)
         status = "ok"
         message = "ok"
         logger.info("获取所有工单成功")

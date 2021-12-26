@@ -3,12 +3,6 @@
 # @Time    : 2019/4/17 3:17 PM
 # @Author  : 高超
 
-from django.shortcuts import render
-from django.http import HttpResponse
-import json
-from django.db import connection
-import pymysql
-import uuid
 from apps.utils import db_helper
 import logging
 
