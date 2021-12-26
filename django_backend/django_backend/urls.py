@@ -1,16 +1,13 @@
 from django.contrib import admin
 from django.urls import path, include
+from apps.utils import auth
 from apps.controller import mysql_cluster_controller
 from apps.controller import mysql_instance_controller
 from apps.controller import create_common_user
 from apps.controller import migrate_common_user
-from apps.controller import create_private_user
-from apps.controller import create_private_user_controller
 from apps.controller import server_info_controller
 from apps.controller import deploy_mysql_controller
-from apps.utils import common, auth
 from apps.ansible_task.adhoc import ansible_adhoc
-
 from rest_framework.authtoken import views as drf_views
 from rest_framework_jwt.views import obtain_jwt_token,refresh_jwt_token
 
