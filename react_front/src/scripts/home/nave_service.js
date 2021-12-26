@@ -46,9 +46,6 @@ class NavService extends Component {
                     </Menu.Item>
                 </SubMenu>
                 <SubMenu key="sub2" title={<span><Icon type="database" />MySQL</span>}>
-                    <Menu.Item key="1">
-                        <Link to="#">主机</Link>
-                    </Menu.Item>
                     <Menu.Item key="/mysqlInstance">
                         <Link to="/mysqlInstance">实例</Link>
                     </Menu.Item>
@@ -57,9 +54,6 @@ class NavService extends Component {
                     </Menu.Item>
                 </SubMenu>
                 <SubMenu key="sub3" title={<span><Icon type="database" />Redis</span>}>
-                    <Menu.Item key="/redisServer">
-                        <Link to="/redisServer">主机</Link>
-                    </Menu.Item>
                     <Menu.Item key="/redisInstance">
                         <Link to="/redisInstance">实例</Link>
                     </Menu.Item>
