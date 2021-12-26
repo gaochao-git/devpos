@@ -5,9 +5,6 @@ import {Button, Table, Input, Modal, Tabs, Form, Row, Select, data, Card, AutoCo
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
-import { backendServerApiRoot } from "../common/util"
-axios.defaults.withCredentials = true;
-axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { Search } = Input;
 const { TabPane } = Tabs;
 const FormItem = Form.Item;
@@ -44,7 +41,7 @@ export default class DeployMysql extends Component  {
     }
     //获取工单信息
     async getDeploySubmitInfo() {
-        await MyAxios.get('v1/service/ticket/get_deploy_mysql_submit_info/').then(
+        await MyAxios.get('/v1/get_deploy_mysql_submit_info/').then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     submit_info: res.data.data
@@ -61,7 +58,7 @@ export default class DeployMysql extends Component  {
             idc: this.state.idc,
             deploy_archit: this.state.deploy_archit,
         };
-        await MyAxios.post('/v1/mysql/service/submit_deploy_mysql/',params).then(
+        await MyAxios.post('/v1/submit_deploy_mysql/',params).then(
             res => {
                 if(res.data.status==="ok") {
                     this.setState({showSubmitVisible:false});

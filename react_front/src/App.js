@@ -92,10 +92,10 @@ class App extends Component {
                                         <Link to="/Server">服务</Link>
                                     </Menu.Item>
                                     <Menu.Item key="运维" style={{marginLeft:'20px'}}>
-                                        <Link to="/Server">运维</Link>
+                                        <Link to="/deployMysql">运维</Link>
                                     </Menu.Item>
                                     <Menu.Item key="管理" style={{marginLeft:'20px'}}>
-                                        <Link to="/commonUser">管理</Link>
+                                        <Link to="/deployMysql">管理</Link>
                                     </Menu.Item>
                                 </Menu>
                                 <div style={{marginLeft:'600px'}}>

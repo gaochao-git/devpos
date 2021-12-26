@@ -6,7 +6,7 @@ import "antd/dist/antd.css";
 import "../../styles/index.scss"
 import CreatePrivateUser from "./createPrivateUser";
 import PrivilegesExtend from "./privilegesExtend";
-import { backendServerApiRoot } from "../common/util"
+import MyAxios from "../common/interface"
 
 
 axios.defaults.withCredentials = true;
@@ -38,7 +38,7 @@ class privateUser extends Component  {
         let params = {
             search_applicant:"",
         };
-        await axios.post(`${backendServerApiRoot}/get_application_form_info/`, {params}).then(
+        await MyAxios.post('/db_dcl/v1/get_application_form_info/', {params}).then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     user_info: res.data.data
@@ -52,8 +52,7 @@ class privateUser extends Component  {
         let params = {
             search_applicant:applicant_name,
         };
-        console.log(params)
-        await axios.post(`${backendServerApiRoot}/get_application_form_info/`,{params}).then(
+        await MyAxios.post('/db_dcl/v1/get_application_form_info/',{params}).then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     server_info: res.data.data

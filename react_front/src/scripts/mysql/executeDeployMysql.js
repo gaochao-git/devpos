@@ -160,7 +160,7 @@ export default class ExecuteDeployMysql extends Component {
             check_username: "gaochao",
             check_comment:this.state.check_comment,
         };
-        await MyAxios.post('/pass_submit_deploy_mysql_by_uuid/',params).then(
+        await MyAxios.post('/v1/pass_submit_deploy_mysql/',params).then(
             res => {
                 if (res.data.status==="ok"){
                    this.setState({

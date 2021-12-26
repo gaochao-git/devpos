@@ -39,7 +39,7 @@ export default class Rds extends Component  {
     }
     //获取工单信息
     async getDeploySubmitInfo() {
-        await MyAxios.post('/get_deploy_mysql_submit_info/').then(
+        await MyAxios.post('/v1/get_deploy_mysql_submit_info/').then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     submit_info: res.data.data

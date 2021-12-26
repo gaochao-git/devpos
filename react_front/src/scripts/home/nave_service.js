@@ -68,12 +68,6 @@ class NavService extends Component {
                     <Menu.Item key="/privilegesApply">
                         <Link to="/privilegesApply">权限申请</Link>
                     </Menu.Item>
-                    <Menu.Item key="/deployMysql">
-                        <Link to="/deployMysql">部署mysql集群</Link>
-                    </Menu.Item>
-                    <Menu.Item key="/rds">
-                        <Link to="/rds">RDS资源申请</Link>
-                    </Menu.Item>
                 </SubMenu>
                 <SubMenu key="sub5" title={<span><Icon type="code" />控制台</span>}>
                     <Menu.Item key="/mysqlConsole">

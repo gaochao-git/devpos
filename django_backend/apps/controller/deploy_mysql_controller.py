@@ -84,7 +84,7 @@ def get_ansible_api_log_controller(request):
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 
-def pass_submit_deploy_mysql_by_uuid_controller(request):
+def pass_submit_deploy_mysql_controller(request):
     """
     审核部署工单
     :param request:
@@ -96,7 +96,7 @@ def pass_submit_deploy_mysql_by_uuid_controller(request):
         check_status = request_body['check_status']
         check_username = request_body['check_username']
         check_comment = request_body['check_comment']
-        ret = deploy_mysql.pass_submit_deploy_mysql_by_uuid(submit_uuid,check_status,check_username,check_comment)
+        ret = deploy_mysql.pass_submit_deploy_mysql(submit_uuid,check_status,check_username,check_comment)
     except KeyError as e:
         logger.exception('缺少请求参数:%s' % str(e))
         ret = {"status": "error", "code": 2002, "message": "参数不合法"}

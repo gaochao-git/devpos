@@ -7,7 +7,7 @@ import {BrowserRouter} from 'react-router-dom'
 const router = new BrowserRouter()
 axios.defaults.withCredentials = true;
 axios.defaults.headers.post['Content-Type'] = 'application/json';
-axios.defaults.timeout = 30000
+axios.defaults.timeout = 60000
 axios.defaults.baseURL = backendServerApiRoot
 const MyAxios = axios.create()
 

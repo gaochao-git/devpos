@@ -78,7 +78,7 @@ def get_ansible_api_log(submit_uuid):
     return ret
 
 
-def pass_submit_deploy_mysql_by_uuid(submit_uuid,check_status,check_username,check_comment):
+def pass_submit_deploy_mysql(submit_uuid,check_status,check_username,check_comment):
     """
     审核部署工单
     :param submit_uuid:
@@ -87,7 +87,7 @@ def pass_submit_deploy_mysql_by_uuid(submit_uuid,check_status,check_username,che
     :param check_comment:
     :return:
     """
-    ret = deploy_mysql_dao.pass_submit_deploy_mysql_by_uuid_dao(submit_uuid,check_status,check_username,check_comment)
+    ret = deploy_mysql_dao.pass_submit_deploy_mysql_dao(submit_uuid,check_status,check_username,check_comment)
     return ret
 
 

@@ -106,7 +106,7 @@ def get_ansible_api_log_dao(submit_uuid):
     return {"status": "ok","message":"获取日志成功", "data": data}
 
 
-def pass_submit_deploy_mysql_by_uuid_dao(submit_uuid,check_status,check_username,check_comment):
+def pass_submit_deploy_mysql_dao(submit_uuid,check_status,check_username,check_comment):
     """
     审核部署工单
     :param submit_uuid:
