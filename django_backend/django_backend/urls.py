@@ -2,13 +2,11 @@ from django.contrib import admin
 from django.urls import path, include
 from apps.controller import mysql_cluster_controller
 from apps.controller import mysql_instance_controller
-from audit_sql.controller import audit_sql_controller
 from apps.controller import create_common_user
 from apps.controller import migrate_common_user
 from apps.controller import create_private_user
 from apps.controller import create_private_user_controller
 from apps.controller import server_info_controller
-from apps.controller import web_console_controller
 from apps.controller import deploy_mysql_controller
 from apps.utils import common, auth
 from apps.ansible_task.adhoc import ansible_adhoc
@@ -26,6 +24,8 @@ urlpatterns = [
     path('api/v2/v2_get_login_user_info/', auth.v2_get_login_user_info_controller), # 登录--根据token获得登录用户名
     # SQL变更服务
     path('api/audit_sql/', include("audit_sql.urls")),
+    # web_console服务
+    path('api/web_console/', include("web_console.urls")),
 
     # 数据库公共账号管理
     path('api/get_user_info/', create_common_user.get_user_info_func),                                       # 公共账号管理--查看已有账号信息
@@ -50,13 +50,6 @@ urlpatterns = [
     path('api/get_search_mysql_cluster_info/', mysql_cluster_controller.get_mysql_cluster_by_cluster_name_controller),  # 根据集群名搜索集群信息
     path('api/get_mysql_instance_info/', mysql_instance_controller.get_mysql_instance_info_handler),  # 获取所有mysql实例
     path('api/get_search_mysql_instance_info/', mysql_instance_controller.get_search_mysql_instance_info_handler), # 根据搜索框获取mysql实例
-
-    # web_console
-    path('api/v1/service/console/get_db_connect/', web_console_controller.get_db_connect_controller),
-    path('api/v1/service/console/get_table_data/', web_console_controller.get_table_data_controller),
-    path('api/v1/service/console/get_schema_list/', web_console_controller.get_schema_list_controller),
-    path('api/v1/service/console/get_table_list/', web_console_controller.get_table_list_controller),
-    path('api/v1/service/console/get_column_list/', web_console_controller.get_column_list_controller),
 
     # 数据库集群资源申请工单
     path('api/v1/service/ticket/ansible_adhoc/', ansible_adhoc.adhoc),  # ansible api执行命令

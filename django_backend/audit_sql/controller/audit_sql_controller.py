@@ -32,13 +32,6 @@ class GetPreCheckResultCrotroller(BaseView):
         return self.my_response(ret)
 
 
-# 获取所有集群名
-class GetClusterNameCrotroller(BaseView):
-    def get(self, request):
-        ret = audit_sql.get_cluster_name()
-        return self.my_response(ret)
-
-
 class GetViewSqlByUuidController(BaseView):
     def get(self, request):
         """

@@ -73,7 +73,7 @@ export default class mysqlConsole extends Component {
           table_column:[],
           get_data:false
       });
-      await MyAxios.post('/v1/service/console/get_table_data/',{params}).then(
+      await MyAxios.post('/web_console/v1/get_table_data/',{params}).then(
           res => {
               if (res.data.status === "ok"){
                   let table_column_list = []
@@ -249,24 +249,9 @@ export default class mysqlConsole extends Component {
       return <TreeNode key={item.key} {...item} dataRef={item} icon={item.icon}/>;
     });
 
-  //获取所有集群名
-  async getClusterName() {
-      await MyAxios.get('/get_cluster_name/').then(
-          res=>{
-              if( res.data.status === 'ok'){
-                  this.setState({
-                      cluster_name_list: res.data.data,
-                  });
-              } else{
-                  message.error(res.data.message)
-              }
-          }
-      ).catch(err=>message.error(err.message))
-  }
-
   //获取集群实例信息
   async getClusterName() {
-      await MyAxios.get('/get_cluster_name/').then(
+      await MyAxios.get('/get_mysql_cluster/').then(
           res=>{
               if( res.data.status === 'ok'){
                   this.setState({
@@ -304,7 +289,7 @@ export default class mysqlConsole extends Component {
   async getSchema(value) {
       let params = {instance_name:value,};
       this.setState({instance_name:value,global_loading:false})
-      await MyAxios.post('/v1/service/console/get_schema_list/',params,{timeout:1000}).then(
+      await MyAxios.post('/web_console/v1/get_schema_list/',params,{timeout:1000}).then(
           res=>{
               if( res.data.status === 'ok'){
                   this.setState({schema_list: res.data.data,global_loading:true});
@@ -344,7 +329,7 @@ export default class mysqlConsole extends Component {
           instance_name:this.state.instance_name
       };
       this.setState({current_schema:value,})
-      await MyAxios.post('/v1/service/console/get_table_list/',params).then(
+      await MyAxios.post('/web_console/v1/get_table_list/',params).then(
           res=>{
               if( res.data.status === 'ok'){
                   var table_dir_arr = []
@@ -374,7 +359,7 @@ export default class mysqlConsole extends Component {
       console.log(111)
       console.log(params)
       console.log(222)
-      await MyAxios.post('/v1/service/console/get_column_list/',params,{timeout:1000}).then(
+      await MyAxios.post('/web_console/v1/get_column_list/',params,{timeout:1000}).then(
           res=>{
               if( res.data.status === 'ok'){
                   console.log(res.data.data)

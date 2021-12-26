@@ -112,12 +112,6 @@ def get_master_ip():
     return ret
 
 
-# 根据输入的集群名模糊匹配已有集群名
-def get_cluster_name():
-    ret = audit_sql_dao.get_cluster_name_dao()
-    return ret
-
-
 # 页面预览指定的拆分SQL
 def get_submit_split_sql_by_file_path(split_sql_file_path):
     try:

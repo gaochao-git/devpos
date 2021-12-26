@@ -84,12 +84,6 @@ def get_apply_sql_by_uuid_dao(submit_sql_uuid):
         return rows
 
 
-# 获取所有集群名
-def get_cluster_name_dao():
-    sql = "select cluster_name from mysql_cluster"
-    return db_helper.find_all(sql)
-
-
 # 获取所有实例名
 def get_master_ip_dao():
     sql = "select instance_name from mysql_cluster_instance"

@@ -21,7 +21,6 @@ urlpatterns = [
     path('v1/submit_recheck_sql/', audit_sql_controller.submit_recheck_sql_controller), # 重新提交SQL
     path('v1/pass_submit_sql_by_uuid/', audit_sql_controller.pass_submit_sql_by_uuid_controller), # 审核SQL
     path('v1/get_master_ip/', audit_sql_controller.GetMasterIpController.as_view()), # sql审核--获取主库ip
-    path('v1/get_cluster_name/', audit_sql_controller.GetClusterNameCrotroller.as_view()), # sql审核--根据cluster_name输入框自动补全
     path('v1/recreate_sql/', audit_sql_controller.recreate_sql_controller),  # 根据拆分SQL文件获取SQL执行结果
     path('v1/create_block_sql/', audit_sql_controller.create_block_sql_controller),  # 生成用id切割的SQL用来删除或者更新数据,防止大事物
     path('v1/get_celery_task_status/', common.get_celery_task_status),  # 获取审核状态
