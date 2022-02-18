@@ -42,7 +42,8 @@ export default class mysqlConsole extends Component {
       multi_query_time:[],
       source_slider_info:[],
       global_loading:true,
-      table_column_list:[]
+      table_column_list:[],
+      res_format:'row',
     }
   }
 
@@ -80,6 +81,7 @@ export default class mysqlConsole extends Component {
                   let table_data_list = []
                   let table_label_list = []
                   let query_time_list = []
+                  let col_format_res_list = []
                   for (var j=0; j<res.data.data.length;j++){
                       let column_arr = []
                       let label = '结果' + (j+1)
@@ -95,12 +97,23 @@ export default class mysqlConsole extends Component {
                       table_data_list.push(res.data.data[j][j])
                       table_label_list.push(label)
                       query_time_list.push(res.data.query_time[j][j])
+                      // 列式展示
+                      let col_format_res = ""
+                      for (var row_index=0;row_index<res.data.data[j][j].length;row_index++){
+                          col_format_res = col_format_res + "\n**************** " + (row_index+1) + ". row ****************"
+                          for (var col_name_k in res.data.data[j][j][row_index]){
+                            var item_res = col_name_k + ": " + res.data.data[j][j][row_index][col_name_k]
+                            col_format_res = col_format_res + '\n' + item_res
+                          }
+                      }
+                      col_format_res_list.push(col_format_res)
                   }
                   this.setState({
                       multi_label: table_label_list,
                       multi_table_data: table_data_list,
                       multi_table_column: table_column_list,
                       multi_query_time: query_time_list,
+                      col_format_res_list:col_format_res_list,
                       get_data:true,
                   });
               }else{
@@ -432,6 +445,7 @@ export default class mysqlConsole extends Component {
                 <hr/>
                 <Button type="primary" onClick={()=> this.getTableData('no')}>执行</Button>
                 <Button type="dashed" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>执行计划</Button>
+
                 <CodeMirror
                   value={this.state.content}
                   options={{
@@ -472,10 +486,11 @@ export default class mysqlConsole extends Component {
                                 >
                                     导出
                                 </Button>
+                                <Button type="primary" onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
+                                <Button type="primary" onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
                                 {
-                                    this.state.multi_table_column[index].length>0 && this.state.multi_table_data[index][0].hasOwnProperty('Create Table')
-                                    ? <TextArea rows={20} value={this.state.multi_table_data[index][0]['Create Table']}/>
-                                    :
+                                    this.state.res_format === 'row'
+                                    ?
                                     <Table
                                         dataSource={this.state.multi_table_data[index]}
                                         columns={this.state.multi_table_column[index]}
@@ -488,6 +503,7 @@ export default class mysqlConsole extends Component {
                                             total:this.state.table_data.length,
                                         }}
                                     />
+                                    : <TextArea rows={20} value={this.state.col_format_res_list[index]}/>
 
                                 }
 
