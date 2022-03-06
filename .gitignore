@@ -1,5 +1,7 @@
 /react_front/node_modules
+/react_front/build/
 /django_backend/audit_sql/upload
+/django_backend/.idea/
 *.pyc
 *.log
 *.log.*
@@ -8,4 +10,4 @@ venv
 *.tar.gz
 /django_backend/celerybeat.pid
 /django_backend/celerybeat-schedule.db
-/react_front/build/
+

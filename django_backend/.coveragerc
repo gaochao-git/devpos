@@ -1,5 +1,6 @@
 [run]
 omit =
+    .idea
     django_backend/*
     */unit_test/*
     */migrations/*

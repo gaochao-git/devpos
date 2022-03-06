@@ -10,7 +10,7 @@ managed = False-------------->managed = True
 
 二、准备测试数据
 1.django单元测试,每次开始的时候会自动创建测数据库(默认为test_xxxx),并通过migrations里面的文件将所有表创建,如果case中
-依赖数据可以通过fixtures = ['db.json']将里面数据载入，后续所有测试case都使用的这个库里面的数据
+依赖数据可以通过fixtures = ['db.json']将里面数据载入，建议每个表用单独的xx.json并按需载入，否则一个case加载一次数据时间太长
 2.fixtures目录里面的数据初始化:将项目数据库中的数据转为json格式存储在db.json中
 # python3.6 manage.py dumpdata -a --natural-primary --indent=4 -e auth.permission -e contenttypes.contenttype>apps/fixtures/db.json
 python3.6 manage.py dumpdata -a --natural-primary --indent=4 >apps/fixtures/db.json
@@ -22,12 +22,10 @@ python3.6 manage.py dumpdata sessions.session --natural-primary --indent=4 >apps
 1.运行单元测试
 python3.6 manage.py test apps.unit_test.test_mysql_cluster.TestMysqlCluster
 2.运行单元测试并跑覆盖率(一般用这个)
-coverage run manage.py test -t ../django_backend   # 测试所有app全部case
-coverage run --source='./audit_sql' manage.py test -t ../django_backend audit_sql  # 测试指定app下的所有case
-coverage run --source='./audit_sql' manage.py test -t ../django_backend audit_sql.unit_test  # 测试指定app下的所有case
-# coverage run manage.py test -t ../django_backend
-# coverage run --source='./apps' manage.py test apps.unit_test
-# coverage run --source='./apps' manage.py test apps.unit_test.test_mysql_cluster.TestMysqlCluster
+coverage run manage.py test # 执行所有app单元测试
+coverage run --source='./audit_sql' manage.py test -t audit_sql  # 测试指定app下的所有case,source用来指定分析覆盖率时指分析哪些目录
+coverage run --source='./audit_sql' manage.py test -t audit_sql.unit_test.test_audit_sql  # 测试指定app下的指定文件的case
+
 2.显示覆盖率
 coverage report      # 输出覆盖率
 coverage report -m   # 显示哪些没有被覆盖
