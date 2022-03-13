@@ -15,7 +15,7 @@ logger = logging.getLogger('devops')
 
 # 页面获取所有工单列表
 def get_submit_sql_info_dao():
-    where_condition = ""
+    where_condition = None
     sql = """
         SELECT 
             a.submit_sql_user,
@@ -33,9 +33,10 @@ def get_submit_sql_info_dao():
             a.ctime,
             a.utime,
             case a.is_submit when 0 then '暂不提交' when 1 then '提交' end as is_submit
-        FROM sql_submit_info a inner join team_user b on a.submit_sql_user=b.uname where 1=1 {} order by a.ctime desc, a.utime desc
-    """.format(where_condition)
-    return db_helper.find_all(sql)
+        FROM sql_submit_info a inner join team_user b on a.submit_sql_user=b.uname where 1=1  order by a.ctime desc, a.utime desc
+    """
+    params = (where_condition)
+    return db_helper.find_all(sql, params)
 
 
 # 页面预览指定工单提交的SQL

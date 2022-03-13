@@ -34,16 +34,17 @@ def findall(sql):
         connection.close()
 
 
-def find_all(sql):
+def find_all(sql, args=None):
     """
     传入SQL
     :param sql:
+    :param args:
     :return:
     """
     data = []
     try:
         cursor = connection.cursor()
-        cursor.execute(sql)
+        cursor.execute(sql, args)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
         status = "ok"
