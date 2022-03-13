@@ -86,15 +86,16 @@ def find_all_many(sql_list):
         return {"status": status, "message": message, "code": code, "data": data}
 
 
-def dml(sql):
+def dml(sql, args=None):
     """
-    单条DML
+    单条DML,不使用字符串拼接sql,通过传递参数解决sql注入问题
     :param sql:
+    :param args:
     :return:
     """
     cursor = connection.cursor()
     try:
-        cursor.execute(sql)
+        cursor.execute(sql, args)
         status = "ok"
         message = StatusCode.OK.errmsg
         code = StatusCode.OK.code

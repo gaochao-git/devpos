@@ -181,11 +181,25 @@ def submit_sql_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_
                                          submit_source_db_type,
                                          cluster_name,
                                          user_offer_rollback_sql_file_path) 
-                 values('{}','{}','{}',{},'{}','{}',1,'{}',1,'{}',1,'{}','{}','{}',{},'{}','{}')
-        """.format(login_user_name, sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,
-                   submit_sql_execute_type, comment_info, uuid_str,submit_source_db_type,
-                   cluster_name,user_offer_rollback_sql_file_path)
-    return db_helper.dml(sql)
+                 values(%(p1)s,%(p2)s,%(p3)s,%(p4)s,%(p5)s,%(p6)s,1,%(p7)s,1,%(p8)s,1,%(p9)s,%(p10)s,%(p11)s,%(p12)s,%(p13)s,%(p14)s)
+        """
+    params = {
+        'p1': login_user_name,
+        'p2': sql_title,
+        'p3': db_ip,
+        'p4': db_port,
+        'p5': file_path,
+        'p6': leader_name,
+        'p7': qa_name,
+        'p8': dba_name,
+        'p9': submit_sql_execute_type,
+        'p10': comment_info,
+        'p11': uuid_str,
+        'p12': submit_source_db_type,
+        'p13': cluster_name,
+        'p14': user_offer_rollback_sql_file_path
+    }
+    return db_helper.dml(sql, params)
 
 
 def submit_sql_results_dao(uuid_str, check_sql_results, is_submit):
