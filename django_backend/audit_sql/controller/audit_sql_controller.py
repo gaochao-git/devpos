@@ -74,8 +74,7 @@ class CheckSqlController(BaseView):
         :param request:
         :return:
         """
-        request_body = json.loads(str(request.body, encoding="utf-8"))
-        print(request_body)
+        request_body = self.request_params
         rules = {
             "cluster_name": [Length(0, 10)],  # 集群名,存在则校验,不存在则不校验
             "instance_name": [Length(0, 21)],  # 实例名,存在则校验,不存在则不校验
