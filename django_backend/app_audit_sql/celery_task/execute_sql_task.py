@@ -1,7 +1,7 @@
 from apps.utils import db_helper
 from django.db import connection
-from audit_sql.utils import inception
-from audit_sql.dao import audit_sql_dao
+from app_audit_sql.utils import inception
+from app_audit_sql.dao import audit_sql_dao
 from apps.utils import common
 import logging
 import pymysql
@@ -94,7 +94,7 @@ class ExecuteSql:
         :return:
         """
         try:
-            with open("./audit_sql/upload/{}".format(self.file_path), "rb") as f:
+            with open("./app_audit_sql/upload/{}".format(self.file_path), "rb") as f:
                 self.execute_sql = f.read().decode('utf-8')
         except Exception as e:
             logger.exception(e)

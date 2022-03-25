@@ -6,9 +6,9 @@
 
 import time
 from celery import task
-from audit_sql.celery_task.check_sql_task import AsyncCheckSql
-from audit_sql.celery_task.execute_sql_task import ExecuteSql
-from audit_sql.celery_task.split_sql_task import AsyncSplitSql
+from app_audit_sql.celery_task.check_sql_task import AsyncCheckSql
+from app_audit_sql.celery_task.execute_sql_task import ExecuteSql
+from app_audit_sql.celery_task.split_sql_task import AsyncSplitSql
 import logging
 logger = logging.getLogger('inception_execute_logger')
 from apps.celery_task.callback import MyTaskCallback

@@ -6,8 +6,8 @@
       <sourceFolder url="file://$MODULE_DIR$/django_backend" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/django_backend/django_backend" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
-      <excludeFolder url="file://$MODULE_DIR$/django_backend/audit_sql/upload/20210829" />
-      <excludeFolder url="file://$MODULE_DIR$/django_backend/audit_sql/upload/20211017" />
+      <excludeFolder url="file://$MODULE_DIR$/django_backend/app_audit_sql/upload/20210829" />
+      <excludeFolder url="file://$MODULE_DIR$/django_backend/app_audit_sql/upload/20211017" />
       <excludeFolder url="file://$MODULE_DIR$/django_backend/logs" />
       <excludeFolder url="file://$MODULE_DIR$/react_front/node_modules" />
     </content>

@@ -4,7 +4,7 @@
 # @Author  : 高超
 
 
-from db_dcl.dao import db_dcl_dao
+from app_db_dcl.dao import db_dcl_dao
 import logging
 logger = logging.getLogger('devops')
 

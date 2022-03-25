@@ -1,5 +1,5 @@
 from django.urls import path
-from audit_sql.controller import audit_sql_controller
+from app_audit_sql.controller import audit_sql_controller
 from apps.utils import common
 
 

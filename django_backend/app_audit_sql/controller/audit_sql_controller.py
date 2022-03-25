@@ -3,9 +3,8 @@
 # @Time    : 2019/4/17 3:17 PM
 # @Author  : 高超
 
-from django.http import HttpResponse,JsonResponse
 import json
-from audit_sql.service import audit_sql
+from app_audit_sql.service import audit_sql
 from apps.utils.common import CheckValidators,BaseView,my_response
 from validator import Required, Not, Truthy, Blank, Range, Equals, In, validate,InstanceOf,Length
 from apps.utils import permission
@@ -96,27 +95,6 @@ class CheckSqlController(BaseView):
         check_type = request_body.get('check_type')
         ret = audit_sql.check_sql(submit_type, check_sql_info, cluster_name, instance_name, check_sql_uuid, check_type, user_offer_rollback_sql)
         return self.my_response(ret)
-
-
-# def recheck_sql_controller(request):
-#     """
-#     request_body.get('xx')参数为选填参数
-#     request_body['xx']参数为必选参数
-#     :param request:
-#     :return:
-#     """
-#     try:
-#         request_body = json.loads(str(request.body, encoding="utf-8"))
-#         cluster_name = request_body.get('cluster_name').strip()
-#         instance_name = request_body.get('instance_name').strip()
-#         check_sql_info = request_body['check_sql_info']
-#         submit_type = request_body['submit_type']
-#         submit_sql_uuid =  request_body['submit_sql_uuid']
-#         ret = audit_sql.recheck_sql(submit_sql_uuid, submit_type, check_sql_info, cluster_name, instance_name)
-#     except Exception as e:
-#         logger.exception(e)
-#         ret = {"status": "error", "message": "参数不符合"}
-#     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
 
 # 页面提交SQL工单
 def submit_sql_controller(request):

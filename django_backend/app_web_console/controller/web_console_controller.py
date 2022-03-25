@@ -6,7 +6,7 @@
 from django.http import HttpResponse
 import json
 import logging
-from web_console.service import web_console
+from app_web_console.service import web_console
 
 logger = logging.getLogger('devops')
 

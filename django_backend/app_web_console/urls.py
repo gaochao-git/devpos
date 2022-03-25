@@ -1,5 +1,5 @@
 from django.urls import path
-from web_console.controller import web_console_controller
+from app_web_console.controller import web_console_controller
 
 urlpatterns = [
     path('v1/get_db_connect/', web_console_controller.get_db_connect_controller),

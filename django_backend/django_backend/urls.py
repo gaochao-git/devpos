@@ -20,12 +20,6 @@ urlpatterns = [
     path('api/v2/auth_refresh/', refresh_jwt_token),         # token登陆v2版本,刷新token,必须在access_token过期前前端定时调用更新token,不然会刷新失败
     path('api/get_login_user_info/', auth.get_login_user_info_controller), # 登录--根据token获得登录用户名
     path('api/v2/v2_get_login_user_info/', auth.v2_get_login_user_info_controller), # 登录--根据token获得登录用户名
-    # SQL变更服务
-    path('api/audit_sql/', include("audit_sql.urls")),
-    # db_dcl权限申请服务
-    path('api/db_dcl/', include("db_dcl.urls")),
-    # web_console数据查询服务
-    path('api/web_console/', include("web_console.urls")),
 
     # 数据库公共账号管理
     path('api/get_user_info/', create_common_user.get_user_info_func),                                       # 公共账号管理--查看已有账号信息
@@ -50,6 +44,13 @@ urlpatterns = [
     path('api/v1/service/ticket/get_ansible_api_log/', deploy_mysql_controller.get_ansible_api_log_controller), # 获取部署日志
     path('api/v1/pass_submit_deploy_mysql/', deploy_mysql_controller.pass_submit_deploy_mysql_controller),  # 审核部署mysql工单
     path('api/v1/service/ticket/get_work_flow_by_uuid/', deploy_mysql_controller.get_work_flow_by_uuid_controller),  # 获取工单流转记录
+
+    # SQL变更服务
+    path('api/audit_sql/', include("app_audit_sql.urls")),
+    # db_dcl权限申请服务
+    path('api/db_dcl/', include("app_db_dcl.urls")),
+    # web_console数据查询服务
+    path('api/web_console/', include("app_web_console.urls")),
     ]
 
 

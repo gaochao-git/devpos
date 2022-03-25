@@ -4,7 +4,7 @@
 # @Author  : 高超
 
 import logging
-from web_console.dao import web_console_dao
+from app_web_console.dao import web_console_dao
 
 logger = logging.getLogger('devops')
 

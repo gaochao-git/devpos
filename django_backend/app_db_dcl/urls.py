@@ -1,5 +1,5 @@
 from django.urls import path
-from db_dcl.controller import db_dcl_controller
+from app_db_dcl.controller import db_dcl_controller
 
 
 urlpatterns = [

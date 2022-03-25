@@ -2,7 +2,7 @@
 
 from django.http import HttpResponse
 import json
-from db_dcl.service import db_dcl
+from app_db_dcl.service import db_dcl
 
 # 获取所有权限申请工单信息
 def get_application_form_info_controller(request):
