@@ -26,7 +26,7 @@ class Middleware(MiddlewareMixin):
                 ret = {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.msg, "code":StatusCode.ERR_LOGIN_FAIL.code}
                 return HttpResponse(json.dumps(ret), content_type='application/json')
             # ret = token_auth(token)
-            ret = jwt_expire_auth(token)
+            ret = jwt_auth(token)
             if ret['status'] !="ok": return HttpResponse(json.dumps(ret), content_type='application/json')
             request.user = ret['data']
             assert request.user.get('user_id') > 0
@@ -64,7 +64,7 @@ def token_auth(token):
         return {"status": "ok", "message": "验证通过", "code": "200", "data":ret['data']}
 
 
-def jwt_expire_auth(token):
+def jwt_auth(token):
     """
     jwt认证,有过期时间
     token不通过触发异常
