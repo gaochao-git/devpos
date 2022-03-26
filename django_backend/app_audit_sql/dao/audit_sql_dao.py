@@ -352,7 +352,6 @@ def get_execute_results_dao(split_sql_file_path):
              from sql_execute_results a inner join sql_execute_split b 
              on a.split_sql_file_path=b.split_sql_file_path  where b.split_sql_file_path='{}'
     """.format(split_sql_file_path)
-    print(sql)
     return db_helper.find_all(sql)
 
 

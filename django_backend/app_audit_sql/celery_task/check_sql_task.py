@@ -27,7 +27,6 @@ class AsyncCheckSql:
         self.check_type = check_type
         self.inc_ret_rows = ""
         self.task = task
-        print(111111)
 
     def task_run(self):
         """

@@ -36,7 +36,6 @@ def get_schema_list_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
     instance_name = request_body['instance_name']
     ret = web_console.get_schema_list(instance_name)
-    print(instance_name)
     return HttpResponse(json.dumps(ret, default=str), 'application/json')
 
 

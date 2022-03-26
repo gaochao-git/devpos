@@ -1,12 +1,10 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import { Table, Input,Badge } from "antd";
+import MyAxios from "../common/interface"
+import { Table, Input,Badge,message } from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
-import {backendServerApiRoot} from "../common/util"
-axios.defaults.withCredentials = true;
-axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { Search } = Input;
 
 
@@ -23,23 +21,26 @@ export default class mysqlInstance extends Component  {
     }
     //获取所有mysql实例信息
     async GetMysqlInstanceInfo() {
-        let res = await axios.get(`${backendServerApiRoot}/get_mysql_instance_info/`);
-        console.log(res.data);
-        console.log(window && window.location && window.location.hostname);
-        this.setState({
-            mysql_instance_info: res.data.data
-        })
+        await MyAxios.get('/db_resource/v1/get_mysql_instance_info/').then(
+            res => {res.data.status==="ok" ?
+                this.setState({
+                    cluster_info: res.data.data
+                })
+            :
+                message.error(res.data.message)}
+        ).catch(err => {message.error(err.message)})
     }
     //模糊搜索
-    async GetSearchMysqlInstanceInfo(host_name) {
-        this.setState({
-            mysql_instance_info: []
-        })
-        let res = await axios.post(`${backendServerApiRoot}/get_search_mysql_instance_info/`,{host_name});
-        console.log(res.data);
-        this.setState({
-            mysql_instance_info: res.data.data
-        })
+    async GetSearchMysqlInstanceInfo(host_ip) {
+        let params = { host_ip:host_ip};
+        await MyAxios.get('/db_resource/v1/get_mysql_instance_info/',{params}).then(
+            res => {res.data.status==="ok" ?
+                this.setState({
+                    cluster_info: res.data.data
+                })
+            :
+                message.error(res.data.message)}
+        ).catch(err => {message.error(err.message)})
     }
 
     render() {
@@ -102,8 +103,8 @@ export default class mysqlInstance extends Component  {
                     </div>
                     <div>
                         <Search
-                            placeholder="主机名"
-                            onSearch={value => this.GetSearchMysqlInstanceInfo(value)}
+                            placeholder="ip"
+                            onSearch={ip => this.GetSearchMysqlInstanceInfo(ip)}
                             style={{ width: 200 }}
                             allowClear
                         />

@@ -47,4 +47,4 @@ def get_server_info_dao(search_server_name):
                 deadline,
                 case status when 0 then '不可用' when 1 then '可用' end status
           from server where server_public_ip like "{}%" order by server_hostname""".format(search_server_name)
-    return db_helper.findall(sql)
+    return db_helper.find_all(sql)
