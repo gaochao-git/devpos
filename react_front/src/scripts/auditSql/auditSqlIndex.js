@@ -266,7 +266,7 @@ class AuditSqlIndex extends Component {
     }
     //获取所有集群名
     async handleGetClusterName() {
-        await MyAxios.get('/get_mysql_cluster/').then(
+        await MyAxios.get('/db_resource/v1/get_mysql_cluster/').then(
             res=>{
                 if( res.data.status === 'ok'){
                     this.setState({
