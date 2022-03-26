@@ -48,11 +48,11 @@ def find_all(sql, args=None):
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
         status = "ok"
-        message = StatusCode.OK.errmsg
+        message = StatusCode.OK.msg
         code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = StatusCode.ERR_DB.errmsg
+        message = StatusCode.ERR_DB.msg
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:
@@ -74,11 +74,11 @@ def find_all_many(sql_list):
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
         status = "ok"
-        message = StatusCode.OK.errmsg
+        message = StatusCode.OK.msg
         code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = StatusCode.ERR_DB.errmsg
+        message = StatusCode.ERR_DB.msg
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:
@@ -98,11 +98,11 @@ def dml(sql, args=None):
     try:
         cursor.execute(sql, args)
         status = "ok"
-        message = StatusCode.OK.errmsg
+        message = StatusCode.OK.msg
         code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = StatusCode.ERR_DB.errmsg
+        message = StatusCode.ERR_DB.msg
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:
@@ -123,11 +123,11 @@ def dml_many(sql_list):
             for sql in sql_list:
                 cursor.execute(sql)
         status = "ok"
-        message = StatusCode.OK.errmsg
+        message = StatusCode.OK.msg
         code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = StatusCode.ERR_DB.errmsg
+        message = StatusCode.ERR_DB.msg
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:
@@ -159,11 +159,11 @@ def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
         diff_time = (end_time - start_time).microseconds/1000
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
         status = "ok"
-        message = StatusCode.OK.errmsg
+        message = StatusCode.OK.msg
         code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = StatusCode.ERR_DB.errmsg
+        message = StatusCode.ERR_DB.msg
         code = StatusCode.ERR_DB.code
         diff_time = 0
         logger.exception("sql执行失败:%s", e)
@@ -200,11 +200,11 @@ def target_source_dml(ip, port, sql, my_connect_timeout=2):
         cursor = conn.cursor()
         cursor.execute(sql)
         status = "ok"
-        message = StatusCode.OK.errmsg
+        message = StatusCode.OK.msg
         code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = StatusCode.ERR_DB.errmsg
+        message = StatusCode.ERR_DB.msg
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:
@@ -230,11 +230,11 @@ def target_source_dml_many(ip, port, sql_list, my_connect_timeout=2):
         for sql in sql_list:
             cursor.execute(sql)
         status = "ok"
-        message = StatusCode.OK.errmsg
+        message = StatusCode.OK.msg
         code = StatusCode.OK.code
     except Exception as e:
         status = "error"
-        message = StatusCode.ERR_DB.errmsg
+        message = StatusCode.ERR_DB.msg
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:

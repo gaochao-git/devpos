@@ -18,12 +18,12 @@ class Middleware(MiddlewareMixin):
         if request.path not in auth_ignore_path:
             bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
             if bearer_token is None:
-                ret = {"status": "error", "message": StatusCode.ERR_NO_LOGIN.errmsg, "code": StatusCode.ERR_NO_LOGIN.code}
+                ret = {"status": "error", "message": StatusCode.ERR_NO_LOGIN.msg, "code": StatusCode.ERR_NO_LOGIN.code}
                 return HttpResponse(json.dumps(ret), content_type='application/json')
             try:
                 token = bearer_token.split(' ')[1]
             except Exception as e:
-                ret = {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.errmsg, "code":StatusCode.ERR_LOGIN_FAIL.code}
+                ret = {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.msg, "code":StatusCode.ERR_LOGIN_FAIL.code}
                 return HttpResponse(json.dumps(ret), content_type='application/json')
             # ret = v1_auth(token)
             ret = v2_auth(token)
@@ -53,8 +53,8 @@ def v1_auth(token):
     """
     sql = "select 1 from authtoken_token where `key`='{}'".format(token)
     login_ret = db_helper.find_all(sql)
-    if login_ret['status'] != "ok": return {"status": "error", "message": StatusCode.ERR_LOGIN_EXPIRE.errmsg, "code": StatusCode.ERR_LOGIN_EXPIRE.code}
-    if len(login_ret['data']) == 0: return {"status": "error", "message": StatusCode.ERR_NO_LOGIN.errmsg, "code": StatusCode.ERR_NO_LOGIN.code}
+    if login_ret['status'] != "ok": return {"status": "error", "message": StatusCode.ERR_LOGIN_EXPIRE.msg, "code": StatusCode.ERR_LOGIN_EXPIRE.code}
+    if len(login_ret['data']) == 0: return {"status": "error", "message": StatusCode.ERR_NO_LOGIN.msg, "code": StatusCode.ERR_NO_LOGIN.code}
 
 
 def v2_auth(token):
@@ -69,11 +69,11 @@ def v2_auth(token):
     try:
         token_user = jwt_decode_handler(token)
     except jwt.ExpiredSignatureError as e:
-        content = {"status": "error", "message": StatusCode.ERR_NO_LOGIN.errmsg, "code": StatusCode.ERR_NO_LOGIN.code}
+        content = {"status": "error", "message": StatusCode.ERR_NO_LOGIN.msg, "code": StatusCode.ERR_NO_LOGIN.code}
         logger.error(e)
     except Exception as e:
         logger.exception(e)
-        content = {"status": "error", "message": StatusCode.ERR_NO_LOGIN.errmsg, "code": StatusCode.ERR_NO_LOGIN.code}
+        content = {"status": "error", "message": StatusCode.ERR_NO_LOGIN.msg, "code": StatusCode.ERR_NO_LOGIN.code}
     return content
 
 

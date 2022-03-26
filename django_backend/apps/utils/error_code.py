@@ -16,6 +16,6 @@ class StatusCode(Enum):
         return self.value[0]
 
     @property
-    def errmsg(self):
+    def msg(self):
         """获取状态码信息"""
         return self.value[1]

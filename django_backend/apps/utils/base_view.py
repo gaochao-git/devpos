@@ -1,11 +1,11 @@
 from rest_framework.views import APIView
 from django.http import HttpResponse
 import json
+from apps.utils.error_code import StatusCode
 
 
 class BaseView(APIView):
     """
-    登陆认证,采用中间件进行全局验证
     权限验证,自己实现
     请求参数处理
     返回结果处理
@@ -30,7 +30,7 @@ class BaseView(APIView):
         """
         # 权限验证
         if self.my_check_permissions(kwargs['access']) == "no_permission":
-            return self.my_response({"status": "error", "message": "no permission", "code": 403})
+            return self.my_response({"status": "error", "message": StatusCode.ERR_NO_PERMISSION.msg, "code": StatusCode.ERR_NO_PERMISSION.code})
         # 获取请求信息
         self.request_path = request.path
         self.request_method = request.method
@@ -61,7 +61,7 @@ class BaseView(APIView):
             self.request_from = "request_from_web"
             self.request_user_info = []
 
-    def my_response(self,data, content_type='application/json'):
+    def my_response(self, data, content_type='application/json'):
         """
         处理返回结果,封装统一返回格式
         :param data:
@@ -71,12 +71,13 @@ class BaseView(APIView):
         if data.get('status') is None:
             data["status"] = "error"
             data["message"] = "return format is error, must include status keyword"
+            data['code'] = StatusCode.ERR_COMMON.code
         if data.get('status') == "ok":
-            if data.get('code') is None: data['code'] = 2000
-            if data.get('message') is None: data['message'] = None
+            if data.get('code') is None: data['code'] = StatusCode.OK.code
+            if data.get('message') is None: data['message'] = StatusCode.OK.msg
         if data.get('status') == "error":
-            if data.get('code') is None: data['code'] = 5000
-            if data.get('message') is None: data['message'] = "server error"
+            if data.get('code') is None: data['code'] = StatusCode.ERR_COMMON.code
+            if data.get('message') is None: data['message'] = StatusCode.ERR_COMMON.msg
         self.audit_log(data)
         return HttpResponse(json.dumps(data, default=str), content_type=content_type)
 
