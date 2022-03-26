@@ -13,10 +13,10 @@ from apps.utils.permission import RouterAccess
 
 urlpatterns = [
     # 用户登陆
-    # path('admin/', admin.site.urls), # django后台登陆
-    # path('api/v1/auth/', drf_views.obtain_auth_token),       # token登录v1版本,不带过期
+    path('admin/', admin.site.urls), # django后台登陆
+    path('api/v1/auth/', drf_views.obtain_auth_token),       # token登录v1版本,不带过期
     path('api/v2/auth/', obtain_jwt_token),                  # token登陆v2版本,带过期
-    # path('api/v2/auth_refresh/', refresh_jwt_token),         # token登陆v2版本,刷新token,必须在access_token过期前前端定时调用更新token,不然会刷新失败
+    path('api/v2/auth_refresh/', refresh_jwt_token),         # token登陆v2版本,刷新token,必须在access_token过期前前端定时调用更新token,不然会刷新失败
     path('api/get_login_user_info/', auth.get_login_user_info_controller),  # 根据token获得登录用户名
     path('api/v2/v2_get_login_user_info/', auth.v2_get_login_user_info_controller),  # 登录--根据token获得登录用户名
 

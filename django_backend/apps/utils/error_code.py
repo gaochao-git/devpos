@@ -3,13 +3,12 @@ from enum import Enum
 
 class StatusCode(Enum):
     """状态码枚举类"""
-    OK = (200, '成功')
-    ERROR = (1000, '动态填写')
-    ERR_NOT_LOGIN = (1201, '用户未登陆')
-    ERR_LOGIN_EXPIRE = (1202, '登陆过期')
-    ERR_LOGIN_FAIL = (1203, '登陆失败')
-    PARAM_ERR = (2201, '参数错误')
-    ERR_DB = (2202, '数据库错误')
+    OK = (200, 'success')
+    ERR_NO_LOGIN = (401, 'no login')
+    ERR_NO_PERMISSION = (403, 'no permission')
+    ERR_COMMON = (5000, 'server error')
+    ERR_PARAM = (5001, 'param error')
+    ERR_DB = (5002, 'db error')
 
     @property
     def code(self):

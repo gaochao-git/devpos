@@ -5,13 +5,13 @@ import json
 
 class BaseView(APIView):
     """
-    登陆认证,setting配置文件配置APIView中自带的auth
-    权限验证,setting配置文件不配置APIView中自带的check_permission,自己实现
-    接口控制
+    登陆认证,采用中间件进行全局验证
+    权限验证,自己实现
     请求参数处理
     返回结果处理
-    操作审计
-    频率限制,使用APIView中自带的DEFAULT_THROTTLE_CLASSES
+    接口控制：待实现
+    操作审计：待实现
+    限流：待实现
     """
     def __init__(self):
         self.request_path = None
@@ -93,3 +93,4 @@ class BaseView(APIView):
         :return:
         """
         pass
+
