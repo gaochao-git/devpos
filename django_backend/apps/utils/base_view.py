@@ -2,11 +2,16 @@ from rest_framework.views import APIView
 from django.http import HttpResponse
 import json
 from apps.utils.error_code import StatusCode
+# from rest_framework.authentication import TokenAuthentication
+from rest_framework_jwt.authentication import JSONWebTokenAuthentication
+from rest_framework_jwt.utils import jwt_decode_handler
+import time
 
 
 class BaseView(APIView):
     """
-    权限验证,自己实现
+    登陆认证,用全局'rest_framework_jwt.authentication.JSONWebTokenAuthentication'
+    权限验证,结合URL自己实现
     请求参数处理
     返回结果处理
     接口控制：待实现
@@ -25,7 +30,7 @@ class BaseView(APIView):
         请求预处理
         :param request:
         :param args:
-        :param kwargs:
+        :param kwargs: url中的kwargs={"access": RouterAccess.all}
         :return:
         """
         # 权限验证
@@ -38,6 +43,7 @@ class BaseView(APIView):
             self.request_params = request.GET.dict()
         elif self.request_method == "POST" and str(request.body, encoding="utf-8") != "":
             self.request_params = json.loads(str(request.body, encoding="utf-8"))
+        # 获取请求用户信息
         self.get_user_info(request)
         # return super(BaseView, self).dispatch(request, *args, **kwargs)  #路由里面带了权限,类试图里面需要采用def get(request, **kwargs)才可以,太麻烦
         return super(BaseView, self).dispatch(request)
@@ -54,12 +60,19 @@ class BaseView(APIView):
             return "no_permission"
 
     def get_user_info(self, request):
-        if request.META.get('HTTP_AUTHORIZATION') == "request_from_api":
-            self.request_from = "request_from_api"
-            self.request_user_info = []
-        else:
-            self.request_from = "request_from_web"
-            self.request_user_info = []
+        """
+        获取请求用户信息
+        :param request:
+        :return:
+        """
+        bearer_token = request.META.get('HTTP_AUTHORIZATION')
+        token = bearer_token.split(' ')[1]
+        self.request_user_info = jwt_decode_handler(token)   # auth已经校验了,所以token肯定有效能获取到值
+        exp_timestamp = time.localtime(self.request_user_info['exp'])
+        orig_iat_timestamp = time.localtime(self.request_user_info['orig_iat'])
+        self.request_user_info['exp_format'] = time.strftime("%Y-%m-%d %H:%M:%S", exp_timestamp)
+        self.request_user_info['orig_iat_format'] = time.strftime("%Y-%m-%d %H:%M:%S", orig_iat_timestamp)
+        print(self.request_user_info)
 
     def my_response(self, data, content_type='application/json'):
         """

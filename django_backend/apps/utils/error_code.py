@@ -5,6 +5,7 @@ class StatusCode(Enum):
     """状态码枚举类"""
     OK = (200, 'success')
     ERR_NO_LOGIN = (401, 'no login')
+    ERR_LOGIN_EXPIRE = (402, 'login expire')
     ERR_NO_PERMISSION = (403, 'no permission')
     ERR_COMMON = (5000, 'server error')
     ERR_PARAM = (5001, 'param error')

@@ -33,16 +33,13 @@ MyAxios.interceptors.response.use(
     //拦截响应，做统一处理
     if (response.data.status !=="ok") {
       switch (response.data.code) {
-        case 1201:
+        case 401:
           message.error('用户未登陆')
-        case 1202:
+        case 402:
           message.error('登陆过期')
           window.localStorage.removeItem("token")
           window.location.reload()
-        case "1201":
-          message.error('用户登陆验证失败')
       }
-
     }
     return response
   },

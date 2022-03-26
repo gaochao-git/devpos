@@ -25,9 +25,11 @@ class Middleware(MiddlewareMixin):
             except Exception as e:
                 ret = {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.msg, "code":StatusCode.ERR_LOGIN_FAIL.code}
                 return HttpResponse(json.dumps(ret), content_type='application/json')
-            # ret = v1_auth(token)
-            ret = v2_auth(token)
+            # ret = token_auth(token)
+            ret = jwt_expire_auth(token)
             if ret['status'] !="ok": return HttpResponse(json.dumps(ret), content_type='application/json')
+            request.user = ret['data']
+            assert request.user.get('user_id') > 0
 
     def process_response(self, request, response):
         # 基于请求响应
@@ -45,31 +47,36 @@ class Middleware(MiddlewareMixin):
         return HttpResponse(json.dumps(content), content_type='application/json')
 
 
-def v1_auth(token):
+def token_auth(token):
     """
-    普通token验证,没有过期
+    普通token验证,没有过期时间
     :param token:
     :return:
     """
-    sql = "select 1 from authtoken_token where `key`='{}'".format(token)
-    login_ret = db_helper.find_all(sql)
-    if login_ret['status'] != "ok": return {"status": "error", "message": StatusCode.ERR_LOGIN_EXPIRE.msg, "code": StatusCode.ERR_LOGIN_EXPIRE.code}
-    if len(login_ret['data']) == 0: return {"status": "error", "message": StatusCode.ERR_NO_LOGIN.msg, "code": StatusCode.ERR_NO_LOGIN.code}
+    sql = """
+        select a.user_id,b.username,b.is_superuser,b.email from authtoken_token a inner join auth_user b 
+        on a.user_id=b.id where `key`='{}'
+    """.format(token)
+    ret = db_helper.find_all(sql)
+    if ret['status'] != "ok" or len(ret['data']) == 0:
+        return {"status": "error", "message": StatusCode.ERR_NO_LOGIN.msg, "code": StatusCode.ERR_NO_LOGIN.code}
+    else:
+        return {"status": "ok", "message": "验证通过", "code": "200", "data":ret['data']}
 
 
-def v2_auth(token):
+def jwt_expire_auth(token):
     """
-    jwt认证
-    token不通过触发罚异常
+    jwt认证,有过期时间
+    token不通过触发异常
     token验证通过返回用户信息:{'user_id': 1, 'username': 'gaochao', 'exp': 1635680388, 'email': ''}
     :param token:
     :return:
     """
-    content = {"status": "ok", "message": "验证成功"}
     try:
-        token_user = jwt_decode_handler(token)
+        token_user_info = jwt_decode_handler(token)
+        content = {"status": "ok", "message": "验证成功", "data": token_user_info}
     except jwt.ExpiredSignatureError as e:
-        content = {"status": "error", "message": StatusCode.ERR_NO_LOGIN.msg, "code": StatusCode.ERR_NO_LOGIN.code}
+        content = {"status": "error", "message": StatusCode.ERR_LOGIN_EXPIRE.msg, "code": StatusCode.ERR_LOGIN_EXPIRE.code}
         logger.error(e)
     except Exception as e:
         logger.exception(e)
