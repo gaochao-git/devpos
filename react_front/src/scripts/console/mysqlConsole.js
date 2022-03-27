@@ -264,7 +264,7 @@ export default class mysqlConsole extends Component {
 
   //获取集群实例信息
   async getClusterName() {
-      await MyAxios.get('/get_mysql_cluster/').then(
+      await MyAxios.get('/db_resource/v1/get_mysql_cluster/').then(
           res=>{
               if( res.data.status === 'ok'){
                   this.setState({
@@ -285,7 +285,7 @@ export default class mysqlConsole extends Component {
       };
       this.setState({cluster_name:value})
       console.log(params)
-      await MyAxios.post('/get_mysql_cluster_ins/',params).then(
+      await MyAxios.post('/db_resource/v1/get_mysql_cluster_ins/',params).then(
           res=>{
               if( res.data.status === 'ok'){
                   this.setState({
@@ -385,12 +385,13 @@ export default class mysqlConsole extends Component {
   }
 
 
-
   render() {
     return (
       <div>
         <Row type="flex" justify="space-around">
             <Col span={7} className="col-detail">
+                <span style={{marginTop:10}}>表信息</span>
+                <hr style={{marginTop:18}}/>
                 <div>
                     <Tree
                         showIcon
@@ -486,8 +487,8 @@ export default class mysqlConsole extends Component {
                                 >
                                     导出
                                 </Button>
-                                <Button type="primary" onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
-                                <Button type="primary" onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
+                                <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
+                                <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
                                 {
                                     this.state.res_format === 'row'
                                     ?
