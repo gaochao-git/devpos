@@ -7,7 +7,6 @@ import json
 from app_audit_sql.service import audit_sql
 from apps.utils.common import CheckValidators,BaseView,my_response
 from validator import Required, Not, Truthy, Blank, Range, Equals, In, validate,InstanceOf,Length
-from apps.utils import permission
 import logging
 logger = logging.getLogger('devops')
 

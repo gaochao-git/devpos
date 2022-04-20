@@ -24,6 +24,7 @@ import NavManage from './scripts/home/nave_manage'
 import NavOps from './scripts/home/nave_ops'
 import imgURL from './my_logo.jpg'
 import HomeDbaInfo from './scripts/home/home_dba'
+import UserRole from './scripts/permission/userRole'
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
 
@@ -158,6 +159,7 @@ class App extends Component {
                                     <Route exact path="/deployMysql" component={DeployMysql} />
                                     <Route exact path="/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
                                     <Route exact path="/rds" component={Rds} />
+                                    <Route exact path="/userRole" component={UserRole} />
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>

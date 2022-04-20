@@ -8,7 +8,14 @@ from apps.controller import deploy_mysql_controller
 from apps.ansible_task.adhoc import ansible_adhoc
 from rest_framework.authtoken import views as drf_views
 from rest_framework_jwt.views import obtain_jwt_token,refresh_jwt_token
-from apps.utils.permission import RouterAccess
+from enum import Enum
+
+
+class RouterAccess(Enum):
+    """角色与路由对应访问权限"""
+    all = ['common', 'dba', 'admin']
+    dba = ['dba', 'admin']
+    admin = ['admin']
 
 
 urlpatterns = [
@@ -39,6 +46,8 @@ urlpatterns = [
     path('api/v1/pass_submit_deploy_mysql/', deploy_mysql_controller.pass_submit_deploy_mysql_controller),  # 审核部署mysql工单
     path('api/v1/service/ticket/get_work_flow_by_uuid/', deploy_mysql_controller.get_work_flow_by_uuid_controller),  # 获取工单流转记录
 
+    # 用户管理
+    path('api/permission/', include("app_permission.urls")),
     # SQL变更服务
     path('api/audit_sql/', include("app_audit_sql.urls")),
     # db_dcl权限申请服务

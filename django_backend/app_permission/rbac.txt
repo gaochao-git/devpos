@@ -50,7 +50,7 @@ mysql> select * from cloud_rbac_role;
 |  3 | dba       | 数据库运维人员           |
 |  4 | sa        | 主机运维                |
 |  5 | admin     | 管理员                  |
-|  6 | is_login  | 已登陆的用户             |
+|  6 | common    | 普通用户                |
 +----+-----------+-----------------------+
 
 
@@ -85,7 +85,7 @@ mysql> select * from cloud_rbac_role_permission;
 |  7 | api/execute_submit_sql_by_file_path/                 | dba       |
 |  4 | api/v1/service/ticket/audit_sql/get_submit_sql_info/ | dba       |
 |  2 | api/v1/service/ticket/audit_sql/get_submit_sql_info/ | dev       |
-|  1 | api/v1/service/ticket/audit_sql/get_submit_sql_info/ | is_login  |
+|  1 | api/v1/service/ticket/audit_sql/get_submit_sql_info/ | common    |
 |  3 | api/v1/service/ticket/audit_sql/get_submit_sql_info/ | qa        |
 |  5 | api/v1/service/ticket/audit_sql/get_submit_sql_info/ | sa        |
 +----+------------------------------------------------------+-----------+

@@ -10,7 +10,7 @@ class NavManage extends Component {
         const path = this.props.location.pathname
         //定义侧边栏主按钮与菜单对应关系
         var menu_path = {
-            "/deployMysql":"sub1",
+            "/userRole":"sub1",
         }
         //确定侧边栏默认展开的menu
         if (path in menu_path){
@@ -27,8 +27,8 @@ class NavManage extends Component {
                 selectedKeys={[path]}
             >
                 <SubMenu key="sub1" title={<span><Icon type="robot" />用户管理</span>}>
-                    <Menu.Item key="/deployMysql">
-                        <Link to="/deployMysql">部署mysql集群</Link>
+                    <Menu.Item key="/userRole">
+                        <Link to="/userRole">角色管理</Link>
                     </Menu.Item>
                 </SubMenu>
             </Menu>
