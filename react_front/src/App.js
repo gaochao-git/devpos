@@ -96,7 +96,7 @@ class App extends Component {
                                         <Link to="/deployMysql">运维</Link>
                                     </Menu.Item>
                                     <Menu.Item key="管理" style={{marginLeft:'20px'}}>
-                                        <Link to="/deployMysql">管理</Link>
+                                        <Link to="/userRole">管理</Link>
                                     </Menu.Item>
                                 </Menu>
                                 <div style={{marginLeft:'600px'}}>

@@ -55,3 +55,6 @@ CELERY_ROUTES = {
     "app_audit_sql.tasks.inception_execute": {"queue": "async_task", "routing_key": "async_task"},
     "apps.celery_task.tasks.install_mysql": {"queue": "async_task", "routing_key": "async_task"},
 }
+
+# SQL审核文件存放路径
+upload_base_path = "/Users/gaochao/gaochao-git/gaochao_repo/devpos/django_backend/app_audit_sql/upload"

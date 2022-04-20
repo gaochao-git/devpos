@@ -12,10 +12,10 @@ from app_audit_sql.utils import inception
 from app_audit_sql.dao import audit_sql_dao
 from app_audit_sql.tasks import inception_execute,inception_check,inception_split
 from io import StringIO
+from django_backend.settings import upload_base_path
 
 import logging
 logger = logging.getLogger('devops')
-
 
 # 页面获取所有工单列表
 def get_submit_sql_info():
@@ -78,9 +78,9 @@ def get_view_sql_by_uuid(submit_sql_uuid):
         file_path_data = ret['data']
         sql_file_path = file_path_data[0]["submit_sql_file_path"]
         rollback_sql_file_path = file_path_data[0]["user_offer_rollback_sql_file_path"]
-        with open("./app_audit_sql/upload/{}".format(sql_file_path), "rb") as f1:
+        with open("{}/{}".format(upload_base_path, sql_file_path), "rb") as f1:
             sql_text = f1.read().decode('utf-8')
-        with open("./app_audit_sql/upload/{}".format(rollback_sql_file_path), "rb") as f2:
+        with open("{}/{}".format(upload_base_path, rollback_sql_file_path), "rb") as f2:
             rollback_sql_text = f2.read().decode('utf-8')
         data = {"sql_text": sql_text, "rollback_sql_text": rollback_sql_text}
         content = {'status': "ok", 'message': "获取SQL成功",'data': data}
@@ -115,7 +115,7 @@ def get_master_ip():
 # 页面预览指定的拆分SQL
 def get_submit_split_sql_by_file_path(split_sql_file_path):
     try:
-        with open("./app_audit_sql/upload/{}".format(split_sql_file_path), "rb") as f:
+        with open("{}/{}".format(upload_base_path, split_sql_file_path), "rb") as f:
             data = f.read()
             data = data.decode('utf-8')
         content = {'status': "ok", 'message': "获取SQL成功",'data': data}
@@ -221,8 +221,9 @@ class SubmitSql:
         # 每天产生一个目录
         now_date = strftime("%Y%m%d", gmtime())
         # 确定存放路径
-        upload_path = "./app_audit_sql/upload/" + now_date
+        upload_path = upload_base_path + '/' + now_date
         if not os.path.isdir(upload_path): os.makedirs(upload_path)
+
         # 确定待执行文件名
         file_name = "%s_%s.sql" % (self.login_user_name, self.submit_sql_uuid)
         upfile = os.path.join(upload_path, file_name)
@@ -531,7 +532,7 @@ def recreate_sql(split_sql_file_path, recreate_sql_flag):
     rerun_sequence = submit_sql_uuid + "_" + str(split_seq) + "_" + str(new_rerun_seq)
     # 重做SQL写入文件
     rerun_file = split_sql_file_path.split('.')[0] + ".sql_{}".format(new_rerun_seq)
-    rerun_file_path = "./app_audit_sql/upload/{}".format(rerun_file)
+    rerun_file_path = "{}/{}".format(upload_base_path, rerun_file)
     try:
         rerun_sql_list = audit_sql_dao.recreate_sql_dao( split_sql_file_path, recreate_sql_flag)
         with open(rerun_file_path, 'w') as f:

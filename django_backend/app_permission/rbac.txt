@@ -1,14 +1,14 @@
 平台有哪些权限（权限）----------（前端页面展示、url操作、数据隔离），不断增多
 平台有哪些用户----------------人员入职意味着有了用户，人员经常有变动
 平台有哪些角色----------------人员入职后便有了角色，一个公司角色变动很少
-CREATE TABLE `cloud_rbac_permission` (
+CREATE TABLE `cloud_rbac_resource` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `resource_name` varchar(80) NOT NULL DEFAULT '' COMMENT '资源名字',
   `description` varchar(80) NOT NULL DEFAULT '' COMMENT '描述',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uniq_resource_name` (`resource_name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COMMENT='权限表'
-mysql> select * from cloud_rbac_permission;
+mysql> select * from cloud_rbac_resource;
 +----+------------------------------------------------------+-----------------------------------+
 | id | resource_name                                        | description                       |
 +----+------------------------------------------------------+-----------------------------------+

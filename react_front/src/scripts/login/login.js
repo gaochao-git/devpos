@@ -4,9 +4,12 @@ import MyAxios from "../common/interface"
 
 // 登陆
 class Login extends Component  {
-    // constructor(props) {
-    //     super(props);
-    // }
+    constructor(props) {
+        super(props);
+        this.state = {
+            login_type:"cloud"
+        }
+    }
     // 点击Login提交
     handleLoginSubmit = e => {
         e.preventDefault();
@@ -17,7 +20,7 @@ class Login extends Component  {
     };
     // 登陆验证
     async login(username, password) {
-        MyAxios.post('/v2/auth/', {username, password}).then(function(res){
+        MyAxios.post('/login/v2/auth/', {username, password}).then(function(res){
             window.localStorage.setItem('token', res.data.token)
             window.location.reload()
         }).catch(function (error) {
@@ -36,33 +39,21 @@ class Login extends Component  {
                         {getFieldDecorator('username', {
                             rules: [{ required: true, message: 'Please input your username!' }],
                         })(
-                            <Input
-                                prefix={<Icon type="user" style={{ color: 'rgba(0,0,0,.25)' }} />}
-                                placeholder="Username"
-                            />,
+                            <Input prefix={<Icon type="user" style={{ color: 'rgba(0,0,0,.25)' }} />} placeholder="Username"/>,
                         )}
                     </Form.Item>
                     <Form.Item>
-                        {getFieldDecorator('password', {
-                            rules: [{ required: true, message: 'Please input your Password!' }],
-                        })(
-                            <Input
-                                prefix={<Icon type="lock" style={{ color: 'rgba(0,0,0,.25)' }} />}
-                                type="password"
-                                placeholder="Password"
-                            />,
-                        )}
+                        {getFieldDecorator('password', {rules: [{ required: true, message: 'Please input your Password!' }],})
+                            (<Input prefix={<Icon type="lock" style={{ color: 'rgba(0,0,0,.25)' }} />} type="password" placeholder="Password"/>,)
+                        }
                     </Form.Item>
                     <Form.Item>
-                        <Button
-                            type="primary"
-                            htmlType="submit"
-                            className="login-form-button"
-                        >
-                            Log in
-                        </Button>
+                        <Button type="primary" htmlType="submit" className="login-form-button"> Log in </Button>
                     </Form.Item>
                 </Form>
+                <Button type={this.state.login_type==="cloud"?"primary":"dashed"} style={{marginLeft:10}} onClick={()=>{this.setState({login_type:"cloud"})}}> Cloud Log in</Button>
+                <Button type={this.state.login_type==="sso"?"primary":"dashed"} style={{marginLeft:10}} onClick={()=>{this.setState({login_type:"sso"})}}> SSO Log in </Button>
+                <Button type={this.state.login_type==="ldap"?"primary":"dashed"} style={{marginLeft:10}} onClick={()=>{this.setState({login_type:"ldap"})}}> LDAP Log in </Button>
             </div>
         )
     }

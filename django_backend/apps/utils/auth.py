@@ -14,7 +14,7 @@ class Middleware(MiddlewareMixin):
     登陆验证中间件,除了登陆接口所有接口均需要验证
     """
     def process_request(self, request):
-        auth_ignore_path = ['/api/auth/','/api/v2/auth/','/api/v2/auth_refresh/']
+        auth_ignore_path = ['/api/login/v1/auth/','/api/login/v2/auth/','/api/login/v2/auth_refresh/']
         if request.path not in auth_ignore_path:
             bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
             if bearer_token is None:

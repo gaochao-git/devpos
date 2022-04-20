@@ -3,9 +3,10 @@ from django.db import connection
 from app_audit_sql.utils import inception
 from app_audit_sql.dao import audit_sql_dao
 from apps.utils import common
-import logging
 import pymysql
 import json
+from django_backend.settings import upload_base_path
+import logging
 logger = logging.getLogger('inception_execute_logger')
 
 
@@ -94,7 +95,7 @@ class ExecuteSql:
         :return:
         """
         try:
-            with open("./app_audit_sql/upload/{}".format(self.file_path), "rb") as f:
+            with open("{}/{}".format(upload_base_path, self.file_path,), "rb") as f:
                 self.execute_sql = f.read().decode('utf-8')
         except Exception as e:
             logger.exception(e)

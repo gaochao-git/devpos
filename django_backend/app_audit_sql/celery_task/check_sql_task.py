@@ -1,6 +1,7 @@
 from apps.utils import common
 from app_audit_sql.dao import audit_sql_dao
 from app_audit_sql.utils import inception
+from django_backend.settings import upload_base_path
 
 import logging
 logger = logging.getLogger('devops')
@@ -94,9 +95,9 @@ class AsyncCheckSql:
         try:
             sql_file_path = ret['data'][0]["submit_sql_file_path"]
             rollback_sql_file_path = ret['data'][0]["user_offer_rollback_sql_file_path"]
-            with open("./app_audit_sql/upload/{}".format(sql_file_path), "w") as f1:
+            with open("{}/{}".format(upload_base_path, sql_file_path), "w") as f1:
                 f1.write(self.check_sql)
-            with open("./app_audit_sql/upload/{}".format(rollback_sql_file_path), "w") as f2:
+            with open("{}/{}".format(upload_base_path, rollback_sql_file_path), "w") as f2:
                 f2.write(self.rollback_sql)
         except Exception as e:
             logger.exception(e)

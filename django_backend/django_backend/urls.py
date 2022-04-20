@@ -19,15 +19,20 @@ class RouterAccess(Enum):
 
 
 urlpatterns = [
+    # django后台登陆
+    path('admin/', admin.site.urls),
     # 用户登陆
-    path('admin/', admin.site.urls), # django后台登陆
-    path('api/v1/auth/', drf_views.obtain_auth_token),       # token登录v1版本,不带过期
-    path('api/v2/auth/', obtain_jwt_token),                  # token登陆v2版本,带过期,用在web调用
-    path('api/v2/auth_refresh/', refresh_jwt_token),         # token登陆v2版本,刷新token,用在接口请求中,用老的token换新的token
+    path('api/login/', include("app_login.urls")),
     path('api/get_login_user_info/', auth.get_login_user_info_controller),  # 根据token获得登录用户名
     path('api/v2/v2_get_login_user_info/', auth.v2_get_login_user_info_controller),  # 登录--根据token获得登录用户名
-
-    # 用户及权限管理
+    # 用户权限管理
+    path('api/permission/', include("app_permission.urls")),
+    # SQL变更服务
+    path('api/audit_sql/', include("app_audit_sql.urls")),
+    # db_dcl权限申请服务
+    path('api/db_dcl/', include("app_db_dcl.urls")),
+    # web_console数据查询服务
+    path('api/web_console/', include("app_web_console.urls")),
 
     # 服务器资源
     path('api/server_resource/v1/get_server_info/', server_info_controller.GetServerInfoController.as_view(), kwargs={"access": RouterAccess.all}), # server--查看主机信息
@@ -45,15 +50,6 @@ urlpatterns = [
     path('api/v1/service/ticket/get_ansible_api_log/', deploy_mysql_controller.get_ansible_api_log_controller), # 获取部署日志
     path('api/v1/pass_submit_deploy_mysql/', deploy_mysql_controller.pass_submit_deploy_mysql_controller),  # 审核部署mysql工单
     path('api/v1/service/ticket/get_work_flow_by_uuid/', deploy_mysql_controller.get_work_flow_by_uuid_controller),  # 获取工单流转记录
-
-    # 用户管理
-    path('api/permission/', include("app_permission.urls")),
-    # SQL变更服务
-    path('api/audit_sql/', include("app_audit_sql.urls")),
-    # db_dcl权限申请服务
-    path('api/db_dcl/', include("app_db_dcl.urls")),
-    # web_console数据查询服务
-    path('api/web_console/', include("app_web_console.urls")),
     ]
 
 
