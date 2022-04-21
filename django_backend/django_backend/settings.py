@@ -169,10 +169,9 @@ INCEPTION_ADDRESS = {
 }
 
 ################# 日志配置 ##################
-log_path = os.path.join(BASE_DIR, "logs")
+log_path = os.path.join(BASE_DIR, "logs/")
 if not os.path.exists(log_path):
-    os.makedirs("logs")
-# DJANGO_LOG_LEVEL=DEBUG
+    os.makedirs(log_path)
 
 LOGGING = {
     'version': 1,  # 保留字
@@ -209,35 +208,38 @@ LOGGING = {
         },
         'default': {    # 默认的
             'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',  # 保存到文件，自动切
-            'filename': os.path.join(BASE_DIR+'/logs/', "access.log"),  # 日志文件
-            'maxBytes': 1024 * 1024 * 50,                    # 日志大小 50M
-            'backupCount': 1,                                # 最多备份几个
+            'class': 'logging.handlers.TimedRotatingFileHandler',  # 日期满足后切割
+            'filename': os.path.join(log_path, "access.log"),  # 日志文件
+            'when': 'D',
+            'interval': 1,
+            'backupCount': 365,  # 最多保留几个
             'formatter': 'standard',
             'encoding': 'utf-8',
         },
         'info': {   # 专门用来记正常日志
             'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',  # 保存到文件，自动切
-            'filename': os.path.join(BASE_DIR+'/logs/', "error.log"),  # 日志文件
-            'maxBytes': 1024 * 1024 * 50,  # 日志大小 50M
-            'backupCount': 1,
+            'class': 'logging.handlers.TimedRotatingFileHandler',  # 日期满足后切割
+            'filename': os.path.join(log_path, "error.log"),  # 日志文件
+            'when': 'D',
+            'interval': 1,
+            'backupCount': 365,
             'formatter': 'standard',
             'encoding': 'utf-8',
         },
         'error': {   # 专门用来记错误日志
             'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',  # 保存到文件，自动切
-            'filename': os.path.join(BASE_DIR+'/logs/', "error.log"),  # 日志文件
-            'maxBytes': 1024 * 1024 * 50,  # 日志大小 50M
-            'backupCount': 1,
+            'class': 'logging.handlers.TimedRotatingFileHandler',  # 日期满足后切割
+            'filename': os.path.join(log_path, "error.log"),  # 日志文件
+            'when': 'D',
+            'interval': 1,
+            'backupCount': 365,
             'formatter': 'standard',
             'encoding': 'utf-8',
         },
         'sql_log_handler': {
             'level':'DEBUG',
-            'class':'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR+'/logs/', "sql.log"),
+            'class':'logging.handlers.RotatingFileHandler',  # 大小满足后切割
+            'filename': os.path.join(log_path, "sql.log"),
             'maxBytes': 1024*1024*5,
             'backupCount': 1,
             'formatter':'standard',
@@ -245,9 +247,9 @@ LOGGING = {
         'inception_execute_log_handler': {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR+'/logs/', "inception_execute.log"),
+            'filename': os.path.join(log_path, "inception_execute.log"),
             'maxBytes': 1024*1024*5,
-            'backupCount': 1,
+            'backupCount': 50,
             'formatter':'simple',
         }
     },
