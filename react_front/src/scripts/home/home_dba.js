@@ -357,118 +357,139 @@ getTodayWeek = ()=> {
     }];
 
     const mock_columns = [
-      {
-        title: 'Name',
-        dataIndex: 'name',
+    {
+        title: 'idc',
+        dataIndex: 'idc',
         className:'replacecolor'
       },
       {
-        title: 'Age',
-        dataIndex: 'age',
+        title: 'ip',
+        dataIndex: 'ip',
         className:'replacecolor'
       },
       {
-        title: 'Address',
-        dataIndex: 'address',
+        title: 'type',
+        dataIndex: 'type',
+        className:'replacecolor'
+      },
+      {
+        title: 'detail',
+        dataIndex: 'detail',
         className:'replacecolor'
       },
     ];
     const mock_data = [
       {
         key: '1',
-        name: 'John Brown',
-        age: 32,
-        address: 'New York No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.216',
+        type: 'warning',
+        detail: '3306 port is down',
       },
       {
         key: '2',
-        name: 'Jim Green',
-        age: 42,
-        address: 'London No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.217',
+        type: 'warning',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.218',
+        type: 'error',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.219',
+        type: 'warning',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.220',
+        type: 'error',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.220',
+        type: 'error',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.220',
+        type: 'error',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.220',
+        type: 'error',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.220',
+        type: 'error',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.220',
+        type: 'error',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.220',
+        type: 'error',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.220',
+        type: 'error',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.220',
+        type: 'error',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.220',
+        type: 'error',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.220',
+        type: 'error',
+        detail: '3306 port is down',
       },
       {
         key: '3',
-        name: 'Joe Black',
-        age: 32,
-        address: 'Sidney No. 1 Lake Park',
+        idc: 'BJ10',
+        ip: '172.16.1.220',
+        type: 'error',
+        detail: '3306 port is down',
       },
     ];
     const line_mock_data = [
@@ -715,11 +736,21 @@ getTodayWeek = ()=> {
                       style={{bordered:'false'}}
                       size="small"
                       rowClassName={(record, index) => {
-                            let className = 'row-detail-bg';
-                            if (index % 2 === 1) className = 'row-detail-bg';
-                            return className;
-                        }}
-                      scroll={{ y: 440 }}
+                          let className = 'row-detail-bg-default';
+                          if (record.type === "warning") {
+                              className = 'row-detail-bg-warning';
+                              return className;
+                          }else if (record.type  === "error"){
+                              className = 'row-detail-bg-error';
+                              return className;
+                          }else if (record.type  === "info"){
+                              className = 'row-detail-bg-default';
+                              return className;
+                          }else {
+                              return className;
+                          }
+                      }}
+                      scroll={{ y: 440,x:true }}
                       pagination={false}
                     />
                 </p>

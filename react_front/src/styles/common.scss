@@ -90,9 +90,17 @@
 .row-detail-warning {
   color: #ff9317;
 }
-.row-detail-bg {
+.row-detail-bg-default {
   background: #03050c;
   color:#126BA9;
+}
+.row-detail-bg-error {
+  background: #03050c;
+  color:#ff0000;
+}
+.row-detail-bg-warning {
+  background: #03050c;
+  color:#ff9317;
 }
 .row-detail-default {
   background: #00000000;
