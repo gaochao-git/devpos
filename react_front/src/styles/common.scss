@@ -96,11 +96,11 @@
 }
 .row-detail-bg-error {
   background: #03050c;
-  color:#ff0000;
+  color:#ff9317;
 }
 .row-detail-bg-warning {
   background: #03050c;
-  color:#ff9317;
+  color:#1fc9cd;
 }
 .row-detail-default {
   background: #00000000;
@@ -207,8 +207,18 @@ ant-menu.-inline .ant-menu-submenu-title {
   border-color: #126BA9;
 }
 
+//大屏table head专有设置
 th.replacecolor{
-  color: #1fc9cd !important;
+  color: #1790ff !important;
+  background-color:#1A274F !important;
+  border-top:1px solid white !important;
+  border-bottom:0px solid !important;
+  border-radius:0px;
+}
+
+//大屏table data专有设置
+td.replacecolor{
+    border:0px !important;
 }
 .ant-table-bg {
   border-radius: 10px;

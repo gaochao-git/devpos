@@ -730,11 +730,9 @@ getTodayWeek = ()=> {
                 <p style={{color:'white'}}>
                     今日巡检异常：警告:50 错误:50
                     <Table
-                      className='ant-table-bg'
+                      className='replacecolor'
                       columns={mock_columns}
                       dataSource={mock_data}
-                      style={{bordered:'false',border: 'false'}}
-                      size="small"
                       rowClassName={(record, index) => {
                           let className = 'row-detail-bg-default';
                           if (record.type === "warning") {
@@ -750,7 +748,7 @@ getTodayWeek = ()=> {
                               return className;
                           }
                       }}
-                      scroll={{ y: 540,x:true }}
+                      scroll={{ y: 530,x:true }}
                       pagination={false}
                     />
                 </p>
