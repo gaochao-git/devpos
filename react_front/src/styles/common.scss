@@ -90,10 +90,14 @@
 .row-detail-warning {
   color: #ff9317;
 }
-
+.row-detail-bg {
+  background: #03050c;
+  color:#126BA9;
+}
 .row-detail-default {
   background: #00000000;
 }
+
 
 // 覆盖antd可编辑表格样式
 .editable-cell-value-wrap {
@@ -187,11 +191,17 @@ ant-menu.-inline .ant-menu-submenu-title {
   border-radius : 50%;
   overflow: hidden;
 }
-
 .ant-tab-radius {
   border-radius: 10px;
   border-color: #126BA9;
 }
 .ant-tab {
   border-color: #126BA9;
+}
+
+th.replacecolor{
+  color: #1fc9cd !important;
+}
+.ant-table-bg {
+  border-radius: 10px;
 }

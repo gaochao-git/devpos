@@ -12,8 +12,11 @@ import headBg from '../../images/head_bg.png'
 import popUpBg from '../../images/popUP_bg.png'
 
 import earth_rotate from '../../images/earth-rotate.gif'
+import bg_city from '../../images/bgCenter.gif'
+import bg_robot from '../../images/robot.gif'
 const { Column } = Table;
 const { Meta } = Card;
+const { Text } = Guide;
 
 
 class HomeDbaInfo extends Component {
@@ -67,24 +70,6 @@ class HomeDbaInfo extends Component {
   }
 
   componentDidMount() {
-//    this.getServerTypeData();
-//    this.getServerMysqlRedisData();
-//    this.getCallData();
-//    this.getWarrantyServerData();
-//    this.getWarrantyServerDetailData();
-//    this.getWorkSheetData();
-//    this.getMysqlRedisInstanceCountData();
-//    this.getMysqlSlowTopData();
-//    this.getMysqlSlowHistoryData();
-//    this.getRotateDbaData();
-//    //this.getNrpeAlertData();
-//    this.getAgentInspectionData();
-//    this.getMysqlInspectionData();
-//    this.getMysqlClusterTypeCountData();
-//    this.getMysqlVersionData();
-//    this.getMysqlNeedUpgradeCountHistoryData()
-//    this.getBuType()
-//    this.getMySQLArchiveErrorData()
     this.setCurrentTimeInterVal()
   }
 
@@ -370,6 +355,234 @@ getTodayWeek = ()=> {
             }
     }];
 
+    const mock_columns = [
+      {
+        title: 'Name',
+        dataIndex: 'name',
+        className:'replacecolor'
+      },
+      {
+        title: 'Age',
+        dataIndex: 'age',
+        className:'replacecolor'
+      },
+      {
+        title: 'Address',
+        dataIndex: 'address',
+        className:'replacecolor'
+      },
+    ];
+    const mock_data = [
+      {
+        key: '1',
+        name: 'John Brown',
+        age: 32,
+        address: 'New York No. 1 Lake Park',
+      },
+      {
+        key: '2',
+        name: 'Jim Green',
+        age: 42,
+        address: 'London No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+      {
+        key: '3',
+        name: 'Joe Black',
+        age: 32,
+        address: 'Sidney No. 1 Lake Park',
+      },
+    ];
+    const line_mock_data = [
+      {
+        month: "2015-01-01",
+        acc: 84.0
+      },
+      {
+        month: "2015-02-01",
+        acc: 14.9
+      },
+      {
+        month: "2015-03-01",
+        acc: 17.0
+      },
+      {
+        month: "2015-04-01",
+        acc: 20.2
+      },
+      {
+        month: "2015-05-01",
+        acc: 55.6
+      },
+      {
+        month: "2015-06-01",
+        acc: 56.7
+      },
+      {
+        month: "2015-07-01",
+        acc: 30.6
+      },
+      {
+        month: "2015-08-01",
+        acc: 63.2
+      },
+      {
+        month: "2015-09-01",
+        acc: 24.6
+      },
+      {
+        month: "2015-10-01",
+        acc: 14.0
+      },
+      {
+        month: "2015-11-01",
+        acc: 9.4
+      },
+      {
+        month: "2015-12-01",
+        acc: 6.3
+      }
+    ];
+    const cols = {
+      month: {
+        alias: "月份"
+      },
+      acc: {
+        alias: "积累量"
+      }
+    };
+
+    //并入
+    const bingtu_data = [{
+      gender: 'male',
+      path: 'M381.759 0h292l-.64 295.328-100.127-100.096-94.368 94.368C499.808 326.848 512 369.824 512 415.712c0 141.376-114.56 256-256 256-141.376 0-256-114.624-256-256s114.624-256 256-256c48.8 0 94.272 13.92 133.12 37.632l93.376-94.592L381.76 0zM128.032 415.744c0 70.688 57.312 128 128 128s128-57.312 128-128-57.312-128-128-128-128 57.312-128 128z',
+      value: 50,
+    }, {
+      gender: 'middle',
+      path: 'M381.759 0h292l-.64 295.328-100.127-100.096-94.368 94.368C499.808 326.848 512 369.824 512 415.712c0 141.376-114.56 256-256 256-141.376 0-256-114.624-256-256s114.624-256 256-256c48.8 0 94.272 13.92 133.12 37.632l93.376-94.592L381.76 0zM128.032 415.744c0 70.688 57.312 128 128 128s128-57.312 128-128-57.312-128-128-128-128 57.312-128 128z',
+      value: 25,
+    }, {
+      gender: 'female',
+      path: 'M320.96 503.232v105.376h127.872V736.48H320.96v127.872H191.136V736.48H63.296V608.608h127.84v-105.76C81.216 474.208 0 374.56 0 255.712 0 114.496 114.496 0 255.712 0c141.248 0 255.68 114.496 255.68 255.712 0 119.328-79.872 219.264-190.432 247.52zm-65.248-375.36c-70.624 0-127.872 57.216-127.872 127.84 0 70.592 57.248 127.84 127.872 127.84s127.872-57.248 127.872-127.84c0-70.624-57.248-127.84-127.872-127.84z',
+      value: 25,
+    }];
+    //饼图scale
+    const bingtu_scale = {
+      value: {
+        min: 0,
+        max: 100,
+      },
+    };
+    //横向柱状图
+    const zhuzhuangtu_data = [
+      {
+        country: "TiDB",
+        population: 131744
+      },
+      {
+        country: "MySQL",
+        population: 104970
+      },
+      {
+        country: "GoldenDB",
+        population: 29034
+      },
+      {
+        country: "SQLServer",
+        population: 23489
+      },
+      {
+        country: "达梦",
+        population: 18203
+      }
+    ];
+    const ds_zhuzhuangtu = new DataSet();
+    const dv_zhuzhuangtu = ds_zhuzhuangtu.createView().source(zhuzhuangtu_data);
+    dv_zhuzhuangtu.source(zhuzhuangtu_data).transform({
+      type: "sort",
+      callback(a, b) {
+        // 排序依据，和原生js的排序callback一致
+        return a.population - b.population > 0;
+      }
+    });
+
     return (
         <div style={{backgroundImage:`url(${pageBg})`}}>
         <Row gutter={16}>
@@ -386,7 +599,8 @@ getTodayWeek = ()=> {
           <Row style={{height:'200px',background:''}} gutter={16}>
             <Col span={6} style={{}}>
               <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
-                <p style={{color:'white'}}>今日电话报警数量</p>
+                <img style={{width:30}} className='robot-gif' alt="example111" src={bg_robot} />
+                <p style={{color:'white'}}>未处理工单</p>
                 <span style={{fontSize:'20px',color:'red'}}>{this.state.CallTodayData}</span>
                 <Chart
                 data={this.state.CallHistoryData}
@@ -413,7 +627,8 @@ getTodayWeek = ()=> {
             </Col>
             <Col span={6}>
               <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
-                <p style={{color:'white'}}>当前过保机器数量 <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                <img style={{width:30}} className='robot-gif' alt="example111" src={bg_robot} />
+                <p style={{color:'white'}}>服务器数量 <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
                 <p style={{fontSize:'20px',color:'#FFD306'}}>{this.state.WarrantyServerTodayData}</p>
                 <Chart
                 data={this.state.WarrantyServerHistoryData}
@@ -488,16 +703,113 @@ getTodayWeek = ()=> {
           </Row>
           <Row style={{marginTop:'10px'}}>
             <Col span={8}>
-              <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:550}}>
-                <p style={{color:'white'}}>今日工单信息：{this.state.RotateDBATodayData}</p>
+              <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:535}}>
+                <p style={{color:'white'}}>
+                    今日巡检异常：{this.state.RotateDBATodayData}
+                    <Table
+                      className='ant-table-bg'
+                      columns={mock_columns}
+                      dataSource={mock_data}
+                      style={{bordered:'false'}}
+                      size="small"
+                      rowClassName={(record, index) => {
+                            let className = 'row-detail-bg';
+                            if (index % 2 === 1) className = 'row-detail-bg';
+                            return className;
+                        }}
+                      scroll={{ y: 440 }}
+                      pagination={false}
+                    />
+                </p>
               </Card>
             </Col>
             <Col span={8}>
-                <img className='earth-gif' alt="example" src={earth_rotate} />
+                <img style={{width:'100%'}} alt="example" src={bg_city} />
+                <Row>
+                    <Col span={8}>
+                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:150}}>
+                          <p style={{color:'white',marginTop:40}}>BJ10：100</p>
+                        </Card>
+                    </Col>
+                    <Col span={8}>
+                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:150}}>
+                          <p style={{color:'white',marginTop:40}}>BJ10：100</p>
+                        </Card>
+                    </Col>
+                    <Col span={8}>
+                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:150}}>
+                          <p style={{color:'white',marginTop:40}}>BJ10：100</p>
+                        </Card>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col span={8}>
+                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:150}}>
+                          <p style={{color:'white',marginTop:40}}>BJ10：100</p>
+                        </Card>
+                    </Col>
+                    <Col span={8}>
+                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:150}}>
+                          <p style={{color:'white',marginTop:40}}>BJ10：100</p>
+                        </Card>
+                    </Col>
+                    <Col span={8}>
+                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:150}}>
+                          <p style={{color:'white',marginTop:40}}>BJ10：100</p>
+                        </Card>
+                    </Col>
+                </Row>
             </Col>
             <Col span={8}>
-              <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:550}}>
-                <p style={{color:'white'}}>今日巡检异常信息：{this.state.RotateDBATodayData}</p>
+              <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:535}}>
+
+                <p style={{color:'white'}}>
+                    GFS备份存储占用空间：{this.state.RotateDBATodayData}
+                    <Chart height={200} width={100} data={bingtu_data} padding='auto' scale={bingtu_scale} forceFit>
+                      <Tooltip />
+                      <Geom
+                        type="interval"
+                        position="gender*value"
+                        color="gender"
+                        shape="liquid-fill-gauge"
+                        style={{
+                          lineWidth: 10,
+                          fillOpacity: 0.75,
+                        }}
+                      />
+                      <Guide>
+                        {
+                          bingtu_data.map(
+                            row => (<Text
+                              content={`${row.value}%`}
+                              top
+                              position={{
+                                gender: row.gender,
+                                value: 50,
+                              }}
+                              style={{
+                                opacity: 0.75,
+                                fontSize: window.innerWidth / 60,
+                                textAlign: 'center',
+                              }}
+                            />))
+                        }
+                      </Guide>
+                    </Chart>
+                    数据库集群类型分布：{this.state.RotateDBATodayData}
+                    <Chart height={280} data={dv_zhuzhuangtu} forceFit>
+                      <Coord transpose />
+                      <Axis
+                        name="country"
+                        label={{
+                          offset: 12
+                        }}
+                      />
+                      <Axis name="population" />
+                      <Tooltip />
+                      <Geom type="interval" position="country*population" />
+                    </Chart>
+                </p>
               </Card>
             </Col>
           </Row>
@@ -505,29 +817,36 @@ getTodayWeek = ()=> {
           <Col  span={24}>
             <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,}}>
               <p style={{color:'white'}}>集群TPS<Icon style={{color:'green'}} type="eye" onClick={()=>{this.getBuLevelInfo()}}/></p>
-            <Chart
-                    height={300}
-                    data={this.state.ClusterBuType}
-                    //scale={alert_scale}
-                    padding={{ top: 0, right: 0, bottom: 0, left: 0}}
-                    forceFit
-                  >
-                    <Coord type={"theta"} radius={0.5} innerRadius={0.8} />
-                    <Axis name="percent" />
-
-                    <Geom
-                      type="intervalStack"
-                      position="percent"
-                      color="item"
-                    >
-                      <Label
-                        content="percent"
-                        formatter={(val, item) => {
-                          return item.point.item + "：" + item.point.count;
-                        }}
-                      />
-                    </Geom>
-                  </Chart>
+            <Chart height={400} data={line_mock_data} scale={cols} forceFit>
+              <Axis
+                name="month"
+                title={null}
+                tickLine={null}
+                line={{
+                  stroke: "#E6E6E6"
+                }}
+              />
+              <Axis
+                name="acc"
+                line={false}
+                tickLine={null}
+                grid={null}
+                title={null}
+              />
+              <Tooltip />
+              <Geom
+                type="line"
+                position="month*acc"
+                size={1}
+                color="l (270) 0:rgba(255, 146, 255, 1) .5:rgba(100, 268, 255, 1) 1:rgba(215, 0, 255, 1)"
+                shape="smooth"
+                style={{
+                  shadowColor: "l (270) 0:rgba(21, 146, 255, 0)",
+                  shadowBlur: 60,
+                  shadowOffsetY: 6
+                }}
+              />
+            </Chart>
                   </Card>
             </Col>
           </Row>
