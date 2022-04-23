@@ -612,7 +612,7 @@ getTodayWeek = ()=> {
                 <p style={{color:'white',fontSize:30,marginTop:20}}></p>
             </Col>
             <Col span={8} style={{ backgroundImage:`url(${headBg})`,height:'100px'}}>
-                <p style={{color:'white',textAlign: 'center',fontSize:30,marginTop:20}}>数据库管理平台大屏</p>
+                <p style={{color:'white',textAlign: 'center',fontSize:30,marginTop:20}}>数据库运维管理平台</p>
             </Col>
             <Col span={8} style={{ backgroundImage:`url(${headBg})`,height:'100px'}}>
                 <p style={{color:'white',marginLeft:50,fontSize:30,marginTop:20}}>{this.state.current_time}  {this.state.week_day}</p>
