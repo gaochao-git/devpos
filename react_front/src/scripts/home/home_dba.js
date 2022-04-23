@@ -10,6 +10,7 @@ import pageBg from '../../images/pageBg.png'
 import tbBg from '../../images/tb_bg.png'
 import headBg from '../../images/head_bg.png'
 import popUpBg from '../../images/popUP_bg.png'
+import workFlow from '../../images/workflow.gif'   // 来源 https://588ku.com/gif/keji-6-0-default-0-3/
 
 import earth_rotate from '../../images/earth-rotate.gif'
 import bg_city from '../../images/bgCenter.gif'
@@ -599,7 +600,7 @@ getTodayWeek = ()=> {
           <Row style={{height:'200px',background:''}} gutter={16}>
             <Col span={6} style={{}}>
               <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
-                <img style={{width:30}} className='robot-gif' alt="example111" src={bg_robot} />
+                <img style={{width:55}} className='robot-gif' alt="example111" src={bg_robot} />
                 <p style={{color:'white'}}>未处理工单</p>
                 <span style={{fontSize:'20px',color:'red'}}>{this.state.CallTodayData}</span>
                 <Chart
@@ -627,7 +628,7 @@ getTodayWeek = ()=> {
             </Col>
             <Col span={6}>
               <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
-                <img style={{width:30}} className='robot-gif' alt="example111" src={bg_robot} />
+                <img style={{width:55}} className='robot-gif' alt="example111" src={bg_robot} />
                 <p style={{color:'white'}}>服务器数量 <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
                 <p style={{fontSize:'20px',color:'#FFD306'}}>{this.state.WarrantyServerTodayData}</p>
                 <Chart
@@ -666,6 +667,7 @@ getTodayWeek = ()=> {
             </Col>
             <Col span={6}>
               <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
+                <img style={{width:100}} className='robot-gif' alt="example111" src={workFlow} />
                 <p style={{color:'white'}}>今日工单数量</p>
                 <p style={{fontSize:'20px',color:'green'}}>{this.state.WorkSheetTodayData}</p>
                 <Chart
