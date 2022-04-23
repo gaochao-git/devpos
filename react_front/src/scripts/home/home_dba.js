@@ -6,7 +6,15 @@ import { Link } from 'react-router-dom';
 import {Redirect}  from 'react-router-dom';
 import {Highlighter} from 'react-highlight-words';
 import {DataSet} from '@antv/data-set';
+import pageBg from '../../pageBg.png'
+import tbBg from '../../tb_bg.png'
+import headBg from '../../head_bg.png'
+import popUpBg from '../../popUP_bg.png'
+
+import earth_rotate from '../../earth-rotate.gif'
 const { Column } = Table;
+const { Meta } = Card;
+
 
 class HomeDbaInfo extends Component {
   constructor(props) {
@@ -53,6 +61,8 @@ class HomeDbaInfo extends Component {
       ArchiveInfoList:[],
       ArchiveInfoCount:'',
       ArchiveInfoVisible:false,
+      current_time:"",
+      week_day:""
     };
   }
 
@@ -75,9 +85,57 @@ class HomeDbaInfo extends Component {
 //    this.getMysqlNeedUpgradeCountHistoryData()
 //    this.getBuType()
 //    this.getMySQLArchiveErrorData()
+    this.setCurrentTimeInterVal()
   }
 
+  setCurrentTimeInterVal = () => {
+      this.currentTimerId = window.setInterval(this.getDateWeek.bind(this),1000);
+  }
+  getDateWeek = ()=>{
+    this.getTodayDate();
+    this.getTodayWeek()
+  }
+  getTodayDate = ()=> {
+    var date = new Date();
+    var year = date.getFullYear().toString();
+    var month = (date.getMonth()+1).toString();
+    var day = date.getDate().toString();
+    var hour =  date.getHours().toString();
+    var minute = date.getMinutes().toString();
+    var second = date.getSeconds().toString();
+    var now_time = year+'-'+month+'-'+day+' '+hour+':'+minute+':'+second;
+    this.setState({current_time:now_time})
+};
 
+getTodayWeek = ()=> {
+    var tempDate = new Date();
+    var days = tempDate.getDay();
+    var week;
+    switch(days) {
+        case 1:
+            week = '星期一';
+            break;
+        case 2:
+            week = '星期二';
+            break;
+        case 3:
+            week = '星期三';
+            break;
+        case 4:
+            week = '星期四';
+            break;
+        case 5:
+            week = '星期五';
+            break;
+        case 6:
+            week = '星期六';
+            break;
+        case 0:
+            week = '星期日';
+            break;
+    }
+    this.setState({week_day:week})
+};
 
   render() {
     const ds = new DataSet();
@@ -220,7 +278,6 @@ class HomeDbaInfo extends Component {
       dataIndex: 'cluster_name',
       key: 'cluster_name',
       width:'10%',
-      ...message.success('cluster_name'),
       render : (text) => {
         return (<Link target="_blank"  to={`/cluster/${text}`}>{text}</Link>)
       },
@@ -265,7 +322,6 @@ class HomeDbaInfo extends Component {
         return 0
       },
       sortOrder: sortedInfo.columnKey === 'first_bu_name' && sortedInfo.order,
-      ...message.success('first_bu_name'),
     }, {
       title: '次要部门',
       dataIndex: 'second_bu_name',
@@ -282,7 +338,6 @@ class HomeDbaInfo extends Component {
         return 0
       },
       sortOrder: sortedInfo.columnKey === 'second_bu_name' && sortedInfo.order,
-      ...message.success('second_bu_name'),
     }];
 
     const AgentMonitorColumns = [{
@@ -316,11 +371,22 @@ class HomeDbaInfo extends Component {
     }];
 
     return (
-        <div>
-          <Row style={{marginTop:'15px',height:'200px',background:''}} gutter={16}>
+        <div style={{backgroundImage:`url(${pageBg})`}}>
+        <Row gutter={16}>
+            <Col span={8} style={{ backgroundImage:`url(${headBg})`,height:'100px'}}>
+                <p style={{color:'white',fontSize:30,marginTop:20}}></p>
+            </Col>
+            <Col span={8} style={{ backgroundImage:`url(${headBg})`,height:'100px'}}>
+                <p style={{color:'white',textAlign: 'center',fontSize:30,marginTop:20}}>数据库管理平台大屏</p>
+            </Col>
+            <Col span={8} style={{ backgroundImage:`url(${headBg})`,height:'100px'}}>
+                <p style={{color:'white',marginLeft:50,fontSize:30,marginTop:20}}>{this.state.current_time}  {this.state.week_day}</p>
+            </Col>
+        </Row>
+          <Row style={{height:'200px',background:''}} gutter={16}>
             <Col span={6} style={{}}>
-              <Card bordered={true} style={{ background:'',height:'200px'}}>
-                <p style={{color:''}}>今日电话报警数量</p>
+              <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
+                <p style={{color:'white'}}>今日电话报警数量</p>
                 <span style={{fontSize:'20px',color:'red'}}>{this.state.CallTodayData}</span>
                 <Chart
                 data={this.state.CallHistoryData}
@@ -346,8 +412,8 @@ class HomeDbaInfo extends Component {
               </Card>
             </Col>
             <Col span={6}>
-              <Card bordered={true} style={{ background:'',height:'200px'}}>
-                <p style={{color:''}}>当前过保机器数量 <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+              <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
+                <p style={{color:'white'}}>当前过保机器数量 <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
                 <p style={{fontSize:'20px',color:'#FFD306'}}>{this.state.WarrantyServerTodayData}</p>
                 <Chart
                 data={this.state.WarrantyServerHistoryData}
@@ -384,8 +450,8 @@ class HomeDbaInfo extends Component {
               </Card>
             </Col>
             <Col span={6}>
-              <Card bordered={true} style={{ background:'',height:'200px'}}>
-                <p style={{color:''}}>今日工单数量</p>
+              <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
+                <p style={{color:'white'}}>今日工单数量</p>
                 <p style={{fontSize:'20px',color:'green'}}>{this.state.WorkSheetTodayData}</p>
                 <Chart
                 data={this.state.WorkSheetHistoryData}
@@ -411,280 +477,34 @@ class HomeDbaInfo extends Component {
               </Card>
             </Col>
             <Col span={6}>
-              <Card bordered={true} style={{ background:'',height:'200px'}}>
-                <p>DBA值班人员列表  <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showRotateDbaModalHandle()}}/></p>
-                <p>今日值班DBA：{this.state.RotateDBATodayData}</p>
-                <p>值班时间：晚8点～次日上午10点</p>
+              <Card className='ant-tab' bordered={true} style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
+                <p style={{color:'white'}}>DBA值班人员列表  <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showRotateDbaModalHandle()}}/></p>
+                <p style={{color:'white'}}>今日值班DBA：{this.state.RotateDBATodayData}</p>
+                <p style={{color:'white'}}>值班时间：晚8点～次日上午10点</p>
                 <br/>
                 <p style={{fontSize:'16px',color:'red'}}>注：非值班期间找对应业务线DBA </p>
               </Card>
             </Col>
           </Row>
           <Row style={{marginTop:'10px'}}>
-            <Col span={14} style={{background:'white'}}>
-                <p style={{color:''}}>今日慢查询Top10</p>
-                <Chart
-                height={300}
-                data={this.state.MysqlSlowTop10Data}
-                forceFit
-                padding={{ top: 20, right: 100, bottom: 70, left:80}}
-                onPlotClick={ev => {
-                  // console.log(ev.data._origin.instance_name)
-                  this.getMysqlSlowDetailData(ev.data._origin.instance_name)
-                }}
-                >
-                    <Axis
-                    name="instance_name"
-                    //title={null}
-                    label={label}
-                    />
-                    <Axis name="slow_log_count" />
-                    <Tooltip
-                        crosshairs={{
-                        type: "y"
-                        }}
-                    />
-                    <Geom
-                    type="interval"
-                    position="instance_name*slow_log_count"
-                    style={{
-                        stroke: "#DAA520",
-                        lineWidth: 1,
-                        fill:"#DAA520"
-                      }}
-                    />
-                </Chart>
-            </Col>
-            <Col span={10} style={{background:'white'}}>
-                <p style={{color:''}}>踢库信息</p>
-                <Chart
-                data={this.state.MysqlSlowTotalHistoryData}
-                //scale={cols3}
-                forceFit
-                padding={{ top: 20, right: 40, bottom: 50, left:60 }}
-                height={300}
-                >
-                  <Axis
-                    name="stat_date"
-                    title={null}
-                    tickLine={null}
-                    line={{
-                      stroke: "#E6E6E6"
-                    }}
-                  />
-                  <Axis
-                    name="slow_log_total"
-                    line={false}
-                    tickLine={null}
-                    grid={null}
-                    title={null}
-                  />
-                  <Tooltip />
-                  <Geom
-                    type="line"
-                    position="stat_date*slow_log_total"
-                    size={1}
-                    color="l (270) 0:rgba(255, 146, 255, 1) .5:rgba(100, 268, 255, 1) 1:rgba(215, 0, 255, 1)"
-                    shape="smooth"
-                    style={{
-                      shadowColor: "l (270) 0:rgba(21, 146, 255, 0)",
-                      shadowBlur: 60,
-                      shadowOffsetY: 6
-                    }}
-                  />
-                </Chart>
-            </Col>
-          </Row>
-          <Row style={{marginTop:'10px',height:'200px',background:''}} gutter={16}>
-          <Col span={6}>
-              <Card bordered={true} style={{ background:'',height:'200px'}}>
-                <p style={{color:''}}>Agent 巡检异常数量 <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showAgentInspectionModalHandle()}}/></p>
-                <p style={{textAlign:'center',fontSize:'20px',color:'#FFD306'}}>{this.state.AgentInspectionTotalCountData}</p>
-                <p style={{color:''}}>MySQL归档失败数量 <Icon style={{color:'green'}}
-                                                          type="eye" onClick={()=>{this.setState({ArchiveInfoVisible:true})}}/></p>
-                <p style={{textAlign:'center',fontSize:'20px',color:'#FFD306'}}>{this.state.ArchiveInfoCount}</p>
-              </Card>
-
-            </Col>
-            <Col span={6}>
-              <Card bordered={true} style={{ background:'',height:'200px'}}>
-                <p style={{color:''}}>MySQL待升级版本 <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showMysqlVsersionModalHandle()}}/></p>
-                <p style={{fontSize:'20px',color:'#FFD306'}}>{this.state.MysqlVersionTotalCountData}</p>
-                <Chart
-                data={this.state.MysqlNeedUpgradeHistoryData}
-                //scale={work_sheet_scale}
-                forceFit
-                height={80}
-                padding={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                >
-                  <Tooltip />
-                  <Geom
-                    type="area"
-                    position="stat_date*need_upgrade_count"
-                    size={1}
-                    color="blue"
-                    shape="smooth"
-                    style={{
-                      shadowColor: "l (270) 0:rgba(21, 146, 255, 0)",
-                      shadowBlur: 60,
-                      shadowOffsetY: 6
-                    }}
-                  />
-                  <Geom
-                    type="point"
-                    position="stat_date*need_upgrade_count"
-                    size={2}
-                    shape={"circle"}
-                    color={"status"}
-                    style={{
-                      stroke: "#fff",
-                      lineWidth: 1
-                    }}
-                  />
-                </Chart>
+            <Col span={8}>
+              <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:550}}>
+                <p style={{color:'white'}}>今日工单信息：{this.state.RotateDBATodayData}</p>
               </Card>
             </Col>
-            <Col span={6}>
-              <Card bordered={true} style={{ background:'',height:'200px'}}>
-                <p style={{color:''}}>MySQL巡检异常数量 <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showMysqlInspectionModalHandle()}}/></p>
-                <p style={{textAlign:'center',fontSize:'30px',color:'#FFD306'}}>{this.state.MysqlInspectionTotalCountData}</p>
-              </Card>
+            <Col span={8}>
+                <img className='earth-gif' alt="example" src={require('/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/earth-rotate.gif')} />
             </Col>
-            <Col span={6}>
-              <Card bordered={true} style={{ background:'',height:'200px'}}>
-                <p style={{color:''}}>MySQL实例数量：{this.state.MysqlInstanceCountData}</p>
-                <p style={{color:''}}>Redis实例数量：{this.state.RedisInstanceCountData}</p>
+            <Col span={8}>
+              <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:550}}>
+                <p style={{color:'white'}}>今日巡检异常信息：{this.state.RotateDBATodayData}</p>
               </Card>
-            </Col>
-          </Row>
-          <Row style={{marginTop:'10px',background:''}} gutter={16}>
-            <Col span={12}>
-              <Card bordered={true} style={{ background:''}}>
-                <Chart
-                  height={200}
-                  data={server_view1}
-                  //scale={cols1}
-                  forceFit
-                  //style={{width: '100%',float:'left',background:'red',paddingRight:'20px'}}
-                  >
-                  <Legend />
-                  <Axis
-                    name="stat_date"
-                    title={null}
-                  />
-                  <Axis
-                    name="count"
-                    title={null}
-                    label={{
-                      formatter: val => `${val}`
-                    }}
-                  />
-                  <Tooltip
-                    crosshairs={{
-                      type: "y"
-                    }}
-                  />
-                  <Geom
-                    type="area"
-                    position="stat_date*count"
-                    size={2}
-                    color={"type"}
-                    shape={""}
-                  />
-                  <Geom
-                    type="point"
-                    position="stat_date*count"
-                    size={2}
-                    shape={"circle"}
-                    color={"type"}
-                    style={{
-                      stroke: "#fff",
-                      lineWidth: 1
-                    }}
-                  />
-                </Chart>
-                  <Chart
-                    height={200}
-                    data={dv2}
-                    forceFit
-                    >
-                    <Legend />
-                    <Axis
-                      name="stat_date"
-                      title={null}
-                    />
-                    <Axis
-                      name="count"
-                      title={null}
-                      label={{
-                        formatter: val => `${val}`
-                      }}
-                    />
-                    <Tooltip
-                      crosshairs={{
-                        type: "y"
-                      }}
-                    />
-                    <Geom
-                      type="area"
-                      position="stat_date*count"
-                      size={2}
-                      color={"type"}
-                      shape={"smooth"}
-                    />
-                    <Geom
-                      type="point"
-                      position="stat_date*count"
-                      size={2}
-                      shape={"circle"}
-                      color={"type"}
-                      style={{
-                        stroke: "#fff",
-                        lineWidth: 1
-                      }}
-                    />
-                  </Chart>
-              </Card>
-            </Col>
-            <Col span={12}>
-              <Card bordered={true} style={{ background:''}}>
-              <Chart
-                    height={400}
-                    data={mysql_cluster_type_view}
-                    //scale={alert_scale}
-                    padding={{ top: 0, right: 0, bottom: 0, left: 0}}
-                    forceFit
-                  >
-                    <Coord type={"theta"} radius={0.5} innerRadius={0.8} />
-                    <Axis name="percent" />
-                    <Guide>
-                      <Html
-                        position={["50%", "50%"]}
-                        html={'<div style="font-size:10px;text-align: center;width: 10em;">MySQL<br><span style="font-size:10px">' + '集群分布' + '</span></div>'}
-                        alignX="middle"
-                        alignY="middle"
-                      />
-                    </Guide>
-                    <Geom
-                      type="intervalStack"
-                      position="percent"
-                      color="item"
-                    >
-                      <Label
-                        content="percent"
-                        formatter={(val, item) => {
-                          return item.point.item + "：" + item.point.count;
-                        }}
-                      />
-                    </Geom>
-                  </Chart>
-                </Card>
             </Col>
           </Row>
           <Row style={{marginTop:'10px'}} gutter={24}>
           <Col  span={24}>
-            <Card bordered={true} style={{ background:''}}>
-              <p style={{color:''}}>MySQL部门分布<Icon style={{color:'green'}} type="eye" onClick={()=>{this.getBuLevelInfo()}}/></p>
+            <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,}}>
+              <p style={{color:'white'}}>集群TPS<Icon style={{color:'green'}} type="eye" onClick={()=>{this.getBuLevelInfo()}}/></p>
             <Chart
                     height={300}
                     data={this.state.ClusterBuType}
