@@ -620,7 +620,7 @@ getTodayWeek = ()=> {
         </Row>
           <Row style={{height:'200px',background:''}} gutter={16}>
             <Col span={6} style={{}}>
-              <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
+              <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
                 <img style={{width:55}} className='robot-gif' alt="example111" src={bg_robot} />
                 <p style={{color:'white'}}>未处理工单</p>
                 <span style={{fontSize:'20px',color:'red'}}>{this.state.CallTodayData}</span>
@@ -648,7 +648,7 @@ getTodayWeek = ()=> {
               </Card>
             </Col>
             <Col span={6}>
-              <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
+              <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
                 <img style={{width:55}} className='robot-gif' alt="example111" src={bg_robot} />
                 <p style={{color:'white'}}>服务器数量 <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
                 <p style={{fontSize:'20px',color:'#FFD306'}}>{this.state.WarrantyServerTodayData}</p>
@@ -687,7 +687,7 @@ getTodayWeek = ()=> {
               </Card>
             </Col>
             <Col span={6}>
-              <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
+              <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
                 <img style={{width:100}} className='robot-gif' alt="example111" src={workFlow} />
                 <p style={{color:'white'}}>今日工单数量</p>
                 <p style={{fontSize:'20px',color:'green'}}>{this.state.WorkSheetTodayData}</p>
@@ -715,7 +715,7 @@ getTodayWeek = ()=> {
               </Card>
             </Col>
             <Col span={6}>
-              <Card className='ant-tab' bordered={true} style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
+              <Card className='ant-tab-radius' bordered={true} style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
                 <p style={{color:'white'}}>DBA值班人员列表  <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showRotateDbaModalHandle()}}/></p>
                 <p style={{color:'white'}}>今日值班DBA：{this.state.RotateDBATodayData}</p>
                 <p style={{color:'white'}}>值班时间：晚8点～次日上午10点</p>
@@ -848,7 +848,7 @@ getTodayWeek = ()=> {
           </Row>
           <Row style={{marginTop:'10px'}} gutter={24}>
           <Col  span={24}>
-            <Card bordered={true} className='ant-tab' style={{ backgroundImage:`url(${pageBg})`,}}>
+            <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,}}>
               <p style={{color:'white'}}>集群TPS<Icon style={{color:'green'}} type="eye" onClick={()=>{this.getBuLevelInfo()}}/></p>
             <Chart height={400} data={line_mock_data} scale={cols} forceFit>
               <Axis
