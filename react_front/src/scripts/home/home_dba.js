@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import {G2,Chart,Geom,Axis,Tooltip,Coord,Label,Legend,View,Guide,Shape,Facet,Util} from 'bizcharts';
-import { Table, Button,Row,Card, Col,Statistic,Icon,Modal,Input ,Popover,Form} from 'antd';
+import { Table, Button,Row,Card, Col,Statistic,Icon,Modal,Input ,Popover,Form,span} from 'antd';
 import { Alert, message } from 'antd';
 import { Link } from 'react-router-dom';
 import {Redirect}  from 'react-router-dom';
@@ -554,15 +554,15 @@ getTodayWeek = ()=> {
     //并入
     const bingtu_data = [{
       gender: 'male',
-      path: 'M381.759 0h292l-.64 295.328-100.127-100.096-94.368 94.368C499.808 326.848 512 369.824 512 415.712c0 141.376-114.56 256-256 256-141.376 0-256-114.624-256-256s114.624-256 256-256c48.8 0 94.272 13.92 133.12 37.632l93.376-94.592L381.76 0zM128.032 415.744c0 70.688 57.312 128 128 128s128-57.312 128-128-57.312-128-128-128-128 57.312-128 128z',
+      path: 'M381.759 0h292l-.64 295.328-100.127-100.096-94.368 94.368C499.808 326.848 512 369.824 512 415.712c0 141.376-114.56 256-256 256-141.376 0-256-114.624-256-256s114.624-256 256-256c48.8 0 94.272 13.92 133.12 37.632l93.376-94.592L381.76 0zM128.032 415.744c0 70.688 57.312 128 128 128s128-107.312 128-128-107.312-128-128-128-128 57.312-128 128z',
       value: 50,
     }, {
       gender: 'middle',
-      path: 'M381.759 0h292l-.64 295.328-100.127-100.096-94.368 94.368C499.808 326.848 512 369.824 512 415.712c0 141.376-114.56 256-256 256-141.376 0-256-114.624-256-256s114.624-256 256-256c48.8 0 94.272 13.92 133.12 37.632l93.376-94.592L381.76 0zM128.032 415.744c0 70.688 57.312 128 128 128s128-57.312 128-128-57.312-128-128-128-128 57.312-128 128z',
+      path: 'M381.759 0h292l-.64 295.328-100.127-100.096-94.368 94.368C499.808 326.848 512 369.824 512 415.712c0 141.376-114.56 256-256 256-141.376 0-256-114.624-256-256s114.624-256 256-256c48.8 0 94.272 13.92 133.12 37.632l93.376-94.592L381.76 0zM128.032 415.744c0 70.688 57.312 128 128 128s128-107.312 128-128-107.312-128-128-128-128 57.312-128 128z',
       value: 25,
     }, {
       gender: 'female',
-      path: 'M320.96 503.232v105.376h127.872V736.48H320.96v127.872H191.136V736.48H63.296V608.608h127.84v-105.76C81.216 474.208 0 374.56 0 255.712 0 114.496 114.496 0 255.712 0c141.248 0 255.68 114.496 255.68 255.712 0 119.328-79.872 219.264-190.432 247.52zm-65.248-375.36c-70.624 0-127.872 57.216-127.872 127.84 0 70.592 57.248 127.84 127.872 127.84s127.872-57.248 127.872-127.84c0-70.624-57.248-127.84-127.872-127.84z',
+      path: 'M320.96 503.232v105.376h127.872V736.48H320.96v127.872H191.136V736.48H63.296V608.608h127.84v-105.76C81.216 474.208 0 374.56 0 255.712 0 114.496 114.496 0 255.712 0c141.248 0 255.68 114.496 255.68 255.712 0 119.328-79.872 219.264-190.432 247.52zm-65.248-375.36c-70.624 0-127.872 57.216-127.872 127.84 0 70.592 57.248 127.84 127.872 127.84s127.872-107.248 127.872-127.84c0-70.624-107.248-127.84-127.872-127.84z',
       value: 25,
     }];
     //饼图scale
@@ -726,8 +726,8 @@ getTodayWeek = ()=> {
           </Row>
           <Row style={{marginTop:'10px'}}>
             <Col span={8}>
-              <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:535}}>
-                <p style={{color:'white'}}>
+              <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:635}}>
+                <p style={{color:'white',textAlign:'center'}}>
                     今日巡检异常：{this.state.RotateDBATodayData}
                     <Table
                       className='ant-table-bg'
@@ -750,7 +750,7 @@ getTodayWeek = ()=> {
                               return className;
                           }
                       }}
-                      scroll={{ y: 440,x:true }}
+                      scroll={{ y: 540,x:true }}
                       pagination={false}
                     />
                 </p>
@@ -760,45 +760,81 @@ getTodayWeek = ()=> {
                 <img style={{width:'100%'}} alt="example" src={bg_city} />
                 <Row>
                     <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:150}}>
-                          <p style={{color:'white',marginTop:40}}>BJ10：100</p>
+                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:200}}>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>业务名称  故障/隔离/总数</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>zjBJ10：0/0/35</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>zjBJ11：0/0/35</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>zjSH20：0/0/35</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>zjSH21：0/0/35</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>zjSZ30：0/0/35</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>zjSZ31：0/0/35</p>
                         </Card>
                     </Col>
                     <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:150}}>
-                          <p style={{color:'white',marginTop:40}}>BJ10：100</p>
+                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:200}}>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>业务名称  故障/隔离/总数</p>
+                          <p style={{color:'white',fontSize:2,marginLeft:-10}}>rjBJ10：0/0/10</p>
+                          <p style={{color:'white',fontSize:2,marginLeft:-10}}>rjBJ11：0/0/10</p>
+                          <p style={{color:'white',fontSize:2,marginLeft:-10}}>rjSH20：0/0/10</p>
+                          <p style={{color:'white',fontSize:2,marginLeft:-10}}>rjSH21：0/0/10</p>
+                          <p style={{color:'white',fontSize:2,marginLeft:-10}}>rjSZ30：0/0/10</p>
+                          <p style={{color:'white',fontSize:2,marginLeft:-10}}>rjSZ31：0/0/10</p>
                         </Card>
                     </Col>
                     <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:150}}>
-                          <p style={{color:'white',marginTop:40}}>BJ10：100</p>
+                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:200}}>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>业务名称  故障/隔离/总数</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>cjBJ10：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>cjBJ11：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>cjSH20：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>cjSH21：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>cjSZ30：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>cjSZ31：0/0/4</p>
                         </Card>
                     </Col>
                 </Row>
                 <Row>
                     <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:150}}>
-                          <p style={{color:'white',marginTop:40}}>BJ10：100</p>
+                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:200}}>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>业务名称  故障/隔离/总数</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>hylsBJ10：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>hylsBJ11：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>hylsSH20：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>hylsSH21：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>hylsSZ30：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>hylsSZ31：0/0/4</p>
                         </Card>
                     </Col>
                     <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:150}}>
-                          <p style={{color:'white',marginTop:40}}>BJ10：100</p>
+                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:200}}>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>业务名称  故障/隔离/总数</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>tmBJ10：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>tmBJ11：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>tmSH20：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>tmSH21：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>tmSZ30：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>tmSZ31：0/0/4</p>
                         </Card>
                     </Col>
                     <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:150}}>
-                          <p style={{color:'white',marginTop:40}}>BJ10：100</p>
+                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:200}}>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>业务名称  故障/隔离/总数</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>gkBJ10：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>gkBJ11：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>gkSH20：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>gkSH21：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>gkSZ30：0/0/4</p>
+                          <p style={{color:'white',marginLeft:-10,fontSize:2}}>gkSZ31：0/0/4</p>
                         </Card>
                     </Col>
                 </Row>
             </Col>
             <Col span={8}>
-              <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:535}}>
+              <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:635}}>
 
-                <p style={{color:'white'}}>
+                <p style={{color:'white',textAlign:'center'}}>
                     GFS备份存储占用空间：{this.state.RotateDBATodayData}
-                    <Chart height={200} width={100} data={bingtu_data} padding='auto' scale={bingtu_scale} forceFit>
+                    <Chart height={250} width={100} data={bingtu_data} padding='auto' scale={bingtu_scale} forceFit>
                       <Tooltip />
                       <Geom
                         type="interval"
@@ -830,7 +866,7 @@ getTodayWeek = ()=> {
                       </Guide>
                     </Chart>
                     数据库集群类型分布：{this.state.RotateDBATodayData}
-                    <Chart height={280} data={dv_zhuzhuangtu} forceFit>
+                    <Chart height={330} data={dv_zhuzhuangtu} forceFit>
                       <Coord transpose />
                       <Axis
                         name="country"
