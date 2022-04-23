@@ -727,13 +727,13 @@ getTodayWeek = ()=> {
           <Row style={{marginTop:'10px'}}>
             <Col span={8}>
               <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:635}}>
-                <p style={{color:'white',textAlign:'center'}}>
-                    今日巡检异常：{this.state.RotateDBATodayData}
+                <p style={{color:'white'}}>
+                    今日巡检异常：警告:50 错误:50
                     <Table
                       className='ant-table-bg'
                       columns={mock_columns}
                       dataSource={mock_data}
-                      style={{bordered:'false'}}
+                      style={{bordered:'false',border: 'false'}}
                       size="small"
                       rowClassName={(record, index) => {
                           let className = 'row-detail-bg-default';
