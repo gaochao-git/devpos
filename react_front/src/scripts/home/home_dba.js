@@ -6,12 +6,12 @@ import { Link } from 'react-router-dom';
 import {Redirect}  from 'react-router-dom';
 import {Highlighter} from 'react-highlight-words';
 import {DataSet} from '@antv/data-set';
-import pageBg from '../../pageBg.png'
-import tbBg from '../../tb_bg.png'
-import headBg from '../../head_bg.png'
-import popUpBg from '../../popUP_bg.png'
+import pageBg from '../../images/pageBg.png'
+import tbBg from '../../images/tb_bg.png'
+import headBg from '../../images/head_bg.png'
+import popUpBg from '../../images/popUP_bg.png'
 
-import earth_rotate from '../../earth-rotate.gif'
+import earth_rotate from '../../images/earth-rotate.gif'
 const { Column } = Table;
 const { Meta } = Card;
 
@@ -493,7 +493,7 @@ getTodayWeek = ()=> {
               </Card>
             </Col>
             <Col span={8}>
-                <img className='earth-gif' alt="example" src={require('/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/earth-rotate.gif')} />
+                <img className='earth-gif' alt="example" src={earth_rotate} />
             </Col>
             <Col span={8}>
               <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:550}}>
