@@ -10,6 +10,11 @@ import pageBg from '../../images/pageBg.png'
 import tbBg from '../../images/tb_bg.png'
 import headBg from '../../images/head_bg.png'
 import popUpBg from '../../images/popUP_bg.png'
+import biankuang_gif from '../../images/biankuang.gif'
+import backup_gif from '../../images/backup.gif'
+import server_gif from '../../images/server.gif'
+import archive_gif from '../../images/archive.gif'
+import error from '../../images/error.gif'
 import workFlow from '../../images/workflow.gif'   // 来源 https://588ku.com/gif/keji-6-0-default-0-3/
 
 import earth_rotate from '../../images/earth-rotate.gif'
@@ -619,38 +624,56 @@ getTodayWeek = ()=> {
             </Col>
         </Row>
           <Row style={{height:'200px',background:''}} gutter={16}>
-            <Col span={6} style={{}}>
+            <Col span={4}>
               <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
-                <img style={{width:55}} className='robot-gif' alt="example111" src={bg_robot} />
-                <p style={{color:'white'}}>未处理工单</p>
-                <span style={{fontSize:'20px',color:'red'}}>{this.state.CallTodayData}</span>
-                <Chart
-                data={this.state.CallHistoryData}
-                scale={call_data_scale}
-                forceFit
-                height={100}
-                padding={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                >
-                  <Tooltip />
-                  <Geom
-                    type="area"
-                    position="stat_date*count"
-                    size={1}
-                    color="rgb(149, 95, 233)"
-                    //shape="smooth"
-                    style={{
-                      shadowColor: "l (270) 0:rgba(21, 146, 255, 0)",
-                      shadowBlur: 60,
-                      shadowOffsetY: 6
-                    }}
-                  />
-                </Chart>
+                <p style={{color:'white'}}>今日值班人员<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                <Row>
+                  <Col span={12}>
+                    <img style={{width:55}} className='robot-gif' alt="example111" src={bg_robot} />
+                  </Col>
+                  <Col span={12}>
+                    <p style={{color:'#5BBFBB',fontSize:30,marginTop:10}}>高超</p>
+                  </Col>
+                </Row>
               </Card>
             </Col>
-            <Col span={6}>
+            <Col span={4}>
               <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
-                <img style={{width:55}} className='robot-gif' alt="example111" src={bg_robot} />
+                <p style={{color:'white'}}>备份任务<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                <Row>
+                  <Col span={12}>
+                    <img style={{width:100}} className='robot-gif' alt="example111" src={backup_gif} />
+                  </Col>
+                  <Col span={12}>
+                    <p style={{color:'#5BBFBB',fontSize:30,marginTop:10}}>50</p>
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+            <Col span={4}>
+              <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
+                <p style={{color:'white'}}>归档任务<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                <Row>
+                  <Col span={12}>
+                    <img style={{width:100}} className='robot-gif' alt="example111" src={archive_gif} />
+                  </Col>
+                  <Col span={12}>
+                    <p style={{color:'#5BBFBB',fontSize:30,marginTop:10}}>50</p>
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+            <Col span={4}>
+              <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
                 <p style={{color:'white'}}>服务器数量 <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                <Row>
+                  <Col span={12}>
+                    <img style={{width:100}} className='robot-gif' alt="example111" src={server_gif} />
+                  </Col>
+                  <Col span={12}>
+                    <p style={{color:'#5BBFBB',fontSize:30,marginTop:10}}>50</p>
+                  </Col>
+                </Row>
                 <p style={{fontSize:'20px',color:'#FFD306'}}>{this.state.WarrantyServerTodayData}</p>
                 <Chart
                 data={this.state.WarrantyServerHistoryData}
@@ -686,11 +709,17 @@ getTodayWeek = ()=> {
                 </Chart>
               </Card>
             </Col>
-            <Col span={6}>
+            <Col span={4}>
               <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
-                <img style={{width:100}} className='robot-gif' alt="example111" src={workFlow} />
-                <p style={{color:'white'}}>今日工单数量</p>
-                <p style={{fontSize:'20px',color:'green'}}>{this.state.WorkSheetTodayData}</p>
+                <p style={{color:'white'}}>今日工单数量<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                <Row>
+                  <Col span={12}>
+                    <img style={{width:100}} className='robot-gif' alt="example111" src={workFlow} />
+                  </Col>
+                  <Col span={12}>
+                    <p style={{color:'#5BBFBB',fontSize:30,marginTop:10}}>50</p>
+                  </Col>
+                </Row>
                 <Chart
                 data={this.state.WorkSheetHistoryData}
                 //scale={work_sheet_scale}
@@ -714,13 +743,17 @@ getTodayWeek = ()=> {
                 </Chart>
               </Card>
             </Col>
-            <Col span={6}>
+            <Col span={4}>
               <Card className='ant-tab-radius' bordered={true} style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
-                <p style={{color:'white'}}>DBA值班人员列表  <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showRotateDbaModalHandle()}}/></p>
-                <p style={{color:'white'}}>今日值班DBA：{this.state.RotateDBATodayData}</p>
-                <p style={{color:'white'}}>值班时间：晚8点～次日上午10点</p>
-                <br/>
-                <p style={{fontSize:'16px',color:'red'}}>注：非值班期间找对应业务线DBA </p>
+                <p style={{color:'white'}}>当前故障节点数<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                <Row>
+                  <Col span={12}>
+                    <img style={{width:100}} className='robot-gif' alt="example111" src={error} />
+                  </Col>
+                  <Col span={12}>
+                    <p style={{color:'#5BBFBB',fontSize:30,marginTop:10}}>50</p>
+                  </Col>
+                </Row>
               </Card>
             </Col>
           </Row>
@@ -751,6 +784,10 @@ getTodayWeek = ()=> {
                       scroll={{ y: 530,x:true }}
                       pagination={false}
                     />
+                    <view class="left_top_corner"></view>
+                    <view class="right_top_corner"></view>
+                    <view class="left_bottom_corner"></view>
+                    <view class="right_bottom_corner"></view>
                 </p>
               </Card>
             </Col>
@@ -876,45 +913,53 @@ getTodayWeek = ()=> {
                       <Tooltip />
                       <Geom type="interval" position="country*population" />
                     </Chart>
+                    <view class="left_top_corner"></view>
+                    <view class="right_top_corner"></view>
+                    <view class="left_bottom_corner"></view>
+                    <view class="right_bottom_corner"></view>
                 </p>
               </Card>
             </Col>
           </Row>
           <Row style={{marginTop:'10px'}} gutter={24}>
-          <Col  span={24}>
-            <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,}}>
-              <p style={{color:'white'}}>集群TPS<Icon style={{color:'green'}} type="eye" onClick={()=>{this.getBuLevelInfo()}}/></p>
-            <Chart height={400} data={line_mock_data} scale={cols} forceFit>
-              <Axis
-                name="month"
-                title={null}
-                tickLine={null}
-                line={{
-                  stroke: "#E6E6E6"
-                }}
-              />
-              <Axis
-                name="acc"
-                line={false}
-                tickLine={null}
-                grid={null}
-                title={null}
-              />
-              <Tooltip />
-              <Geom
-                type="line"
-                position="month*acc"
-                size={1}
-                color="l (270) 0:rgba(255, 146, 255, 1) .5:rgba(100, 268, 255, 1) 1:rgba(215, 0, 255, 1)"
-                shape="smooth"
-                style={{
-                  shadowColor: "l (270) 0:rgba(21, 146, 255, 0)",
-                  shadowBlur: 60,
-                  shadowOffsetY: 6
-                }}
-              />
-            </Chart>
-                  </Card>
+            <Col  span={24}>
+              <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,}}>
+                <p style={{color:'white'}}>集群TPS<Icon style={{color:'green'}} type="eye" onClick={()=>{this.getBuLevelInfo()}}/></p>
+                <Chart height={400} data={line_mock_data} scale={cols} forceFit>
+                  <Axis
+                    name="month"
+                    title={null}
+                    tickLine={null}
+                    line={{
+                      stroke: "#E6E6E6"
+                    }}
+                  />
+                  <Axis
+                    name="acc"
+                    line={false}
+                    tickLine={null}
+                    grid={null}
+                    title={null}
+                  />
+                  <Tooltip />
+                  <Geom
+                    type="line"
+                    position="month*acc"
+                    size={1}
+                    color="l (270) 0:rgba(255, 146, 255, 1) .5:rgba(100, 268, 255, 1) 1:rgba(215, 0, 255, 1)"
+                    shape="smooth"
+                    style={{
+                      shadowColor: "l (270) 0:rgba(21, 146, 255, 0)",
+                      shadowBlur: 60,
+                      shadowOffsetY: 6
+                    }}
+                  />
+                </Chart>
+                <view class="left_top_corner"></view>
+                <view class="right_top_corner"></view>
+                <view class="left_bottom_corner"></view>
+                <view class="right_bottom_corner"></view>
+              </Card>
             </Col>
           </Row>
         </div>

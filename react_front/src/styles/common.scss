@@ -223,3 +223,44 @@ td.replacecolor{
 .ant-table-bg {
   border-radius: 10px;
 }
+
+//四个角高亮
+.left_top_corner {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-left: 2px solid #5BBFBB;
+    border-top: 2px solid #5BBFBB;
+}
+//四个角高亮
+.right_top_corner {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    border-right: 2px solid #5BBFBB;
+    border-top: 2px solid #5BBFBB;
+}
+//四个角高亮
+.left_bottom_corner {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    border-bottom: 2px solid #5BBFBB;
+    border-left: 2px solid #5BBFBB;
+}
+//四个角高亮
+.right_bottom_corner {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    border-right: 2px solid #5BBFBB;
+    border-bottom: 2px solid #5BBFBB;
+}
