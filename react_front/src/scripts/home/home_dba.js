@@ -73,68 +73,68 @@ class HomeDbaInfo extends Component {
       ArchiveInfoList:[],
       ArchiveInfoCount:'',
       ArchiveInfoVisible:false,
-      current_time:"",
-      week_day:""
+//      current_time:"",
+//      week_day:""
     };
   }
 
   componentDidMount() {
-    this.setCurrentTimeInterVal()
+//    this.setCurrentTimeInterVal()
   }
 
-  setCurrentTimeInterVal = () => {
-      //setInterval与slider滑块在一起会导致滑块失效
-      this.currentTimerId = window.setInterval(this.getDateWeek.bind(this),1000);
-  }
-  getDateWeek = ()=>{
-    this.getTodayDate();
-    this.getTodayWeek()
-  }
-  getTodayDate = ()=> {
-    var checkTime = function (i) {
-      if (i < 10) {i = "0" + i}
-      return i;
-    }
-    var date = new Date();
-    var year = date.getFullYear().toString();
-    var month = (date.getMonth()+1).toString();
-    var day = date.getDate().toString();
-    var hour =   checkTime(date.getHours().toString());
-    var minute = checkTime(date.getMinutes().toString());
-    var second = checkTime(date.getSeconds().toString());
-    var now_time = year+'-'+month+'-'+day+' '+hour+':'+minute+':'+second;
-    this.setState({current_time:now_time})
-};
-
-getTodayWeek = ()=> {
-    var tempDate = new Date();
-    var days = tempDate.getDay();
-    var week;
-    switch(days) {
-        case 1:
-            week = '星期一';
-            break;
-        case 2:
-            week = '星期二';
-            break;
-        case 3:
-            week = '星期三';
-            break;
-        case 4:
-            week = '星期四';
-            break;
-        case 5:
-            week = '星期五';
-            break;
-        case 6:
-            week = '星期六';
-            break;
-        case 0:
-            week = '星期日';
-            break;
-    }
-    this.setState({week_day:week})
-};
+//  setCurrentTimeInterVal = () => {
+//      //setInterval与slider滑块在一起会导致滑块失效
+//      this.currentTimerId = window.setInterval(this.getDateWeek.bind(this),1000);
+//  }
+//  getDateWeek = ()=>{
+//    this.getTodayDate();
+//    this.getTodayWeek()
+//  }
+//  getTodayDate = ()=> {
+//    var checkTime = function (i) {
+//      if (i < 10) {i = "0" + i}
+//      return i;
+//    }
+//    var date = new Date();
+//    var year = date.getFullYear().toString();
+//    var month = (date.getMonth()+1).toString();
+//    var day = date.getDate().toString();
+//    var hour =   checkTime(date.getHours().toString());
+//    var minute = checkTime(date.getMinutes().toString());
+//    var second = checkTime(date.getSeconds().toString());
+//    var now_time = year+'-'+month+'-'+day+' '+hour+':'+minute+':'+second;
+//    this.setState({current_time:now_time})
+//};
+//
+//getTodayWeek = ()=> {
+//    var tempDate = new Date();
+//    var days = tempDate.getDay();
+//    var week;
+//    switch(days) {
+//        case 1:
+//            week = '星期一';
+//            break;
+//        case 2:
+//            week = '星期二';
+//            break;
+//        case 3:
+//            week = '星期三';
+//            break;
+//        case 4:
+//            week = '星期四';
+//            break;
+//        case 5:
+//            week = '星期五';
+//            break;
+//        case 6:
+//            week = '星期六';
+//            break;
+//        case 0:
+//            week = '星期日';
+//            break;
+//    }
+//    this.setState({week_day:week})
+//};
 
   render() {
     const ds = new DataSet();
@@ -817,17 +817,70 @@ getTodayWeek = ()=> {
             </Col>
         </Row>
           <Row style={{height:'200px',background:''}} gutter={16}>
+          <Col span={4}>
+              <Card className='ant-tab-radius' bordered={true} style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
+                <p style={{color:'white'}}>zabbix<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                <Row>
+                  <Col span={12}>
+                    <img style={{width:100}} className='robot-gif' alt="example111" src={error} />
+                  </Col>
+                  <Col span={12}>
+                    <p style={{color:'#5BBFBB',fontSize:15}}>信息:15</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>警告:1</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>错误:0</p>
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
             <Col span={4}>
               <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
-                <p style={{color:'white'}}>今日值班人员<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                <p style={{color:'white'}}>巡检任务<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
                 <Row>
                   <Col span={12}>
                     <img style={{width:55}} className='robot-gif' alt="example111" src={bg_robot} />
                   </Col>
                   <Col span={12}>
-                    <p style={{color:'#5BBFBB',fontSize:30,marginTop:10}}>高超</p>
+                    <p style={{color:'#5BBFBB',fontSize:15}}>信息:15</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>警告:1</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>错误:0</p>
                   </Col>
                 </Row>
+              </Card>
+            </Col>
+<Col span={4}>
+              <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
+                <p style={{color:'white'}}>报警工单<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                <Row>
+                  <Col span={12}>
+                    <img style={{width:100}} className='robot-gif' alt="example111" src={workFlow} />
+                  </Col>
+                  <Col span={12}>
+                    <p style={{color:'#5BBFBB',fontSize:15}}>总数:8</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>已处理:5</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>未认领:3</p>
+                  </Col>
+                </Row>
+                <Chart
+                data={this.state.WorkSheetHistoryData}
+                //scale={work_sheet_scale}
+                forceFit
+                height={80}
+                padding={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                >
+                  <Tooltip />
+                  <Geom
+                    type="area"
+                    position="stat_date*work_sheet_count"
+                    size={1}
+                    color="#009393"
+                    //shape="smooth"
+                    style={{
+                      shadowColor: "l (270) 0:rgba(21, 146, 255, 0)",
+                      shadowBlur: 60,
+                      shadowOffsetY: 6
+                    }}
+                  />
+                </Chart>
               </Card>
             </Col>
             <Col span={4}>
@@ -838,7 +891,10 @@ getTodayWeek = ()=> {
                     <img style={{width:100}} className='robot-gif' alt="example111" src={backup_gif} />
                   </Col>
                   <Col span={12}>
-                    <p style={{color:'#5BBFBB',fontSize:30,marginTop:10}}>50</p>
+                    <p style={{color:'#5BBFBB',fontSize:15}}>任务数:300</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>运行中:0</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>成功:298</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>失败:2</p>
                   </Col>
                 </Row>
               </Card>
@@ -851,20 +907,25 @@ getTodayWeek = ()=> {
                     <img style={{width:100}} className='robot-gif' alt="example111" src={archive_gif} />
                   </Col>
                   <Col span={12}>
-                    <p style={{color:'#5BBFBB',fontSize:30,marginTop:10}}>50</p>
+                    <p style={{color:'#5BBFBB',fontSize:15}}>任务数:60</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>运行中:0</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>成功:59</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>失败:1</p>
                   </Col>
                 </Row>
               </Card>
             </Col>
             <Col span={4}>
               <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
-                <p style={{color:'white'}}>服务器数量 <Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                <p style={{color:'white'}}>服务器<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
                 <Row>
                   <Col span={12}>
                     <img style={{width:100}} className='robot-gif' alt="example111" src={server_gif} />
                   </Col>
                   <Col span={12}>
-                    <p style={{color:'#5BBFBB',fontSize:30,marginTop:10}}>50</p>
+                    <p style={{color:'#5BBFBB',fontSize:15}}>总数:2000</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>运行:1999</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>故障:1</p>
                   </Col>
                 </Row>
                 <p style={{fontSize:'20px',color:'#FFD306'}}>{this.state.WarrantyServerTodayData}</p>
@@ -900,53 +961,6 @@ getTodayWeek = ()=> {
                     }}
                   />
                 </Chart>
-              </Card>
-            </Col>
-            <Col span={4}>
-              <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
-                <p style={{color:'white'}}>今日工单数量<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
-                <Row>
-                  <Col span={12}>
-                    <img style={{width:100}} className='robot-gif' alt="example111" src={workFlow} />
-                  </Col>
-                  <Col span={12}>
-                    <p style={{color:'#5BBFBB',fontSize:30,marginTop:10}}>50</p>
-                  </Col>
-                </Row>
-                <Chart
-                data={this.state.WorkSheetHistoryData}
-                //scale={work_sheet_scale}
-                forceFit
-                height={80}
-                padding={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                >
-                  <Tooltip />
-                  <Geom
-                    type="area"
-                    position="stat_date*work_sheet_count"
-                    size={1}
-                    color="#009393"
-                    //shape="smooth"
-                    style={{
-                      shadowColor: "l (270) 0:rgba(21, 146, 255, 0)",
-                      shadowBlur: 60,
-                      shadowOffsetY: 6
-                    }}
-                  />
-                </Chart>
-              </Card>
-            </Col>
-            <Col span={4}>
-              <Card className='ant-tab-radius' bordered={true} style={{ backgroundImage:`url(${pageBg})`,height:'200px'}}>
-                <p style={{color:'white'}}>当前故障节点数<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
-                <Row>
-                  <Col span={12}>
-                    <img style={{width:100}} className='robot-gif' alt="example111" src={error} />
-                  </Col>
-                  <Col span={12}>
-                    <p style={{color:'#5BBFBB',fontSize:30,marginTop:10}}>50</p>
-                  </Col>
-                </Row>
               </Card>
             </Col>
           </Row>
@@ -1057,7 +1071,7 @@ getTodayWeek = ()=> {
             </Col>
             <Col span={8}>
               <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:635}}>
-                <p style={{color:'#5BBFBB',textAlign:'right'}}>
+                <p style={{color:'white',textAlign:'right'}}>
                     主机资源
                     <Chart
                       height={300}
@@ -1110,8 +1124,8 @@ getTodayWeek = ()=> {
                           textStyle= {{
                             //textAlign: 'center', // 文本对齐方向，可取值为： start middle end
                             fill: '#5BBFBB', // 文本的颜色
-                            fontSize: '12', // 文本大小
-                            //fontWeight: 'bold', // 文本粗细
+                            fontSize: '15', // 文本大小
+                            fontWeight: 'bold', // 文本粗细
                             //textBaseline: 'top' // 文本基准线，可取 top middle bottom，默认为middle
                           }}
                         />

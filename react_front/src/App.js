@@ -25,6 +25,7 @@ import NavOps from './scripts/home/nave_ops'
 import imgURL from './my_logo.jpg'
 import HomeDbaInfo from './scripts/home/home_dba'
 import UserRole from './scripts/permission/userRole'
+import {myTimer} from "./scripts/common/myTimer";
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
 
@@ -41,6 +42,8 @@ class App extends Component {
             login_user_name:"",
             login_user_name_role:"",
             current_nav:"",
+            current_time:"",
+            week_day:""
         }
     }
     componentDidMount() {
@@ -55,6 +58,7 @@ class App extends Component {
             this.setState({current_nav:"服务"});
         };
     }
+
     //根据token获取登陆信息
     async getUserInfo() {
         await MyAxios.post('/v2/v2_get_login_user_info/').then(
@@ -88,7 +92,7 @@ class App extends Component {
                                     defaultOpenKeys={[this.state.current_nav]}
                                     onClick={this.handlerClick}
                                     selectedKeys={[this.state.current_nav]}
-                                    style={{width:'70%'}}
+                                    style={{width:'40%'}}
                                 >
                                     <Menu.Item key="服务" style={{marginLeft:'20px'}} >
                                         <Link to="/Server">服务</Link>
@@ -100,7 +104,8 @@ class App extends Component {
                                         <Link to="/userRole">管理</Link>
                                     </Menu.Item>
                                 </Menu>
-                                <div style={{width:'20%',textAlign:"right"  }}>
+                                <div style={{width:'50%',textAlign:"right"  }}>
+                                <myTimer/>
                                     <Tooltip
                                         title={
                                             <span>
@@ -111,7 +116,8 @@ class App extends Component {
                                             </span>
                                         }
                                     >
-                                        <Icon type="user" /> {this.state.login_user_name}
+
+                                        {this.state.current_time}  {this.state.week_day} <Icon type="user" />{this.state.login_user_name}
                                     </Tooltip>
                                     <Button
                                         icon="poweroff"
