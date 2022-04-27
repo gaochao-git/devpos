@@ -92,15 +92,15 @@
 }
 .row-detail-bg-default {
   background: #03050c;
-  color:#126BA9;
+  color:#5BBFBB;
 }
 .row-detail-bg-error {
   background: #03050c;
-  color:#ff9317;
+  color:#BF3B2C;
 }
 .row-detail-bg-warning {
   background: #03050c;
-  color:#1fc9cd;
+  color:#BFA42F;
 }
 .row-detail-default {
   background: #00000000;
@@ -211,8 +211,10 @@ ant-menu.-inline .ant-menu-submenu-title {
 th.replacecolor{
   color: #1790ff !important;
   background-color:#1A274F !important;
-  border-top:1px solid white !important;
+  border-top:0px solid white !important;
   border-bottom:0px solid !important;
+  border-left:0px solid !important;
+  border-right:0px solid !important;
   border-radius:0px;
 }
 

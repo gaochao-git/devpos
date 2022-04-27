@@ -1,10 +1,12 @@
 import React,{Component} from 'react';
 import {G2,Chart,Geom,Axis,Tooltip,Coord,Label,Legend,View,Guide,Shape,Facet,Util} from 'bizcharts';
-import { Table, Button,Row,Card, Col,Statistic,Icon,Modal,Input ,Popover,Form,span} from 'antd';
+import Slider from 'bizcharts-plugin-slider';
+import { Table, Button,Row,Card, Col,Statistic,Icon,Modal,Input ,Popover,Form,span,Tabs,Select} from 'antd';
 import { Alert, message } from 'antd';
 import { Link } from 'react-router-dom';
 import {Redirect}  from 'react-router-dom';
 import {Highlighter} from 'react-highlight-words';
+import {Arealarge} from '../common/slider_line'
 import {DataSet} from '@antv/data-set';
 import pageBg from '../../images/pageBg.png'
 import tbBg from '../../images/tb_bg.png'
@@ -23,7 +25,8 @@ import bg_robot from '../../images/robot.gif'
 const { Column } = Table;
 const { Meta } = Card;
 const { Text } = Guide;
-
+const { TabPane } = Tabs;
+const {Option} = Select
 
 class HomeDbaInfo extends Component {
   constructor(props) {
@@ -80,6 +83,7 @@ class HomeDbaInfo extends Component {
   }
 
   setCurrentTimeInterVal = () => {
+      //setInterval与slider滑块在一起会导致滑块失效
       this.currentTimerId = window.setInterval(this.getDateWeek.bind(this),1000);
   }
   getDateWeek = ()=>{
@@ -87,13 +91,17 @@ class HomeDbaInfo extends Component {
     this.getTodayWeek()
   }
   getTodayDate = ()=> {
+    var checkTime = function (i) {
+      if (i < 10) {i = "0" + i}
+      return i;
+    }
     var date = new Date();
     var year = date.getFullYear().toString();
     var month = (date.getMonth()+1).toString();
     var day = date.getDate().toString();
-    var hour =  date.getHours().toString();
-    var minute = date.getMinutes().toString();
-    var second = date.getSeconds().toString();
+    var hour =   checkTime(date.getHours().toString());
+    var minute = checkTime(date.getMinutes().toString());
+    var second = checkTime(date.getSeconds().toString());
     var now_time = year+'-'+month+'-'+day+' '+hour+':'+minute+':'+second;
     this.setState({current_time:now_time})
 };
@@ -196,15 +204,6 @@ getTodayWeek = ()=> {
       dimension: "item",
       as: "percent"
     });
-
-    // const alert_scale = {
-    //   percent: {
-    //     formatter: val => {
-    //       val = val * 100 + "%";
-    //       return val;
-    //     }
-    //   }
-    // };
     const dv2 = ds.createView().source(this.state.HostMysqlRedisCountData);
     dv2.transform({
       type: "fold",
@@ -215,8 +214,6 @@ getTodayWeek = ()=> {
       // value字段
       value: "count"
     });
-
-
     const label = {
       rotate: 11, //坐标轴文本旋转角度
       textStyle: {
@@ -383,6 +380,42 @@ getTodayWeek = ()=> {
         className:'replacecolor'
       },
     ];
+    const mock_check_columns = [
+    {
+        title: '巡检类型',
+        dataIndex: 'check_type',
+        className:'replacecolor'
+      },
+      {
+        title: '巡检结果',
+        dataIndex: 'check_ret',
+        className:'replacecolor'
+      },
+      {
+        title: '巡检人员',
+        dataIndex: 'check_user',
+        className:'replacecolor'
+      },
+      {
+        title: '巡检时间',
+        dataIndex: 'check_time',
+        className:'replacecolor'
+      },
+      {
+        title: '巡检详情',
+        dataIndex: 'check_detail',
+        className:'replacecolor'
+      },
+    ];
+    const mock_check_data = [
+      {
+        check_type: 'big_table',
+        check_ret: 'warning',
+        check_user: 'gaochao',
+        check_time: '2022-04-23 05:08:45',
+        check_detail: '点击获取详情',
+      },
+    ]
     const mock_data = [
       {
         key: '1',
@@ -557,47 +590,64 @@ getTodayWeek = ()=> {
     };
 
     //并入
-    const bingtu_data = [{
-      gender: 'male',
-      path: 'M381.759 0h292l-.64 295.328-100.127-100.096-94.368 94.368C499.808 326.848 512 369.824 512 415.712c0 141.376-114.56 256-256 256-141.376 0-256-114.624-256-256s114.624-256 256-256c48.8 0 94.272 13.92 133.12 37.632l93.376-94.592L381.76 0zM128.032 415.744c0 70.688 57.312 128 128 128s128-107.312 128-128-107.312-128-128-128-128 57.312-128 128z',
-      value: 50,
-    }, {
-      gender: 'middle',
-      path: 'M381.759 0h292l-.64 295.328-100.127-100.096-94.368 94.368C499.808 326.848 512 369.824 512 415.712c0 141.376-114.56 256-256 256-141.376 0-256-114.624-256-256s114.624-256 256-256c48.8 0 94.272 13.92 133.12 37.632l93.376-94.592L381.76 0zM128.032 415.744c0 70.688 57.312 128 128 128s128-107.312 128-128-107.312-128-128-128-128 57.312-128 128z',
-      value: 25,
-    }, {
-      gender: 'female',
-      path: 'M320.96 503.232v105.376h127.872V736.48H320.96v127.872H191.136V736.48H63.296V608.608h127.84v-105.76C81.216 474.208 0 374.56 0 255.712 0 114.496 114.496 0 255.712 0c141.248 0 255.68 114.496 255.68 255.712 0 119.328-79.872 219.264-190.432 247.52zm-65.248-375.36c-70.624 0-127.872 57.216-127.872 127.84 0 70.592 57.248 127.84 127.872 127.84s127.872-107.248 127.872-127.84c0-70.624-107.248-127.84-127.872-127.84z',
-      value: 25,
-    }];
-    //饼图scale
-    const bingtu_scale = {
-      value: {
-        min: 0,
-        max: 100,
+    const bingtu_data = [
+      {
+        item: "一部",
+        count: 40
       },
+      {
+        item: "二部",
+        count: 21
+      },
+      {
+        item: "三部",
+        count: 17
+      },
+      {
+        item: "平台部",
+        count: 13
+      },
+      {
+        item: "设施部",
+        count: 9
+      }
+    ];
+    const bingtu_dv = new DataView();
+    bingtu_dv.source(bingtu_data).transform({
+      type: "percent",
+      field: "count",
+      dimension: "item",
+      as: "percent"
+    });
+    const bingtu_cols = {
+      percent: {
+        formatter: val => {
+          val = val * 100 + "%";
+          return val;
+        }
+      }
     };
     //横向柱状图
     const zhuzhuangtu_data = [
       {
         country: "TiDB",
-        population: 131744
+        cluster_count: 131744
       },
       {
         country: "MySQL",
-        population: 104970
+        cluster_count: 104970
       },
       {
         country: "GoldenDB",
-        population: 29034
+        cluster_count: 29034
       },
       {
         country: "SQLServer",
-        population: 23489
+        cluster_count: 23489
       },
       {
         country: "达梦",
-        population: 18203
+        cluster_count: 18203
       }
     ];
     const ds_zhuzhuangtu = new DataSet();
@@ -606,9 +656,152 @@ getTodayWeek = ()=> {
       type: "sort",
       callback(a, b) {
         // 排序依据，和原生js的排序callback一致
-        return a.population - b.population > 0;
+        return a.cluster_count - b.cluster_count > 0;
       }
     });
+
+    const mock_tdb_columns = [
+    {
+        title: 'idc',
+        dataIndex: 'idc',
+        className:'replacecolor'
+      },
+      {
+        title: '业务',
+        dataIndex: 'project',
+        className:'replacecolor'
+      },
+      {
+        title: '总数',
+        dataIndex: 'total',
+        className:'replacecolor'
+      },
+      {
+        title: '在线',
+        dataIndex: 'active',
+        className:'replacecolor'
+      },
+      {
+        title: '允许隔离',
+        dataIndex: 'config_tdb_total',
+        className:'replacecolor'
+      },
+      {
+        title: '已隔离',
+        dataIndex: 'tdb_total',
+        className:'replacecolor'
+      },
+    ];
+    const mock_tdb_data = [
+      {
+        idc: 'BJ10',
+        project: 'trans',
+        total: 35,
+        active:27,
+        config_tdb_total: 17,
+        tdb_total: 8,
+      },
+      {
+        idc: 'BJ11',
+        project: 'trans',
+        total: 35,
+        active:18,
+        config_tdb_total: 17,
+        tdb_total: 17,
+      },{
+        idc: 'BJ10',
+        project: 'trans',
+        total: 35,
+        active:27,
+        config_tdb_total: 17,
+        tdb_total: 8,
+      },{
+        idc: 'BJ10',
+        project: 'trans',
+        total: 35,
+        active:27,
+        config_tdb_total: 17,
+        tdb_total: 8,
+      },{
+        idc: 'BJ10',
+        project: 'trans',
+        total: 35,
+        active:27,
+        config_tdb_total: 17,
+        tdb_total: 8,
+      },{
+        idc: 'BJ10',
+        project: 'trans',
+        total: 35,
+        active:27,
+        config_tdb_total: 17,
+        tdb_total: 8,
+      },{
+        idc: 'BJ10',
+        project: 'trans',
+        total: 35,
+        active:27,
+        config_tdb_total: 17,
+        tdb_total: 8,
+      },{
+        idc: 'BJ10',
+        project: 'trans',
+        total: 35,
+        active:27,
+        config_tdb_total: 17,
+        tdb_total: 8,
+      },{
+        idc: 'BJ10',
+        project: 'trans',
+        total: 35,
+        active:27,
+        config_tdb_total: 17,
+        tdb_total: 8,
+      },{
+        idc: 'BJ10',
+        project: 'trans',
+        total: 35,
+        active:27,
+        config_tdb_total: 17,
+        tdb_total: 8,
+      },{
+        idc: 'BJ10',
+        project: 'trans',
+        total: 35,
+        active:27,
+        config_tdb_total: 17,
+        tdb_total: 8,
+      }
+      ]
+
+    const zhuzhuangtu_data_1 = [
+      {
+        year: "bj10_trans_01",
+        sales: 380
+      },
+      {
+        year: "bj10_trans_02",
+        sales: 52
+      },
+      {
+        year: "bj10_trans_03",
+        sales: 61
+      },
+      {
+        year: "bj10_trans_04",
+        sales: 145
+      },
+      {
+        year: "bj10_trans_05",
+        sales: 48
+      },
+    ];
+
+    const zhuzhuangtu_cols_1 = {
+      sales: {
+        tickInterval: 100
+      }
+    };
 
     return (
         <div style={{backgroundImage:`url(${pageBg})`}}>
@@ -759,31 +952,77 @@ getTodayWeek = ()=> {
           </Row>
           <Row style={{marginTop:'10px'}}>
             <Col span={8}>
-              <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:635}}>
-                <p style={{color:'white'}}>
-                    今日巡检异常：警告:50 错误:50
-                    <Table
-                      className='replacecolor'
-                      columns={mock_columns}
-                      dataSource={mock_data}
-                      rowClassName={(record, index) => {
-                          let className = 'row-detail-bg-default';
-                          if (record.type === "warning") {
-                              className = 'row-detail-bg-warning';
-                              return className;
-                          }else if (record.type  === "error"){
-                              className = 'row-detail-bg-error';
-                              return className;
-                          }else if (record.type  === "info"){
-                              className = 'row-detail-bg-default';
-                              return className;
-                          }else {
-                              return className;
-                          }
-                      }}
-                      scroll={{ y: 530,x:true }}
-                      pagination={false}
-                    />
+              <Card className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:635}}>
+                <p>
+                    <Tabs defaultActiveKey="1" tabBarStyle={{color:"#367AD2"}}>
+                        <TabPane tab="6idc_zabbix" key="1" style={{marginTop:-20}}>
+                            <Table
+
+                              columns={mock_columns}
+                              dataSource={mock_data}
+                              rowClassName={(record, index) => {
+                                  let className = 'row-detail-bg-default';
+                                  if (record.type === "warning") {
+                                      className = 'row-detail-bg-warning';
+                                      return className;
+                                  }else if (record.type  === "error"){
+                                      className = 'row-detail-bg-error';
+                                      return className;
+                                  }else if (record.type  === "info"){
+                                      className = 'row-detail-bg-default';
+                                      return className;
+                                  }else {
+                                      return className;
+                                  }
+                              }}
+                              scroll={{ y: 510,x:true }}
+                              pagination={false}
+                            />
+                        </TabPane>
+                        <TabPane tab="日常巡检" key="2" style={{marginTop:-20}}>
+                            <Table
+                              columns={mock_check_columns}
+                              dataSource={mock_check_data}
+                              rowClassName={(record, index) => {
+                                  let className = 'row-detail-bg-default';
+                                  if (record.type === "warning") {
+                                      className = 'row-detail-bg-warning';
+                                      return className;
+                                  }else if (record.type  === "error"){
+                                      className = 'row-detail-bg-error';
+                                      return className;
+                                  }else if (record.type  === "info"){
+                                      className = 'row-detail-bg-default';
+                                      return className;
+                                  }else {
+                                      return className;
+                                  }
+                              }}
+                              scroll={{ y: 510,x:true }}
+                              pagination={false}
+                            />
+                        </TabPane>
+                        <TabPane tab="集群状态" key="3" style={{marginTop:-20}}>
+                            <Table
+                              columns={mock_tdb_columns}
+                              dataSource={mock_tdb_data}
+                              rowClassName={(record, index) => {
+                                  let className = 'row-detail-bg-default';
+                                  if (record.tdb_total>0 && record.tdb_total <record.config_tdb_total) {
+                                      className = 'row-detail-bg-warning';
+                                      return className;
+                                  }else if (record.tdb_total>=record.config_tdb_total){
+                                      className = 'row-detail-bg-error';
+                                      return className;
+                                  }else {
+                                      return className;
+                                  }
+                              }}
+                              scroll={{ y: 510,x:true}}
+                              pagination={false}
+                            />
+                        </TabPane>
+                    </Tabs>
                     <view class="left_top_corner"></view>
                     <view class="right_top_corner"></view>
                     <view class="left_bottom_corner"></view>
@@ -793,125 +1032,103 @@ getTodayWeek = ()=> {
             </Col>
             <Col span={8}>
                 <img style={{width:'100%'}} alt="example" src={bg_city} />
-                <Row>
-                    <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:200}}>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>业务名称  故障/隔离/总数</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>zjBJ10：0/0/35</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>zjBJ11：0/0/35</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>zjSH20：0/0/35</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>zjSH21：0/0/35</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>zjSZ30：0/0/35</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>zjSZ31：0/0/35</p>
-                        </Card>
-                    </Col>
-                    <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:200}}>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>业务名称  故障/隔离/总数</p>
-                          <p style={{color:'white',fontSize:5,marginLeft:-10}}>rjBJ10：0/0/10</p>
-                          <p style={{color:'white',fontSize:5,marginLeft:-10}}>rjBJ11：0/0/10</p>
-                          <p style={{color:'white',fontSize:5,marginLeft:-10}}>rjSH20：0/0/10</p>
-                          <p style={{color:'white',fontSize:5,marginLeft:-10}}>rjSH21：0/0/10</p>
-                          <p style={{color:'white',fontSize:5,marginLeft:-10}}>rjSZ30：0/0/10</p>
-                          <p style={{color:'white',fontSize:5,marginLeft:-10}}>rjSZ31：0/0/10</p>
-                        </Card>
-                    </Col>
-                    <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:200}}>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>业务名称  故障/隔离/总数</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>cjBJ10：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>cjBJ11：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>cjSH20：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>cjSH21：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>cjSZ30：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>cjSZ31：0/0/4</p>
-                        </Card>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:200}}>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>业务名称  故障/隔离/总数</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>hylsBJ10：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>hylsBJ11：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>hylsSH20：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>hylsSH21：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>hylsSZ30：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>hylsSZ31：0/0/4</p>
-                        </Card>
-                    </Col>
-                    <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:200}}>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>业务名称  故障/隔离/总数</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>tmBJ10：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>tmBJ11：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>tmSH20：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>tmSH21：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>tmSZ30：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>tmSZ31：0/0/4</p>
-                        </Card>
-                    </Col>
-                    <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:200}}>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>业务名称  故障/隔离/总数</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>gkBJ10：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>gkBJ11：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>gkSH20：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>gkSH21：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>gkSZ30：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>gkSZ31：0/0/4</p>
-                        </Card>
-                    </Col>
-                </Row>
+                <Chart
+                  height={370}
+                  data={zhuzhuangtu_data_1}
+                  scale={zhuzhuangtu_cols_1}
+                  forceFit
+                  padding={{ top: 10, right: 20, bottom: 30, left: 60 }}
+                  plotBackground={{
+                    stroke:null  //边框颜色
+                  }}
+                  style={{color:'white',textAlign:'center',marginTop:10}}
+                >
+                  <span className='main-title'>今日慢查询TOP5集群</span>
+                  <Axis name="year" />
+                  <Axis name="sales" />
+                  <Tooltip
+                    // crosshairs用于设置 tooltip 的辅助线或者辅助框
+                    // crosshairs={{
+                    //  type: "y"
+                    // }}
+                  />
+                  <Geom type="interval" position="year*sales" color='#5BBFBB' size="32"/>
+                </Chart>
             </Col>
             <Col span={8}>
               <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:635}}>
-
-                <p style={{color:'white',textAlign:'center'}}>
-                    GFS备份存储占用空间：{this.state.RotateDBATodayData}
-                    <Chart height={250} width={100} data={bingtu_data} padding='auto' scale={bingtu_scale} forceFit>
-                      <Tooltip />
-                      <Geom
-                        type="interval"
-                        position="gender*value"
-                        color="gender"
-                        shape="liquid-fill-gauge"
-                        style={{
-                          lineWidth: 10,
-                          fillOpacity: 0.75,
-                        }}
+                <p style={{color:'#5BBFBB',textAlign:'right'}}>
+                    主机资源
+                    <Chart
+                      height={300}
+                      data={bingtu_dv}
+                      scale={bingtu_cols}
+                      padding={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                      forceFit
+                    >
+                      <Coord type={"theta"} radius={0.75} innerRadius={0.6} />
+                      <Axis name="percent" />
+                      <Legend
+                        position="bottom"
+                      />
+                      <Tooltip
+                        showTitle={false}
+                        itemTpl="<li>{name}: {value}</li>"
                       />
                       <Guide>
-                        {
-                          bingtu_data.map(
-                            row => (<Text
-                              content={`${row.value}%`}
-                              top
-                              position={{
-                                gender: row.gender,
-                                value: 50,
-                              }}
-                              style={{
-                                opacity: 0.75,
-                                fontSize: window.innerWidth / 60,
-                                textAlign: 'center',
-                              }}
-                            />))
-                        }
+                        <Html
+                          position={["50%", "50%"]}
+                          html="<div style=&quot;color:#8c8c8c;font-size:1.16em;text-align: center;width: 10em;&quot;>200台</div>"
+                          alignX="middle"
+                          alignY="middle"
+                        />
                       </Guide>
+                      <Geom
+                        type="intervalStack"
+                        position="percent"
+                        color="item"
+                        tooltip={[
+                          "item*percent",
+                          (item, percent) => {
+                            percent = percent * 100 + "%";
+                            return {
+                              name: item,
+                              value: percent
+                            };
+                          }
+                        ]}
+                        style={{
+                          lineWidth: 1,
+                          stroke: null
+                        }}
+                      >
+                        <Label
+                          content="percent"
+                          formatter={(val, item) => {
+                            return item.point.item + ": " + val;
+                          }}
+                          textStyle= {{
+                            //textAlign: 'center', // 文本对齐方向，可取值为： start middle end
+                            fill: '#5BBFBB', // 文本的颜色
+                            fontSize: '12', // 文本大小
+                            //fontWeight: 'bold', // 文本粗细
+                            //textBaseline: 'top' // 文本基准线，可取 top middle bottom，默认为middle
+                          }}
+                        />
+                      </Geom>
                     </Chart>
                     数据库集群类型分布：{this.state.RotateDBATodayData}
-                    <Chart height={330} data={dv_zhuzhuangtu} forceFit>
+                    <Chart height={300} data={dv_zhuzhuangtu} forceFit>
                       <Coord transpose />
                       <Axis
                         name="country"
                         label={{
-                          offset: 12
+                          offset: 12,
                         }}
                       />
-                      <Axis name="population" />
+                      <Axis name="cluster_count" />
                       <Tooltip />
-                      <Geom type="interval" position="country*population" />
+                      <Geom type="interval" position="country*cluster_count" />
                     </Chart>
                     <view class="left_top_corner"></view>
                     <view class="right_top_corner"></view>
@@ -924,7 +1141,22 @@ getTodayWeek = ()=> {
           <Row style={{marginTop:'10px'}} gutter={24}>
             <Col  span={24}>
               <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,}}>
-                <p style={{color:'white'}}>集群TPS<Icon style={{color:'green'}} type="eye" onClick={()=>{this.getBuLevelInfo()}}/></p>
+                <p style={{color:'white'}}>
+                  集群TPS
+                  <Select
+                    defaultValue="bj10_trans_01"
+                    style={{ width: 200,marginLeft:10}}
+                    onChange={e => this.handleDbSourceTypeChange(e)}
+                    showSearch
+                    filterOption={(input,option)=>
+                        option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                    }
+                  >
+                      <Option value="bj10_trans_01">bj10_trans_01</Option>
+                      <Option value="bj10_trans_02">bj10_trans_02</Option>
+                      <Option value="bj10_trans_03">bj10_trans_03</Option>
+                  </Select>
+                </p>
                 <Chart height={400} data={line_mock_data} scale={cols} forceFit>
                   <Axis
                     name="month"
@@ -962,6 +1194,7 @@ getTodayWeek = ()=> {
               </Card>
             </Col>
           </Row>
+        <Arealarge />
         </div>
      );
   }

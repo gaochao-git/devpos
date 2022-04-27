@@ -79,7 +79,7 @@ class App extends Component {
                     <BrowserRouter>
                         <Layout>
                             <Header className="header">
-                                <div className="logo">
+                                <div className="logo" style={{width:'10%'}}>
                                     <img alt="Logo" src={imgURL} style={{width:'50px'}}/>
                                 </div>
                                 <Menu
@@ -88,6 +88,7 @@ class App extends Component {
                                     defaultOpenKeys={[this.state.current_nav]}
                                     onClick={this.handlerClick}
                                     selectedKeys={[this.state.current_nav]}
+                                    style={{width:'70%'}}
                                 >
                                     <Menu.Item key="服务" style={{marginLeft:'20px'}} >
                                         <Link to="/Server">服务</Link>
@@ -99,7 +100,7 @@ class App extends Component {
                                         <Link to="/userRole">管理</Link>
                                     </Menu.Item>
                                 </Menu>
-                                <div style={{marginLeft:'600px'}}>
+                                <div style={{width:'20%',textAlign:"right"  }}>
                                     <Tooltip
                                         title={
                                             <span>
@@ -110,10 +111,8 @@ class App extends Component {
                                             </span>
                                         }
                                     >
-                                        当前用户:{this.state.login_user_name}
+                                        <Icon type="user" /> {this.state.login_user_name}
                                     </Tooltip>
-                                </div>
-                                <div>
                                     <Button
                                         icon="poweroff"
                                         type="default"
