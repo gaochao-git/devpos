@@ -40,6 +40,7 @@ urlpatterns = [
     path('api/db_resource/v1/get_mysql_cluster/', mysql_cluster_controller.get_mysql_cluster_controller),  # 获取mysql集群信息
     path('api/db_resource/v1/get_mysql_cluster_ins/', mysql_cluster_controller.get_mysql_cluster_ins_controller),  # 获取mysql集群实例信息
     path('api/db_resource/v1/get_mysql_instance_info/', mysql_instance_controller.get_mysql_instance_info_handler),  # 获取所有mysql实例
+    path('api/zabbix/v1/get_zabbix_info/', mysql_instance_controller.get_zabbix_info_handler),  # 获取所有mysql实例
 
     # 数据库集群资源申请工单
     path('api/v1/service/ticket/ansible_adhoc/', ansible_adhoc.adhoc),  # ansible api执行命令

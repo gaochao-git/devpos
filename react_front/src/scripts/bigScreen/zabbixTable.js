@@ -15,7 +15,7 @@ class ZabbixScreenTable extends React.Component {
     componentDidMount(){
         this.timer2= setInterval(() => {
             this.getUserInfo()
-        }, 1000);
+        }, 5000);
     }
     componentWillUnmount() {
       if (this.timer2 != null) {
@@ -23,11 +23,11 @@ class ZabbixScreenTable extends React.Component {
       }
     }
     async getUserInfo() {
-        await MyAxios.post('/v2/v2_get_login_user_info/').then(
+        await MyAxios.post('/zabbix/v1/get_zabbix_info/').then(
             res => {
                 if(res.data.status==="ok")
                 {
-                    console.log(res.data.data)
+                    this.setState({zabbix_data:res.data.data})
                 }else
                 {
                    message.error(res.data.message)
@@ -176,7 +176,8 @@ class ZabbixScreenTable extends React.Component {
         return (
             <Table
               columns={mock_columns}
-              dataSource={mock_data}
+              dataSource={this.state.zabbix_data}
+//              size='small'
               rowClassName={(record, index) => {
                   let className = 'row-detail-bg-default';
                   if (record.type === "warning") {
