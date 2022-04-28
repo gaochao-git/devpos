@@ -4,6 +4,7 @@ import {Layout, Menu, Icon, Button, Tooltip,message} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import MyAxios from "./scripts/common/interface"
+import HeadTimer from "./scripts/common/headTimer"
 import {HashRouter,Route,BrowserRouter} from 'react-router-dom';
 import mysqlCluster from './scripts/mysql/mysqlCluster'
 import DeployMysql from "./scripts/mysql/deployMysql"
@@ -23,9 +24,8 @@ import NavService from './scripts/home/nave_service'
 import NavManage from './scripts/home/nave_manage'
 import NavOps from './scripts/home/nave_ops'
 import imgURL from './my_logo.jpg'
-import HomeDbaInfo from './scripts/home/home_dba'
+import HomeDbaInfo from './scripts/bigScreen/home_dba'
 import UserRole from './scripts/permission/userRole'
-import {myTimer} from "./scripts/common/myTimer";
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
 
@@ -62,15 +62,72 @@ class App extends Component {
     //根据token获取登陆信息
     async getUserInfo() {
         await MyAxios.post('/v2/v2_get_login_user_info/').then(
-            res => {res.data.status==="ok" ?
-                this.setState({
-                    login_user_name:res.data.data[0]['username'],
-                    login_user_name_role:res.data.data[0]['title'],
-                })
-            :
-                message.error(res.data.message)}
+            res => {
+                if(res.data.status==="ok")
+                {
+                    this.setState({
+                        login_user_name:res.data.data[0]['username'],
+                        login_user_name_role:res.data.data[0]['title'],
+                    },)
+                }else
+                {
+                   message.error(res.data.message)
+                }
+            }
         ).catch(err => {message.error(err.message)})
     }
+//setCurrentTimeInterVal = () => {
+//     this.currentTimerId= setInterval(() => {this.getDateWeek()}, 1000);
+//}
+//getDateWeek = ()=>{
+//    this.getTodayDate();
+//    this.getTodayWeek()
+//}
+//getTodayDate = ()=> {
+//  var checkTime = function (i) {
+//    if (i < 10) {i = "0" + i}
+//    return i;
+//  }
+//  var date = new Date();
+//  var year = date.getFullYear().toString();
+//  var month = (date.getMonth()+1).toString();
+//  var day = date.getDate().toString();
+//  var hour =   checkTime(date.getHours().toString());
+//  var minute = checkTime(date.getMinutes().toString());
+//  var second = checkTime(date.getSeconds().toString());
+//  var now_time = year+'-'+month+'-'+day+' '+hour+':'+minute+':'+second;
+//  this.setState({current_time:now_time})
+//};
+//
+//getTodayWeek = ()=> {
+//    var tempDate = new Date();
+//    var days = tempDate.getDay();
+//    var week;
+//    switch(days) {
+//        case 1:
+//            week = '星期一';
+//            break;
+//        case 2:
+//            week = '星期二';
+//            break;
+//        case 3:
+//            week = '星期三';
+//            break;
+//        case 4:
+//            week = '星期四';
+//            break;
+//        case 5:
+//            week = '星期五';
+//            break;
+//        case 6:
+//            week = '星期六';
+//            break;
+//        case 0:
+//            week = '星期日';
+//            break;
+//    }
+//    this.setState({week_day:week})
+//};
     //更改服务、运维、管理标签
     handlerClick = e =>{
         this.setState({current_nav:e.key});
@@ -84,7 +141,7 @@ class App extends Component {
                         <Layout>
                             <Header className="header">
                                 <div className="logo" style={{width:'10%'}}>
-                                    <img alt="Logo" src={imgURL} style={{width:'50px'}}/>
+                                    <img alt="Logo" src={imgURL} style={{width:'30px'}}/>
                                 </div>
                                 <Menu
                                     theme="dark"
@@ -92,7 +149,7 @@ class App extends Component {
                                     defaultOpenKeys={[this.state.current_nav]}
                                     onClick={this.handlerClick}
                                     selectedKeys={[this.state.current_nav]}
-                                    style={{width:'40%'}}
+                                    style={{width:'60%'}}
                                 >
                                     <Menu.Item key="服务" style={{marginLeft:'20px'}} >
                                         <Link to="/Server">服务</Link>
@@ -104,30 +161,27 @@ class App extends Component {
                                         <Link to="/userRole">管理</Link>
                                     </Menu.Item>
                                 </Menu>
-                                <div style={{width:'50%',textAlign:"right"  }}>
-                                <myTimer/>
-                                    <Tooltip
-                                        title={
-                                            <span>
-                                                用户名:{this.state.login_user_name}
-                                                <br/>角色:{this.state.login_user_name_role}
-                                                <br/>部门:
-                                                <br/>邮箱:
-                                            </span>
-                                        }
-                                    >
-
-                                        {this.state.current_time}  {this.state.week_day} <Icon type="user" />{this.state.login_user_name}
-                                    </Tooltip>
-                                    <Button
-                                        icon="poweroff"
-                                        type="default"
-                                        style={{marginLeft: 5}}
-                                        onClick={LoginOut}
-                                    >
-                                        注销
-                                    </Button>
-                                </div>
+                                <HeadTimer />
+                                <Tooltip
+                                    title={
+                                        <span>
+                                            用户名:{this.state.login_user_name}
+                                            <br/>角色:{this.state.login_user_name_role}
+                                            <br/>部门:
+                                            <br/>邮箱:
+                                        </span>
+                                    }
+                                >
+                                    <Icon type="user" />{this.state.login_user_name}
+                                </Tooltip>
+                                <Button
+                                    icon="poweroff"
+                                    type="default"
+                                    style={{marginLeft: 5}}
+                                    onClick={LoginOut}
+                                >
+                                    注销
+                                </Button>
                             </Header>
                             <Layout>
                                 <Sider width={240} style={{ background: '#15344a',minHeight:'860px'}}>
