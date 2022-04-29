@@ -54,14 +54,8 @@ class HomeDbaInfo extends Component {
     return (
         <div style={{backgroundImage:`url(${pageBg})`}}>
         <Row gutter={16}>
-            <Col span={8} style={{ backgroundImage:`url(${headBg})`,height:'100px'}}>
-                <p style={{color:'white',fontSize:50,marginTop:20}}></p>
-            </Col>
-            <Col span={8} style={{ backgroundImage:`url(${headBg})`,height:'100px'}}>
+            <Col span={24} style={{ backgroundImage:`url(${headBg})`,height:'100px'}}>
                 <p style={{color:'white',textAlign: 'center',fontSize:30,marginTop:20}}>数据库运维管理平台</p>
-            </Col>
-            <Col span={8} style={{ backgroundImage:`url(${headBg})`,height:'100px'}}>
-                <p style={{color:'white',marginLeft:50,fontSize:30,marginTop:20}}>{this.state.current_time}  {this.state.week_day}</p>
             </Col>
         </Row>
           <Row style={{height:'200px',background:''}} gutter={16}>
@@ -74,9 +68,9 @@ class HomeDbaInfo extends Component {
                           <img style={{width:90,marginLeft:10}} src={monitor_gif} />
                         </Col>
                         <Col span={12} style={{width:100,marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',fontSize:15}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>警告:1</p>
-                          <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>错误:0</p>
+                          <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>信息:15</p>
+                          {3>2?<p style={{color:'#BFA42F',fontSize:15,fontWeight: 'bold'}}>警告:2</p>:<p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>警告:0</p>}
+                          {2>3?<p style={{color:'#BF3B2C',fontSize:15,fontWeight: 'bold'}}>警告:2</p>:<p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>警告:0</p>}
                         </Col>
                       </Row>
                     </div>
@@ -91,9 +85,9 @@ class HomeDbaInfo extends Component {
                           <img style={{width:45,marginLeft:30}} src={bg_robot} />
                         </Col>
                         <Col span={12} style={{width:100,marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',fontSize:15}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>警告:1</p>
-                          <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>错误:0</p>
+                          <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>信息:15</p>
+                          <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>警告:1</p>
+                          {2>3?<p style={{color:'#BF3B2C',fontSize:15,fontWeight: 'bold'}}>失败:2</p>:<p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>失败:0</p>}
                         </Col>
                       </Row>
                     </div>
@@ -108,9 +102,9 @@ class HomeDbaInfo extends Component {
                           <img style={{width:90,marginLeft:30}} src={workFlow} />
                         </Col>
                         <Col span={12} style={{width:100,marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',fontSize:15}}>总数:8</p>
-                          <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>已处理:5</p>
-                          <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>未认领:3</p>
+                          <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>总数:8</p>
+                          <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>已处理:5</p>
+                          <p style={{color:'#BFA42F',fontSize:15,fontWeight: 'bold'}}>未认领:3</p>
                         </Col>
                       </Row>
                     </div>
@@ -125,10 +119,10 @@ class HomeDbaInfo extends Component {
                           <img style={{width:90,marginLeft:25}} src={backup_gif} />
                         </Col>
                         <Col span={12} style={{width:100,marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',fontSize:15}}>任务数:300</p>
-                          <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>运行中:0</p>
-                          <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>成功:298</p>
-                          <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>失败:2</p>
+                          <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>任务数:300</p>
+                          <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>运行中:0</p>
+                          <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>成功:298</p>
+                          <p style={{color:'#BF3B2C',fontSize:15,fontWeight: 'bold'}}>失败:2</p>
                         </Col>
                       </Row>
                     </div>
@@ -143,9 +137,10 @@ class HomeDbaInfo extends Component {
                     <img style={{width:80,marginLeft:15}} src={archive_gif} />
                   </Col>
                   <Col span={12} style={{width:100,marginTop:-35}}>
-                    <p style={{color:'#5BBFBB',fontSize:15}}>任务数:60</p>
-                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>运行中:0</p>
-                    <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>成功:59</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold',fontWeight: 'bold'}}>任务数:60</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>运行中:0</p>
+                    <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>成功:59</p>
+                    {3>2?<p style={{color:'#BF3B2C',fontSize:15,fontWeight: 'bold'}}>失败:2</p>:<p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>失败:2</p>}
                   </Col>
                 </Row>
                     </div>
@@ -160,9 +155,9 @@ class HomeDbaInfo extends Component {
                           <img style={{width:90,marginLeft:30}} src={server_gif} />
                         </Col>
                         <Col span={12} style={{width:100,marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',fontSize:15}}>总数:2000</p>
-                          <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>运行:1999</p>
-                          <p style={{color:'#5BBFBB',fontSize:15,marginTop:10}}>故障:1</p>
+                          <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>总数:2000</p>
+                          <p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>运行:1999</p>
+                          {3>2?<p style={{color:'#BF3B2C',fontSize:15,fontWeight: 'bold'}}>故障:2</p>:<p style={{color:'#5BBFBB',fontSize:15,fontWeight: 'bold'}}>故障:2</p>}
                         </Col>
                       </Row>
                     </div>
