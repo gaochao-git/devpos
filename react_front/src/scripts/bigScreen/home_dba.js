@@ -55,7 +55,7 @@ class HomeDbaInfo extends Component {
         <div style={{backgroundImage:`url(${pageBg})`}}>
         <Row gutter={16}>
             <Col span={24} style={{ backgroundImage:`url(${headBg})`,height:'100px'}}>
-                <p style={{color:'white',textAlign: 'center',fontSize:30,marginTop:20}}>数据库运维管理平台</p>
+                <p style={{color:'white',textAlign: 'center',fontSize:30,marginTop:20}}>数据库智能运维管理平台大屏</p>
             </Col>
         </Row>
           <Row style={{height:'200px',background:''}} gutter={16}>
