@@ -191,7 +191,7 @@ class HomeDbaInfo extends Component {
               </Card>
             </Col>
           </Row>
-          <Row style={{marginTop:'10px'}} gutter={24}>
+          <Row style={{marginTop:'5px'}} gutter={24}>
             <Col span={24}>
               <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,}}>
                 <p style={{color:'white'}}>集群RT(ms)</p>
@@ -203,7 +203,7 @@ class HomeDbaInfo extends Component {
               </Card>
             </Col>
           </Row>
-          <Row style={{marginTop:'10px'}} gutter={24}>
+          <Row style={{marginTop:'5px'}} gutter={24}>
             <Col span={24}>
               <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,}}>
                 <p style={{color:'white'}}>
