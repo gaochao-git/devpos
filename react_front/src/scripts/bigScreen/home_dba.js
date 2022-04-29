@@ -212,7 +212,7 @@ class HomeDbaInfo extends Component {
             <Col span={24}>
               <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,}}>
                 <p style={{color:'white'}}>
-                  集群TPS
+                  集群RT
                   <Select
                     defaultValue="bj10_trans_01"
                     style={{ width: 200,marginLeft:10}}

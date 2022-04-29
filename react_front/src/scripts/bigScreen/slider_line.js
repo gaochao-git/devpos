@@ -1,27 +1,7 @@
 import React from "react";
-import {
-  G2,
-  Chart,
-  Geom,
-  Axis,
-  Tooltip,
-  Coord,
-  Label,
-  Legend,
-  View,
-  Guide,
-  Shape,
-  Facet,
-  Util
-} from "bizcharts";
+import {G2,Chart,Geom,Axis,Tooltip,Coord,Label,Legend,View,Guide,Shape,Facet,Util} from "bizcharts";
 import DataSet from "@antv/data-set";
 import Slider from "bizcharts-plugin-slider";
-//let data
-//$.ajax({
-//  url: "htTPS://alifd.alibabausercontent.com/materials/@bizcharts/g2-area-large/0.3.0/build/mock.json",
-//  async : false,
-//  success: (iData) => { data = iData }
-//});
 let data=[{
   "time": "2009/6/12 2:00",
   "TPS": 0.97,
