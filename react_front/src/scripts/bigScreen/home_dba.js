@@ -72,8 +72,8 @@ class HomeDbaInfo extends Component {
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
                           <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>信息:15</p>
+                          <p style={{color:'#BFA42F',marginTop:-10,textAlign:"right"}}>警告:14</p>
+                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"right"}}>错误:1</p>
                         </Col>
                       </Row>
                     </div>
@@ -89,8 +89,8 @@ class HomeDbaInfo extends Component {
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
                           <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>信息:15</p>
+                          <p style={{color:'#BFA42F',marginTop:-10,textAlign:"right"}}>警告:14</p>
+                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"right"}}>错误:1</p>
                         </Col>
                       </Row>
                     </div>
@@ -105,9 +105,9 @@ class HomeDbaInfo extends Component {
                           <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={workFlow} />
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>信息:15</p>
+                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>总数:15</p>
+                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>已处理:14</p>
+                          <p style={{color:'#BFA42F',marginTop:-10,textAlign:"right"}}>未处理:1</p>
                         </Col>
                       </Row>
                     </div>
@@ -122,9 +122,9 @@ class HomeDbaInfo extends Component {
                           <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={backup_gif} />
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>信息:15</p>
+                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>总数:15</p>
+                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>成功:14</p>
+                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"right"}}>失败:1</p>
                         </Col>
                       </Row>
                     </div>
@@ -139,9 +139,9 @@ class HomeDbaInfo extends Component {
                           <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={archive_gif} />
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>信息:15</p>
+                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>总数:15</p>
+                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>成功:14</p>
+                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"right"}}>失败:1</p>
                         </Col>
                       </Row>
                     </div>
@@ -156,9 +156,9 @@ class HomeDbaInfo extends Component {
                           <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={server_gif} />
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>信息:15</p>
+                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>总数:15</p>
+                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>正常:14</p>
+                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"right"}}>故障:1</p>
                         </Col>
                       </Row>
                     </div>
