@@ -70,7 +70,7 @@ class ServerSourceChart extends React.Component {
                       <Guide>
                         <Html
                           position={["50%", "50%"]}
-                          html="<div style=&quot;color:#8c8c8c;font-size:0.6em;text-align: center;width: 10em;&quot;>3200台</div>"
+                          html="<div style=&quot;color:#8c8c8c;font-size:0.6em;text-align: center;width: 10em;&quot;>200套</div>"
                           alignX="middle"
                           alignY="middle"
                         />

@@ -42,7 +42,7 @@ class ClusterTypeChart extends React.Component {
     });
         return (
             <Chart
-            height={160}
+            height={150}
             data={dv_zhuzhuangtu}
             padding={{ top: 10, right: 20, bottom: 20, left: 75 }}
             forceFit

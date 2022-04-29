@@ -30,6 +30,7 @@ import ClusterScreenTable from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/r
 import ServerScreenChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/serverChart.js"
 import SlowQueryChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/slowQueryChart.js"
 import ServerSourceChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/serverSourceChart.js"
+import ClusterSourceChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/clusterSourceChart.js"
 import ClusterTypeChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/clusterTypeChart.js"
 import Arealarge from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/slider_line.js"
 
@@ -165,98 +166,27 @@ class HomeDbaInfo extends Component {
                   </div>
             </Col>
           </Row>
-          <Row style={{marginTop:'5px'}}>
-            <Col span={6} style={{backgroundImage:`url(${pageBg})`,height:320}}>
+          <Row style={{marginTop:'5px',height:340}}>
+            <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,}}>
+            <Col span={12} style={{height:340}}>
               <ZabbixScreenTable/>
-              <view class="left_top_corner"></view>
-                    <view class="right_top_corner"></view>
-                    <view class="left_bottom_corner"></view>
-                    <view class="right_bottom_corner"></view>
             </Col>
-            <Col span={10}>
+            <Col span={12} style={{height:340}}>
                 <Row>
-                    <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:160}}>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>zjBJ10：0/0/35</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>zjBJ11：0/0/35</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>zjSH20：0/0/35</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>zjSH21：0/0/35</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>zjSZ30：0/0/35</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>zjSZ31：0/0/35</p>
-                        </Card>
+                    <Col span={12}>
+                        <ClusterSourceChart/>
                     </Col>
-                    <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:160}}>
-                          <p style={{color:'white',fontSize:5,marginLeft:-10}}>rjBJ10：0/0/10</p>
-                          <p style={{color:'white',fontSize:5,marginLeft:-10}}>rjBJ11：0/0/10</p>
-                          <p style={{color:'white',fontSize:5,marginLeft:-10}}>rjSH20：0/0/10</p>
-                          <p style={{color:'white',fontSize:5,marginLeft:-10}}>rjSH21：0/0/10</p>
-                          <p style={{color:'white',fontSize:5,marginLeft:-10}}>rjSZ30：0/0/10</p>
-                          <p style={{color:'white',fontSize:5,marginLeft:-10}}>rjSZ31：0/0/10</p>
-                        </Card>
+                    <Col span={12}>
+                        <ServerSourceChart/>
                     </Col>
-                    <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:160}}>
-                          
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>cjBJ10：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>cjBJ11：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>cjSH20：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>cjSH21：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>cjSZ30：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>cjSZ31：0/0/4</p>
-                        </Card>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:160}}>
-                          
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>hylsBJ10：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>hylsBJ11：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>hylsSH20：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>hylsSH21：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>hylsSZ30：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>hylsSZ31：0/0/4</p>
-                        </Card>
-                    </Col>
-                    <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:160}}>
-                          
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>tmBJ10：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>tmBJ11：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>tmSH20：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>tmSH21：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>tmSZ30：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>tmSZ31：0/0/4</p>
-                        </Card>
-                    </Col>
-                    <Col span={8}>
-                        <Card bordered={true} className='ant-tab-radius' style={{backgroundImage:`url(${pageBg})`,height:160}}>
-                          
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>gkBJ10：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>gkBJ11：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>gkSH20：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>gkSH21：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>gkSZ30：0/0/4</p>
-                          <p style={{color:'white',marginLeft:-10,fontSize:5}}>gkSZ31：0/0/4</p>
-                        </Card>
-                    </Col>
+                <ClusterTypeChart/>
                 </Row>
             </Col>
-            <Col span={8}>
-              <Card bordered={true} className='ant-tab-radius' bodyStyle={{backgroundImage:`url(${pageBg})`,height:320,padding:0}}>
-                <p style={{color:'white',textAlign:'right'}}>
-                    主机资源
-                    <ServerSourceChart/>
-                    数据库集群类型分布
-                    <ClusterTypeChart/>
-                    <view class="left_top_corner"></view>
-                    <view class="right_top_corner"></view>
-                    <view class="left_bottom_corner"></view>
-                    <view class="right_bottom_corner"></view>
-                </p>
-              </Card>
-            </Col>
+            <view class="left_top_corner"></view>
+                <view class="right_top_corner"></view>
+                <view class="left_bottom_corner"></view>
+                <view class="right_bottom_corner"></view>
+            </Card>
           </Row>
           <Row style={{marginTop:'5px'}} gutter={24}>
             <Col span={24}>
