@@ -6,7 +6,6 @@ import { Alert, message } from 'antd';
 import { Link } from 'react-router-dom';
 import {Redirect}  from 'react-router-dom';
 import {Highlighter} from 'react-highlight-words';
-import {Arealarge} from '../common/slider_line'
 import {DataSet} from '@antv/data-set';
 import pageBg from '../../images/pageBg.png'
 import tbBg from '../../images/tb_bg.png'
@@ -30,6 +29,8 @@ import ServerScreenChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/re
 import SlowQueryChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/slowQueryChart.js"
 import ServerSourceChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/serverSourceChart.js"
 import ClusterTypeChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/clusterTypeChart.js"
+import Arealarge from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/slider_line.js"
+
 
 
 const { Column } = Table;
