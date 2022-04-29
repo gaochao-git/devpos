@@ -216,11 +216,13 @@ th.replacecolor{
   border-left:0px solid !important;
   border-right:0px solid !important;
   border-radius:0px;
+  padding: 2px!important;
 }
 
 //大屏table data专有设置
 td.replacecolor{
-    border:0px !important;
+    border:1px !important;
+    padding: 5px!important;
 }
 .ant-table-bg {
   border-radius: 10px;
@@ -269,8 +271,19 @@ td.replacecolor{
 
 .img_box{
     width: 100%;
-    height: 150px;
+    height: 90px;
     padding:20x;
+    .img{
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+    }
+}
+
+.img_huanxing{
+    width: 20%;
+    height: 60px;
+    padding:1x;
     .img{
       width: 100%;
       height: 100%;

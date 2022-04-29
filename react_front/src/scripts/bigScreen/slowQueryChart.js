@@ -8,9 +8,13 @@ class SlowQueryChart extends React.Component {
     }
     render() {
         const zhuzhuangtu_data_1 = [
+        {
+        year: "bj10_trans_00",
+        sales: 500
+      },
       {
         year: "bj10_trans_01",
-        sales: 380
+        sales: 500
       },
       {
         year: "bj10_trans_02",
@@ -28,6 +32,22 @@ class SlowQueryChart extends React.Component {
         year: "bj10_trans_05",
         sales: 48
       },
+      {
+        year: "bj10_trans_06",
+        sales: 48
+      },
+      {
+        year: "bj10_trans_07",
+        sales: 48
+      },
+      {
+        year: "bj10_trans_08",
+        sales: 48
+      },
+      {
+        year: "bj10_trans_09",
+        sales: 48
+      },
     ];
 
     const zhuzhuangtu_cols_1 = {
@@ -40,14 +60,13 @@ class SlowQueryChart extends React.Component {
                   data={zhuzhuangtu_data_1}
                   scale={zhuzhuangtu_cols_1}
                   forceFit
-                  height={380}
-                  padding={{ top: 10, right: 20, bottom: 20, left: 60 }}
+                  height={130}
+                  padding={{ top: 10, right: 20, bottom: 20, left: 50 }}
                   plotBackground={{
                     stroke:null  //边框颜色
                   }}
                   style={{color:'white',textAlign:'center',marginTop:10}}
                 >
-                  <span className='main-title'>今日慢查询TOP5集群</span>
                   <Axis name="year" />
                   <Axis name="sales" />
                   <Tooltip

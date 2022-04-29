@@ -68,9 +68,69 @@ def get_search_mysql_instance_info_handler(request):
 
 
 def get_zabbix_info_handler(request):
-    data1 = [{"idc": 'BJ10',"ip": '172.16.1.216',"type": 'warning',"detail": '3306 port is down'}];
-    data2 = [{"idc": 'BJ11', "ip": '172.16.1.105', "type": 'info', "detail": 'swap is used'}];
-    data3 = [{"idc": 'BJ10', "ip": '172.16.1.221', "type": 'error', "detail": '3306 port is down'},{"idc": 'BJ10', "ip": '172.16.1.220', "type": 'warning', "detail": 'query bigger than 5s'}];
-    data = random.choice([data1,data2,data3])
+    data1 = [
+             {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+             {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+             {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+             {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+             {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+             {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+             {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+             {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'info', "detail": 'swap is used'},
+             {"idc": 'BJ10', "ip": '172.16.1.220', "type": 'info', "detail": 'swap is used'},
+             ];
+    data2 = [
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'info', "detail": 'swap is used'},
+        {"idc": 'BJ10', "ip": '172.16.1.220', "type": 'info', "detail": 'swap is used'},
+    ];
+    data3 = [
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'info', "detail": 'swap is used'},
+        {"idc": 'BJ10', "ip": '172.16.1.220', "type": 'info', "detail": 'swap is used'},
+    ];
+    data4 = [
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'info', "detail": 'swap is used'},
+        {"idc": 'BJ10', "ip": '172.16.1.220', "type": 'info', "detail": 'swap is used'},
+    ];
+    data5 = [
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'error', "detail": '3306 port is down'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'warning', "detail": 'query bigger than 5s'},
+        {"idc": 'BJ10', "ip": '172.16.1.216', "type": 'info', "detail": 'swap is used'},
+        {"idc": 'BJ10', "ip": '172.16.1.220', "type": 'info', "detail": 'swap is used'},
+    ];
+    data = random.choice([data1,data2,data3,data4,data5])
     content = {'status': "ok", 'message': "获取信息成功", 'data': data}
     return HttpResponse(json.dumps(content), content_type='application/json')

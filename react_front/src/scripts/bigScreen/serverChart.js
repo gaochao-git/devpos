@@ -66,7 +66,13 @@ class ServerScreenChart extends React.Component {
       }
     };
         return (
-            <Chart height={400} data={line_mock_data} scale={cols} forceFit>
+            <Chart
+            height={100}
+            data={line_mock_data}
+            scale={cols}
+            forceFit
+            padding={{ top: 0, right: 0, bottom: 0, left: 0 }}
+            >
                   <Axis
                     name="month"
                     title={null}

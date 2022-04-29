@@ -12367,6 +12367,7 @@ function getComponent(data) {
             data={dv}
             padding={[40, 40, 40, 80]}
             scale={scale}
+            height={200}
             onGetG2Instance={g2Chart => {
               g2Chart.animate(false);
               chart = g2Chart;

@@ -12,23 +12,23 @@ class ClusterTypeChart extends React.Component {
     const zhuzhuangtu_data = [
       {
         country: "TiDB",
-        cluster_count: 131744
+        cluster_count: 15
       },
       {
         country: "MySQL",
-        cluster_count: 104970
+        cluster_count: 320
       },
       {
         country: "GoldenDB",
-        cluster_count: 29034
+        cluster_count: 8
       },
       {
         country: "SQLServer",
-        cluster_count: 23489
+        cluster_count: 4
       },
       {
         country: "达梦",
-        cluster_count: 18203
+        cluster_count: 2
       }
     ];
     const ds_zhuzhuangtu = new DataSet();
@@ -42,9 +42,9 @@ class ClusterTypeChart extends React.Component {
     });
         return (
             <Chart
-            height={300}
+            height={160}
             data={dv_zhuzhuangtu}
-            padding={{ top: 20, right: 70, bottom: 70, left: 110 }}
+            padding={{ top: 10, right: 20, bottom: 20, left: 75 }}
             forceFit
             >
                       <Coord transpose />

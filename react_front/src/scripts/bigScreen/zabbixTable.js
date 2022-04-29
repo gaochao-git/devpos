@@ -178,7 +178,7 @@ class ZabbixScreenTable extends React.Component {
               columns={mock_columns}
               dataSource={this.state.zabbix_data}
 //              size='small'
-              rowClassName={(record, index) => {
+                  rowClassName={(record, index) => {
                   let className = 'row-detail-bg-default';
                   if (record.type === "warning") {
                       className = 'row-detail-bg-warning';
@@ -193,7 +193,7 @@ class ZabbixScreenTable extends React.Component {
                       return className;
                   }
               }}
-              scroll={{ y: 510,x:true }}
+              scroll={{ y: 300,x:true }}
               pagination={false}
             />
         )
