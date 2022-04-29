@@ -21,7 +21,7 @@ import earth_rotate from '../../images/earth-rotate.gif'
 import bg_city from '../../images/bgCenter.gif'
 import bg_robot from '../../images/robot.gif'
 import bg_background_frame from '../../images/beijing.gif'
-import ai_image from '../../images/AI_1.gif'
+import ai_image from '../../images/center.gif'
 import huanxing_image from '../../images/huanxing.gif'
 
 import ZabbixScreenTable from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/zabbixTable.js"
@@ -174,7 +174,14 @@ class HomeDbaInfo extends Component {
                     <view class="right_bottom_corner"></view>
             </Col>
             <Col span={8} style={{backgroundImage:`url(${pageBg})`,height:300}}>
-                <img style={{width:'100%'}} alt="example" src={ai_image} />
+
+                <Card bordered={true} className='ant-tab-radius' bodyStyle={{backgroundImage:`url(${pageBg})`,height:335,padding:0}}>
+                <img style={{width:'80%'}} alt="example" src={ai_image} />
+                <view class="left_top_corner"></view>
+                    <view class="right_top_corner"></view>
+                    <view class="left_bottom_corner"></view>
+                    <view class="right_bottom_corner"></view>
+              </Card>
             </Col>
             <Col span={8}>
               <Card bordered={true} className='ant-tab-radius' bodyStyle={{backgroundImage:`url(${pageBg})`,height:335,padding:0}}>

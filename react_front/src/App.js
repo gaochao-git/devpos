@@ -184,7 +184,7 @@ class App extends Component {
                                 </Button>
                             </Header>
                             <Layout>
-                                <Sider width={240} style={{ background: '#15344a',minHeight:'860px'}}>
+                                <Sider width={150} style={{ background: '#15344a',minHeight:'860px'}}>
                                     {
                                         this.state.current_nav === "服务"? <NavService/>:null
                                     }
