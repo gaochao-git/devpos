@@ -37,11 +37,11 @@ class SlowQueryChart extends React.Component {
     };
         return (
             <Chart
-                  height={370}
                   data={zhuzhuangtu_data_1}
                   scale={zhuzhuangtu_cols_1}
                   forceFit
-                  padding={{ top: 10, right: 20, bottom: 30, left: 60 }}
+                  height={380}
+                  padding={{ top: 10, right: 20, bottom: 20, left: 60 }}
                   plotBackground={{
                     stroke:null  //边框颜色
                   }}

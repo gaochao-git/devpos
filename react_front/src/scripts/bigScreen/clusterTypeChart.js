@@ -41,7 +41,12 @@ class ClusterTypeChart extends React.Component {
       }
     });
         return (
-            <Chart height={300} data={dv_zhuzhuangtu} forceFit>
+            <Chart
+            height={300}
+            data={dv_zhuzhuangtu}
+            padding={{ top: 20, right: 70, bottom: 70, left: 110 }}
+            forceFit
+            >
                       <Coord transpose />
                       <Axis
                         name="country"
