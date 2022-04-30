@@ -166,7 +166,7 @@ class HomeDbaInfo extends Component {
                   </div>
             </Col>
           </Row>
-          <Row style={{marginTop:'5px',height:400}}>
+          <Row style={{marginTop:'5px',height:375}}>
             <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,}}>
               <Col span={12}>
                   <Tabs defaultActiveKey="1" tabBarStyle={{color:"#367AD2"}}>

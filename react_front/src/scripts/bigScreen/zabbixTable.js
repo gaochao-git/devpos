@@ -194,7 +194,7 @@ class ZabbixScreenTable extends React.Component {
                       return className;
                   }
               }}
-              scroll={{ y: 280 }}
+              scroll={{ y: 250 }}
               pagination={false}
             />
         )
