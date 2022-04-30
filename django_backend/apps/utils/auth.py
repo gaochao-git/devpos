@@ -7,6 +7,7 @@ from apps.utils import db_helper
 from apps.utils.error_code import StatusCode
 import logging
 logger = logging.getLogger('devops')
+import re
 
 
 class Middleware(MiddlewareMixin):
@@ -14,22 +15,26 @@ class Middleware(MiddlewareMixin):
     登陆验证中间件,除了登陆接口所有接口均需要验证
     """
     def process_request(self, request):
-        auth_ignore_path = ['/api/login/v1/auth/','/api/login/v2/auth/','/api/login/v2/auth_refresh/']
-        if request.path not in auth_ignore_path:
-            bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
-            if bearer_token is None:
-                ret = {"status": "error", "message": StatusCode.ERR_NO_LOGIN.msg, "code": StatusCode.ERR_NO_LOGIN.code}
-                return HttpResponse(json.dumps(ret), content_type='application/json')
-            try:
-                token = bearer_token.split(' ')[1]
-            except Exception as e:
-                ret = {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.msg, "code":StatusCode.ERR_LOGIN_FAIL.code}
-                return HttpResponse(json.dumps(ret), content_type='application/json')
-            # ret = token_auth(token)
-            ret = jwt_auth(token)
-            if ret['status'] !="ok": return HttpResponse(json.dumps(ret), content_type='application/json')
-            request.user = ret['data']
-            assert request.user.get('user_id') > 0
+        print(request.path)
+        if len(re.findall('/admin/', request.path))!=0:
+            pass
+        else:
+            auth_ignore_path = ['/api/login/v1/auth/','/api/login/v2/auth/','/api/login/v2/auth_refresh/']
+            if request.path not in auth_ignore_path:
+                bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
+                if bearer_token is None:
+                    ret = {"status": "error", "message": StatusCode.ERR_NO_LOGIN.msg, "code": StatusCode.ERR_NO_LOGIN.code}
+                    return HttpResponse(json.dumps(ret), content_type='application/json')
+                try:
+                    token = bearer_token.split(' ')[1]
+                except Exception as e:
+                    ret = {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.msg, "code":StatusCode.ERR_LOGIN_FAIL.code}
+                    return HttpResponse(json.dumps(ret), content_type='application/json')
+                # ret = token_auth(token)
+                ret = jwt_auth(token)
+                if ret['status'] !="ok": return HttpResponse(json.dumps(ret), content_type='application/json')
+                request.user = ret['data']
+                assert request.user.get('user_id') > 0
 
     def process_response(self, request, response):
         # 基于请求响应
