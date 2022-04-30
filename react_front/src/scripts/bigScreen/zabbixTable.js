@@ -56,7 +56,8 @@ class ZabbixScreenTable extends React.Component {
       {
         title: 'detail',
         dataIndex: 'detail',
-        className:'replacecolor'
+        className:'replacecolor',
+        width:'40%',
       },
     ];
     const mock_data = [
@@ -193,7 +194,7 @@ class ZabbixScreenTable extends React.Component {
                       return className;
                   }
               }}
-              scroll={{ y: 300,x:true }}
+              scroll={{ y: 280 }}
               pagination={false}
             />
         )

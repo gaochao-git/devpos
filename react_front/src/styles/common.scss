@@ -207,15 +207,19 @@ ant-menu.-inline .ant-menu-submenu-title {
   border-color: #126BA9;
 }
 
+//table四个角去掉圆角
+.ant-table-thead > tr:first-child > th:last-child {
+    border-top-right-radius: 0px;
+}
 //大屏table head专有设置
 th.replacecolor{
   color: #1790ff !important;
-  background-color:#1A274F !important;
+  background-color:#060710   !important;
   border-top:0px solid white !important;
   border-bottom:0px solid !important;
   border-left:0px solid !important;
   border-right:0px solid !important;
-  border-radius:0px;
+  border-radius:5spx;
   padding: 2px!important;
 }
 

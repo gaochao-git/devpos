@@ -61,7 +61,7 @@ class CheckScreenTable extends React.Component {
                       return className;
                   }
               }}
-              scroll={{ y: 235,x:true }}
+              scroll={{ y: 235 }}
               pagination={false}
             />
         )

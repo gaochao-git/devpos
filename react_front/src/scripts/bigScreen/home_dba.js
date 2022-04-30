@@ -166,26 +166,41 @@ class HomeDbaInfo extends Component {
                   </div>
             </Col>
           </Row>
-          <Row style={{marginTop:'5px',height:340}}>
+          <Row style={{marginTop:'5px',height:400}}>
             <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,}}>
-            <Col span={12} style={{height:340}}>
-              <ZabbixScreenTable/>
-            </Col>
-            <Col span={12} style={{height:340}}>
-                <Row>
-                    <Col span={12}>
-                        <ClusterSourceChart/>
-                    </Col>
-                    <Col span={12}>
-                        <ServerSourceChart/>
-                    </Col>
-                <ClusterTypeChart/>
-                </Row>
-            </Col>
-            <view class="left_top_corner"></view>
-                <view class="right_top_corner"></view>
-                <view class="left_bottom_corner"></view>
-                <view class="right_bottom_corner"></view>
+              <Col span={12}>
+                  <Tabs defaultActiveKey="1" tabBarStyle={{color:"#367AD2"}}>
+                      <TabPane tab="zabbix" key="1" style={{marginTop:-18}}>
+                          <ZabbixScreenTable/>
+                      </TabPane>
+                      <TabPane tab="巡检" key="2" style={{marginTop:-18}}>
+                          <CheckScreenTable/>
+                      </TabPane>
+                      <TabPane tab="工单" key="3" style={{marginTop:-18}}>
+                          <ClusterScreenTable/>
+                      </TabPane>
+                      <TabPane tab="集群信息" key="4" style={{marginTop:-18}}>
+                          <ClusterScreenTable/>
+                      </TabPane>
+                  </Tabs>
+              </Col>
+              <Col span={12}>
+                  <Row>
+                      <Col span={12}>
+                          <ClusterSourceChart/>
+                      </Col>
+                      <Col span={12}>
+                          <ServerSourceChart/>
+                      </Col>
+                  </Row>
+                  <Row>
+                      <ClusterTypeChart/>
+                  </Row>
+              </Col>
+              <view class="left_top_corner"></view>
+              <view class="right_top_corner"></view>
+              <view class="left_bottom_corner"></view>
+              <view class="right_bottom_corner"></view>
             </Card>
           </Row>
           <Row style={{marginTop:'5px'}} gutter={24}>
