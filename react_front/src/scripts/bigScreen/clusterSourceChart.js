@@ -15,24 +15,16 @@ class ServerSourceChart extends React.Component {
     //饼图
     const bingtu_data = [
       {
-        item: "一部",
-        count: 40
+        item: "麒麟/海光X86",
+        count: 30
       },
       {
-        item: "二部",
-        count: 21
+        item: "Centos/IntelX86",
+        count: 50
       },
       {
-        item: "三部",
-        count: 17
-      },
-      {
-        item: "平台部",
-        count: 13
-      },
-      {
-        item: "设施部",
-        count: 9
+        item: "麒麟/鲲鹏Arm",
+        count: 20
       }
     ];
     const bingtu_dv = new DataView();
@@ -55,7 +47,7 @@ class ServerSourceChart extends React.Component {
                       height={160}
                       data={bingtu_dv}
                       scale={bingtu_cols}
-                      padding={{ top: 10, right: 0, bottom: 20, left: 0 }}
+                      padding={{ top: 15, right: 20, bottom: 60, left: 30 }}
                       forceFit
                     >
                       <Coord type={"theta"} radius={0.75} innerRadius={0.6} />
@@ -97,12 +89,12 @@ class ServerSourceChart extends React.Component {
                         <Label
                           content="percent"
                           formatter={(val, item) => {
-                            return item.point.item + ": " + val;
+                            return item.point.item + ": \n" + val;
                           }}
                           textStyle= {{
                             //textAlign: 'center', // 文本对齐方向，可取值为： start middle end
                             fill: '#5BBFBB', // 文本的颜色
-//                            fontSize: '15', // 文本大小
+                            fontSize: '12', // 文本大小
 //                            fontWeight: 'bold', // 文本粗细
                             //textBaseline: 'top' // 文本基准线，可取 top middle bottom，默认为middle
                           }}

@@ -187,10 +187,10 @@ class HomeDbaInfo extends Component {
               <Col span={12}>
                   <Row>
                       <Col span={12}>
-                          <ClusterSourceChart/>
+                          <ServerSourceChart/>
                       </Col>
                       <Col span={12}>
-                          <ServerSourceChart/>
+                          <ClusterSourceChart/>
                       </Col>
                   </Row>
                   <Row>

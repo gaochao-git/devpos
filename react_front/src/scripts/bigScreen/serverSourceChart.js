@@ -55,7 +55,7 @@ class ServerSourceChart extends React.Component {
                       height={160}
                       data={bingtu_dv}
                       scale={bingtu_cols}
-                      padding={{ top: 10, right: 0, bottom: 20, left: 0 }}
+                      padding={{ top: 10, right: 0, bottom: 60, left: 0 }}
                       forceFit
                     >
                       <Coord type={"theta"} radius={0.75} innerRadius={0.6} />
@@ -70,7 +70,7 @@ class ServerSourceChart extends React.Component {
                       <Guide>
                         <Html
                           position={["50%", "50%"]}
-                          html="<div style=&quot;color:#8c8c8c;font-size:0.6em;text-align: center;width: 10em;&quot;>3200台</div>"
+                          html="<div style=&quot;color:#8c8c8c;font-size:0.4em;text-align: center;width: 10em;&quot;>3200台</div>"
                           alignX="middle"
                           alignY="middle"
                         />
@@ -102,7 +102,7 @@ class ServerSourceChart extends React.Component {
                           textStyle= {{
                             //textAlign: 'center', // 文本对齐方向，可取值为： start middle end
                             fill: '#5BBFBB', // 文本的颜色
-//                            fontSize: '15', // 文本大小
+                            fontSize: '12', // 文本大小
 //                            fontWeight: 'bold', // 文本粗细
                             //textBaseline: 'top' // 文本基准线，可取 top middle bottom，默认为middle
                           }}
