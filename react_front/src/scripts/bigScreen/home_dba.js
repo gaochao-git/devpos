@@ -103,7 +103,7 @@ class HomeDbaInfo extends Component {
                       <p style={{color:'white',marginLeft:20,paddingTop:2}}>报警<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
                       <Row>
                         <Col span={8}>
-                          <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={workFlow} />
+                          <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={server_gif} />
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
                           <p style={{color:'#5BBFBB',marginTop:5,textAlign:"center"}}>总数:15</p>
@@ -151,15 +151,15 @@ class HomeDbaInfo extends Component {
              <Col span={4}>
                   <div class="img_box">
                     <div class="img" style={{backgroundImage: `url(${bg_background_frame})`}}>
-                      <p style={{color:'white',marginLeft:20,paddingTop:2}}>服务器<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                      <p style={{color:'white',marginLeft:20,paddingTop:2}}>工单<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
                       <Row>
                         <Col span={8}>
-                          <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={server_gif} />
+                          <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={workFlow} />
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
                           <p style={{color:'#5BBFBB',marginTop:5,textAlign:"center"}}>总数:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"center"}}>正常:14</p>
-                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"center"}}>故障:1</p>
+                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"center"}}>已执行:14</p>
+                          <p style={{color:'#BFA42F',marginTop:-10,textAlign:"center"}}>未执行:1</p>
                         </Col>
                       </Row>
                     </div>
