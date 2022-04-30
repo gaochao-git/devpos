@@ -72,9 +72,9 @@ class HomeDbaInfo extends Component {
                           <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={monitor_gif} />
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#BFA42F',marginTop:-10,textAlign:"right"}}>警告:14</p>
-                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"right"}}>错误:1</p>
+                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"center"}}>信息:15</p>
+                          <p style={{color:'#BFA42F',marginTop:-10,textAlign:"center"}}>警告:14</p>
+                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"center"}}>错误:1</p>
                         </Col>
                       </Row>
                     </div>
@@ -89,9 +89,9 @@ class HomeDbaInfo extends Component {
                           <img style={{width:'50%',marginLeft:'30%',marginTop:"-20%"}} src={bg_robot} />
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>信息:15</p>
-                          <p style={{color:'#BFA42F',marginTop:-10,textAlign:"right"}}>警告:14</p>
-                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"right"}}>错误:1</p>
+                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"center"}}>信息:15</p>
+                          <p style={{color:'#BFA42F',marginTop:-10,textAlign:"center"}}>警告:14</p>
+                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"center"}}>错误:1</p>
                         </Col>
                       </Row>
                     </div>
@@ -100,15 +100,15 @@ class HomeDbaInfo extends Component {
              <Col span={4}>
                   <div class="img_box">
                     <div class="img" style={{backgroundImage: `url(${bg_background_frame})`}}>
-                      <p style={{color:'white',marginLeft:20,paddingTop:2}}>工单<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
+                      <p style={{color:'white',marginLeft:20,paddingTop:2}}>报警<Icon style={{color:'green'}} type="eye" onClick={()=>{this.showWarrantyServerModalHandle()}}/></p>
                       <Row>
                         <Col span={8}>
                           <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={workFlow} />
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>总数:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>已处理:14</p>
-                          <p style={{color:'#BFA42F',marginTop:-10,textAlign:"right"}}>未处理:1</p>
+                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"center"}}>总数:15</p>
+                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"center"}}>已认领:14</p>
+                          <p style={{color:'#BFA42F',marginTop:-10,textAlign:"center"}}>未认领:1</p>
                         </Col>
                       </Row>
                     </div>
@@ -123,9 +123,9 @@ class HomeDbaInfo extends Component {
                           <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={backup_gif} />
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>总数:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>成功:14</p>
-                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"right"}}>失败:1</p>
+                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"center"}}>总数:15</p>
+                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"center"}}>成功:14</p>
+                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"center"}}>失败:1</p>
                         </Col>
                       </Row>
                     </div>
@@ -140,9 +140,9 @@ class HomeDbaInfo extends Component {
                           <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={archive_gif} />
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>总数:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>成功:14</p>
-                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"right"}}>失败:1</p>
+                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"center"}}>总数:15</p>
+                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"center"}}>成功:14</p>
+                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"center"}}>失败:1</p>
                         </Col>
                       </Row>
                     </div>
@@ -157,16 +157,16 @@ class HomeDbaInfo extends Component {
                           <img style={{width:'100%',marginLeft:'20%',marginTop:"-30%"}} src={server_gif} />
                         </Col>
                         <Col span={8} style={{width:'60%',marginTop:-35}}>
-                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"right"}}>总数:15</p>
-                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"right"}}>正常:14</p>
-                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"right"}}>故障:1</p>
+                          <p style={{color:'#5BBFBB',marginTop:5,textAlign:"center"}}>总数:15</p>
+                          <p style={{color:'#5BBFBB',marginTop:-10,textAlign:"center"}}>正常:14</p>
+                          <p style={{color:'#BF3B2C',marginTop:-10,textAlign:"center"}}>故障:1</p>
                         </Col>
                       </Row>
                     </div>
                   </div>
             </Col>
           </Row>
-          <Row style={{marginTop:'5px',height:375}}>
+          <Row style={{marginTop:'5px',height:370}}>
             <Card bordered={true} className='ant-tab-radius' style={{ backgroundImage:`url(${pageBg})`,}}>
               <Col span={12}>
                   <Tabs defaultActiveKey="1" tabBarStyle={{color:"#367AD2"}}>
