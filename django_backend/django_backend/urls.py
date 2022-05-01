@@ -33,6 +33,8 @@ urlpatterns = [
     path('api/db_dcl/', include("app_db_dcl.urls")),
     # web_console数据查询服务
     path('api/web_console/', include("app_web_console.urls")),
+    # 循环/定时任务管理
+    path('api/task_manage/', include("app_task_manage.urls")),
 
     # 服务器资源
     path('api/server_resource/v1/get_server_info/', server_info_controller.GetServerInfoController.as_view(), kwargs={"access": RouterAccess.all}), # server--查看主机信息

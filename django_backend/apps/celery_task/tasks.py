@@ -11,10 +11,10 @@ import logging
 logger = logging.getLogger('inception_execute_logger')
 from apps.celery_task.callback import MyTaskCallback
 # ======================================= 定时任务================================
-@task
+@task(expires=1)
 def sendmail(mail):
     print('sending mail to %s...' % mail)
-    time.sleep(100.0)
+    time.sleep(1)
     print('mail sent.')
     logger.error('mail sent.')
     return('mail sent.')

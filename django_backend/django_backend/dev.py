@@ -20,6 +20,9 @@ DATABASES = {
 }
 
 ################# celery配置 ##################
+# python manage.py celery  beat  -l debug  -f logs/celery_beat.log  # 启动定时任务
+# python manage.py celery worker -E -c 4 --loglevel=INFO -f logs/celery_worker.log  # 启动消费worker
+# python manage.py celerycam -l debug -f logs/celery_cam.log  # 启动监控各个任务状态及结果的进程
 djcelery.setup_loader()
 CELERY_IMPORTS= ('apps.celery_task.tasks',)
 CELERY_ACCEPT_CONTENT = ['application/json',]
@@ -29,10 +32,10 @@ CELERY_REDIRECT_STDOUTS_LEVEL = 'INFO'        #标准输出和标准错误输出
 CELERY_TIMEZONE = 'Asia/Shanghai'
 BROKER_URL = 'redis://:fffjjj@47.104.2.74:6379/0'
 CELERY_RESULT_BACKEND = 'redis://:fffjjj@47.104.2.74:6379/1' # 任务结果存入redis
+# CELERY_RESULT_BACKEND = 'djcelery.backends.database.DatabaseBackend'  #任务结果存到数据库celery_taskmeta表中,TiDB不支持该类型
 CELERY_TASK_TRACK_STARTED = True
 CELERY_ENABLE_UTC = False
 USE_TZ = False
-# CELERY_RESULT_BACKEND = 'djcelery.backends.database.DatabaseBackend'  #任务结果存到数据库celery_taskmeta表中,TiDB不支持该类型
 # https://docs.celeryq.dev/en/latest/userguide/configuration.html?highlight=CELERYBEAT_SCHEDULE#new-lowercase-settings
 
 CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"  # djcelery调度器,定时任务存到django后台数据库中,django后台动态管理

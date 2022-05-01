@@ -7,28 +7,39 @@ const { SubMenu } = Menu;
 
 class NavManage extends Component {
     render() {
-        const path = this.props.location.pathname
         //定义侧边栏主按钮与菜单对应关系
         var menu_path = {
             "/userRole":"sub1",
+            "/taskManage":"sub2",
+        }
+        //确定侧边栏选中的菜单
+        if (this.props.location.pathname==='/'){
+            var path = '/Server'
+        }else{
+            var path = this.props.location.pathname
         }
         //确定侧边栏默认展开的menu
         if (path in menu_path){
             var main_sub = menu_path[path]
         }else{
-            var main_sub = ""
+            message.warning('路由未找到')
         }
         return(
             <Menu
                 mode="inline"
                 style={{ height: '100%' }}
                 theme='dark'
-                defaultOpenKeys={main_sub}
+                defaultOpenKeys={[main_sub]}
                 selectedKeys={[path]}
             >
-                <SubMenu key="sub1" title={<span><Icon type="robot" />用户管理</span>}>
+                <SubMenu key="sub1" title={<span><Icon type="user" />用户管理</span>}>
                     <Menu.Item key="/userRole">
                         <Link to="/userRole">角色管理</Link>
+                    </Menu.Item>
+                </SubMenu>
+                <SubMenu key="sub2" title={<span><Icon type="robot" />任务管理</span>}>
+                    <Menu.Item key="/taskManage">
+                        <Link to="/taskManage">角色管理</Link>
                     </Menu.Item>
                 </SubMenu>
             </Menu>

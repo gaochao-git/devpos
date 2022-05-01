@@ -26,6 +26,9 @@ import NavOps from './scripts/home/nave_ops'
 import imgURL from './my_logo.jpg'
 import HomeDbaInfo from './scripts/bigScreen/home_dba'
 import UserRole from './scripts/permission/userRole'
+import TaskManage from './scripts/task/taskManage'
+
+
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
 
@@ -219,6 +222,8 @@ class App extends Component {
                                     <Route exact path="/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
                                     <Route exact path="/rds" component={Rds} />
                                     <Route exact path="/userRole" component={UserRole} />
+                                    <Route exact path="/taskManage" component={TaskManage} />
+
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>

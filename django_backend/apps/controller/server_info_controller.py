@@ -65,8 +65,6 @@ class GetServerInfoController(BaseView):
         :param request:
         :return:
         """
-        create_cron_task()
-        create_interval_task()
         search_server_name = self.request_params.get("search_server_name")  # None或者str
         if search_server_name == "": search_server_name = None
         ret = server_info_dao.get_server_info_dao(search_server_name)
