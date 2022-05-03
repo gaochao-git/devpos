@@ -31,14 +31,15 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_REDIRECT_STDOUTS_LEVEL = 'INFO'        #标准输出和标准错误输出的日志级别。可以是DEBUG, INFO, WARNING, ERROR, or CRITICAL,默认为WARNING
 CELERY_TIMEZONE = 'Asia/Shanghai'
 BROKER_URL = 'redis://:fffjjj@47.104.2.74:6379/0'
-CELERY_RESULT_BACKEND = 'redis://:fffjjj@47.104.2.74:6379/1' # 任务结果存入redis
-# CELERY_RESULT_BACKEND = 'djcelery.backends.database.DatabaseBackend'  #任务结果存到数据库celery_taskmeta表中,TiDB不支持该类型
+# CELERY_RESULT_BACKEND = 'redis://:fffjjj@47.104.2.74:6379/1' # 任务结果存入redis
+CELERY_RESULT_BACKEND = 'djcelery.backends.database.DatabaseBackend'  #任务结果存到数据库celery_taskmeta表中,TiDB不支持该类型
 CELERY_TASK_TRACK_STARTED = True
 CELERY_ENABLE_UTC = False
 USE_TZ = False
 # https://docs.celeryq.dev/en/latest/userguide/configuration.html?highlight=CELERYBEAT_SCHEDULE#new-lowercase-settings
 
 CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"  # djcelery调度器,定时任务存到django后台数据库中,django后台动态管理
+CELERY_SEND_TASK_SENT_EVENT = True
 # 定时任务,配置文件方式管理（定时任务支持配置文件与数据库两种管理方式）
 # CELERYBEAT_SCHEDULER = 'celery.beat:PersistentScheduler'       # beat默认调度器,Berkeley DB,本地celerybeat-schedule.db文件,使用shelve进行操作
 # CELERYBEAT_SCHEDULE_FILENAME = 'celerybeat-schedule.db'       # 存储最近间隔任务

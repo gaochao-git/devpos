@@ -10,6 +10,7 @@ from apps.utils.base_view import BaseView
 from validator import Required, Not, Truthy, Blank, Range, Equals, In, validate,InstanceOf,Length
 from celery import current_app
 from djcelery import models as celery_models  # TaskState, WorkerState,PeriodicTask, IntervalSchedule, CrontabSchedule
+from app_task_manage.utils import celery_manage
 import json
 import datetime
 
@@ -39,6 +40,26 @@ class GetTaskRegisterController(BaseView):
         ret = {"status":"ok","message":"获取注册任务成功","data":list(all_task_names)}
         return self.my_response(ret)
 
+
+class GetTaskLogController(BaseView):
+    def get(self, request):
+        """
+        获取任务日志
+        :param request:
+        :return:
+        """
+        ret = task_manage_dao.get_task_log_dao()
+        return self.my_response(ret)
+
+class GetTasks(BaseView):
+    def get(self, request):
+        """
+        获取任务日志
+        :param request:
+        :return:
+        """
+        ret = celery_manage.CeleryFlower.list_task()
+        return self.my_response(ret)
 
 class AddTaskController(BaseView):
     def __init__(self):

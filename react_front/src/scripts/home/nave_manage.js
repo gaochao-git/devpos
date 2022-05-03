@@ -39,7 +39,7 @@ class NavManage extends Component {
                 </SubMenu>
                 <SubMenu key="sub2" title={<span><Icon type="robot" />任务管理</span>}>
                     <Menu.Item key="/taskManage">
-                        <Link to="/taskManage">角色管理</Link>
+                        <Link to="/taskManage">Celery任务</Link>
                     </Menu.Item>
                 </SubMenu>
             </Menu>

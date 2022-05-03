@@ -326,7 +326,30 @@ class AuditSqlIndex extends Component {
                         dataSource={this.state.submit_sql_info}
                         rowKey={(row ,index) => index}
                         size="small"
+                        scroll={{ x: true }}
+                        pagination={{
+                            showTotal: ((total) => {return `共 ${total} 条`}),
+                            pageSizeOptions: ['10', '20', '30', '40', '50', '100', '500', '1000'],
+                            showSizeChanger: true,
+                            defaultPageSize: 10,
+                            defaultCurrent: 1,
+                            showQuickJumper:true,
+                            defaultCurrent:1,
+                            onChange: ((page, pageSize) => {
+                                this.setState({current_page_number:page,current_page_size:pageSize})
+                            }),
+                        }}
                     >
+                        <Column title='序号'
+                            render={(text,record,index) => {
+                                return (
+                                    this.state.current_page_number>0 ?
+                                    <span>{(this.state.current_page_number-1)*this.state.current_page_size+index+1}</span>
+                                    :
+                                    <span>{index+1}</span>
+                                )
+                            }}
+                        />
                         <Column title="标题"
                             dataIndex="title"
                             render={(text) => {
@@ -382,6 +405,7 @@ class AuditSqlIndex extends Component {
                         <Column title="工单修改时间"
                             dataIndex="utime"/>
                         <Column title="操作"
+                            fixed='right'
                             render={record => {
                                 return <Link to={`/viewApplySqlByUuid/${record.submit_sql_uuid}`}>查看</Link>
                             }}/>

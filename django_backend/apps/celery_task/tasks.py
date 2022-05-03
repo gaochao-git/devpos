@@ -10,13 +10,13 @@ from apps.celery_task.install_mysql import InstallMysql
 import logging
 logger = logging.getLogger('inception_execute_logger')
 from apps.celery_task.callback import MyTaskCallback
+
+
 # ======================================= 定时任务================================
 @task(expires=1)
 def sendmail(mail):
+    time.sleep(5)
     print('sending mail to %s...' % mail)
-    time.sleep(1)
-    print('mail sent.')
-    logger.error('mail sent.')
     return('mail sent.')
 
 
