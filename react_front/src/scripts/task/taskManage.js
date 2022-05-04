@@ -344,21 +344,7 @@ class TaskManage extends Component  {
                                 columns={task_monitor_columns}
                             />
                         </TabPane>
-                        <TabPane tab="队列信息" key="2">
-                            <Table
-                                dataSource={this.state.task_config_info}
-                                columns={columns}
-                                pagination={{
-                                    total:this.state.task_config_info.length,
-                                    showTotal:(count=this.state.task_config_info.length)=>{return '共'+count+'条'},
-                                }}
-                                bordered
-                                size="small"
-                                scroll={{ x: true }}
-                            />
-                            <Button type="primary" onClick={()=>{this.setState({showAddRoleModal:true})}}>新增任务</Button>
-                        </TabPane>
-                        <TabPane tab="定时任务管理" key="3">
+                        <TabPane tab="定时任务管理" key="2">
                             <Table
                                 dataSource={this.state.task_config_info}
                                 columns={columns}
