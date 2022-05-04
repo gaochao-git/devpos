@@ -1,7 +1,7 @@
 import React,{Component} from 'react';
 import axios from 'axios'
 import MyAxios from "../common/interface"
-import { Table, Input,message,Button,Modal,Form,Icon, Select,Tabs,Pagination,Tag} from "antd";
+import { Table, Input,message,Button,Modal,Form,Icon, Select,Tabs,Pagination,Tag,Row,Col,Card} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -12,6 +12,7 @@ axios.defaults.headers.post['Content-Type'] = 'application/json';
 const { Search } = Input;
 const FormItem = Form.Item;
 const { TabPane } = Tabs;
+const { Option } = Select;
 
 function callback(key) {
   console.log(key);
@@ -20,7 +21,11 @@ function onChange(pageNumber) {
       console.log('Page: ', pageNumber);
     }
 const TASK_TYPE = ['Interval','Crontab']
-const TASK_ENABLE = ["开启","不开启"]
+const TASK_ENABLE = [0,1]
+const QUEUE_LIST = ["default","async"]
+const EXCHANGE_LIST = ["default","async"]
+const ROUTING_LIST = ["default","async"]
+const INTERVAL_LIST = ["seconds","minutes","hours","days","microseconds"]
 
 
 class TaskManage extends Component  {
@@ -34,15 +39,18 @@ class TaskManage extends Component  {
             task_config_info:[],
             register_task_info:[],
             task_log_info:[],
+            task_type:"Interval",
+            interval_unit:"seconds"
         }
     }
 
     componentDidMount() {
         this.getTaskInfo()
         this.getRegisterTaskInfo()
-        this.timer= setInterval(() => {
-            this.getTaskLogInfo()
-        }, 1000);
+        this.getTaskLogInfo()
+//        this.timer= setInterval(() => {
+//            this.getTaskLogInfo()
+//        }, 1000);
     }
     componentWillUnmount() {
       if (this.timer != null) {
@@ -101,15 +109,28 @@ class TaskManage extends Component  {
     }
 
     //增加角色
-    async addRoleName() {
-        let params = {role_name:this.state.add_role_name}
-        await MyAxios.post('/permission/v1/add_role_name/',params).then(
+    async addTask(values) {
+        let params = {
+                task: values['task'],
+                task_name: values['task_name'],
+                task_desc: values['task_desc'],
+                register_task: values['register_task'],
+                is_enable: values['is_enable'],
+                task_type: values['task_type'],
+                task_rule: this.state.task_type==="Interval" ? values['task_rule'] + '-' + this.state.interval_unit:values['task_rule'],
+                task_args: JSON.parse(values['task_args']),
+                task_queue: values['task_queue'],
+                task_exchange: values['task_exchange'],
+                task_routing: values['task_routing']
+            };
+            await MyAxios.post('/task_manage/v1/add_task/',params).then(
             res => {
                 if (res.data.status==="ok")
                 {
                     message.success(res.data.message);
-                    this.getUserRoleInfo();
-                    this.setState({add_role_name:"",showAddRoleModal:false})
+                    this.getTaskInfo();
+                    this.setState({showAddRoleModal:false})
+                    this.props.form.resetFields();
                 }else{
                     message.error(res.data.message)
                 }
@@ -117,7 +138,13 @@ class TaskManage extends Component  {
         ).catch(err => {message.error(err.message)})
     }
 
-
+    handleSubmit = e => {
+        e.preventDefault();
+        this.props.form.validateFields((err, values) => {
+            console.log('Received values of form: ', values,this.state.check_sql_results);
+            this.addTask(values)
+        });
+    };
 
     render() {
         const columns = [
@@ -283,6 +310,13 @@ class TaskManage extends Component  {
         ];
         const {form} = this.props;
         const {getFieldDecorator} = form;
+        const postfixSelector = getFieldDecorator('prefix', {
+          initialValue: 'seconds',
+        })(
+          <Select style={{ width: 120 }} onChange={(e) => { this.setState({ interval_unit: e }) }}>
+            {INTERVAL_LIST.map((task_type) => <Select.Option key={task_type} value={task_type}>{task_type}</Select.Option>)}
+          </Select>,
+        );
         return (
             <div className="server-list">
                 <div className="sub-title">
@@ -349,76 +383,87 @@ class TaskManage extends Component  {
                 </div>
                 <Modal visible={this.state.showAddRoleModal}
                     onCancel={() => this.setState({showAddRoleModal:false})}
-                    onOk={() => this.addRoleName()}
+//                    onOk={() => this.addRoleName()}
+                    footer={false}
                     title="添加任务"
-                    width={600}
+                    width={900}
                 >
-                    <Form onSubmit={this.handleLoginSubmit} className="login-form">
-                        <Form.Item label='任务名'>
-                            {getFieldDecorator('password', {rules: [{ required: true, message: 'Please input your Password!' }],})
+
+                    <Form onSubmit={this.handleSubmit} className="login-form" style={{ width: 800 }}>
+                        <Row gutter={16}>
+                        <Card>
+                            <Col span={12}>
+                            <Form.Item label='任务名'>
+                            {getFieldDecorator('task_name', {rules: [{ required: true, message: '输入任务名' }],})
                                 (<Input placeholder="输入任务名"/>,)
                             }
                         </Form.Item>
                         <Form.Item label='任务描述'>
-                            {getFieldDecorator('password', {rules: [{ required: true, message: 'Please input your Password!' }],})
+                            {getFieldDecorator('task_desc', {rules: [{ required: true, message: '输入任务描述' }],})
                                 (<Input placeholder="输入任务描述"/>,)
                             }
                         </Form.Item>
                         <FormItem  label='选择已注册任务'>
-                             {getFieldDecorator('register_task', {rules: [{required: true, message: '请输入执行类型'}],})(
+                             {getFieldDecorator('task', {rules: [{required: true, message: '选择注册任务'}],})(
                                  <Select>
                                      {this.state.register_task_info.map((register_task) => <Select.Option key={register_task} value={register_task}>{register_task}</Select.Option>)}
                                  </Select>
                              )}
                         </FormItem>
+                        <FormItem  label='任务类型'>
+                             {getFieldDecorator('task_type', {rules: [{required: true, message: '选择任务类型'}],initialValue: 'Interval'})(
+                                 <Select onChange={e => this.setState({task_type:e})}>
+                                     {TASK_TYPE.map((task_type) => <Select.Option key={task_type} value={task_type}>{task_type}</Select.Option>)}
+                                 </Select>
+                             )}
+                        </FormItem>
+                        <Form.Item label='任务规则'>
+                            {getFieldDecorator('task_rule', {
+                                rules: [{ required: true, message: '输入任务规则' }],
+                            })(
+                                this.state.task_type==="Interval" ? <Input addonAfter={postfixSelector} placeholder="输入数字"/> :<Input placeholder="* * * * *(linux 定时任务格式)"/>
+                            )}
+                        </Form.Item>
+                        </Col>
+                        <Col span={12}>
                         <FormItem  label='是否开启'>
-                             {getFieldDecorator('is_enable', {rules: [{required: true, message: '请输入执行类型'}],})(
+                             {getFieldDecorator('is_enable', {rules: [{required: true, message: '选择是否开启'}],initialValue: 0})(
                                  <Select>
                                      {TASK_ENABLE.map((is_enable) => <Select.Option key={is_enable} value={is_enable}>{is_enable}</Select.Option>)}
                                  </Select>
                              )}
                         </FormItem>
-                        <FormItem  label='任务类型'>
-                             {getFieldDecorator('task_type', {rules: [{required: true, message: '请输入执行类型'}],})(
-                                 <Select>
-                                     {TASK_TYPE.map((task_type) => <Select.Option key={task_type} value={task_type}>{task_type}</Select.Option>)}
-                                 </Select>
-                             )}
-                        </FormItem>
-                        <Form.Item label='触发规则'>
-                            {getFieldDecorator('username', {
-                                rules: [{ required: true, message: 'Please input your username!' }],
-                            })(
-                                <Input placeholder="5s/3min/1h/2day"/>,
-                            )}
-                        </Form.Item>
-
                         <Form.Item label='参数'>
-                            {getFieldDecorator('password', {rules: [{ required: true, message: 'Please input your Password!' }],})
+                            {getFieldDecorator('task_args', {rules: [{ required: true, message: '输入参数' }],})
                                 (<Input placeholder='输入参数[args,args2]或者{"key1":"value","key2":"value"}'/>,)
                             }
                         </Form.Item>
                         <FormItem  label='选择Queue'>
-                             {getFieldDecorator('queue', {rules: [{required: true, message: '请输入执行类型'}],})(
+                             {getFieldDecorator('task_queue', {rules: [{required: true, message: '选择queue'}],initialValue: 'default'})(
                                  <Select>
-                                     {TASK_TYPE.map((record,index) => <Select.Option key={index} value={record}>{record}</Select.Option>)}
+                                     {QUEUE_LIST.map((record,index) => <Select.Option key={index} value={record}>{record}</Select.Option>)}
                                  </Select>
                              )}
                         </FormItem>
                         <FormItem  label='选择Exchange'>
-                             {getFieldDecorator('exchange', {rules: [{required: true, message: '请输入执行类型'}],})(
+                             {getFieldDecorator('task_exchange', {rules: [{required: true, message: '选择exchange'}],initialValue: 'default'})(
                                  <Select>
-                                     {TASK_TYPE.map((record,index) => <Select.Option key={index} value={record}>{record}</Select.Option>)}
+                                     {EXCHANGE_LIST.map((record,index) => <Select.Option key={index} value={record}>{record}</Select.Option>)}
                                  </Select>
                              )}
                         </FormItem>
                         <FormItem  label='选择Routing key'>
-                             {getFieldDecorator('routing_key', {rules: [{required: true, message: '请输入执行类型'}],})(
+                             {getFieldDecorator('task_routing', {rules: [{required: true, message: '选择routing'}],initialValue: 'default'})(
                                  <Select>
-                                     {TASK_TYPE.map((record,index) => <Select.Option key={index} value={record}>{record}</Select.Option>)}
+                                     {ROUTING_LIST.map((record,index) => <Select.Option key={index} value={record}>{record}</Select.Option>)}
                                  </Select>
                              )}
                         </FormItem>
+                        </Col>
+                        </Card>
+
+                    </Row>
+                        <Button type="primary" loading={this.state.sql_submit_loading} htmlType="submit">submit</Button>
                     </Form>
                 </Modal>
                 <Modal visible={this.state.showDelRoleModal}
