@@ -7,4 +7,5 @@ urlpatterns = [
     path('v1/get_register_task/', task_manage_controller.GetTaskRegisterController.as_view(), kwargs={"access": RouterAccess.dba}),
     path('v1/get_task_log/', task_manage_controller.GetTaskLogController.as_view(), kwargs={"access": RouterAccess.dba}),
     path('v1/add_task/', task_manage_controller.AddTaskController.as_view(), kwargs={"access": RouterAccess.dba}),
+    path('v1/modify_task/', task_manage_controller.ModifyTaskController.as_view(), kwargs={"access": RouterAccess.dba}),
 ]

@@ -32,7 +32,7 @@ class TaskManage extends Component  {
     constructor(props) {
         super(props);
         this.state = {
-            showAddRoleModal:false,
+            
             add_role_name:"",
             del_role_name:"",
             //==================
@@ -40,7 +40,12 @@ class TaskManage extends Component  {
             register_task_info:[],
             task_log_info:[],
             task_type:"Interval",
-            interval_unit:"seconds"
+            interval_unit:"seconds",
+            form_create:true,
+            showConfigModal:false,
+            showModifyModal:false,
+            record_info:[],
+            
         }
     }
 
@@ -114,7 +119,6 @@ class TaskManage extends Component  {
                 task: values['task'],
                 task_name: values['task_name'],
                 task_desc: values['task_desc'],
-                register_task: values['register_task'],
                 is_enable: values['is_enable'],
                 task_type: values['task_type'],
                 task_rule: this.state.task_type==="Interval" ? values['task_rule'] + '-' + this.state.interval_unit:values['task_rule'],
@@ -129,7 +133,36 @@ class TaskManage extends Component  {
                 {
                     message.success(res.data.message);
                     this.getTaskInfo();
-                    this.setState({showAddRoleModal:false})
+                    this.setState({showConfigModal:false})
+                    this.props.form.resetFields();
+                }else{
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err => {message.error(err.message)})
+    }
+
+
+    async modifyTask(values) {
+        let params = {
+                task: values['task'],
+                task_name: values['task_name'],
+                task_desc: values['task_desc'],
+                is_enable: values['is_enable'],
+                task_type: values['task_type'],
+                task_rule: this.state.task_type==="Interval" ? values['task_rule'] + '-' + this.state.interval_unit:values['task_rule'],
+                task_args: JSON.parse(values['task_args']),
+                task_queue: values['task_queue'],
+                task_exchange: values['task_exchange'],
+                task_routing: values['task_routing']
+            };
+            await MyAxios.post('/task_manage/v1/modify_task/',params).then(
+            res => {
+                if (res.data.status==="ok")
+                {
+                    message.success(res.data.message);
+                    this.getTaskInfo();
+                    this.setState({showConfigModal:false})
                     this.props.form.resetFields();
                 }else{
                     message.error(res.data.message)
@@ -141,8 +174,7 @@ class TaskManage extends Component  {
     handleSubmit = e => {
         e.preventDefault();
         this.props.form.validateFields((err, values) => {
-            console.log('Received values of form: ', values,this.state.check_sql_results);
-            this.addTask(values)
+            this.state.form_create? this.addTask(values):this.modifyTask(values)
         });
     };
 
@@ -211,10 +243,10 @@ class TaskManage extends Component  {
           {
             title: '操作',
             fixed: 'right',
-            render: (record) => {
+            render: (text,record) => {
               return (
               <div>
-                <Button type="primary" onClick={()=>{this.setState({del_role_name:record.role_name,showDelRoleModal:true})}}>修改</Button>
+                <Button type="primary" onClick={()=>{this.setState({showConfigModal:true,record_info:record,form_create:false})}}>修改</Button>
                 <Button type="danger" onClick={()=>{this.setState({del_role_name:record.role_name,showDelRoleModal:true})}}>删除</Button>
               </div>
               )
@@ -366,49 +398,47 @@ class TaskManage extends Component  {
                                 size="small"
                                 scroll={{ x: true }}
                             />
-                            <Button type="primary" onClick={()=>{this.setState({showAddRoleModal:true})}}>新增任务</Button>
+                            <Button type="primary" onClick={()=>{this.setState({showConfigModal:true,form_create:true})}}>新增任务</Button>
                         </TabPane>
                     </Tabs>
                 </div>
-                <Modal visible={this.state.showAddRoleModal}
-                    onCancel={() => this.setState({showAddRoleModal:false})}
+                <Modal visible={this.state.showConfigModal}
+                    onCancel={() => this.setState({showConfigModal:false})}
 //                    onOk={() => this.addRoleName()}
                     footer={false}
                     title="添加任务"
                     width={900}
                 >
-
                     <Form onSubmit={this.handleSubmit} className="login-form" style={{ width: 800 }}>
                         <Row gutter={16}>
                         <Card>
                             <Col span={12}>
                             <Form.Item label='任务名'>
-                            {getFieldDecorator('task_name', {rules: [{ required: true, message: '输入任务名' }],})
-                                (<Input placeholder="输入任务名"/>,)
+                            {getFieldDecorator('task_name', {rules: [{ required: true, message: '输入任务名' }],initialValue:this.state.form_create ? null:this.state.record_info['name']})
+                                (<Input disabled={!this.state.form_create} placeholder="输入任务名"/>,)
                             }
                         </Form.Item>
                         <Form.Item label='任务描述'>
-                            {getFieldDecorator('task_desc', {rules: [{ required: true, message: '输入任务描述' }],})
+                            {getFieldDecorator('task_desc', {rules: [{ required: true, message: '输入任务描述' }],initialValue:this.state.form_create ? null:this.state.record_info['description']})
                                 (<Input placeholder="输入任务描述"/>,)
                             }
                         </Form.Item>
                         <FormItem  label='选择已注册任务'>
-                             {getFieldDecorator('task', {rules: [{required: true, message: '选择注册任务'}],})(
-                                 <Select>
+                             {getFieldDecorator('task', {rules: [{required: true, message: '选择注册任务'}],initialValue:this.state.form_create ? null:this.state.record_info['task']})(
+                                 <Select disabled={!this.state.form_create}>
                                      {this.state.register_task_info.map((register_task) => <Select.Option key={register_task} value={register_task}>{register_task}</Select.Option>)}
                                  </Select>
                              )}
                         </FormItem>
                         <FormItem  label='任务类型'>
-                             {getFieldDecorator('task_type', {rules: [{required: true, message: '选择任务类型'}],initialValue: 'Interval'})(
-                                 <Select onChange={e => this.setState({task_type:e})}>
+                             {getFieldDecorator('task_type', {rules: [{required: true, message: '选择任务类型'}],initialValue:this.state.form_create ? 'Interval':this.state.record_info['type']})(
+                                 <Select disabled={!this.state.form_create} onChange={e => this.setState({task_type:e})}>
                                      {TASK_TYPE.map((task_type) => <Select.Option key={task_type} value={task_type}>{task_type}</Select.Option>)}
                                  </Select>
                              )}
                         </FormItem>
                         <Form.Item label='任务规则'>
-                            {getFieldDecorator('task_rule', {
-                                rules: [{ required: true, message: '输入任务规则' }],
+                            {getFieldDecorator('task_rule', {rules: [{ required: true, message: '输入任务规则' }],initialValue:this.state.form_create ? null :this.state.record_info['rule']
                             })(
                                 this.state.task_type==="Interval" ? <Input addonAfter={postfixSelector} placeholder="输入数字"/> :<Input placeholder="* * * * *(linux 定时任务格式)"/>
                             )}
