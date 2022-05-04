@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger('inception_execute_logger')
 from apps.celery_task.callback import MyTaskCallback
 # ======================================= 异步任务================================
-@task
+@task()
 def inception_execute(des_ip, des_port, inc_bak, inc_war, inc_err,file_path, submit_sql_uuid, inc_sleep, exe_user_name):
     """
     执行单个SQL文件任务

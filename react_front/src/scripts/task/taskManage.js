@@ -47,10 +47,10 @@ class TaskManage extends Component  {
     componentDidMount() {
         this.getTaskInfo()
         this.getRegisterTaskInfo()
-        this.getTaskLogInfo()
-//        this.timer= setInterval(() => {
-//            this.getTaskLogInfo()
-//        }, 1000);
+//        this.getTaskLogInfo()
+        this.timer= setInterval(() => {
+            this.getTaskLogInfo()
+        }, 1000);
     }
     componentWillUnmount() {
       if (this.timer != null) {
@@ -230,7 +230,10 @@ class TaskManage extends Component  {
                 let color = 'red';
                 if (text === 'SUCCESS') {
                   color = 'green';
-                }else{
+                }else if (text==='FAILURE'){
+                    color = 'red';
+                }
+                else{
                     color = 'blue';
                 }
                 return (
