@@ -15,7 +15,6 @@ class Middleware(MiddlewareMixin):
     登陆验证中间件,除了登陆接口所有接口均需要验证
     """
     def process_request(self, request):
-        print(request.path)
         if len(re.findall('/admin/', request.path))!=0:
             pass
         else:

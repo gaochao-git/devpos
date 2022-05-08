@@ -180,10 +180,10 @@ class AddTaskController(BaseView):
         """
         # 先对规则进行校验
         interval_unit_list = ["seconds", "minutes", "hours", "days", "microseconds"]
-        if len(self.task_rule.split('-')) != 2: return {"status": "error","message": "interval 任务规则不合法"}
-        every = self.task_rule.split('-')[0]
-        period = self.task_rule.split('-')[1]
-        if not isinstance(every, int): return {"status": "error","message": "interval 必须是数字"}
+        if len(self.task_rule.split(' ')) != 2: return {"status": "error","message": "interval 任务规则不合法"}
+        every = self.task_rule.split(' ')[0]
+        period = self.task_rule.split(' ')[1]
+        if not every.isdigit(): return {"status": "error","message": "interval 必须是数字"}
         if period not in interval_unit_list: return {"status": "error","message": "interval 单位必须是%s" % interval_unit_list}
         try:
             # 如果运行规则已经存在则啥也不做,否则插入运行间隔规则
@@ -300,8 +300,8 @@ class ModifyTaskController(BaseView):
             # 判断任务是否已经存在
             task_info = celery_models.PeriodicTask.objects.filter(task=self.task)
             # 插入任务
-            if task_info.exists(): return {"status": "error", "message": "任务已存在"}
-            celery_models.PeriodicTask.objects.update_or_create(
+            if not task_info.exists(): return {"status": "error", "message": "任务已存在"}
+            task_info.update(
                 crontab=schedule,  # 上面创建10秒的间隔 interval 对象
                 name=self.task_name,  # 设置任务的name值
                 task=self.task,  # 指定需要周期性执行的任务
@@ -327,18 +327,18 @@ class ModifyTaskController(BaseView):
         """
         # 先对规则进行校验
         interval_unit_list = ["seconds", "minutes", "hours", "days", "microseconds"]
-        if len(self.task_rule.split('-')) != 2: return {"status": "error","message": "interval 任务规则不合法"}
-        every = self.task_rule.split('-')[0]
-        period = self.task_rule.split('-')[1]
-        if not isinstance(every, int): return {"status": "error","message": "interval 必须是数字"}
+        if len(self.task_rule.split(' ')) != 2: return {"status": "error","message": "interval 任务规则不合法"}
+        every = self.task_rule.split(' ')[0]
+        period = self.task_rule.split(' ')[1]
+        if not every.isdigit(): return {"status": "error","message": "interval 必须是数字"}
         if period not in interval_unit_list: return {"status": "error","message": "interval 单位必须是%s" % interval_unit_list}
         try:
             # 如果运行规则已经存在则啥也不做,否则插入运行间隔规则
             schedule, created = celery_models.IntervalSchedule.objects.get_or_create(every=every, period=period)
             task_info = celery_models.PeriodicTask.objects.filter(task=self.task)
             # 插入任务
-            if task_info.exists(): return {"status": "error", "message": "任务已存在"}
-            celery_models.PeriodicTask.objects.update_or_create(
+            if not task_info.exists(): return {"status": "error", "message": "任务不存在"}
+            task_info.update(
                 interval=schedule,  # 上面创建10秒的间隔 interval 对象
                 name=self.task_name,  # 设置任务的name值
                 task=self.task,  # 指定需要周期性执行的任务

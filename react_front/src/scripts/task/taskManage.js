@@ -40,7 +40,6 @@ class TaskManage extends Component  {
             register_task_info:[],
             task_log_info:[],
             task_type:"Interval",
-            interval_unit:"seconds",
             form_create:true,
             showConfigModal:false,
             showModifyModal:false,
@@ -55,7 +54,7 @@ class TaskManage extends Component  {
 //        this.getTaskLogInfo()
         this.timer= setInterval(() => {
             this.getTaskLogInfo()
-        }, 1000);
+        }, 3000);
     }
     componentWillUnmount() {
       if (this.timer != null) {
@@ -121,8 +120,9 @@ class TaskManage extends Component  {
                 task_desc: values['task_desc'],
                 is_enable: values['is_enable'],
                 task_type: values['task_type'],
-                task_rule: this.state.task_type==="Interval" ? values['task_rule'] + '-' + this.state.interval_unit:values['task_rule'],
+                task_rule: values['task_rule'],
                 task_args: JSON.parse(values['task_args']),
+                task_kwargs: values['task_kwargs'],
                 task_queue: values['task_queue'],
                 task_exchange: values['task_exchange'],
                 task_routing: values['task_routing']
@@ -144,14 +144,16 @@ class TaskManage extends Component  {
 
 
     async modifyTask(values) {
+
         let params = {
                 task: values['task'],
                 task_name: values['task_name'],
                 task_desc: values['task_desc'],
                 is_enable: values['is_enable'],
                 task_type: values['task_type'],
-                task_rule: this.state.task_type==="Interval" ? values['task_rule'] + '-' + this.state.interval_unit:values['task_rule'],
+                task_rule: values['task_rule'],
                 task_args: JSON.parse(values['task_args']),
+                task_kwargs: values['task_kwargs'],
                 task_queue: values['task_queue'],
                 task_exchange: values['task_exchange'],
                 task_routing: values['task_routing']
@@ -246,7 +248,7 @@ class TaskManage extends Component  {
             render: (text,record) => {
               return (
               <div>
-                <Button type="primary" onClick={()=>{this.setState({showConfigModal:true,record_info:record,form_create:false})}}>修改</Button>
+                <Button type="primary" onClick={()=>{this.setState({showConfigModal:true,record_info:record,form_create:false,task_type:record.type})}}>修改</Button>
                 <Button type="danger" onClick={()=>{this.setState({del_role_name:record.role_name,showDelRoleModal:true})}}>删除</Button>
               </div>
               )
@@ -432,29 +434,45 @@ class TaskManage extends Component  {
                         </FormItem>
                         <FormItem  label='任务类型'>
                              {getFieldDecorator('task_type', {rules: [{required: true, message: '选择任务类型'}],initialValue:this.state.form_create ? 'Interval':this.state.record_info['type']})(
-                                 <Select disabled={!this.state.form_create} onChange={e => this.setState({task_type:e})}>
+                                 <Select onChange={e => this.setState({task_type:e})}>
                                      {TASK_TYPE.map((task_type) => <Select.Option key={task_type} value={task_type}>{task_type}</Select.Option>)}
                                  </Select>
                              )}
                         </FormItem>
-                        <Form.Item label='任务规则'>
-                            {getFieldDecorator('task_rule', {rules: [{ required: true, message: '输入任务规则' }],initialValue:this.state.form_create ? null :this.state.record_info['rule']
-                            })(
-                                this.state.task_type==="Interval" ? <Input addonAfter={postfixSelector} placeholder="输入数字"/> :<Input placeholder="* * * * *(linux 定时任务格式)"/>
-                            )}
-                        </Form.Item>
+                        {
+                        this.state.task_type==="Interval" ?
+                            <Form.Item label='任务规则(seconds,minutes,hours,days,microseconds)'>
+                                {getFieldDecorator('task_rule', {rules: [{ required: true, message: '输入任务规则' }],initialValue:this.state.form_create ? null :this.state.record_info['rule']
+                                })(
+                                    <Input placeholder="5 seconds"/>
+                                )}
+                            </Form.Item>
+                        :
+                            <Form.Item label='任务规则(linux 定时任务格式)'>
+                                {getFieldDecorator('task_rule', {rules: [{ required: true, message: '输入任务规则' }],initialValue:this.state.form_create ? null :this.state.record_info['rule']
+                                })(
+                                    <Input placeholder="* * * * *"/>
+                                )}
+                            </Form.Item>
+                        }
+
                         </Col>
                         <Col span={12}>
                         <FormItem  label='是否开启'>
-                             {getFieldDecorator('is_enable', {rules: [{required: true, message: '选择是否开启'}],initialValue: 0})(
+                             {getFieldDecorator('is_enable', {rules: [{required: true, message: '选择是否开启'}],initialValue:this.state.form_create ? 0 :this.state.record_info['enabled']})(
                                  <Select>
                                      {TASK_ENABLE.map((is_enable) => <Select.Option key={is_enable} value={is_enable}>{is_enable}</Select.Option>)}
                                  </Select>
                              )}
                         </FormItem>
-                        <Form.Item label='参数'>
-                            {getFieldDecorator('task_args', {rules: [{ required: true, message: '输入参数' }],})
-                                (<Input placeholder='输入参数[args,args2]或者{"key1":"value","key2":"value"}'/>,)
+                        <Form.Item label='数组参数'>
+                            {getFieldDecorator('task_args', {rules: [{ required: true, message: '输入args' }],initialValue:this.state.form_create ? null :this.state.record_info['args']})
+                                (<Input placeholder='[args,args2],无参数则输入[]'/>,)
+                            }
+                        </Form.Item>
+                        <Form.Item label='字典参数'>
+                            {getFieldDecorator('task_kwargs ', {rules: [{ required: true, message: '输入kwargs' }],initialValue:this.state.form_create ? null :this.state.record_info['kwargs']})
+                                (<Input placeholder='{"key1":"value","key2":"value"},无参数则输入{}'/>,)
                             }
                         </Form.Item>
                         <FormItem  label='选择Queue'>
