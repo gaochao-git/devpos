@@ -43,3 +43,10 @@ def get_task_log_dao():
         from djcelery_taskstate order by tstamp desc limit 1000
     """
     return db_helper.find_all(sql)
+
+
+def del_task_dao():
+    """
+    删除任务
+    :return:
+    """

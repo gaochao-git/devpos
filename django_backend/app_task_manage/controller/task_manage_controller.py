@@ -336,7 +336,7 @@ class ModifyTaskController(BaseView):
             # 如果运行规则已经存在则啥也不做,否则插入运行间隔规则
             schedule, created = celery_models.IntervalSchedule.objects.get_or_create(every=every, period=period)
             task_info = celery_models.PeriodicTask.objects.filter(task=self.task)
-            # 插入任务
+            # 更新任务
             if not task_info.exists(): return {"status": "error", "message": "任务不存在"}
             task_info.update(
                 interval=schedule,  # 上面创建10秒的间隔 interval 对象
@@ -351,8 +351,33 @@ class ModifyTaskController(BaseView):
             )
             status = "ok"
             message = "ok"
+            # 触发自动更新
+            periodictasks = celery_models.PeriodicTasks.objects.filter(ident=1)
+            if not task_info.exists(): return {"status": "error", "message": "获取djcelery_periodictasks信息失败"}
+            periodictasks.update(last_update=datetime.datetime.now())
         except Exception as e:
             status = "error"
             message = str(e)
             print("添加任务失败:%s" % str(e))
         return {"status": status, "message": message}
+
+
+class DelTaskController(BaseView):
+    def post(self, request):
+        """
+        获取所有任务
+        :param request:
+        :return:
+        """
+        try:
+            request_body = self.request_params
+            task_name = request_body.get('task_name')
+            tasks = celery_models.PeriodicTask.objects.filter(name=task_name)
+            print(tasks)
+            if not tasks.exists(): return self.my_response({"status": "error", "message": "任务不存在"})
+            a = tasks.delete()
+            print(a)
+        except Exception as e:
+            print(e)
+        ret = {"status": "ok", "message": "ok"}
+        return self.my_response(ret)

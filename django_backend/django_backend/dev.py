@@ -37,7 +37,7 @@ CELERY_TASK_TRACK_STARTED = True
 CELERY_ENABLE_UTC = False
 USE_TZ = False
 # https://docs.celeryq.dev/en/latest/userguide/configuration.html?highlight=CELERYBEAT_SCHEDULE#new-lowercase-settings
-
+# https://pypi.org/project/django-celery/
 CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"  # djcelery调度器,定时任务存到django后台数据库中,django后台动态管理
 CELERY_SEND_TASK_SENT_EVENT = True
 # 定时任务,配置文件方式管理（定时任务支持配置文件与数据库两种管理方式）

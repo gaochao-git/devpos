@@ -34,7 +34,7 @@ class TaskManage extends Component  {
         this.state = {
             
             add_role_name:"",
-            del_role_name:"",
+            del_task_name:"",
             //==================
             task_config_info:[],
             register_task_info:[],
@@ -96,15 +96,15 @@ class TaskManage extends Component  {
     }
 
     //删除角色
-    async delRoleName() {
-        let params = {role_name:this.state.del_role_name}
-        await MyAxios.post('/permission/v1/del_role_name/',params).then(
+    async delTaskName() {
+        let params = {task_name:this.state.del_task_name}
+        await MyAxios.post('/task_manage/v1/del_task/',params).then(
             res => {
                 if (res.data.status==="ok")
                 {
                     message.success(res.data.message);
-                    this.getUserRoleInfo();
-                    this.setState({del_role_name:"",showDelRoleModal:false})
+                    this.getTaskInfo();
+                    this.setState({del_task_name:"",showDelRoleModal:false})
                 }else{
                     message.error(res.data.message)
                 }
@@ -144,7 +144,6 @@ class TaskManage extends Component  {
 
 
     async modifyTask(values) {
-
         let params = {
                 task: values['task'],
                 task_name: values['task_name'],
@@ -249,7 +248,7 @@ class TaskManage extends Component  {
               return (
               <div>
                 <Button type="primary" onClick={()=>{this.setState({showConfigModal:true,record_info:record,form_create:false,task_type:record.type})}}>修改</Button>
-                <Button type="danger" onClick={()=>{this.setState({del_role_name:record.role_name,showDelRoleModal:true})}}>删除</Button>
+                <Button type="danger" onClick={()=>{this.setState({del_task_name:record.name,showDelRoleModal:true})}}>删除</Button>
               </div>
               )
             }
@@ -339,7 +338,7 @@ class TaskManage extends Component  {
             render: (record) => {
               return (
               <div>
-                <Button type="danger" onClick={()=>{this.setState({del_role_name:record.role_name,showDelRoleModal:true})}}>revoke</Button>
+                <Button type="danger" onClick={()=>{this.setState({del_task_name:record.role_name,showDelRoleModal:true})}}>revoke</Button>
               </div>
               )
             }
@@ -505,10 +504,10 @@ class TaskManage extends Component  {
                 </Modal>
                 <Modal visible={this.state.showDelRoleModal}
                     onCancel={() => this.setState({showDelRoleModal:false})}
-                    onOk={() => this.delRoleName()}
+                    onOk={() => this.delTaskName()}
                     width={300}
                 >
-                   删除角色: {this.state.del_role_name}
+                   删除角色: {this.state.del_task_name}
                 </Modal>
             </div>
         )
