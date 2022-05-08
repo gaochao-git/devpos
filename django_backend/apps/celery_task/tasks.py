@@ -13,9 +13,9 @@ from apps.celery_task.callback import MyTaskCallback
 
 
 # ======================================= 定时任务================================
-@task(time_limit=9, expires=5)
+@task(time_limit=90, expires=5)
 def sendmail(mail):
-    time.sleep(2)
+    time.sleep(20)
     print('sending mail to %s...' % mail)
     return('mail sent.')
 

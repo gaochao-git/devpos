@@ -44,6 +44,8 @@ class TaskManage extends Component  {
             showConfigModal:false,
             showModifyModal:false,
             record_info:[],
+            showRevokeModal:false,
+            revoke_task_id:""
             
         }
     }
@@ -179,6 +181,23 @@ class TaskManage extends Component  {
         });
     };
 
+    async revokeRunningTask() {
+        let params = {
+                task_id:this.state.revoke_task_id
+            };
+            await MyAxios.post('/task_manage/v1/revoke_running_task/',params).then(
+            res => {
+                if (res.data.status==="ok")
+                {
+                    message.success(res.data.message);
+                    this.setState({showRevokeModal:false})
+                }else{
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err => {message.error(err.message)})
+    }
+
     render() {
         const columns = [
           {
@@ -265,6 +284,8 @@ class TaskManage extends Component  {
                   color = 'green';
                 }else if (text==='FAILURE'){
                     color = 'red';
+                }else if (text==='REVOKED'){
+                    color = '#ff9317';
                 }
                 else{
                     color = 'blue';
@@ -338,7 +359,7 @@ class TaskManage extends Component  {
             render: (record) => {
               return (
               <div>
-                <Button type="danger" onClick={()=>{this.setState({del_task_name:record.role_name,showDelRoleModal:true})}}>revoke</Button>
+                <Button type="danger" onClick={()=>{this.setState({revoke_task_id:record.task_id,showRevokeModal:true})}}>revoke</Button>
               </div>
               )
             }
@@ -508,6 +529,13 @@ class TaskManage extends Component  {
                     width={300}
                 >
                    删除角色: {this.state.del_task_name}
+                </Modal>
+                <Modal visible={this.state.showRevokeModal}
+                    onCancel={() => this.setState({showRevokeModal:false})}
+                    onOk={() => this.revokeRunningTask()}
+                    width={300}
+                >
+                   取消正在执行的任务: {this.state.revoke_task_id}
                 </Modal>
             </div>
         )

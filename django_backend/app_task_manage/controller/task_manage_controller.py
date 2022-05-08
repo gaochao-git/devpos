@@ -14,6 +14,9 @@ from app_task_manage.utils import celery_manage
 from validator import Required, Not, Truthy, Blank, Range, Equals, In, validate,InstanceOf,Length
 import json
 import datetime
+from celery.result import AsyncResult
+from apps.utils.base_view import BaseView
+import signal
 
 import logging
 logger = logging.getLogger('devops')
@@ -380,4 +383,23 @@ class DelTaskController(BaseView):
         except Exception as e:
             print(e)
         ret = {"status": "ok", "message": "ok"}
+        return self.my_response(ret)
+
+
+class RevokeTaskController(BaseView):
+    def post(self, request):
+        """
+        取消正在执行的任务
+        :param request:
+        :return:
+        """
+        no_revoke_status_list = ['FAILURE', 'SUCCESS', 'REVOKED']
+        request_body = self.request_params
+        task_id = request_body.get('task_id')
+        res_info = AsyncResult(task_id)
+        if res_info.state in no_revoke_status_list:
+            ret = {"status":"error", "message":"%s状态无法取消" % res_info.state}
+            return self.my_response(ret)
+        res_info.revoke(timeout=3, terminate=True)
+        ret = {"status": "ok", "message": "任务取消已下发"}
         return self.my_response(ret)
