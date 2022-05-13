@@ -294,3 +294,23 @@ td.replacecolor{
       background-size: cover;
     }
 }
+
+
+.ant-table-tbody {
+    .td {
+      word-break: break-all!important;
+    }
+  }
+  .table {
+    word-break: break-all!important;
+    .ant-table-placeholder {
+      min-height: 450px;
+    }
+  }
+  .ant-table-small>.ant-table-content .ant-table-header {
+    overflow-y: overlay !important;
+  }
+
+  .ant-table-fixed-header>.ant-table-content>.ant-table-scroll>.ant-table-body {
+    overflow-y: overlay !important;
+  }

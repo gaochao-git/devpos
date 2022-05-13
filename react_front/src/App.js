@@ -46,7 +46,8 @@ class App extends Component {
             login_user_name_role:"",
             current_nav:"",
             current_time:"",
-            week_day:""
+            week_day:"",
+            collapsed:false
         }
     }
     componentDidMount() {
@@ -136,6 +137,12 @@ class App extends Component {
         this.setState({current_nav:e.key});
         window.localStorage.setItem("current_nav", e.key)
     }
+
+    onCollapse = collapsed => {
+      this.setState({
+      collapsed: !this.state.collapsed,
+    });
+  };
     render() {
         if (window.localStorage.getItem('token')) {
             return(
@@ -146,6 +153,11 @@ class App extends Component {
                                 <div className="logo" style={{width:'10%'}}>
                                     <img alt="Logo" src={imgURL} style={{width:'30px'}}/>
                                 </div>
+                                <Icon
+                                  className="trigger"
+                                  type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
+                                  onClick={this.onCollapse}
+                                />
                                 <Menu
                                     theme="dark"
                                     mode="horizontal"
@@ -187,18 +199,25 @@ class App extends Component {
                                 </Button>
                             </Header>
                             <Layout>
-                                <Sider width={150} style={{ background: '#15344a',minHeight:'860px'}}>
-                                    {
-                                        this.state.current_nav === "服务"? <NavService/>:null
-                                    }
-                                    {
-                                        this.state.current_nav === "运维"? <NavOps/>:null
-                                    }
-                                    {
-                                        this.state.current_nav === "管理"? <NavManage/>:null
-                                    }
+                                <Sider
+                                style={{ background: '#15344a',minHeight:'860px'}}
+                                collapsible
+                                collapsed={this.state.collapsed}
+                                onCollapse={this.onCollapse}
+                                trigger={null}
+                            >
+                                    {this.state.current_nav === "服务"? <NavService/>:null}
+                                    {this.state.current_nav === "运维"? <NavOps/>:null}
+                                    {this.state.current_nav === "管理"? <NavManage/>:null}
                                 </Sider>
-                                <Content>
+                                <Content
+                                    style={{
+                                      margin: '24px 16px',
+                                      padding: 24,
+                                      background: '#fff',
+                                      minHeight: 280,
+                                    }}
+                                >
                                     <Route exact path="/" component={() => {
                                         if (this.state.is_dba) {
                                             return <HomeDbaInfo/>
@@ -223,7 +242,6 @@ class App extends Component {
                                     <Route exact path="/rds" component={Rds} />
                                     <Route exact path="/userRole" component={UserRole} />
                                     <Route exact path="/taskManage" component={TaskManage} />
-
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>

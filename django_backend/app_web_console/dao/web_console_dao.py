@@ -147,7 +147,7 @@ def get_db_connect_dao(instance_name):
     port = instance_name.split('_')[1]
     return db_helper.target_source_find_all(ip,port,sql)
 
-def get_table_list_dao(instance_name,schema_name):
+def get_table_list_dao(instance_name,schema_name,table_name):
     """
     获取所有表
     :param schema_name:
@@ -155,8 +155,26 @@ def get_table_list_dao(instance_name,schema_name):
     """
     ip = instance_name.split('_')[0]
     port = instance_name.split('_')[1]
-    sql = "show tables from {}".format(schema_name)
-    return db_helper.target_source_find_all(ip, port, sql)
+    sql = "show tables from {} like '%{}%'".format(schema_name,table_name)
+    print(sql)
+    ret = db_helper.target_source_find_all(ip, port, sql)
+    print(ret)
+    data = ret['data']
+    new_data = []
+    try:
+        num = 0
+        for i in data:
+            new_data_dict = {}
+            for k,v in i.items():
+                new_data_dict[schema_name] = v
+                new_data.append(new_data_dict)
+            num = num + 1
+            if num == 30: break
+    except Exception as e:
+        print(e)
+    ret['data'] = new_data
+    print(ret)
+    return ret
 
 
 def get_column_list_dao(instance_name,schema_name,table_name):

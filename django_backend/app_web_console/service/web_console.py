@@ -37,13 +37,13 @@ def get_db_connect(instance_name):
     return web_console_dao.get_db_connect_dao(instance_name)
 
 
-def get_table_list(instance_name,schema_name):
+def get_table_list(instance_name,schema_name,table_name):
     """
     获取库中所有表
     :param schema_name:
     :return:
     """
-    return web_console_dao.get_table_list_dao(instance_name,schema_name)
+    return web_console_dao.get_table_list_dao(instance_name,schema_name,table_name)
 
 
 def get_column_list(instance_name,schema_name,table_name):

@@ -2,6 +2,7 @@ import React,{Component} from 'react';
 import axios from 'axios'
 import { Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin } from "antd";
 import { UnControlled as CodeMirror } from 'react-codemirror2';
+import { BaseTable } from 'ali-react-table'
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/mode/sql/sql';
 import 'codemirror/addon/hint/show-hint.css';
@@ -16,6 +17,7 @@ const {Option} = Select
 const {TabPane} = Tabs
 const { TextArea } = Input
 const { TreeNode } = Tree;
+const { Search } = Input;
 const MyIcon = Icon.createFromIconfontCN({
   scriptUrl: '//at.alicdn.com/t/font_8d5l8fzk5b87iudi.js', // 在 iconfont.cn 上生成
 });
@@ -25,6 +27,7 @@ export default class mysqlConsole extends Component {
     super(props);
     this.state = {
       sql_content: '',
+      sql: '',
       table_data:[],
       table_column:[],
       current_schema:"选择库名",
@@ -44,6 +47,7 @@ export default class mysqlConsole extends Component {
       global_loading:true,
       table_column_list:[],
       res_format:'row',
+      table_search:"%",
     }
   }
 
@@ -66,7 +70,7 @@ export default class mysqlConsole extends Component {
         ip:'47.104.2.74',
         port:3306,
         schema_name:this.state.current_schema,
-        sql:this.state.sql_content,
+        sql:this.state.sql,
         explain:explain
       };
       this.setState({
@@ -90,6 +94,7 @@ export default class mysqlConsole extends Component {
                               let column_obj = {};
                               column_obj['title'] = [Object.keys(res.data.data[j][j][0])[i]]
                               column_obj['dataIndex'] = [Object.keys(res.data.data[j][j][0])[i]]
+                              column_obj['width'] = 200
                               column_arr.push(column_obj)
                           }
                       };
@@ -249,6 +254,13 @@ export default class mysqlConsole extends Component {
       }
 
     });
+    onBlur = (cm)=>{
+        if (cm.getSelection()!==""){
+            this.setState({sql:cm.getSelection(),get_data:false})
+        }else{
+            this.setState({sql:cm.getValue(),content:cm.getValue(),get_data:false})
+        }
+    }
 
   renderTreeNodes = data =>
     data.map(item => {
@@ -336,20 +348,20 @@ export default class mysqlConsole extends Component {
   }
 
   //获取库表信息
-  async getTable(value) {
+  async getTable() {
       let params = {
-          schema_name:value,
-          instance_name:this.state.instance_name
+          schema_name:this.state.current_schema,
+          instance_name:this.state.instance_name,
+          table_name:this.state.table_search,
       };
-      this.setState({current_schema:value,})
       await MyAxios.post('/web_console/v1/get_table_list/',params).then(
           res=>{
               if( res.data.status === 'ok'){
                   var table_dir_arr = []
                   for (var i=0;i<res.data.data.length;i++){
                     let table_dir = {}
-                    table_dir['title'] = res.data.data[i]['Tables_in_' + value]
-                    table_dir['key'] = res.data.data[i]['Tables_in_' + value]
+                    table_dir['title'] = res.data.data[i][this.state.current_schema]
+                    table_dir['key'] = res.data.data[i][this.state.current_schema]
                     table_dir['icon'] = <Icon type="table"/>
                     table_dir_arr.push(table_dir)
                   }
@@ -369,9 +381,6 @@ export default class mysqlConsole extends Component {
           instance_name:this.state.instance_name
       };
       this.setState({table_name:value,})
-      console.log(111)
-      console.log(params)
-      console.log(222)
       await MyAxios.post('/web_console/v1/get_column_list/',params,{timeout:1000}).then(
           res=>{
               if( res.data.status === 'ok'){
@@ -390,9 +399,12 @@ export default class mysqlConsole extends Component {
       <div>
         <Row type="flex" justify="space-around">
             <Col span={7} className="col-detail">
-                <span style={{marginTop:10}}>表信息</span>
-                <hr style={{marginTop:18}}/>
                 <div>
+                    <span>
+                        <Search style={{ marginBottom: 8,width:'80%'}} placeholder="Search Table(最多显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
+                        <Button type="primary" onClick={()=> this.getTableData('no')}>执行</Button>
+                    </span>
+
                     <Tree
                         showIcon
                         loadData={this.onLoadData}
@@ -437,7 +449,7 @@ export default class mysqlConsole extends Component {
                         }
                         style={{width:300,marginLeft:2}}
                         value={this.state.current_schema}
-                        onChange={e=>this.getTable(e)}
+                        onChange={e=>this.setState({current_schema:e},()=>this.getTable())}
                     >
                         {this.state.schema_list.map(record =>{
                             return <Option value={record.Database} key={record.Database}>{record.Database}</Option>
@@ -468,12 +480,11 @@ export default class mysqlConsole extends Component {
                     },
                   }}
 
-                  onChange={(cm) => this.setState({sql_content: cm.getValue()})} // sql变化事件
-                  onFocus={(cm) => this.setState({sql_content: cm.getValue()})}
-                  onCursorActivity={(cm) => this.onCursorActivity(cm)} // 用来完善选中监听
-                  onInputRead={// 自动补全
-                     (cm, change, editor) => this.onInputRead(cm, change, editor)
-                  }
+//                  onChange={(cm) => this.setState({sql_content: cm.getValue()})} // sql变化事件
+//                  onFocus={(cm) => this.setState({sql_content: cm.getValue()})}
+//                  onCursorActivity={(cm) => this.onCursorActivity(cm)} // 用来完善选中监听
+                  onBlur={cm=>this.onBlur(cm)}
+                  onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
                 />
                 <Tabs defaultActiveKey='1'>
                     {
@@ -497,12 +508,8 @@ export default class mysqlConsole extends Component {
                                         columns={this.state.multi_table_column[index]}
                                         bordered
                                         size="small"
-                                        scroll={{x:'max-content'}}
-                                        pagination={{
-                                            pageSizeOptions:[10,20,30,40,50,60,70,80,90,100,300,500],
-                                            showSizeChanger:true,
-                                            total:this.state.table_data.length,
-                                        }}
+                                        scroll={{x:'max-content',y:300}}
+                                        pagination={false}
                                     />
                                     : <TextArea rows={20} value={this.state.col_format_res_list[index]}/>
 

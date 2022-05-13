@@ -32,12 +32,12 @@ class NavManage extends Component {
                 defaultOpenKeys={[main_sub]}
                 selectedKeys={[path]}
             >
-                <SubMenu key="sub1" title={<span><Icon type="user" />用户管理</span>}>
+                <SubMenu key="sub1" title={<span><Icon type="user" /><span>用户管理</span></span>}>
                     <Menu.Item key="/userRole">
                         <Link to="/userRole">角色管理</Link>
                     </Menu.Item>
                 </SubMenu>
-                <SubMenu key="sub2" title={<span><Icon type="robot" />任务管理</span>}>
+                <SubMenu key="sub2" title={<span><Icon type="robot" /><span>任务管理</span></span>}>
                     <Menu.Item key="/taskManage">
                         <Link to="/taskManage">Celery任务</Link>
                     </Menu.Item>

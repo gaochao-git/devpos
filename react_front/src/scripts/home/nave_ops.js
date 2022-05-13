@@ -13,9 +13,9 @@ class NavOps extends Component {
                 style={{ height: '100%' }}
                 theme='dark'
             >
-                <SubMenu key="sub1" title={<span><Icon type="cloud-server" />部署</span>}>
+                <SubMenu key="sub1" title={<span><Icon type="cloud-server" /><span>部署</span></span>}>
                     <Menu.Item key="/deployMysql">
-                        <Link to="/deployMysql">部署mysql集群</Link>
+                        <Link to="/deployMysql"><span>部署mysql集群</span></Link>
                     </Menu.Item>
                 </SubMenu>
             </Menu>

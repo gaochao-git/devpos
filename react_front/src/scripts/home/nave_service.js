@@ -40,12 +40,12 @@ class NavService extends Component {
                 defaultOpenKeys={[main_sub]}
                 selectedKeys={[path]}
             >
-                <SubMenu key="sub1" title={<span><Icon type="cloud-server" />server</span>}>
+                <SubMenu key="sub1" title={<span><Icon type="cloud-server" /><span>Server</span></span>}>
                     <Menu.Item key="/Server">
                         <Link to="/Server">主机</Link>
                     </Menu.Item>
                 </SubMenu>
-                <SubMenu key="sub2" title={<span><Icon type="database" />MySQL</span>}>
+                <SubMenu key="sub2" title={<span><Icon type="database" /><span>MySQL</span></span>}>
                     <Menu.Item key="/mysqlInstance">
                         <Link to="/mysqlInstance">实例</Link>
                     </Menu.Item>
@@ -53,7 +53,7 @@ class NavService extends Component {
                         <Link to="/mysqlCluster">集群</Link >
                     </Menu.Item>
                 </SubMenu>
-                <SubMenu key="sub3" title={<span><Icon type="database" />Redis</span>}>
+                <SubMenu key="sub3" title={<span><Icon type="database" /><span>Redis</span></span>}>
                     <Menu.Item key="/redisInstance">
                         <Link to="/redisInstance">实例</Link>
                     </Menu.Item>
@@ -61,7 +61,7 @@ class NavService extends Component {
                         <Link to="/redisCluster">集群</Link>
                     </Menu.Item>
                 </SubMenu>
-                <SubMenu key="sub4" title={<span><Icon type="laptop" />工单</span>}>
+                <SubMenu key="sub4" title={<span><Icon type="laptop" /><span>工单</span></span>}>
                     <Menu.Item key="/auditSqlIndex">
                         <Link to="/auditSqlIndex">SQL审核</Link>
                     </Menu.Item>
@@ -69,7 +69,7 @@ class NavService extends Component {
                         <Link to="/privilegesApply">权限申请</Link>
                     </Menu.Item>
                 </SubMenu>
-                <SubMenu key="sub5" title={<span><Icon type="code" />控制台</span>}>
+                <SubMenu key="sub5" title={<span><Icon type="code" /><span>控制台</span></span>}>
                     <Menu.Item key="/mysqlConsole">
                         <Link to="/mysqlConsole">MySQL</Link>
                     </Menu.Item>
