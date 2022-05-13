@@ -161,6 +161,13 @@ def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
         status = "ok"
         message = StatusCode.OK.msg
         code = StatusCode.OK.code
+    except pymysql.Error as e:
+        print(e.args[0], e.args[1])
+        status = "error"
+        message = str(e.args[0]) + ':' + e.args[1]
+        code = StatusCode.ERR_DB.code
+        diff_time = 0
+        logger.exception("sql执行失败:%s", e)
     except Exception as e:
         status = "error"
         message = StatusCode.ERR_DB.msg

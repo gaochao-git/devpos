@@ -128,7 +128,7 @@ export default class mysqlConsole extends Component {
               }
           }
       ).catch(err => {
-          message.error(err);
+          message.error(err.message);
           this.setState({
               table_data: [],
               table_column:[]
@@ -156,20 +156,6 @@ export default class mysqlConsole extends Component {
           console.log(cluster_name_dir_arr)
       }
       this.setState({source_slider_info:cluster_name_dir_arr})
-
-//      await MyAxios.get('/v1/service/ticket/audit_sql/get_submit_sql_info/').then(
-//          res=>{
-//              if (res.data.status==="ok"){
-//                  this.setState({
-//                      submit_sql_info: res.data.data,
-//                  });
-//              }else{
-//                  message.error(res.data.message);
-//              };
-//          }
-//      ).catch(
-//          err=>{message.error(err.message)}
-//      )
   }
 
   onSelect = (selectedKeys, info) => {
@@ -177,12 +163,16 @@ export default class mysqlConsole extends Component {
         return
     }
     if (selectedKeys[0].split(":").length===1){
-        var sql = "show create table " + selectedKeys[0]
-        console.log(sql)
-        this.setState({sql_content:sql},()=>this.getTableData("no"))
+        var new_sql_content = this.state.sql_content!=="" ? this.state.sql_content  + selectedKeys[0]:selectedKeys[0]
+        this.setState({sql_content:new_sql_content})
         message.success("table")
+        console.log(selectedKeys)
     }else if (selectedKeys[0].split(":").length===2){
+        console.log(selectedKeys[0].split(":")[1])
+        message.success(selectedKeys[0][1])
         message.success("column")
+        var new_sql_content = this.state.sql_content!=="" ? this.state.sql_content  + selectedKeys[0].split(":")[1] + ',':selectedKeys[0].split(":")[1] +','
+        this.setState({sql_content:new_sql_content})
     }
   };
 
@@ -248,9 +238,7 @@ export default class mysqlConsole extends Component {
           }
           console.log(my_child)
           treeNode.props.dataRef.children = my_child
-          this.setState({
-            treeData: [...this.state.source_slider_info],
-          });
+          this.setState({treeData: [...this.state.source_slider_info]});
           resolve();
         }, 1000);
       }
@@ -260,7 +248,7 @@ export default class mysqlConsole extends Component {
         if (cm.getSelection()!==""){
             this.setState({sql:cm.getSelection(),get_data:false})
         }else{
-            this.setState({sql:cm.getValue(),content:cm.getValue(),get_data:false})
+            this.setState({sql:cm.getValue(),sql_content:cm.getValue(),get_data:false})
         }
     }
 
@@ -496,7 +484,7 @@ export default class mysqlConsole extends Component {
                 <Button type="dashed" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>执行计划</Button>
                 <CodeMirror
                   editorDidMount={this.onEditorDidMount}
-                  value={this.state.content}
+                  value={this.state.sql_content}
                   options={{
                     lineNumbers: true,
                     mode: {name: "text/x-mysql"},
