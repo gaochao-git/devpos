@@ -314,3 +314,17 @@ td.replacecolor{
   .ant-table-fixed-header>.ant-table-content>.ant-table-scroll>.ant-table-body {
     overflow-y: overlay !important;
   }
+
+.down-tree{
+    height: 200px;
+    display: block;
+    overflow-y: scroll;
+}
+
+
+.rowStyle{
+    .ant-table-tbody > tr > td {
+      padding: 0px!important;
+    }
+}
+

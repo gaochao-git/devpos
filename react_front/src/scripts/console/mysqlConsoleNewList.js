@@ -19,7 +19,7 @@ export default class MysqlConsoleNew extends Component {
     return (
       <List
         className="List"
-        height={100}
+        height={800}
         itemCount={listData.length}
         itemSize={30}
         itemData={listData}
@@ -27,7 +27,7 @@ export default class MysqlConsoleNew extends Component {
       >
         {({ index, style, data }) => {
           let item = data[index];
-          return <Button style={index.style} type="primary" onClick={()=> message.success(1111)}>{item}</Button>
+          return <Button style={{marginRight:10,marginTop:10}} type="primary" onClick={()=> message.success(1111)}>{item}</Button>
         }}
       </List>
     );

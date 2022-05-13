@@ -20,6 +20,7 @@ import Server from "./scripts/Server/Server";
 import Login from "./scripts/login/login"
 import mysqlInstance from './scripts/mysql/mysqlInstance'
 import mysqlConsole from './scripts/console/mysqlConsole'
+import MysqlConsoleNew from './scripts/console/mysqlConsoleNew'
 import NavService from './scripts/home/nave_service'
 import NavManage from './scripts/home/nave_manage'
 import NavOps from './scripts/home/nave_ops'
@@ -166,7 +167,7 @@ class App extends Component {
                                     selectedKeys={[this.state.current_nav]}
                                     style={{width:'60%'}}
                                 >
-                                    <Menu.Item key="服务" style={{marginLeft:'20px'}} >
+                                    <Menu.Item key="服务" style={{marginLeft:'35px'}} >
                                         <Link to="/Server">服务</Link>
                                     </Menu.Item>
                                     <Menu.Item key="运维" style={{marginLeft:'20px'}}>
@@ -212,8 +213,6 @@ class App extends Component {
                                 </Sider>
                                 <Content
                                     style={{
-                                      margin: '24px 16px',
-                                      padding: 24,
                                       background: '#fff',
                                       minHeight: 280,
                                     }}
@@ -242,6 +241,8 @@ class App extends Component {
                                     <Route exact path="/rds" component={Rds} />
                                     <Route exact path="/userRole" component={UserRole} />
                                     <Route exact path="/taskManage" component={TaskManage} />
+                                    <Route exact path="/mysqlConsoleNew" component={MysqlConsoleNew} />
+
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>

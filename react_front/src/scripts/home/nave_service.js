@@ -73,6 +73,9 @@ class NavService extends Component {
                     <Menu.Item key="/mysqlConsole">
                         <Link to="/mysqlConsole">MySQL</Link>
                     </Menu.Item>
+                    <Menu.Item key="/mysqlConsoleNew">
+                        <Link to="/mysqlConsoleNew">MySQL</Link>
+                    </Menu.Item>
                     <Menu.Item key="2">Redis</Menu.Item>
                 </SubMenu>
             </Menu>

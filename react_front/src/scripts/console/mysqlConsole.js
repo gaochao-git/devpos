@@ -401,62 +401,70 @@ export default class mysqlConsole extends Component {
       });
     };
 
+  onEditorDidMount = editor =>{
+        this.editor = editor;
+        editor.setSize("auto","200px")
+    };
 
   render() {
     return (
       <div>
-        <Layout style={{ padding:0}}>
+        <Layout style={{ marginTop:1}}>
     <Sider
         style={{ background: 'white'}}
         collapsible
         collapsed={this.state.collapsed}
         onCollapse={this.onCollapse}
         trigger={null}
-        width={260}
+        width={240}
     >
         <div>
-                    {!this.state.collapsed ?
-                        <div>
-                            <span>
-                            <Icon
-                                  className="trigger"
-                                  type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
-                                  onClick={this.onCollapseTable}
-                                />
-                                <Search style={{ marginBottom: 8,width:'90%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
-                            </span>
-                            <Tree
-                                showIcon
-                                loadData={this.onLoadData}
-                                onSelect={this.onSelect}
-                                onExpand={this.onExpand}
-                            >
-                                {this.renderTreeNodes(this.state.source_slider_info)}
-                            </Tree>
-                        </div>
-                    :
-                    <Icon
-                          className="trigger"
-                          type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
-                          onClick={this.onCollapseTable}
-                        />
-                    }
-                </div>
+               {!this.state.collapsed ?
+                   <div>
+                       <span>
+                           <Icon
+                               className="trigger"
+                               type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
+                               onClick={this.onCollapseTable}
+                           />
+                           <Search style={{ marginBottom: 8,marginLeft:5,width:'90%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
+                       </span>
+                       <div className="down-tree">
+                       <Tree
+                           showIcon
+                           loadData={this.onLoadData}
+                           onSelect={this.onSelect}
+                           onExpand={this.onExpand}
+                           height={700}
+                       >
+                           {this.renderTreeNodes(this.state.source_slider_info)}
+                       </Tree>
+                   </div>
+                   </div>
+
+               :
+               <Icon
+                     className="trigger"
+                     type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
+                     onClick={this.onCollapseTable}
+                   />
+               }
+           </div>
     </Sider>
-    <Content>
+    <Content style={{margin:0,padding:0}}>
         <Select
-                        showSearch
-                        filterOption={(input,option)=>
-                            option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
-                        }
-                        style={{width:200,marginLeft:2}}
-                        value={this.state.cluster_name}
-                        onChange={e=>this.getClusterIns(e)}
-                    >
-                        {this.state.cluster_name_list.map(record =>{
-                            return <Option value={record.cluster_name} key={record.cluster_name}>{record.cluster_name}</Option>
-                        })}
-                    </Select>
+            showSearch
+            filterOption={(input,option)=>
+                option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+            }
+            style={{width:200,marginLeft:2}}
+            value={this.state.cluster_name}
+            onChange={e=>this.getClusterIns(e)}
+        >
+            {this.state.cluster_name_list.map(record =>{
+                return <Option value={record.cluster_name} key={record.cluster_name}>{record.cluster_name}</Option>
+            })}
+        </Select>
                 <Select
                         showSearch
                         filterOption={(input,option)=>
@@ -486,8 +494,8 @@ export default class mysqlConsole extends Component {
                 <hr/>
                 <Button type="primary" onClick={()=> this.getTableData('no')}>执行</Button>
                 <Button type="dashed" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>执行计划</Button>
-
                 <CodeMirror
+                  editorDidMount={this.onEditorDidMount}
                   value={this.state.content}
                   options={{
                     lineNumbers: true,
@@ -514,7 +522,9 @@ export default class mysqlConsole extends Component {
                   onBlur={cm=>this.onBlur(cm)}
                   onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
                 />
-                <Tabs defaultActiveKey='1'>
+    </Content>
+</Layout>
+        <Tabs defaultActiveKey='1'>
                     {
                         this.state.multi_label.map((item,index)=>{
                         return(
@@ -538,6 +548,7 @@ export default class mysqlConsole extends Component {
                                         size="small"
                                         scroll={{x:'max-content',y:300}}
                                         pagination={false}
+                                        className="rowStyle"
                                     />
                                     : <TextArea rows={20} value={this.state.col_format_res_list[index]}/>
 
@@ -548,8 +559,6 @@ export default class mysqlConsole extends Component {
                         })
                     }
                 </Tabs>
-    </Content>
-</Layout>
       </div>
     );
   }
