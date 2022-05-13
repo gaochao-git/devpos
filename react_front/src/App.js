@@ -139,10 +139,10 @@ class App extends Component {
     }
 
     onCollapse = collapsed => {
-      this.setState({
-      collapsed: !this.state.collapsed,
-    });
-  };
+        this.setState({
+        collapsed: !this.state.collapsed,
+      });
+    };
     render() {
         if (window.localStorage.getItem('token')) {
             return(

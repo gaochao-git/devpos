@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import { Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin } from "antd";
+import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin } from "antd";
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { BaseTable } from 'ali-react-table'
 import 'codemirror/lib/codemirror.css';
@@ -18,9 +18,11 @@ const {TabPane} = Tabs
 const { TextArea } = Input
 const { TreeNode } = Tree;
 const { Search } = Input;
+const { Header, Footer, Sider, Content } = Layout;
 const MyIcon = Icon.createFromIconfontCN({
   scriptUrl: '//at.alicdn.com/t/font_8d5l8fzk5b87iudi.js', // 在 iconfont.cn 上生成
 });
+
 
 export default class mysqlConsole extends Component {
   constructor(props) {
@@ -393,35 +395,62 @@ export default class mysqlConsole extends Component {
       ).catch(err=>message.error(err.message))
   }
 
+    onCollapseTable = collapsed => {
+        this.setState({
+        collapsed: !this.state.collapsed,
+      });
+    };
+
 
   render() {
     return (
       <div>
-        <Row type="flex" justify="space-around">
-            <Col span={7} className="col-detail">
-                <div>
-                    <span>
-                        <Search style={{ marginBottom: 8,width:'80%'}} placeholder="Search Table(最多显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
-                        <Button type="primary" onClick={()=> this.getTableData('no')}>执行</Button>
-                    </span>
-
-                    <Tree
-                        showIcon
-                        loadData={this.onLoadData}
-                        onSelect={this.onSelect}
-                        onExpand={this.onExpand}
-                    >
-                        {this.renderTreeNodes(this.state.source_slider_info)}
-                    </Tree>
+        <Layout>
+    <Sider
+        style={{ background: 'white'}}
+        collapsible
+        collapsed={this.state.collapsed}
+        onCollapse={this.onCollapse}
+        trigger={null}
+        width={260}
+    >
+        <div>
+                    {!this.state.collapsed ?
+                        <div>
+                            <span>
+                                <Search style={{ marginBottom: 8,width:'80%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
+                                <Icon
+                                  className="trigger"
+                                  type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
+                                  onClick={this.onCollapseTable}
+                                />
+                            </span>
+                            <Tree
+                                showIcon
+                                loadData={this.onLoadData}
+                                onSelect={this.onSelect}
+                                onExpand={this.onExpand}
+                            >
+                                {this.renderTreeNodes(this.state.source_slider_info)}
+                            </Tree>
+                        </div>
+                    :
+                    <Icon
+                          className="trigger"
+                          type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
+                          onClick={this.onCollapseTable}
+                        />
+                    }
                 </div>
-            </Col>
-            <Col span={16} className="col-detail">
-                <Select
+    </Sider>
+    <Content
+    >
+        <Select
                         showSearch
                         filterOption={(input,option)=>
                             option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
                         }
-                        style={{width:300,marginLeft:2}}
+                        style={{width:200,marginLeft:2}}
                         value={this.state.cluster_name}
                         onChange={e=>this.getClusterIns(e)}
                     >
@@ -434,7 +463,7 @@ export default class mysqlConsole extends Component {
                         filterOption={(input,option)=>
                             option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
                         }
-                        style={{width:300,marginLeft:2}}
+                        style={{width:200,marginLeft:2}}
                         value={this.state.instance_name}
                         onChange={e=>this.getSchema(e)}
                     >
@@ -447,7 +476,7 @@ export default class mysqlConsole extends Component {
                         filterOption={(input,option)=>
                             option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
                         }
-                        style={{width:300,marginLeft:2}}
+                        style={{width:200,marginLeft:2}}
                         value={this.state.current_schema}
                         onChange={e=>this.setState({current_schema:e},()=>this.getTable())}
                     >
@@ -520,8 +549,9 @@ export default class mysqlConsole extends Component {
                         })
                     }
                 </Tabs>
-            </Col>
-        </Row>
+
+    </Content>
+</Layout>
       </div>
     );
   }
