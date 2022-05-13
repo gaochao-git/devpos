@@ -22,6 +22,9 @@ def get_table_data_dao(ip, port, sql, schema_name, explain):
     ret_list = []
     query_time_list = []
     sql_list = sqlparse.split(sql)
+    while '' in sql_list:sql_list.remove('')
+    print(sql_list)
+    if len(sql_list) > 10:return {"status": "error", "message": "最多10条"}
     if explain not in['yes','no']: return {"status": "error", "message": "explain参数不合法"}
     if explain == 'yes':
         new_sql_list = []

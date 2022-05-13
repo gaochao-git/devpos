@@ -76,9 +76,12 @@ export default class mysqlConsole extends Component {
         explain:explain
       };
       this.setState({
-          table_data: [],
-          table_column:[],
-          get_data:false
+          multi_label: [],
+          multi_table_data: [],
+          multi_table_column: [],
+          multi_query_time: [],
+          col_format_res_list:[],
+          get_data:false,
       });
       await MyAxios.post('/web_console/v1/get_table_data/',{params}).then(
           res => {
