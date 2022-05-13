@@ -405,7 +405,7 @@ export default class mysqlConsole extends Component {
   render() {
     return (
       <div>
-        <Layout>
+        <Layout style={{ padding:0}}>
     <Sider
         style={{ background: 'white'}}
         collapsible
@@ -418,12 +418,12 @@ export default class mysqlConsole extends Component {
                     {!this.state.collapsed ?
                         <div>
                             <span>
-                                <Search style={{ marginBottom: 8,width:'80%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
-                                <Icon
+                            <Icon
                                   className="trigger"
                                   type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
                                   onClick={this.onCollapseTable}
                                 />
+                                <Search style={{ marginBottom: 8,width:'90%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
                             </span>
                             <Tree
                                 showIcon
@@ -443,8 +443,7 @@ export default class mysqlConsole extends Component {
                     }
                 </div>
     </Sider>
-    <Content
-    >
+    <Content>
         <Select
                         showSearch
                         filterOption={(input,option)=>
@@ -549,7 +548,6 @@ export default class mysqlConsole extends Component {
                         })
                     }
                 </Tabs>
-
     </Content>
 </Layout>
       </div>
