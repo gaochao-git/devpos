@@ -40,23 +40,28 @@ class CheckValidators:
         :param max_no:
         :return:
         """
-        if not isinstance(my_params, int):
+        if not my_params.isdigit():
             return {"status": "error", "message": "类型不合法"}
-        if validators.between(my_params, min=min_no, max=max_no):
+        if validators.between(int(my_params), min=min_no, max=max_no):
             return {"status": "ok", "message": "校验通过"}
         else:
             return {"status": "error", "message": "数字有效范围为%d-%d" % (min_no, max_no)}
 
     @staticmethod
     def check_instance_name(my_params):
-        if not isinstance(str, int):
+        if not isinstance(my_params, str):
+            print(111)
             return {"status": "error", "message": "类型不合法"}
-        if len(my_params.split) != 2:
+        if len(my_params.split('_')) != 2:
+            print(222)
             return {"status": "error", "message": "实例不合法"}
-        if CheckValidators.check_ip(my_params.split[0])['status'] != "ok":
+        if CheckValidators.check_ip(my_params.split('_')[0])['status'] != "ok":
+            print(333)
             return {"status": "error", "message": "实例不合法"}
-        if CheckValidators.check_port(my_params.split[1])['status'] != "ok":
+        if CheckValidators.check_port(my_params.split('_')[1])['status'] != "ok":
+            print(444)
             return {"status": "error", "message": "实例不合法"}
+        return {"status": "ok", "message": "校验通过"}
 
 
     @staticmethod

@@ -11,7 +11,7 @@ from sqlparse.tokens import Keyword
 logger = logging.getLogger('sql_logger')
 
 
-def get_table_data_dao(ip, port, sql, schema_name, explain):
+def get_table_data_dao(des_ip_port, sql, schema_name, explain):
     """
     获取数据
     :param ip:
@@ -19,6 +19,8 @@ def get_table_data_dao(ip, port, sql, schema_name, explain):
     :param sql:
     :return:
     """
+    ip = des_ip_port.split('_')[0]
+    port = des_ip_port.split('_')[1]
     ret_list = []
     query_time_list = []
     sql_list = sqlparse.split(sql)

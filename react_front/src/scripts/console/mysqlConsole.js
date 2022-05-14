@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin } from "antd";
+import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin,Switch } from "antd";
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { BaseTable } from 'ali-react-table'
 import 'codemirror/lib/codemirror.css';
@@ -19,6 +19,7 @@ const { TextArea } = Input
 const { TreeNode } = Tree;
 const { Search } = Input;
 const { Header, Footer, Sider, Content } = Layout;
+const ButtonGroup = Button.Group;
 const MyIcon = Icon.createFromIconfontCN({
   scriptUrl: '//at.alicdn.com/t/font_8d5l8fzk5b87iudi.js', // 在 iconfont.cn 上生成
 });
@@ -50,6 +51,7 @@ export default class mysqlConsole extends Component {
       table_column_list:[],
       res_format:'row',
       table_search:"%",
+      input_source_type:false
     }
   }
 
@@ -69,8 +71,7 @@ export default class mysqlConsole extends Component {
 
   async getTableData(explain) {
       let params = {
-        ip:'47.104.2.74',
-        port:3306,
+        des_ip_port:this.state.instance_name,
         schema_name:this.state.current_schema,
         sql:this.state.sql,
         explain:explain
@@ -83,7 +84,7 @@ export default class mysqlConsole extends Component {
           col_format_res_list:[],
           get_data:false,
       });
-      await MyAxios.post('/web_console/v1/get_table_data/',{params}).then(
+      await MyAxios.post('/web_console/v1/get_table_data/',params).then(
           res => {
               if (res.data.status === "ok"){
                   let table_column_list = []
@@ -168,12 +169,7 @@ export default class mysqlConsole extends Component {
     if (selectedKeys[0].split(":").length===1){
         var new_sql_content = this.state.sql_content!=="" ? this.state.sql_content  + selectedKeys[0]:selectedKeys[0]
         this.setState({sql_content:new_sql_content})
-        message.success("table")
-        console.log(selectedKeys)
     }else if (selectedKeys[0].split(":").length===2){
-        console.log(selectedKeys[0].split(":")[1])
-        message.success(selectedKeys[0][1])
-        message.success("column")
         var new_sql_content = this.state.sql_content!=="" ? this.state.sql_content  + selectedKeys[0].split(":")[1] + ',':selectedKeys[0].split(":")[1] +','
         this.setState({sql_content:new_sql_content})
     }
@@ -304,9 +300,9 @@ export default class mysqlConsole extends Component {
   }
 
   //获取实例库信息
-  async getSchema(value) {
-      let params = {instance_name:value,};
-      this.setState({instance_name:value,global_loading:false})
+  async getSchema() {
+      let params = {instance_name:this.state.instance_name};
+      this.setState({global_loading:false})
       await MyAxios.post('/web_console/v1/get_schema_list/',params,{timeout:1000}).then(
           res=>{
               if( res.data.status === 'ok'){
@@ -400,16 +396,16 @@ export default class mysqlConsole extends Component {
   render() {
     return (
       <div>
-        <Layout style={{ marginTop:1}}>
-    <Sider
-        style={{ background: 'white'}}
-        collapsible
-        collapsed={this.state.collapsed}
-        onCollapse={this.onCollapse}
-        trigger={null}
-        width={240}
-    >
-        <div>
+        <Layout style={{ marginTop:1,marginLeft:1}}>
+            <Sider
+                style={{ background: 'white'}}
+                collapsible
+                collapsed={this.state.collapsed}
+                onCollapse={this.onCollapse}
+                trigger={null}
+                width={220}
+            >
+            <div>
                {!this.state.collapsed ?
                    <div>
                        <span>
@@ -441,115 +437,134 @@ export default class mysqlConsole extends Component {
                    />
                }
            </div>
-    </Sider>
-    <Content style={{margin:0,padding:0}}>
-        <Select
-            showSearch
-            filterOption={(input,option)=>
-                option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
-            }
-            style={{width:200,marginLeft:2}}
-            value={this.state.cluster_name}
-            onChange={e=>this.getClusterIns(e)}
-        >
-            {this.state.cluster_name_list.map(record =>{
-                return <Option value={record.cluster_name} key={record.cluster_name}>{record.cluster_name}</Option>
-            })}
-        </Select>
+          </Sider>
+          <Content style={{margin:0,padding:0}}>
+          {
+            this.state.input_source_type ?
+            <Input style={{ width: 150}} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
+            :
+            <span>
                 <Select
-                        showSearch
-                        filterOption={(input,option)=>
-                            option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
-                        }
-                        style={{width:200,marginLeft:2}}
-                        value={this.state.instance_name}
-                        onChange={e=>this.getSchema(e)}
-                    >
-                        {this.state.instance_list.map(record =>{
-                            return <Option value={record.instance_name} key={record.instance_name}>{record.instance_name}({record.instance_role})</Option>
-                        })}
-                    </Select>
-                <Select
-                        showSearch
-                        filterOption={(input,option)=>
-                            option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
-                        }
-                        style={{width:200,marginLeft:2}}
-                        value={this.state.current_schema}
-                        onChange={e=>this.setState({current_schema:e},()=>this.getTable())}
-                    >
-                        {this.state.schema_list.map(record =>{
-                            return <Option value={record.Database} key={record.Database}>{record.Database}</Option>
-                        })}
-                    </Select>
-                <hr/>
-                <Button type="primary" onClick={()=> this.getTableData('no')}>执行</Button>
-                <Button type="dashed" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>执行计划</Button>
-                <CodeMirror
-                  editorDidMount={this.onEditorDidMount}
-                  value={this.state.sql_content}
-                  options={{
-                    lineNumbers: true,
-                    mode: {name: "text/x-mysql"},
-                    extraKeys: {"Tab": "autocomplete"},
-                    theme: 'idea',
-                    styleActiveLine: true,
-                    lineWrapping:true,
-                    // 代码提示功能
-                    hintOptions: {
-                      // 避免由于提示列表只有一个提示信息时，自动填充
-                      completeSingle: false,
-                      // 不同的语言支持从配置中读取自定义配置 sql语言允许配置表和字段信息，用于代码提示
-                      tables: {
-                        "table1": ["c1", "c2"],
-                        "table2": ["c1", "c2"],
-                      },
-                    },
-                  }}
+                showSearch
+                filterOption={(input,option)=>
+                    option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                }
+                style={{width:180,marginLeft:2}}
+                value={this.state.cluster_name}
+                onChange={e=>this.getClusterIns(e)}
+            >
+                {this.state.cluster_name_list.map(record =>{
+                    return <Option value={record.cluster_name} key={record.cluster_name}>{record.cluster_name}</Option>
+                })}
+            </Select>
+            <Select
+                showSearch
+                filterOption={(input,option)=>
+                    option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                }
+                style={{width:200,marginLeft:2}}
+                value={this.state.instance_name}
+                onChange={e=>this.setState({instance_name:e},()=>this.getSchema())}
+            >
+                {this.state.instance_list.map(record =>{
+                    return <Option value={record.instance_name} key={record.instance_name}>{record.instance_name}({record.instance_role})</Option>
+                })}
+            </Select>
+            </span>
+          }
 
-//                  onChange={(cm) => this.setState({sql_content: cm.getValue()})} // sql变化事件
-//                  onFocus={(cm) => this.setState({sql_content: cm.getValue()})}
-//                  onCursorActivity={(cm) => this.onCursorActivity(cm)} // 用来完善选中监听
-                  onBlur={cm=>this.onBlur(cm)}
-                  onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
-                />
-    </Content>
-</Layout>
-        <Tabs defaultActiveKey='1'>
-                    {
-                        this.state.multi_label.map((item,index)=>{
-                        return(
-                            <TabPane tab={item} key={index}>
-                                共{this.state.multi_table_data[index].length}条,  耗时:{this.state.multi_query_time[index]} ms
-                                <Button
-                                    style={{marginLeft: '10px'}}
-                                    onClick={tableToExcel.bind(this, this.state.multi_table_data[index], this.state.multi_table_column[index], 'query_result')}
-                                >
-                                    导出
-                                </Button>
-                                <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
-                                <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
-                                {
-                                    this.state.res_format === 'row'
-                                    ?
-                                    <Table
-                                        dataSource={this.state.multi_table_data[index]}
-                                        columns={this.state.multi_table_column[index]}
-                                        bordered
-                                        size="small"
-                                        scroll={{x:'max-content',y:300}}
-                                        pagination={false}
-                                        className="rowStyle"
-                                    />
-                                    : <TextArea rows={20} value={this.state.col_format_res_list[index]}/>
+            <Select
+                showSearch
+                filterOption={(input,option)=>
+                    option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                }
+                style={{width:200,marginLeft:2}}
+                value={this.state.current_schema}
+                onChange={e=>this.setState({current_schema:e},()=>this.getTable())}
+                onDropdownVisibleChange={open=>open ?this.getSchema(): null}
+            >
+                {this.state.schema_list.map(record =>{
+                    return <Option value={record.Database} key={record.Database}>{record.Database}</Option>
+                })}
+            </Select>
+            <Switch
+              checkedChildren="Select"
+              unCheckedChildren="Input"
+              defaultChecked
+              onClick={()=>this.setState({input_source_type:!this.state.input_source_type})}
+            />
+            <Button type="link"  icon="star" onClick={()=> message.success("收藏数据源")}></Button>
+            <Button type="link" icon="database" onClick={()=> message.success("我的数据源")}></Button>
+            <hr/>
+            <Button type="primary" onClick={()=> this.getTableData('no')}>执行</Button>
+            <Button type="dashed" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>执行计划</Button>
+            <Button type="link" icon="star" onClick={()=> message.success("收藏SQL")}></Button>
+            <Button type="link" icon="menu" onClick={()=> message.success("我的SQL")}></Button>
+            <Button type="link" icon="team" onClick={()=> message.success("公共快捷键")}></Button>
+            <CodeMirror
+              editorDidMount={this.onEditorDidMount}
+              value={this.state.sql_content}
+              options={{
+                lineNumbers: true,
+                mode: {name: "text/x-mysql"},
+                extraKeys: {"Tab": "autocomplete"},
+                theme: 'idea',
+                styleActiveLine: true,
+                lineWrapping:true,
+                // 代码提示功能
+                hintOptions: {
+                  // 避免由于提示列表只有一个提示信息时，自动填充
+                  completeSingle: false,
+                  // 不同的语言支持从配置中读取自定义配置 sql语言允许配置表和字段信息，用于代码提示
+                  tables: {
+                    "table1": ["c1", "c2"],
+                    "table2": ["c1", "c2"],
+                  },
+                },
+              }}
+              // onChange={(cm) => this.setState({sql_content: cm.getValue()})} // sql变化事件
+              // onFocus={(cm) => this.setState({sql_content: cm.getValue()})}
+               // onCursorActivity={(cm) => this.onCursorActivity(cm)} // 用来完善选中监听
+               onBlur={cm=>this.onBlur(cm)}
+               onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
+            />
+          </Content>
+        </Layout>
+        <Tabs defaultActiveKey='1' style={{ margin:3}}>
+          {
+              this.state.multi_label.map((item,index)=>{
+              return(
+                  <TabPane tab={item} key={index}>
+                      共{this.state.multi_table_data[index].length}条,  耗时:{this.state.multi_query_time[index]} ms
+                      <Button
+                          style={{marginLeft: '10px'}}
+                          onClick={tableToExcel.bind(this, this.state.multi_table_data[index], this.state.multi_table_column[index], 'query_result')}
+                      >
+                          导出
+                      </Button>
+                      <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
+                      <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
+                      {
+                          this.state.res_format === 'row'
+                          ?
+                          <Table
+                              dataSource={this.state.multi_table_data[index]}
+                              columns={this.state.multi_table_column[index]}
+                              bordered
+                              size="small"
+                              scroll={{x:'max-content',y:300}}
+                              pagination={false}
+                              className="rowStyle"
+                          />
+                          : <TextArea rows={20} value={this.state.col_format_res_list[index]}/>
 
-                                }
+                      }
 
-                            </TabPane>
-                        )
-                        })
-                    }
-                </Tabs>
+                  </TabPane>
+              )
+              })
+          }
+        </Tabs>
       </div>
     );
   }
