@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin,Switch,Modal,Tooltip,Drawer     } from "antd";
+import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin,Switch,Modal,Tooltip,Drawer,List, Typography,Divider        } from "antd";
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { BaseTable } from 'ali-react-table'
 import 'codemirror/lib/codemirror.css';
@@ -24,6 +24,17 @@ const MyIcon = Icon.createFromIconfontCN({
   scriptUrl: '//at.alicdn.com/t/font_8d5l8fzk5b87iudi.js', // 在 iconfont.cn 上生成
 });
 const STORE_TYPE = ['收藏数据源','收藏SQL']
+
+const data = [
+  '版本:5.7.32',
+  '只读状态:on',
+  'Server字符集:	utf8mb4',
+  '存储引擎:	Innodb',
+  'Redo刷盘策略:	1',
+  'Binlog刷盘策略: 1',
+  '慢查询阀值:	1.00000',
+  '最大连接数: 8000'
+];
 
 
 export default class mysqlConsole extends Component {
@@ -59,6 +70,7 @@ export default class mysqlConsole extends Component {
       store_info_detail:"",
       DrawerVisible:false,
       favorite_list:[],
+      db_info:""
     }
   }
 
@@ -285,6 +297,30 @@ export default class mysqlConsole extends Component {
       ).catch(err=>message.error(err.message))
   }
 
+  //获取集群实例信息
+  async getDbInfo() {
+      this.setState({db_info:[]})
+      let params = {des_ip_port:this.state.instance_name}
+      await MyAxios.get('/web_console/v1/get_db_info/',{params}).then(
+          res=>{
+              if( res.data.status === 'ok'){
+                  let db_info = []
+                  for(var key in res.data.data[0]){
+                   let item_info = ""
+                   item_info = key + ': ' + res.data.data[0][key]
+                   db_info.push(item_info)
+                  }
+                  this.setState({
+                      db_info: db_info,
+                  });
+                  console.log(this.state.db_info)
+              } else{
+                  message.error(res.data.message)
+              }
+          }
+      ).catch(err=>message.error(err.message))
+  }
+
   //获取收藏信息
   async getFavorite(type) {
       let params = {favorite_type:type}
@@ -325,6 +361,7 @@ export default class mysqlConsole extends Component {
 
   //获取实例库信息
   async getSchema() {
+      this.getDbInfo()
       let params = {instance_name:this.state.instance_name};
       this.setState({global_loading:false})
       await MyAxios.post('/web_console/v1/get_schema_list/',params,{timeout:1000}).then(
@@ -500,16 +537,22 @@ export default class mysqlConsole extends Component {
                            <Search style={{ marginBottom: 8,marginLeft:5,width:'90%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
                        </span>
                        <div className="down-tree">
-                       <Tree
-                           showIcon
-                           loadData={this.onLoadData}
-                           onSelect={this.onSelect}
-                           onExpand={this.onExpand}
-                           height={700}
-                       >
-                           {this.renderTreeNodes(this.state.source_slider_info)}
-                       </Tree>
-                   </div>
+                           <Tree
+                               showIcon
+                               loadData={this.onLoadData}
+                               onSelect={this.onSelect}
+                               onExpand={this.onExpand}
+                           >
+                               {this.renderTreeNodes(this.state.source_slider_info)}
+                           </Tree>
+                       </div>
+                       <List
+                          header={<span>连接信息</span>}
+                          size="small"
+                          bordered
+                          dataSource={this.state.db_info}
+                          renderItem={item => <p>{item}</p>}
+                       />
                    </div>
 
                :
@@ -520,6 +563,7 @@ export default class mysqlConsole extends Component {
                    />
                }
            </div>
+
           </Sider>
           <Content style={{margin:0,padding:0}}>
           {
@@ -624,9 +668,7 @@ export default class mysqlConsole extends Component {
                onBlur={cm=>this.onBlur(cm)}
                onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
             />
-          </Content>
-        </Layout>
-        <Tabs defaultActiveKey='1' style={{ margin:3}}>
+            <Tabs defaultActiveKey='1' style={{ margin:3}}>
           {
               this.state.multi_label.map((item,index)=>{
               return(
@@ -661,6 +703,10 @@ export default class mysqlConsole extends Component {
               })
           }
         </Tabs>
+          </Content>
+        </Layout>
+
+
         <Modal
           visible={this.state.visible}
           onOk={this.handleOk}

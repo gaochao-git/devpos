@@ -200,3 +200,25 @@ def get_favorite_data_dao(favorite_type):
         select favorite_name,favorite_detail from web_console_favorite where favorite_type='{}'
     """.format(favorite_type)
     return db_helper.find_all(sql)
+
+
+def get_db_info_dao(des_ip_port):
+    """
+    获取当前数据库基本信息
+    :param des_ip_port:
+    :return:
+    """
+    ip = des_ip_port.split('_')[0]
+    port = des_ip_port.split('_')[1]
+    sql = """
+        select 
+            @@version version,
+            @@character_set_server character_set_server,
+            @@read_only read_only,
+            @@default_storage_engine engine,
+            @@innodb_flush_log_at_trx_commit innodb_flush_log_at_trx_commit,
+            @@sync_binlog sync_binlog,
+            @@long_query_time long_query_time,
+            @@max_connections max_connections
+    """
+    return db_helper.target_source_find_all(ip,port,sql)

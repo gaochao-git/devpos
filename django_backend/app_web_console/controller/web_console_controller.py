@@ -7,6 +7,7 @@ from django.http import HttpResponse
 import json
 import logging
 from app_web_console.service import web_console
+from  app_web_console.dao import web_console_dao
 from apps.utils.base_view import BaseView
 from validator import Required, Not, Truthy, Blank, Range, Equals, In, validate,InstanceOf,Length
 from apps.utils import common
@@ -90,3 +91,21 @@ def get_column_list_controller(request):
     table_name = request_body['table_name']
     ret = web_console.get_column_list(instance_name,schema_name,table_name)
     return HttpResponse(json.dumps(ret, default=str), 'application/json')
+
+
+class GetDbInfoController(BaseView):
+    def get(self, request):
+        """
+        获取收藏信息
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "des_ip_port": [lambda x: common.CheckValidators.check_instance_name(x)['status'] == "ok"],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        des_ip_port = request_body.get('des_ip_port')
+        ret = web_console_dao.get_db_info_dao(des_ip_port)
+        return self.my_response(ret)

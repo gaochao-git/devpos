@@ -151,6 +151,11 @@ def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
     try:
         conn = pymysql.connect(host=ip, port=int(port), user=db_all_remote_user, passwd=db_all_remote_pass, db=db,
                                charset="utf8",connect_timeout=my_connect_timeout)
+        print(dir(conn))
+        print(conn.get_host_info())
+        print(conn.get_server_info())
+        print(conn.host_info)
+
         cursor = conn.cursor()
         start_time = datetime.now()
         cursor.execute(sql)
