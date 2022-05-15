@@ -19,6 +19,13 @@ def get_table_data(des_ip_port, sql, schema_name, explain):
     """
     return web_console_dao.get_table_data_dao(des_ip_port, sql, schema_name, explain)
 
+def get_favorite_data(favorite_type):
+    """
+    获取收藏信息
+    :param favorite_type:
+    :return:
+    """
+    return web_console_dao.get_favorite_data_dao(favorite_type)
 
 def get_schema_list(instance_name):
     """

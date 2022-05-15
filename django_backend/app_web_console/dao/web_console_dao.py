@@ -25,7 +25,6 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
     query_time_list = []
     sql_list = sqlparse.split(sql)
     while '' in sql_list:sql_list.remove('')
-    print(sql_list)
     if len(sql_list) > 10:return {"status": "error", "message": "最多10条"}
     if explain not in['yes','no']: return {"status": "error", "message": "explain参数不合法"}
     if explain == 'yes':
@@ -161,9 +160,7 @@ def get_table_list_dao(instance_name,schema_name,table_name):
     ip = instance_name.split('_')[0]
     port = instance_name.split('_')[1]
     sql = "show tables from {} like '%{}%'".format(schema_name,table_name)
-    print(sql)
     ret = db_helper.target_source_find_all(ip, port, sql)
-    print(ret)
     data = ret['data']
     new_data = []
     try:
@@ -178,7 +175,6 @@ def get_table_list_dao(instance_name,schema_name,table_name):
     except Exception as e:
         print(e)
     ret['data'] = new_data
-    print(ret)
     return ret
 
 
@@ -192,3 +188,15 @@ def get_column_list_dao(instance_name,schema_name,table_name):
     port = instance_name.split('_')[1]
     sql = "desc {}.{}".format(schema_name,table_name)
     return db_helper.target_source_find_all(ip, port, sql)
+
+
+def get_favorite_data_dao(favorite_type):
+    """
+    获取收藏信息
+    :param favorite_type:
+    :return:
+    """
+    sql = """
+        select favorite_name,favorite_detail from web_console_favorite where favorite_type='{}'
+    """.format(favorite_type)
+    return db_helper.find_all(sql)

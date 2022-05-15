@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import axios from 'axios'
-import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin,Switch } from "antd";
+import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin,Switch,Modal,Tooltip,Drawer     } from "antd";
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { BaseTable } from 'ali-react-table'
 import 'codemirror/lib/codemirror.css';
@@ -23,6 +23,7 @@ const ButtonGroup = Button.Group;
 const MyIcon = Icon.createFromIconfontCN({
   scriptUrl: '//at.alicdn.com/t/font_8d5l8fzk5b87iudi.js', // 在 iconfont.cn 上生成
 });
+const STORE_TYPE = ['收藏数据源','收藏SQL']
 
 
 export default class mysqlConsole extends Component {
@@ -51,7 +52,13 @@ export default class mysqlConsole extends Component {
       table_column_list:[],
       res_format:'row',
       table_search:"%",
-      input_source_type:false
+      input_source_type:false,
+      visible:false,
+      store_type:"收藏SQL",
+      store_info_name:"",
+      store_info_detail:"",
+      DrawerVisible:false,
+      favorite_list:[],
     }
   }
 
@@ -278,6 +285,23 @@ export default class mysqlConsole extends Component {
       ).catch(err=>message.error(err.message))
   }
 
+  //获取收藏信息
+  async getFavorite(type) {
+      let params = {favorite_type:type}
+      this.setState({DrawerVisible:true,favorite_type:type})
+      await MyAxios.get('/web_console/v1/get_favorite/',{params}).then(
+          res=>{
+              if( res.data.status === 'ok'){
+                  this.setState({
+                      favorite_list: res.data.data,
+                  });
+              } else{
+                  message.error(res.data.message)
+              }
+          }
+      ).catch(err=>message.error(err.message))
+  }
+
   //获取集群实例信息
   async getClusterIns(value) {
       let params = {
@@ -393,7 +417,66 @@ export default class mysqlConsole extends Component {
         editor.setSize("auto","200px")
     };
 
+  handleOk = e => {
+    console.log(e);
+    this.setState({
+      visible: false,
+    });
+  };
+
+  handleCancel = e => {
+    console.log(e);
+    this.setState({
+      visible: false,
+    });
+  };
+
+  handleChangeStoreType = (e) => {
+    if (e==="收藏数据源"){
+        this.setState({store_info_detail: this.state.instance_name,store_type:e});
+    }else{
+        this.setState({store_info_detail: this.state.sql,store_type:e});
+    }
+  };
+
+  onFavorite = (favorite_detail) => {
+    if (this.state.favorite_type==="db_source"){
+        this.setState({instance_name: favorite_detail,input_source_type:true,DrawerVisible:false});
+    }else if (this.state.favorite_type==="db_sql"){
+        if (this.state.sql_content===""){
+            this.setState({sql_content: favorite_detail});
+        }else{
+            this.setState({sql_content: this.state.sql_content + '\n' + favorite_detail});
+        }
+        this.setState({sql: favorite_detail,DrawerVisible:false},()=>this.getTableData('no'))
+    }
+  };
+
   render() {
+    const favorite_column = [
+      {
+        title: '名称',
+        dataIndex: 'favorite_name',
+        render: (value,record) => {
+          return (
+            <Tooltip
+                placement="bottomLeft"
+               title={record.favorite_detail}
+           >
+               <Button type="link" onClick={()=> this.onFavorite(record.favorite_detail)}>{value}</Button>
+           </Tooltip>
+
+          )
+        }
+      },
+      {
+        title: '取消收藏',
+        fixed:"right",
+        render: (record) => {
+          return (<Button type="link" icon="close"></Button>)
+        }
+      }
+    ];
     return (
       <div>
         <Layout style={{ marginTop:1,marginLeft:1}}>
@@ -441,7 +524,7 @@ export default class mysqlConsole extends Component {
           <Content style={{margin:0,padding:0}}>
           {
             this.state.input_source_type ?
-            <Input style={{ width: 150}} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
+            <Input style={{ width: 150}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
             :
             <span>
                 <Select
@@ -493,14 +576,27 @@ export default class mysqlConsole extends Component {
               defaultChecked
               onClick={()=>this.setState({input_source_type:!this.state.input_source_type})}
             />
-            <Button type="link"  icon="star" onClick={()=> message.success("收藏数据源")}></Button>
-            <Button type="link" icon="database" onClick={()=> message.success("我的数据源")}></Button>
+            <Button type="link"  icon="star" onClick={()=> this.setState({visible:true})}></Button>
+            <Tooltip
+                placement="bottomLeft"
+               title={
+                   <div>
+                     <p>
+                        <Button type="link" onClick={()=> this.getFavorite("db_source")}>我的数据源</Button>
+                     </p>
+                     <p>
+                        <Button type="link" onClick={()=> this.getFavorite("db_sql")}>我的SQL</Button>
+                     </p>
+                   </div>
+
+               }
+           >
+               <Icon type="folder-open" />
+           </Tooltip>
+
             <hr/>
             <Button type="primary" onClick={()=> this.getTableData('no')}>执行</Button>
             <Button type="dashed" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>执行计划</Button>
-            <Button type="link" icon="star" onClick={()=> message.success("收藏SQL")}></Button>
-            <Button type="link" icon="menu" onClick={()=> message.success("我的SQL")}></Button>
-            <Button type="link" icon="team" onClick={()=> message.success("公共快捷键")}></Button>
             <CodeMirror
               editorDidMount={this.onEditorDidMount}
               value={this.state.sql_content}
@@ -565,6 +661,45 @@ export default class mysqlConsole extends Component {
               })
           }
         </Tabs>
+        <Modal
+          visible={this.state.visible}
+          onOk={this.handleOk}
+          onCancel={this.handleCancel}
+          width={500}
+        >
+          <p>
+            <Select
+                style={{width:130}}
+                value={this.state.store_type}
+                onChange={e=>this.handleChangeStoreType(e)}
+            >
+                {STORE_TYPE.map(type =>{
+                    return <Option value={type} key={type}>{type}</Option>
+                })}
+            </Select>
+            <Input style={{ width: 230}} placeholder="名称" onChange={e => this.setState({store_info_name:e.target.value})}/>
+          </p>
+          <p>
+            <TextArea style={{ width: 360}} rows={6} placeholder="详情" value={this.state.store_info_detail}/>
+          </p>
+        </Modal>
+        <Drawer
+          title="我的收藏"
+          placement="right"
+          closable={false}
+          onClose={()=>this.setState({DrawerVisible:false})}
+          visible={this.state.DrawerVisible}
+        >
+          <Table
+            dataSource={this.state.favorite_list}
+            columns={favorite_column}
+            bordered={false}
+            size="small"
+            pagination={false}
+            className="rowStyle"
+            scroll={{x:'max-content'}}
+          />
+        </Drawer>
       </div>
     );
   }

@@ -32,29 +32,31 @@ class GetaTableDataController(BaseView):
         if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
         des_ip_port = request_body.get('des_ip_port')
         sql = request_body.get('sql')
-        schema_name = request_body.get('schema_name')
         explain = request_body.get('explain')
+        schema_name = request_body.get('schema_name')
+        if schema_name=="选择库名": schema_name=None
         ret = web_console.get_table_data(des_ip_port, sql, schema_name, explain)
         return self.my_response(ret)
 
 
-# def get_table_data_controller(request):
-#     """
-#     获取数据
-#     :param request:
-#     :return:
-#     """
-#     request_body = json.loads(str(request.body, encoding="utf-8"))
-#     try:
-#         des_ip_port = request_body('ip')
-#         sql = request_body('sql')
-#         schema_name = request_body('schema_name')
-#         explain = request_body.get('explain')
-#         ret = web_console.get_table_data(des_ip_port, sql, schema_name, explain)
-#     except keyError as e:
-#         logger.exception('缺少请求参数:%s' % str(e))
-#         ret = {"status": "error", "code":2002, "message": "参数不合法"}
-#     return HttpResponse(json.dumps(ret, default=str), 'application/json')
+class GetFavoriteController(BaseView):
+    def get(self, request):
+        """
+        获取收藏信息
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "favorite_type": [Required, In(['db_source', 'db_sql'])],
+        }
+
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        favorite_type = request_body.get('favorite_type')
+        ret = web_console.get_favorite_data(favorite_type)
+        return self.my_response(ret)
+
 
 
 
