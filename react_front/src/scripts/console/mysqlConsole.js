@@ -575,10 +575,11 @@ export default class mysqlConsole extends Component {
           <Content style={{margin:0,padding:0}}>
           {
             this.state.input_source_type ?
-            <Input style={{ width: 150}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
+            <Input size="small" style={{ width: 150}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
             :
             <span>
                 <Select
+                size="small"
                 showSearch
                 filterOption={(input,option)=>
                     option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
@@ -592,6 +593,7 @@ export default class mysqlConsole extends Component {
                 })}
             </Select>
             <Select
+                size="small"
                 showSearch
                 filterOption={(input,option)=>
                     option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
@@ -608,6 +610,7 @@ export default class mysqlConsole extends Component {
           }
 
             <Select
+                size="small"
                 showSearch
                 filterOption={(input,option)=>
                     option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
@@ -643,9 +646,9 @@ export default class mysqlConsole extends Component {
            >
                <Icon type="folder-open" />
            </Tooltip>
-            <hr/>
-            <Button type="primary" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
-            <Button type="dashed" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>执行计划</Button>
+            <hr style={{margin:0}}/>
+            <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
+            <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>解释</Button>
             <CodeMirror
               editorDidMount={this.onEditorDidMount}
               value={this.state.sql_content}
