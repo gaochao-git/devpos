@@ -25,17 +25,6 @@ const MyIcon = Icon.createFromIconfontCN({
 });
 const STORE_TYPE = ['收藏数据源','收藏SQL']
 
-const data = [
-  '版本:5.7.32',
-  '只读状态:on',
-  'Server字符集:	utf8mb4',
-  '存储引擎:	Innodb',
-  'Redo刷盘策略:	1',
-  'Binlog刷盘策略: 1',
-  '慢查询阀值:	1.00000',
-  '最大连接数: 8000'
-];
-
 
 export default class mysqlConsole extends Component {
   constructor(props) {
@@ -203,18 +192,12 @@ export default class mysqlConsole extends Component {
 
 
   onExpand = (selectedKeys, info) => {
-    console.log(1111)
     console.log('onExpand', selectedKeys, info);
-    console.log(selectedKeys.slice(-1)[0])
-    console.log(2222)
   };
 
 
 
   onInputRead = async (cm, change, editor) => {
-    console.log(cm)
-    console.log(change)
-    console.log(editor)
     const { text } = change;
     const dechars = [
       '.',
