@@ -637,12 +637,10 @@ export default class mysqlConsole extends Component {
                         <Button type="link" onClick={()=> this.getFavorite("db_sql")}>我的SQL</Button>
                      </p>
                    </div>
-
                }
            >
                <Icon type="folder-open" />
            </Tooltip>
-
             <hr/>
             <Button type="primary" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
             <Button type="dashed" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>执行计划</Button>
