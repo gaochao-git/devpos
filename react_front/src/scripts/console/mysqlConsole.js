@@ -541,7 +541,7 @@ export default class mysqlConsole extends Component {
                                type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
                                onClick={this.onCollapseTable}
                            />
-                           <Search style={{ marginBottom: 8,marginLeft:5,width:'90%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
+                           <Search size="small" style={{ marginBottom: 8,marginLeft:5,width:'90%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
                        </span>
                        <div className="down-tree">
                            <Tree
