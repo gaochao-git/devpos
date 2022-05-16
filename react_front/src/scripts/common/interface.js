@@ -35,10 +35,12 @@ MyAxios.interceptors.response.use(
       switch (response.data.code) {
         case 401:
           message.error('用户未登陆')
+          //window.location=`${backendServerApiRoot}/sso_login?next=${window.location.href}` //sso登陆用
         case 402:
           message.error('登陆过期')
           window.localStorage.removeItem("token")
           window.location.reload()
+          //window.location=`${backendServerApiRoot}/sso_login?next=${window.location.href}` //sso登陆用
       }
     }
     return response

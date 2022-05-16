@@ -1,5 +1,7 @@
 from django.utils.deprecation import MiddlewareMixin
 from django.shortcuts import HttpResponse
+from django_cas_ng.signals import cas_user_authenticated,cas_user_logout
+from django.dispatch import receiver
 import json
 import jwt
 from rest_framework_jwt.utils import jwt_decode_handler
@@ -144,3 +146,27 @@ def get_login_user_info_dao(token):
                inner join team_user c on a.username=c.uname
                where b.`key`='{}'""".format(token)
     return db_helper.find_all(sql)
+
+
+# ================= sso callback=========================
+@receiver(cas_user_authenticated)
+def cas_user_authenticated_callback(sender, **kwargs):
+    """
+    sso登陆成功回调,可以获取用户的SSO信息，进行平台相关处理
+    :param sender:
+    :param kwargs:
+    :return:
+    """
+    attributes = kwargs('attributes')
+    print("sso登陆成功,用户信息写入数据库")
+
+
+@receiver(cas_user_logout)
+def cas_user_logout_callback(sender, **kwargs):
+    """
+    sso登出回调
+    :param sender:
+    :param kwargs:
+    :return:
+    """
+    print("sso登出")
