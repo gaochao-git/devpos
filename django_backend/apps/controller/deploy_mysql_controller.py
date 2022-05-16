@@ -78,6 +78,11 @@ def get_ansible_api_log_controller(request):
     try:
         submit_uuid = request_body['submit_uuid']
         ret = deploy_mysql.get_ansible_api_log(submit_uuid)
+        # 下面临时替换称调用jks返回的html结果
+        with open("/Users/gaochao/gaochao-git/gaochao_repo/devpos/django_backend/apps/utils/jks_stdout.html", "rb") as f:
+            data = f.read()
+            data = data.decode('utf-8')
+        ret = {"status": "ok", "data": data}
     except KeyError as e:
         logger.exception('缺少请求参数:%s' % str(e))
         ret = {"status": "error", "code": 2002, "message": "参数不合法"}
