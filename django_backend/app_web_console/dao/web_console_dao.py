@@ -212,13 +212,13 @@ def get_db_info_dao(des_ip_port):
     port = des_ip_port.split('_')[1]
     sql = """
         select 
-            @@version version,
-            @@character_set_server character_set_server,
-            @@read_only read_only,
-            @@default_storage_engine engine,
-            @@innodb_flush_log_at_trx_commit innodb_flush_log_at_trx_commit,
-            @@sync_binlog sync_binlog,
-            @@long_query_time long_query_time,
-            @@max_connections max_connections
+            @@version '版本',
+            @@character_set_server 'Server字符集',
+            case @@read_only when 0 then 'OFF' else 'ON' end '只读状态',
+            @@default_storage_engine '存储引擎',
+            @@innodb_flush_log_at_trx_commit 'Redo log刷盘',
+            @@sync_binlog 'Binlog刷盘' ,
+            @@long_query_time '慢查询阀值',
+            @@max_connections '最大连接数'
     """
     return db_helper.target_source_find_all(ip,port,sql)

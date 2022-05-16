@@ -59,7 +59,7 @@ export default class mysqlConsole extends Component {
       multi_table_column:[],
       multi_query_time:[],
       source_slider_info:[],
-      global_loading:true,
+      global_loading:false,
       table_column_list:[],
       res_format:'row',
       table_search:"%",
@@ -102,6 +102,7 @@ export default class mysqlConsole extends Component {
           multi_query_time: [],
           col_format_res_list:[],
           get_data:false,
+          global_loading:true,
       });
       await MyAxios.post('/web_console/v1/get_table_data/',params).then(
           res => {
@@ -145,8 +146,12 @@ export default class mysqlConsole extends Component {
                       multi_query_time: query_time_list,
                       col_format_res_list:col_format_res_list,
                       get_data:true,
+                      global_loading:false,
                   });
               }else{
+                  this.setState({
+                    global_loading:false
+                  });
                   message.error(res.data.message);
               }
           }
@@ -154,7 +159,8 @@ export default class mysqlConsole extends Component {
           message.error(err.message);
           this.setState({
               table_data: [],
-              table_column:[]
+              table_column:[],
+              global_loading:false
           });
       })
     };
@@ -361,13 +367,12 @@ export default class mysqlConsole extends Component {
 
   //获取实例库信息
   async getSchema() {
-      this.getDbInfo()
       let params = {instance_name:this.state.instance_name};
-      this.setState({global_loading:false})
       await MyAxios.post('/web_console/v1/get_schema_list/',params,{timeout:1000}).then(
           res=>{
               if( res.data.status === 'ok'){
-                  this.setState({schema_list: res.data.data,global_loading:true});
+                  this.setState({schema_list: res.data.data});
+                  this.getDbInfo()  // 获取数据库基础信息
               } else{
                   message.error(res.data.message)
               }
@@ -451,7 +456,7 @@ export default class mysqlConsole extends Component {
 
   onEditorDidMount = editor =>{
         this.editor = editor;
-        editor.setSize("auto","200px")
+        editor.setSize("auto","160px")
     };
 
   handleOk = e => {
@@ -618,7 +623,7 @@ export default class mysqlConsole extends Component {
               checkedChildren="Select"
               unCheckedChildren="Input"
               defaultChecked
-              onClick={()=>this.setState({input_source_type:!this.state.input_source_type})}
+              onClick={()=>this.setState({input_source_type:!this.state.input_source_type,instance_name:"",db_info:""})}
             />
             <Button type="link"  icon="star" onClick={()=> this.setState({visible:true})}></Button>
             <Tooltip
@@ -639,7 +644,7 @@ export default class mysqlConsole extends Component {
            </Tooltip>
 
             <hr/>
-            <Button type="primary" onClick={()=> this.getTableData('no')}>执行</Button>
+            <Button type="primary" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
             <Button type="dashed" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>执行计划</Button>
             <CodeMirror
               editorDidMount={this.onEditorDidMount}
@@ -668,20 +673,12 @@ export default class mysqlConsole extends Component {
                onBlur={cm=>this.onBlur(cm)}
                onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
             />
-            <Tabs defaultActiveKey='1' style={{ margin:3}}>
+            <Tabs defaultActiveKey='1' tabPosition="bottom" size="small" style={{ margin:1}}>
           {
               this.state.multi_label.map((item,index)=>{
               return(
                   <TabPane tab={item} key={index}>
-                      共{this.state.multi_table_data[index].length}条,  耗时:{this.state.multi_query_time[index]} ms
-                      <Button
-                          style={{marginLeft: '10px'}}
-                          onClick={tableToExcel.bind(this, this.state.multi_table_data[index], this.state.multi_table_column[index], 'query_result')}
-                      >
-                          导出
-                      </Button>
-                      <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
-                      <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
+
                       {
                           this.state.res_format === 'row'
                           ?
@@ -690,14 +687,22 @@ export default class mysqlConsole extends Component {
                               columns={this.state.multi_table_column[index]}
                               bordered
                               size="small"
-                              scroll={{x:'max-content',y:300}}
+                              scroll={{x:'max-content',y:180}}
                               pagination={false}
                               className="rowStyle"
                           />
-                          : <TextArea rows={20} value={this.state.col_format_res_list[index]}/>
+                          : <TextArea rows={10} value={this.state.col_format_res_list[index]}/>
 
                       }
-
+                    共{this.state.multi_table_data[index].length}条,  耗时:{this.state.multi_query_time[index]} ms
+                      <Button
+                          style={{marginLeft: '10px'}}
+                          onClick={tableToExcel.bind(this, this.state.multi_table_data[index], this.state.multi_table_column[index], 'query_result')}
+                      >
+                          导出
+                      </Button>
+                      <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
+                      <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
                   </TabPane>
               )
               })
