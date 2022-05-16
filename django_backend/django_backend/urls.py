@@ -27,8 +27,8 @@ urlpatterns = [
     path('api/login/', include("app_login.urls")),
     path('api/get_login_user_info/', auth.get_login_user_info_controller),  # 根据token获得登录用户名
     path('api/v2/v2_get_login_user_info/', auth.v2_get_login_user_info_controller),  # 登录--根据token获得登录用户名
-    path('api/v1/sso_login/', django_cas_ng.views.LoginView.as_view(),name='cas_mg_login'),  # sso登陆，如果没有登陆则跳转到sso登陆界面
-    path('api/v1/sso_logout/', django_cas_ng.views.LogoutView.as_view(),name='cas_mg_logout'),  # sso登出
+    path('api/v1/sso_login/', django_cas_ng.views.LoginView.as_view(), name='cas_mg_login'),  # sso登陆，如果没有登陆则跳转到sso登陆界面
+    path('api/v1/sso_logout/', django_cas_ng.views.LogoutView.as_view(), name='cas_mg_logout'),  # sso登出
     # 用户权限管理
     path('api/permission/', include("app_permission.urls")),
     # SQL变更服务

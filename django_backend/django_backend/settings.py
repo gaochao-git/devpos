@@ -43,7 +43,19 @@ INSTALLED_APPS = [
     'app_audit_sql',
     'app_db_dcl',
     'app_web_console',
+    'django_cas_ng',
 ]
+
+# ============================= SSO 认证 begin=============================
+CAS_SERVER_URL = 'http://sso-xxxx.nucc.com'
+CAS_VERSION = '3'
+CAS_APPLY_ATTRIBUTES = True  # 获取用户详细信息
+CAS_CHECK_NEXT = lambda _: True  # 解决Non-local url is forbidden异常
+AUTHENTICATION_BACKENDS = (
+  'django.contrib.auth.backends.ModelBackend',
+  'django_cas_ng.backends.CASBackend',
+)
+# ============================ SSO 认证end =================================
 
 # ===========================JWT认证begin===================================
 REST_FRAMEWORK = {
@@ -71,6 +83,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # 解决跨域问题
     'django.middleware.common.CommonMiddleware',  # url路径'/'处理
     #'django.middleware.csrf.CsrfViewMiddleware',   # 注释掉可以解决前后端分离发送post请求失败问题
+    #'django_cas_ng.middleware.CASMiddleware', #sso中间件
     'django.contrib.auth.middleware.AuthenticationMiddleware', # 将代表当前登录用户的用户属性添加到每个传入的 HttpRequest 对象
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

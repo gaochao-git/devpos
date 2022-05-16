@@ -628,6 +628,7 @@ export default class mysqlConsole extends Component {
               checkedChildren="Select"
               unCheckedChildren="Input"
               defaultChecked
+              size="small"
               onClick={()=>this.setState({input_source_type:!this.state.input_source_type,instance_name:"",db_info:""})}
             />
             <Button type="link"  icon="star" onClick={()=> this.setState({visible:true})}></Button>

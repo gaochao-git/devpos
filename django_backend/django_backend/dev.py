@@ -18,12 +18,6 @@ DATABASES = {
         'AUTOCOMMIT':True,           # pymysql默认AUTOCOMMIT为False,如果没有该参数django会将其设置为True,如果指定该参数django会忽略该参数
     }
 }
-################# sso配置 #####################
-CAS_SERVER_URL = 'http://sso-xxxx.nucc.com'
-CAS_VERSION= '3'
-CAS_APPLY_ATTRIBUTES = True # 获取用户详细信息
-CAS_CHECK_NEXT = lambda _:True  # 解决Non-local url is forbidden异常
-
 
 ################# celery配置 ##################
 # python manage.py celery  beat  -l debug  -f logs/celery_beat.log  # 启动定时任务
