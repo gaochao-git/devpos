@@ -71,9 +71,9 @@ class NavService extends Component {
                 </SubMenu>
                 <SubMenu key="sub5" title={<span><Icon type="code" /><span>控制台</span></span>}>
                     <Menu.Item key="/mysqlConsole">
-                        <Link to="/mysqlConsole">MySQL</Link>
+                        <Link to="/mysqlConsole">MySQL数据查询</Link>
                     </Menu.Item>
-                    <Menu.Item key="2">拓扑查询</Menu.Item>
+                    <Menu.Item key="2">MySQL拓扑查询</Menu.Item>
                 </SubMenu>
             </Menu>
         )

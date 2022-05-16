@@ -70,7 +70,8 @@ export default class mysqlConsole extends Component {
       store_info_detail:"",
       DrawerVisible:false,
       favorite_list:[],
-      db_info:""
+      db_info:"",
+      collapsed:true
     }
   }
 
@@ -409,6 +410,7 @@ export default class mysqlConsole extends Component {
           instance_name:this.state.instance_name,
           table_name:this.state.table_search,
       };
+      this.setState({collapsed:false})
       await MyAxios.post('/web_console/v1/get_table_list/',params).then(
           res=>{
               if( res.data.status === 'ok'){
