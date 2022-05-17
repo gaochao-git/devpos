@@ -72,7 +72,6 @@ class BaseView(APIView):
         orig_iat_timestamp = time.localtime(self.request_user_info['orig_iat'])
         self.request_user_info['exp_format'] = time.strftime("%Y-%m-%d %H:%M:%S", exp_timestamp)
         self.request_user_info['orig_iat_format'] = time.strftime("%Y-%m-%d %H:%M:%S", orig_iat_timestamp)
-        print(self.request_user_info)
 
     def my_response(self, data, content_type='application/json'):
         """

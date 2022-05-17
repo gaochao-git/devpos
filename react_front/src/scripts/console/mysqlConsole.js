@@ -444,7 +444,7 @@ export default class mysqlConsole extends Component {
 
   onEditorDidMount = editor =>{
         this.editor = editor;
-        editor.setSize("auto","160px")
+        editor.setSize("auto","174px")
     };
 
 
@@ -650,6 +650,9 @@ export default class mysqlConsole extends Component {
                      </p>
                      <p>
                         <Button type="link" onClick={()=> this.setState({favorite_type:"db_sql"},()=>this.getFavorite())}>我的SQL</Button>
+                     </p>
+                     <p>
+                        <Button type="link" onClick={()=> this.setState({favorite_type:"db_sql"},()=>message.success('开发中'))}>公共快捷键</Button>
                      </p>
                    </div>
                }
