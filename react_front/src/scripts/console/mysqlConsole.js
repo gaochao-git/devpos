@@ -53,14 +53,17 @@ export default class mysqlConsole extends Component {
       res_format:'row',
       table_search:"%",
       input_source_type:false,
-      visible:false,
-      store_type:"收藏SQL",
-      store_info_name:"",
-      store_info_detail:"",
       DrawerVisible:false,
       favorite_list:[],
       db_info:"",
-      collapsed:true
+      collapsed:true,
+
+      store_info_name:"",    //收藏名称
+      store_info_detail:"",  //收藏信息
+      favoriteVisible:false,
+      favorite_type:"选择收藏类型",   //收藏类型
+      favorite_name:"",
+      favorite_detail:""
     }
   }
 
@@ -312,9 +315,9 @@ export default class mysqlConsole extends Component {
   }
 
   //获取收藏信息
-  async getFavorite(type) {
-      let params = {favorite_type:type}
-      this.setState({DrawerVisible:true,favorite_type:type})
+  async getFavorite() {
+      let params = {favorite_type:this.state.favorite_type}
+      this.setState({DrawerVisible:true})
       await MyAxios.get('/web_console/v1/get_favorite/',{params}).then(
           res=>{
               if( res.data.status === 'ok'){
@@ -444,25 +447,48 @@ export default class mysqlConsole extends Component {
         editor.setSize("auto","160px")
     };
 
-  handleOk = e => {
-    console.log(e);
-    this.setState({
-      visible: false,
-    });
-  };
 
-  handleCancel = e => {
-    console.log(e);
-    this.setState({
-      visible: false,
-    });
-  };
+  //收藏功能
+  async favoriteOk() {
+      let params = {
+          favorite_type:this.state.favorite_type,
+          favorite_name:this.state.favorite_name,
+          favorite_detail:this.state.favorite_detail
+      };
+      await MyAxios.post('/web_console/v1/add_favorite/',params).then(
+          res=>{
+              if( res.data.status === 'ok'){
+                  this.setState({favoriteVisible: false});
+              } else{
+                  message.error(res.data.message)
+              }
+          }
+      ).catch(err=>message.error(err.message))
+  }
+  //取消收藏
+  async favoriteCancel(favorite_name) {
+      let params = {
+          favorite_name:favorite_name,
+      };
+      await MyAxios.post('/web_console/v1/del_favorite/',params).then(
+          res=>{
+              if( res.data.status === 'ok'){
+                  this.getFavorite()
+                  message.success(res.data.message)
+              } else{
+                  message.error(res.data.message)
+              }
+          }
+      ).catch(err=>message.error(err.message))
+  }
 
   handleChangeStoreType = (e) => {
-    if (e==="收藏数据源"){
-        this.setState({store_info_detail: this.state.instance_name,store_type:e});
+    if (e==="db_source"){
+        this.setState({favorite_detail: this.state.instance_name,favorite_type:e});
+    }else if (e==="db_sql"){
+        this.setState({favorite_detail: this.state.sql,favorite_type:e});
     }else{
-        this.setState({store_info_detail: this.state.sql,store_type:e});
+        message.warning('not support type')
     }
   };
 
@@ -500,7 +526,7 @@ export default class mysqlConsole extends Component {
         title: '取消收藏',
         fixed:"right",
         render: (record) => {
-          return (<Button type="link" icon="close"></Button>)
+          return (<Button type="link" onClick={()=> this.favoriteCancel(record.favorite_name)} icon="close"></Button>)
         }
       }
     ];
@@ -614,16 +640,16 @@ export default class mysqlConsole extends Component {
               size="small"
               onClick={()=>this.setState({input_source_type:!this.state.input_source_type,instance_name:"",db_info:""})}
             />
-            <Button type="link"  icon="star" onClick={()=> this.setState({visible:true})}></Button>
+            <Button type="link"  icon="star" onClick={()=> this.setState({favoriteVisible:true})}></Button>
             <Tooltip
                 placement="bottomLeft"
                title={
                    <div>
                      <p>
-                        <Button type="link" onClick={()=> this.getFavorite("db_source")}>我的数据源</Button>
+                        <Button type="link" onClick={()=> this.setState({favorite_type:"db_source"},()=>this.getFavorite())}>我的数据源</Button>
                      </p>
                      <p>
-                        <Button type="link" onClick={()=> this.getFavorite("db_sql")}>我的SQL</Button>
+                        <Button type="link" onClick={()=> this.setState({favorite_type:"db_sql"},()=>this.getFavorite())}>我的SQL</Button>
                      </p>
                    </div>
                }
@@ -700,25 +726,25 @@ export default class mysqlConsole extends Component {
 
 
         <Modal
-          visible={this.state.visible}
-          onOk={this.handleOk}
-          onCancel={this.handleCancel}
+          visible={this.state.favoriteVisible}
+          onOk={()=>this.favoriteOk()}
+          onCancel={()=>this.setState({favoriteVisible:false})}
           width={500}
+          afterClose={()=>this.setState({favorite_type:"选择收藏类型",favorite_name:"",favorite_detail:""})}
         >
           <p>
             <Select
                 style={{width:130}}
-                value={this.state.store_type}
+                value={this.state.favorite_type}
                 onChange={e=>this.handleChangeStoreType(e)}
             >
-                {STORE_TYPE.map(type =>{
-                    return <Option value={type} key={type}>{type}</Option>
-                })}
+                <Option value="db_source" key="db_source">数据源</Option>
+                <Option value="db_sql" key="db_sql">SQL</Option>
             </Select>
-            <Input style={{ width: 230}} placeholder="名称" onChange={e => this.setState({store_info_name:e.target.value})}/>
+            <Input style={{ width: 230}} placeholder="名称" onChange={e => this.setState({favorite_name:e.target.value})}/>
           </p>
           <p>
-            <TextArea style={{ width: 360}} rows={6} placeholder="详情" value={this.state.store_info_detail}/>
+            <TextArea disabled={true} style={{ width: 360}} rows={6} placeholder="详情" value={this.state.favorite_detail}/>
           </p>
         </Modal>
         <Drawer

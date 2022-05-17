@@ -222,3 +222,45 @@ def get_db_info_dao(des_ip_port):
             @@max_connections '最大连接数'
     """
     return db_helper.target_source_find_all(ip,port,sql)
+
+
+def add_favorite_dao(config_user_name, favorite_type, favorite_name, favorite_detail):
+    """
+    添加收藏信息
+    :param config_user_name:
+    :param favorite_type:
+    :param favorite_name:
+    :param favorite_detail:
+    :return:
+    """
+    check_sql = """
+        select 1 from web_console_favorite where user_name='{}' and favorite_name='{}'
+    """.format(config_user_name,favorite_name)
+    check_ret = db_helper.find_all(check_sql)
+    assert check_ret['status'] == "ok"
+    if len(check_ret['data']) != 0: return {"status": "error", "message": "该名称已经存在"}
+    sql = """
+        insert into web_console_favorite(user_name,favorite_type,favorite_name,favorite_detail,create_time,update_time) 
+        values('{}','{}','{}','{}',now(),now())
+    """.format(config_user_name, favorite_type, favorite_name, favorite_detail)
+    return db_helper.dml(sql)
+
+
+
+def del_favorite_dao(config_user_name, favorite_name):
+    """
+    删除收藏
+    :param config_user_name:
+    :param favorite_name:
+    :return:
+    """
+    check_sql = """
+            select 1 from web_console_favorite where user_name='{}' and favorite_name='{}'
+        """.format(config_user_name, favorite_name)
+    check_ret = db_helper.find_all(check_sql)
+    assert check_ret['status'] == "ok"
+    if len(check_ret['data']) == 0: return {"status": "error", "message": "该名称不存在"}
+    sql = """
+            delete from web_console_favorite where user_name='{}' and favorite_name='{}'
+        """.format(config_user_name, favorite_name)
+    return db_helper.dml(sql)

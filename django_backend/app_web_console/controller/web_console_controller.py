@@ -59,6 +59,46 @@ class GetFavoriteController(BaseView):
         return self.my_response(ret)
 
 
+class AddFavoriteController(BaseView):
+    def post(self, request):
+        """
+        添加收藏信息
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "favorite_type": [Required, In(['db_source', 'db_sql'])],
+            "favorite_name": [Required, Length(2, 64)],
+            "favorite_detail": [Required, Length(2, 10000)],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        favorite_type = request_body.get('favorite_type')
+        favorite_name = request_body.get('favorite_name')
+        favorite_detail = request_body.get('favorite_detail')
+        config_user_name = self.request_user_info.get('username')
+        ret = web_console_dao.add_favorite_dao(config_user_name, favorite_type, favorite_name, favorite_detail)
+        return self.my_response(ret)
+
+
+class DelFavoriteController(BaseView):
+    def post(self, request):
+        """
+        删除收藏信息
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "favorite_name": [Required, Length(2, 64)],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        favorite_name = request_body.get('favorite_name')
+        config_user_name = self.request_user_info.get('username')
+        ret = web_console_dao.del_favorite_dao(config_user_name, favorite_name)
+        return self.my_response(ret)
 
 
 def get_schema_list_controller(request):
