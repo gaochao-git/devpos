@@ -201,12 +201,12 @@ class App extends Component {
                             </Header>
                             <Layout>
                                 <Sider
-                                style={{ background: '#15344a',minHeight:'860px'}}
-                                collapsible
-                                collapsed={this.state.collapsed}
-                                onCollapse={this.onCollapse}
-                                trigger={null}
-                            >
+                                    style={{ background: '#15344a',minHeight:'860px'}}
+                                    collapsible
+                                    collapsed={this.state.collapsed}
+                                    onCollapse={this.onCollapse}
+                                    trigger={null}
+                                >
                                     {this.state.current_nav === "服务"? <NavService/>:null}
                                     {this.state.current_nav === "运维"? <NavOps/>:null}
                                     {this.state.current_nav === "管理"? <NavManage/>:null}
