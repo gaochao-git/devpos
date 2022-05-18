@@ -12,6 +12,7 @@ import 'codemirror/theme/ambiance.css';
 import 'codemirror/addon/selection/active-line';
 import MyAxios from "../common/interface"
 import {tableToExcel} from "../common/excel"
+import { MyResizeTable } from "../common/resizeTable"
 import {MyTree,MyTree1,MyTree2} from "../common/myComponent"
 const {Option} = Select
 const {TabPane} = Tabs
@@ -81,6 +82,16 @@ export default class mysqlConsole extends Component {
     }
   }
 
+  handleColumnWidth = (text,record,index) =>{
+          console.log(record)
+          let columnWidth = text?text.width:30;
+          console.log(columnWidth)
+          if(columnWidth < 30 && index != 0) {
+              columnWidth = 30;
+          }
+          return (<span title={text} className="ellipsisText" style={{width: columnWidth }}>{text}</span>);
+      }
+
   async getTableData(explain) {
       let params = {
         des_ip_port:this.state.instance_name,
@@ -113,7 +124,10 @@ export default class mysqlConsole extends Component {
                               let column_obj = {};
                               column_obj['title'] = [Object.keys(res.data.data[j][j][0])[i]]
                               column_obj['dataIndex'] = [Object.keys(res.data.data[j][j][0])[i]]
-                              column_obj['width'] = 200
+                              column_obj['render'] = (text, record, index) => {return this.handleColumnWidth(text,record,index);}
+                              if (i<Object.keys(res.data.data[j][j][0]).length - 1){
+                                column_obj['width'] = 100
+                              }
                               column_arr.push(column_obj)
                           }
                       };
@@ -444,7 +458,7 @@ export default class mysqlConsole extends Component {
 
   onEditorDidMount = editor =>{
         this.editor = editor;
-        editor.setSize("auto","174px")
+        editor.setSize("auto","170px")
     };
 
 
@@ -642,7 +656,7 @@ export default class mysqlConsole extends Component {
             />
             <Button type="link"  icon="star" onClick={()=> this.setState({favoriteVisible:true})}></Button>
             <Tooltip
-                placement="bottomLeft"
+                placement="bottomRight"
                title={
                    <div>
                      <p>
@@ -665,6 +679,7 @@ export default class mysqlConsole extends Component {
             <CodeMirror
               editorDidMount={this.onEditorDidMount}
               value={this.state.sql_content}
+              resize="vertical"
               options={{
                 lineNumbers: true,
                 mode: {name: "text/x-mysql"},
@@ -698,18 +713,13 @@ export default class mysqlConsole extends Component {
                       {
                           this.state.res_format === 'row'
                           ?
-                          <Table
-                              dataSource={this.state.multi_table_data[index]}
-                              columns={this.state.multi_table_column[index]}
-                              bordered
-                              size="small"
-                              scroll={{x:'max-content',y:180}}
-                              pagination={false}
-                              className="rowStyle"
-                          />
+                          <div className="components-table-resizable-column">
+                               <MyResizeTable dataSource={this.state.multi_table_data[index]} columns={this.state.multi_table_column[index]}/>
+                          </div>
                           : <TextArea rows={10} value={this.state.col_format_res_list[index]}/>
 
                       }
+
                     共{this.state.multi_table_data[index].length}条,  耗时:{this.state.multi_query_time[index]} ms
                       <Button
                           style={{marginLeft: '10px'}}

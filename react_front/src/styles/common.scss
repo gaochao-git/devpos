@@ -328,3 +328,34 @@ td.replacecolor{
     }
 }
 
+
+/* 显示拖拽样式 */
+.components-table-resizable-column .react-resizable {
+    position: relative ;
+    background-clip: padding-box;
+}
+.components-table-resizable-column .react-resizable-handle {
+    position: absolute;
+    width: 10px;
+    height: 100%;
+    bottom: 0;
+    right: -9px;
+    cursor: col-resize;
+    z-index: 1;
+    border-left: white 1px solid;
+}
+
+/* 内容过多以...显示 */
+.ellipsisText {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+}
+
+/* codemirror拖动窗口大小 */
+.CodeMirror {
+    resize: vertical;  /*both、vertical*/
+//     height: 140px !important; //高度在自己的页面内灵活设置
+    overflow: auto !important;
+}
