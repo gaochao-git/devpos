@@ -458,7 +458,7 @@ export default class mysqlConsole extends Component {
 
   onEditorDidMount = editor =>{
         this.editor = editor;
-        editor.setSize("auto","170px")
+        editor.setSize("auto","174px")
     };
 
 
@@ -582,6 +582,7 @@ export default class mysqlConsole extends Component {
                           bordered
                           dataSource={this.state.db_info}
                           renderItem={item => <p>{item}</p>}
+                          style={{borderRadius:0}}
                        />
                    </div>
 
