@@ -560,7 +560,7 @@ export default class mysqlConsole extends Component {
                {!this.state.collapsed ?
                    <div>
                        <span>
-                           <Search size="small" style={{ marginBottom: 8,marginLeft:5,width:'90%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
+                           <Search size="small" style={{ marginBottom: 8,marginLeft:5,width:'95%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
                        </span>
                        <div className="down-tree">
                            <Tree
@@ -598,9 +598,17 @@ export default class mysqlConsole extends Component {
               type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
               onClick={this.onCollapseTable}
           />
+          <Switch
+              checkedChildren="Select"
+              unCheckedChildren="Input"
+              defaultChecked
+              size="small"
+              style={{marginLeft:5}}
+              onClick={()=>this.setState({input_source_type:!this.state.input_source_type,instance_name:"",db_info:""})}
+            />
           {
             this.state.input_source_type ?
-            <Input size="small" style={{ width: 150}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
+            <Input size="small" style={{ width: 150,marginLeft:2}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
             :
             <span>
                 <Select
@@ -649,13 +657,10 @@ export default class mysqlConsole extends Component {
                     return <Option value={record.Database} key={record.Database}>{record.Database}</Option>
                 })}
             </Select>
-            <Switch
-              checkedChildren="Select"
-              unCheckedChildren="Input"
-              defaultChecked
-              size="small"
-              onClick={()=>this.setState({input_source_type:!this.state.input_source_type,instance_name:"",db_info:""})}
-            />
+
+            <hr style={{margin:0}}/>
+            <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
+            <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>解释</Button>
             <Button type="link"  icon="star" onClick={()=> this.setState({favoriteVisible:true})}></Button>
             <Tooltip
                 placement="bottomRight"
@@ -675,9 +680,6 @@ export default class mysqlConsole extends Component {
            >
                <Icon type="folder-open" />
            </Tooltip>
-            <hr style={{margin:0}}/>
-            <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
-            <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>解释</Button>
             <CodeMirror
               editorDidMount={this.onEditorDidMount}
               value={this.state.sql_content}
