@@ -359,3 +359,12 @@ td.replacecolor{
 //     height: 140px !important; //高度在自己的页面内灵活设置
     overflow: auto !important;
 }
+
+
+.trigger {
+  font-size: 18px;
+  line-height: 14px;
+  padding: 0 4px !important;
+  cursor: pointer;
+  transition: color 0.3s;
+}

@@ -554,16 +554,12 @@ export default class mysqlConsole extends Component {
                 onCollapse={this.onCollapse}
                 trigger={null}
                 width={220}
+                collapsedWidth={0}
             >
             <div>
                {!this.state.collapsed ?
                    <div>
                        <span>
-                           <Icon
-                               className="trigger"
-                               type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
-                               onClick={this.onCollapseTable}
-                           />
                            <Search size="small" style={{ marginBottom: 8,marginLeft:5,width:'90%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
                        </span>
                        <div className="down-tree">
@@ -597,6 +593,11 @@ export default class mysqlConsole extends Component {
 
           </Sider>
           <Content style={{margin:0,padding:0}}>
+          <Icon
+              className="trigger"
+              type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
+              onClick={this.onCollapseTable}
+          />
           {
             this.state.input_source_type ?
             <Input size="small" style={{ width: 150}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
