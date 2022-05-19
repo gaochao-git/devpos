@@ -108,7 +108,7 @@ class ExecuteSql:
         """
         common.audit_sql_log(self.file_path, 0, "任务发送到审核工具执行")
         ret = inception.execute_sql(self.des_ip, self.des_port, self.inc_backup, self.inc_ignore_warn,
-                                    self.inc_ignore_err, self.execute_sql, self.file_path, self.osc_config_sql)
+                                    self.inc_ignore_err, self.execute_sql, self.file_path, self.osc_config_sql,self.inc_sleep)
         if ret['status'] != "ok": 
             self.mark_ticket_status(2,4)
             common.audit_sql_log(self.file_path, 1, "任务发送到审核工具执行出现异常:%s" % ret['message'])

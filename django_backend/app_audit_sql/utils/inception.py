@@ -92,12 +92,13 @@ def get_ddl_process(sqlsha1):
 
 
 # inception执行SQL
-def execute_sql(des_ip, des_port, inc_backup,inc_ignore_warn, inc_ignore_err, execute_sql, split_sql_file_path, osc_config_sql):
+def execute_sql(des_ip, des_port, inc_backup,inc_ignore_warn, inc_ignore_err, execute_sql, split_sql_file_path, osc_config_sql,inc_sleep):
     logger.info("工单:%s调用inception开始执行SQL", split_sql_file_path)
-    sql = """/*--user=gaochao;--password=fffjjj;--host={};--port={};--execute=1;--enable-remote-backup={};--enable-ignore-warnings={};--enable-force={};*/\
+    sql = """/*--user=gaochao;--password=fffjjj;--host={};--port={};--execute=1;--enable-remote-backup={};--enable-ignore-warnings={};--enable-force={};--sleep={}*/\
         inception_magic_start;
         {}   
-        inception_magic_commit;""".format(des_ip, des_port, inc_backup, inc_ignore_warn, inc_ignore_err, execute_sql)
+        inception_magic_commit;""".format(des_ip, des_port, inc_backup, inc_ignore_warn, inc_ignore_err,inc_sleep, execute_sql)
+    print(sql)
     conn = None
     try:
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port,charset="utf8")  # inception服务器
