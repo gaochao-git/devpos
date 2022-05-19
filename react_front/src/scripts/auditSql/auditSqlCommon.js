@@ -55,6 +55,7 @@ export class AditSqlTable extends React.Component {
                 rowKey={(row ,index) => index}
                 columns={audit_columns}
                 dataSource={this.props.data}
+                size="small"
                 pagination={{
                                pageSizeOptions:[10,20,30,40,50,60,70,80,90,100,300,500],
                                showSizeChanger:true,

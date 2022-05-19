@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm,Spin } from 'antd';
+import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm,Spin,Tooltip } from 'antd';
 import { Link } from 'react-router-dom';
 import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
@@ -709,7 +709,13 @@ export default class ExecuteSql extends Component {
             {
               title: 'SQL路径',
               dataIndex:"split_sql_file_path",
-              width:300
+              render:(text, row) => {
+                return (
+                    text.length>20 ?
+                    <Tooltip placement="topLeft" title={text}><span>{text.slice(0,20)}...</span></Tooltip>
+                    :<span>{text}</span>
+                )
+              }
             },
             {
               title: 'SQL',
@@ -864,11 +870,11 @@ export default class ExecuteSql extends Component {
                         </Col>
                     </Row>
                     <br/>
-                    <Button type="primary" onClick={()=>this.GetModifySqlByUuid()}>修改SQL</Button>
-                    {(this.state.login_user_name_role!=="dba") ?
+                    {this.state.dba_check==="未审核" ? <Button type="primary" onClick={()=>this.GetModifySqlByUuid()}>修改SQL</Button>:null}
+                    {(this.state.login_user_name_role!=="dba" && this.state.dba_check==="未审核") ?
                         <div>
-                            <h3>审核操作</h3>
                             <div className="input-padding">
+                                <h3>审核操作</h3>
                                 { (this.state.leader_check==="未审核" && this.state.login_user_name_role==="leader") ? <Button type="primary" style={{marginRight:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核工单</Button>:null}
                                 { (this.state.qa_check === '未审核' && this.state.login_user_name_role==="qa") ? <Button type="primary" style={{marginRight:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核工单</Button>:null}
                                 { (this.state.dba_check === '未审核' && this.state.login_user_name_role!=="dba") ? <Button type="primary" style={{marginRight:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核工单</Button>:null}
@@ -998,7 +1004,7 @@ export default class ExecuteSql extends Component {
                         footer={false}
                         width={1240}
                     >
-                        <Table dataSource={this.state.data} pagination={false} columns={this.inception_varialbes_columns} rowKey={(row) => row.name} size={"small"}/>
+                        <Table size="small" dataSource={this.state.data} pagination={false} columns={this.inception_varialbes_columns} rowKey={(row) => row.name} size={"small"}/>
                         <Button type={"primary"} onClick={this.handleUpdateInceptionVariable.bind(this)}>提交更改</Button>
                     </Modal>
                     <Modal visible={this.state.SplitSQLModalVisible}

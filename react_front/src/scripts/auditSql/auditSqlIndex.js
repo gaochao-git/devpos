@@ -314,7 +314,7 @@ class AuditSqlIndex extends Component {
     //codemirror框大小设置
     onEditorDidMount = editor =>{
         this.editor = editor;
-        editor.setSize("auto","300px")
+        editor.setSize("auto","150px")
     };
     render() {
         const {form} = this.props;
@@ -464,6 +464,7 @@ class AuditSqlIndex extends Component {
                         />
                         <span>用户提供的回滚语句(不参与审核)</span>
                         <AuditSqlModifyCodemirror
+                          editorDidMount={this.onEditorDidMount}
                           value={this.state.user_offer_rollback_sql}
                           onBlur={(cm) => this.setState({user_offer_rollback_sql:cm.getValue()})}
                           onChange={(cm) => this.setState({check_sql_results:[]})}
