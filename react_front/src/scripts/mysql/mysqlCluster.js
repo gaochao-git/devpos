@@ -23,7 +23,7 @@ export default class mysqlCluster extends Component  {
         this.GetClusterInfo()
     }
     //获取所有集群信息
-    async GetServerInfo() {
+    async GetClusterInfo() {
         await MyAxios.get('/db_resource/v1/get_mysql_cluster/').then(
             res => {res.data.status==="ok" ?
                 this.setState({
