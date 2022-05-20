@@ -890,8 +890,8 @@ export default class ExecuteSql extends Component {
                             <div>
                                 <h3>执行选项</h3>
                                 <Checkbox defaultChecked onChange={this.inceptionBackupCheckBoxOnChange.bind(this)}>备份</Checkbox>
-                                <Checkbox onChange={this.inceptionIgnoreWarningCheckBoxOnChange.bind(this)}>忽略inception警告</Checkbox>
-                                <Checkbox onChange={this.inceptionIgnoreErrorCheckBoxOnChange.bind(this)}>忽略inception错误强制执行</Checkbox>
+                                <Checkbox onChange={this.inceptionIgnoreWarningCheckBoxOnChange.bind(this)}>忽略警告</Checkbox>
+                                <Checkbox onChange={this.inceptionIgnoreErrorCheckBoxOnChange.bind(this)}>忽略错误</Checkbox>
                                 <Input size="small" style={{ width: 80,marginLeft:2}} value={this.state.inception_execute_sleep_ms} placeholder="sleep(ms)" onChange={e => this.setState({inception_execute_sleep_ms:e.target.value})}/>
                             </div>
                             <Table
