@@ -130,8 +130,13 @@ ant-menu.-inline .ant-menu-submenu-title {
   background: #15344a
 }
 
-.ant-table-thead > tr > th, .ant-table-tbody > tr > td {
+.ant-table-tbody > tr > td {
   word-break: break-word;
+}
+
+.ant-table-tbody > tr > th {
+  word-break: break-word;
+  white-space:nowrap
 }
 
 //text过长使用...
@@ -325,6 +330,7 @@ td.replacecolor{
 .rowStyle{
     .ant-table-tbody > tr > td {
       padding: 2px!important;
+      word-break:'break-all'!important;
     }
 }
 

@@ -125,7 +125,7 @@ export default class mysqlConsole extends Component {
                               column_obj['title'] = [Object.keys(res.data.data[j][j][0])[i]]
                               column_obj['dataIndex'] = [Object.keys(res.data.data[j][j][0])[i]]
                               column_obj['render'] = (text, record, index) => {return this.handleColumnWidth(text,record,index);}
-                              if (i<Object.keys(res.data.data[j][j][0]).length - 1){
+                              if (i<Object.keys(res.data.data[j][j][0]).length){
                                 column_obj['width'] = 100
                               }
                               column_arr.push(column_obj)
