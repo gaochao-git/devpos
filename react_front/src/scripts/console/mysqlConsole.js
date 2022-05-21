@@ -1,6 +1,7 @@
 import React,{Component} from 'react';
 import axios from 'axios'
 import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin,Switch,Modal,Tooltip,Drawer,List, Typography,Divider        } from "antd";
+import sqlFormatter from 'sql-formatter';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { BaseTable } from 'ali-react-table'
 import 'codemirror/lib/codemirror.css';
@@ -661,6 +662,7 @@ export default class mysqlConsole extends Component {
             <hr style={{margin:0}}/>
             <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
             <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>解释</Button>
+            <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sql_content:sqlFormatter.format(this.state.sql_content)})}>美化</Button>
             <Button type="link"  icon="star" onClick={()=> this.setState({favoriteVisible:true})}></Button>
             <Tooltip
                 placement="bottomRight"
