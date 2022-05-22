@@ -1,8 +1,10 @@
 import React from 'react';
 import axios from 'axios'
 import { Button, Input,Form,Row,Card,Checkbox,message} from "antd";
+import MyAxios from "../common/interface";
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
+const TextArea = Input.TextArea;
 
 
 axios.defaults.withCredentials = true;
@@ -23,8 +25,8 @@ export default class CreatePrivateUser extends React.Component  {
             confirmLoading: false,
             checkedList: defaultCheckedList,
             indeterminate: true,
-            login_user_name:"",
-            login_user_name_role:"",
+            login_application_user_name:"",
+            login_application_user_name_role:"",
         }
     }
 
@@ -37,27 +39,29 @@ export default class CreatePrivateUser extends React.Component  {
     handleSubmit = e => {
         e.preventDefault();
         this.props.form.validateFields((err, values) => {
-            console.log('Received values of form: ', values);
-            let params = {
-                grant_db_master_ip: values["DB_master_ip"],
-                grant_db_master_port: values["DB_master_port"],
-                grant_user_name: values["User_name"],
-                grant_user_host: values["User_ip"],
-                grant_database: values["Database"],
-                grant_table: values["Table"],
-                grant_dev_name: this.state.login_user_name,
-                grant_privileges : this.state.checkedList.join(",")
-            };
-            axios.post(`${server}/privileges_create_user_info/`,{params}).then(
-                res => {res.data.status==="ok" ? message.success(res.data.message) && this.props.form.resetFields() : message.error(res.data.message)}
-            ).catch(err => {message.error(err.message)});
-            this.setState({
-                showDataVisible: false
-            });
-
+            this.createUser(values)
         });
         //this.props.form.resetFields();
         //window.location.reload();
+    };
+
+    async createUser(values) {
+        let params = {
+                des_master_ip_port_list: values["des_master_ip_port_list"],
+                app_user_name: values["app_user_name"],
+                app_user_ip_list: values["app_ip"],
+                db_table: values["db_table"],
+                privileges : this.state.checkedList.join(",")
+            };
+        await MyAxios.post('/db_dcl/v1/privileges_create_user_info/',params).then(
+            res=>{
+                if (res.data.status === "ok"){
+                    message.success(res.data.message);
+                }else{
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err=>{message.error(err.message)})
     };
 
     onChange = checkedList => {
@@ -87,23 +91,23 @@ export default class CreatePrivateUser extends React.Component  {
                     <Form className="ant-advanced-search-form" labelCol={{ span: 4 }} onSubmit={this.handleSubmit}>
                         <Row gutter={20}>
                             <Card>
-                                <FormItem  label='DB_master_ip'>
-                                    {getFieldDecorator('DB_master_ip', {rules: [{required: true, message: '请输入DB_master_ip'}],})(<Input style={{ width: '20%' }} placeholder='请输入DB_master_ip'/>)}
+                                <FormItem  label='des_master_ip_port_list'>
+                                    {getFieldDecorator('des_master_ip_port_list', {rules: [{required: true, message: '请输入des_master_ip_port_list'}]})(
+                                        <TextArea style={{ width: '40%' }} placeholder='请输入数据库ip_port或者ip_port列表'/>
+                                    )}
                                 </FormItem>
-                                <FormItem  label='DB_master_port'>
-                                    {getFieldDecorator('DB_master_port', {rules: [{required: true, message: '请输入DB_master_port'}],})(<Input style={{ width: '20%' }} placeholder='请输入DB_master_port'/>)}
+                                <FormItem  label='db_table'>
+                                    {getFieldDecorator('db_table', {rules: [{required: true, message: '请输入需要授权的db.table'}]})(
+                                        <TextArea style={{ width: '40%' }} placeholder='请输入需要授权的d.table'/>
+                                    )}
                                 </FormItem>
-                                <FormItem  label='User_name'>
-                                    {getFieldDecorator('User_name', {rules: [{required: true, message: '请输入User_name'}],})(<Input style={{ width: '20%' }} placeholder='请输入User_name'/>)}
+                                <FormItem  label='app_user_name'>
+                                    {getFieldDecorator('app_user_name', {rules: [{required: true, message: '请输入app_user_name'}],})(<Input style={{ width: '40%' }} placeholder='请输入app_user_name'/>)}
                                 </FormItem>
-                                <FormItem  label='User_ip'>
-                                    {getFieldDecorator('User_ip', {rules: [{required: true, message: '请输入User_ip'}],})(<Input style={{ width: '20%' }} placeholder='请输入User_ip'/>)}
-                                </FormItem>
-                                <FormItem  label='Database'>
-                                    {getFieldDecorator('Database', {rules: [{required: true, message: '请输入需要授权的Database'}]})(<Input style={{ width: '20%' }} placeholder='请输入需要授权的Database'/>)}
-                                </FormItem>
-                                <FormItem  label='Table'>
-                                    {getFieldDecorator('Table', {rules: [{required: true, message: '请输入需要授权的Table'}]})(<Input style={{ width: '20%' }} placeholder='请输入需要授权的Table'/>)}
+                                <FormItem  label='app_ip'>
+                                    {getFieldDecorator('app_ip', {rules: [{required: true, message: 'app_ip'}]})(
+                                        <TextArea style={{ width: '40%' }} placeholder='请输入应用服务器ip或者ip列表'/>
+                                    )}
                                 </FormItem>
                                 <FormItem  label='Privileges'>
                                     {getFieldDecorator('Privileges')
