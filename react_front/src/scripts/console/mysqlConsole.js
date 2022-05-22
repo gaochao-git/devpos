@@ -131,6 +131,7 @@ export default class mysqlConsole extends Component {
                               }
                               column_arr.push(column_obj)
                           }
+                          column_arr.push({'title':''})
                       };
                       table_column_list.push(column_arr)
                       table_data_list.push(res.data.data[j][j])
