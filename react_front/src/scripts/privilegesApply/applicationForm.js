@@ -115,7 +115,7 @@ class privateUser extends Component  {
                                 />
                             </Table>
                         </TabPane>
-                        <TabPane tab="添加新用户" key="2">
+                        <TabPane tab="新建用户" key="2">
                             <CreatePrivateUser></CreatePrivateUser>
                         </TabPane>
                         <TabPane tab="扩展权限" key="3">
