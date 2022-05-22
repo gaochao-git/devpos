@@ -217,22 +217,13 @@ export default class mysqlConsole extends Component {
 
 
   onInputRead = async (cm, change, editor) => {
+    const tableName = {"table6": ["c1", "c2"]};; // 获取库表列表
     const { text } = change;
-    const dechars = [
-      '.',
-    ];
-    const autocomplete = dechars.includes(text[0]);
-    if (autocomplete) {
-//      const data = getTableList(); // 获取库表列表
-      const data = {"table5": ["c1", "c2"]}; // 获取库表列表
-      cm.setOption('hintOptions', {
-        tables: data,
-        completeSingle: false
-      });
-      cm.execCommand('autocomplete');
+    const ignore_chars = ['.', ',',' ',';'];     //这些字符不提示
+    const ignore = ignore_chars.includes(text[0]);
+    if (change.origin==="paste" || ignore){
+        return
     } else {
-//      const tableName = getTableList(); // 获取表列表
-      const tableName = {"table6": ["c1", "c2"]};; // 获取库表列表
       cm.setOption('hintOptions', {
         tables: tableName,
         completeSingle: false
