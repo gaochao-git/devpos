@@ -65,7 +65,8 @@ export default class mysqlConsole extends Component {
       favoriteVisible:false,
       favorite_type:"选择收藏类型",   //收藏类型
       favorite_name:"",
-      favorite_detail:""
+      favorite_detail:"",
+      recreate_tree:true,  //通过这个变量让tree隐藏或者显示,不然会出现展开过的table，搜索框搜索表名后箭头消失导致无法再次点击
     }
   }
 
@@ -398,7 +399,7 @@ export default class mysqlConsole extends Component {
           instance_name:this.state.instance_name,
           table_name:this.state.table_search,
       };
-      this.setState({collapsed:false})
+      this.setState({recreate_tree:false});   // source_slider_info中的表变化时让tree重新渲染
       await MyAxios.post('/web_console/v1/get_table_list/',params).then(
           res=>{
               if( res.data.status === 'ok'){
@@ -410,7 +411,7 @@ export default class mysqlConsole extends Component {
                     table_dir['icon'] = <Icon type="table"/>
                     table_dir_arr.push(table_dir)
                   }
-                  this.setState({source_slider_info:table_dir_arr});
+                  this.setState({source_slider_info:table_dir_arr,recreate_tree:true,collapsed:false});
               } else{
                   message.error(res.data.message)
               }
@@ -426,7 +427,7 @@ export default class mysqlConsole extends Component {
           instance_name:this.state.instance_name
       };
       this.setState({table_name:value,})
-      await MyAxios.post('/web_console/v1/get_column_list/',params,{timeout:1000}).then(
+      await MyAxios.post('/web_console/v1/get_column_list/',params).then(
           res=>{
               if( res.data.status === 'ok'){
                   console.log(res.data.data)
@@ -551,14 +552,18 @@ export default class mysqlConsole extends Component {
                            <Search size="small" style={{ marginBottom: 8,marginLeft:5,width:'95%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
                        </span>
                        <div className="down-tree">
-                           <Tree
-                               showIcon
-                               loadData={this.onLoadData}
-                               onSelect={this.onSelect}
-                               onExpand={this.onExpand}
-                           >
-                               {this.renderTreeNodes(this.state.source_slider_info)}
-                           </Tree>
+                        {
+                            this.state.recreate_tree ?
+                                <Tree
+                                   showIcon
+                                   loadData={this.onLoadData}
+                                   onSelect={this.onSelect}
+                                   onExpand={this.onExpand}
+                                >
+                                   {this.renderTreeNodes(this.state.source_slider_info)}
+                                </Tree>
+                           :null
+                        }
                        </div>
                        <List
                           header={<span>连接信息</span>}
