@@ -238,15 +238,10 @@ export default class mysqlConsole extends Component {
         resolve();
         return;
       }
-      console.log("level",treeNode.props.eventKey)
       if (treeNode.props.eventKey.split(':').length===1){
         var table_name = treeNode.props.eventKey.split(':')[0]
-        this.getColumn(table_name)
-      }
-      if (treeNode.props.eventKey.split(':').length===1){
-        setTimeout(() => {
+        this.getColumn(table_name).then(() => {
           var my_child = []
-          console.log(this.state.table_column_list)
           for (var i=0;i<this.state.table_column_list.length;i++){
             let column_dir = {}
             column_dir['title'] = this.state.table_column_list[i]['Field']
@@ -254,21 +249,21 @@ export default class mysqlConsole extends Component {
             column_dir['isLeaf'] = true
             my_child.push(column_dir)
           }
-          console.log(my_child)
           treeNode.props.dataRef.children = my_child
           this.setState({treeData: [...this.state.source_slider_info]});
           resolve();
-        }, 1000);
+          }
+        )
       }
-
     });
-    onBlur = (cm)=>{
-        if (cm.getSelection()!==""){
-            this.setState({sql:cm.getSelection(),get_data:false})
-        }else{
-            this.setState({sql:cm.getValue(),sql_content:cm.getValue(),get_data:false})
-        }
-    }
+
+  onBlur = (cm)=>{
+      if (cm.getSelection()!==""){
+          this.setState({sql:cm.getSelection(),get_data:false})
+      }else{
+          this.setState({sql:cm.getValue(),sql_content:cm.getValue(),get_data:false})
+      }
+  }
 
   renderTreeNodes = data =>
     data.map(item => {
