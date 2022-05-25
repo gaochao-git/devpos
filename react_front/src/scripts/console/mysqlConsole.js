@@ -1,4 +1,4 @@
-import React,{Component} from 'react';
+import React,{Component,Fragment} from 'react';
 import axios from 'axios'
 import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin,Switch,Modal,Tooltip,Drawer,List, Typography,Divider        } from "antd";
 import sqlFormatter from 'sql-formatter';
@@ -67,11 +67,14 @@ export default class mysqlConsole extends Component {
       favorite_name:"",
       favorite_detail:"",
       recreate_tree:true,  //通过这个变量让tree隐藏或者显示,不然会出现展开过的table，搜索框搜索表名后箭头消失导致无法再次点击
+      contextMenuVisiable: false,// 显示右键菜单
+      contextMenuStyle:"",// 右键菜单位置
     }
   }
 
   componentDidMount() {
-    this.getClusterName()
+    this.getClusterName();
+    document.onclick = () => this.setState({contextMenuVisiable:false});
   }
 
     exportBuInfoToExcel = () => {
@@ -277,6 +280,20 @@ export default class mysqlConsole extends Component {
       }
       return <TreeNode key={item.key} {...item} dataRef={item} icon={item.icon}/>;
     });
+
+  rightClickTree = e => {
+    console.log(e.node.props.eventKey)
+    if (e.node.props.eventKey.split(':').length===2){
+        return
+    }
+    this.setState({
+      rightClickData: e.node.props.dataRef,
+      checkedKeys: [],// 复选框清空
+      selectedKeys: [e.node.props.dataRef.id],// 右键的节点设置selected
+      contextMenuVisiable: true,// 显示右键菜单
+      contextMenuStyle: { top: e.event.clientY, left: e.event.clientX },// 右键菜单位置
+    });
+  };
 
   //获取集群实例信息
   async getClusterName() {
@@ -559,6 +576,7 @@ export default class mysqlConsole extends Component {
                                    loadData={this.onLoadData}
                                    onSelect={this.onSelect}
                                    onExpand={this.onExpand}
+                                   onRightClick={this.rightClickTree}
                                 >
                                    {this.renderTreeNodes(this.state.source_slider_info)}
                                 </Tree>
@@ -574,7 +592,6 @@ export default class mysqlConsole extends Component {
                           style={{borderRadius:0}}
                        />
                    </div>
-
                :
                <Icon
                      className="trigger"
@@ -583,7 +600,6 @@ export default class mysqlConsole extends Component {
                    />
                }
            </div>
-
           </Sider>
           <Content style={{margin:0,padding:0}}>
           <Icon
@@ -775,6 +791,18 @@ export default class mysqlConsole extends Component {
             scroll={{x:'max-content'}}
           />
         </Drawer>
+        <Fragment>
+          {
+          this.state.contextMenuVisiable ?
+           <div
+             style={{ ...this.state.contextMenuStyle, position: 'fixed',width:100,height:100,background:'#f1f2f5',zIndex:9999,paddingLeft:20,borderRadius:5}}
+           >
+             <p>查看表结构</p>
+             <p>查询数据</p>
+           </div>
+           :null
+          }
+        </Fragment>
       </div>
     );
   }

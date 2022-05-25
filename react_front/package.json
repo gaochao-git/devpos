@@ -61,6 +61,7 @@
     "react-app-polyfill": "^1.0.5",
     "react-codemirror": "^1.0.0",
     "react-codemirror2": "^7.2.1",
+    "react-contexify": "^5.0.0",
     "react-dev-utils": "^10.0.0",
     "react-dom": "^16.12.0",
     "react-highlight-words": "^0.17.0",
