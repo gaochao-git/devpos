@@ -69,6 +69,7 @@ export default class mysqlConsole extends Component {
       recreate_tree:true,  //通过这个变量让tree隐藏或者显示,不然会出现展开过的table，搜索框搜索表名后箭头消失导致无法再次点击
       contextMenuVisiable: false,// 显示右键菜单
       contextMenuStyle:"",// 右键菜单位置
+      my_pos:""
     }
   }
 
@@ -205,23 +206,25 @@ export default class mysqlConsole extends Component {
         return
     }
     if (selectedKeys[0].split(":").length===1){
-        var new_sql_content = this.state.sql_content!=="" ? this.state.sql_content  + selectedKeys[0]:selectedKeys[0]
-        this.setState({sql_content:new_sql_content})
+        var insert_str = selectedKeys[0]
+        this.editor.replaceRange(insert_str,this.state.my_pos)
     }else if (selectedKeys[0].split(":").length===2){
-        var new_sql_content = this.state.sql_content!=="" ? this.state.sql_content  + selectedKeys[0].split(":")[1] + ',':selectedKeys[0].split(":")[1] +','
-        this.setState({sql_content:new_sql_content})
+        var insert_str = selectedKeys[0].split(":")[1] + ','
+        this.editor.replaceRange(insert_str,this.state.my_pos)
     }
+    let pos2={
+        line:this.state.my_pos.line,  //行号
+        ch:this.state.my_pos.ch + insert_str.length//光标位置
+    }
+    this.setState({my_pos:pos2})
   };
-
 
   onExpand = (selectedKeys, info) => {
     console.log('onExpand', selectedKeys, info);
   };
 
-
-
   onInputRead = async (cm, change, editor) => {
-    const tableName = {"table6": ["c1", "c2"]};; // 获取库表列表
+    const tableName = {"table6": ["c1", "c2"]}; // 获取库表列表
     const { text } = change;
     const ignore_chars = ['.', ',',' ',';'];     //这些字符不提示
     const ignore = ignore_chars.includes(text[0]);
@@ -262,6 +265,7 @@ export default class mysqlConsole extends Component {
     });
 
   onBlur = (cm)=>{
+      this.setState({my_pos:cm.getCursor()})
       if (cm.getSelection()!==""){
           this.setState({sql:cm.getSelection(),get_data:false})
       }else{
@@ -282,7 +286,6 @@ export default class mysqlConsole extends Component {
     });
 
   rightClickTree = e => {
-    console.log(e.node.props.eventKey)
     if (e.node.props.eventKey.split(':').length===2){
         return
     }
@@ -326,7 +329,6 @@ export default class mysqlConsole extends Component {
                   this.setState({
                       db_info: db_info,
                   });
-                  console.log(this.state.db_info)
               } else{
                   message.error(res.data.message)
               }
@@ -358,7 +360,6 @@ export default class mysqlConsole extends Component {
           cluster_name:value,
       };
       this.setState({cluster_name:value})
-      console.log(params)
       await MyAxios.post('/db_resource/v1/get_mysql_cluster_ins/',params).then(
           res=>{
               if( res.data.status === 'ok'){
@@ -447,7 +448,6 @@ export default class mysqlConsole extends Component {
       await MyAxios.post('/web_console/v1/get_column_list/',params).then(
           res=>{
               if( res.data.status === 'ok'){
-                  console.log(res.data.data)
                   this.setState({table_column_list: res.data.data});
               } else{
                   message.error(res.data.message)
