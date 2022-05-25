@@ -69,7 +69,7 @@ export default class mysqlConsole extends Component {
       recreate_tree:true,  //通过这个变量让tree隐藏或者显示,不然会出现展开过的table，搜索框搜索表名后箭头消失导致无法再次点击
       contextMenuVisiable: false,// 显示右键菜单
       contextMenuStyle:"",// 右键菜单位置
-      my_pos:""
+      my_pos:{line:0,ch:0}
     }
   }
 
