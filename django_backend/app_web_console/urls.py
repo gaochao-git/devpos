@@ -1,8 +1,10 @@
 from django.urls import path
 from app_web_console.controller import web_console_controller
+from app_web_console.controller import meta_compare_controller
 from django_backend.urls import RouterAccess
 
 urlpatterns = [
+    # cosole
     path('v1/get_db_connect/', web_console_controller.get_db_connect_controller),
     path('v1/get_db_info/', web_console_controller.GetDbInfoController.as_view(),kwargs={"access": RouterAccess.dba}),
     path('v1/get_schema_list/', web_console_controller.get_schema_list_controller),
@@ -12,4 +14,7 @@ urlpatterns = [
     path('v1/add_favorite/', web_console_controller.AddFavoriteController.as_view(),kwargs={"access": RouterAccess.dba}), # 添加收藏项
     path('v1/del_favorite/', web_console_controller.DelFavoriteController.as_view(),kwargs={"access": RouterAccess.dba}), # 删除收藏项
     path('v1/get_favorite/', web_console_controller.GetFavoriteController.as_view(),kwargs={"access": RouterAccess.dba}), # 获取收藏项
+    # 表结构对比
+    path('v1/meta_table_compare/', meta_compare_controller.CompareTableController.as_view(),kwargs={"access": RouterAccess.dba}),  # 批量对比
+    path('v1/get_source_target_table_meta/', meta_compare_controller.GetSourceTargetTableMetaController.as_view(),kwargs={"access": RouterAccess.dba}),  # 获取源与目标表结构
 ]

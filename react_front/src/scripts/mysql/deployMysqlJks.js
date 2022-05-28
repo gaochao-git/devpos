@@ -11,59 +11,55 @@ const FormItem = Form.Item;
 const { Option } = Select;
 const { TextArea } = Input
 const { Panel } = Collapse;
-//let codemirrorScroll = document.getElementsByClassName('CodeMirror-scroll')[0]
-//codemirrorScroll.scrollTop = codemirrorScroll.scrollHeight
 
 
-
-
-export default class DeployMysql extends Component  {
+export default class DeployMysqlJks extends Component  {
     constructor(props) {
         super(props);
         this.state = {
-            submit_info:[],
+            all_job_info:[],
             showSubmitVisible:false,
             topo_source_placeholder:"说明:\n  部署实例1\n  部署实例2=>同步实例1\n例如:\n  47.104.2.74_3306\n  47.104.2.75_3306=>47.104.2.74_3306",
             rds_placeholder:"说明:sdf\nsdfsf\n\n\n\n",
-            deploy_topos:"",
-            deploy_version:"",
-            idc:"",
-            deploy_archit:"",
+            deploy_topos:"47.104.2.74_3306\n  47.104.2.75_3306=>47.104.2.74_3306",
+            deploy_version:"5.7.32",
+            idc:"BJ10",
+            deploy_archit:"m",
             mem:"",
             cpu:"",
             disk:""
-
         }
     }
 
     componentDidMount() {
-        this.getDeploySubmitInfo()
+        this.getAllJobInfo()
     }
     //获取工单信息
-    async getDeploySubmitInfo() {
-        await MyAxios.get('/v1/get_deploy_mysql_submit_info/').then(
+    async getAllJobInfo() {
+        let params = {job_name: "install_mysql"};
+        await MyAxios.get('/v1/jks/get_all_job/').then(
             res => {res.data.status==="ok" ?
                 this.setState({
-                    submit_info: res.data.data
+                    all_job_info: res.data.data
                 })
             :
                 message.error(res.data.message)}
         ).catch(err => {message.error(err.message)})
     }
-    //提交工单
-    async submitDeployMysql() {
+    //提交任务
+    async submitJob() {
         let params = {
             deploy_topos: this.state.deploy_topos,
             deploy_version: this.state.deploy_version,
             idc: this.state.idc,
             deploy_archit: this.state.deploy_archit,
         };
-        await MyAxios.post('/v1/submit_deploy_mysql/',params).then(
+        await MyAxios.post('/jks/v1/install_mysql/',params).then(
             res => {
                 if(res.data.status==="ok") {
                     this.setState({showSubmitVisible:false});
                     message.success("提交任务成功");
-                    this.getDeploySubmitInfo();
+                    this.getAllJobInfo();
                 }else{
                     message.error(res.data.message)
                 }
@@ -130,27 +126,14 @@ export default class DeployMysql extends Component  {
                         </Link>
                         >>
                         <Link className="title-text" to="/CloudInstance">
-                            部署mysql-ansible
+                            部署mysql-jks
                         </Link>
                     </div>
                 </div>
             <div>
             </div>
                 <Tabs>
-                    <TabPane tab="工单列表" key="1">
-                    <Table
-                        dataSource={this.state.submit_info}
-                        rowKey={(row ,index) => index}
-                        columns={columns}
-                        pagination={{
-                            total:this.state.submit_info.length,
-                            showTotal:(count=this.state.submit_info.length)=>{return '共'+count+'条'}
-                        }}
-                        bordered
-                        size="small"
-                    />
-                    </TabPane>
-                    <TabPane tab="新建集群" key="2">
+                <TabPane tab="新建集群" key="1">
                         <div className="sub-title-input">
                             <Select defaultValue="选择机房" style={{ width: 300 }} onChange={e => this.setState({idc:e})}>
                                 <Option value="BJ10">BJ10</Option>
@@ -171,6 +154,20 @@ export default class DeployMysql extends Component  {
                             <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.setState({showSubmitVisible:true})}}>提交工单</Button>
                         </div>
                     </TabPane>
+                    <TabPane tab="工单列表" key="2">
+                    <Table
+                        dataSource={this.state.all_job_info}
+                        rowKey={(row ,index) => index}
+                        columns={columns}
+                        pagination={{
+                            total:this.state.all_job_info.length,
+                            showTotal:(count=this.state.all_job_info.length)=>{return '共'+count+'条'}
+                        }}
+                        bordered
+                        size="small"
+                    />
+                    </TabPane>
+
                     <TabPane tab="扩容实例" key="3">
                         <div className="sub-title-input">
                             <Select defaultValue="选择集群" style={{ width: 300 }} onChange={e => this.setState({deploy_archit:e})}>
@@ -196,7 +193,7 @@ export default class DeployMysql extends Component  {
                         width={300}
                     >
                         <Row type="flex" justify='center' style={{ marginTop: '10px' }}>
-                            <Button onClick={()=>this.submitDeployMysql()} type="primary" style={{ marginRight: '10px' }}>执行</Button>
+                            <Button onClick={()=>this.submitJob()} type="primary" style={{ marginRight: '10px' }}>执行</Button>
                             <Button onClick={() => this.setState({showSubmitVisible:false})} type="primary">返回</Button>
                         </Row>
                     </Modal>

@@ -8,6 +8,7 @@ import HeadTimer from "./scripts/common/headTimer"
 import {HashRouter,Route,BrowserRouter} from 'react-router-dom';
 import mysqlCluster from './scripts/mysql/mysqlCluster'
 import DeployMysql from "./scripts/mysql/deployMysql"
+import DeployMysqlJks from "./scripts/mysql/deployMysqlJks"
 import Rds from "./scripts/mysql/rds"
 import ExecuteDeployMysql from "./scripts/mysql/executeDeployMysql"
 import AuditSqlIndex from './scripts/auditSql/auditSqlIndex'
@@ -28,6 +29,7 @@ import imgURL from './my_logo.jpg'
 import HomeDbaInfo from './scripts/bigScreen/home_dba'
 import UserRole from './scripts/permission/userRole'
 import TaskManage from './scripts/task/taskManage'
+import MetaCompare from './scripts/console/metaCompare'
 
 
 const { Header, Footer, Sider, Content } = Layout;
@@ -186,12 +188,13 @@ class App extends Component {
                                     <Route exact path="/mysqlConsole" component={mysqlConsole} />
                                     <Route exact path="/homeDbaInfo" component={HomeDbaInfo} />
                                     <Route exact path="/deployMysql" component={DeployMysql} />
+                                    <Route exact path="/deployMysqljks" component={DeployMysqlJks} />
                                     <Route exact path="/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
                                     <Route exact path="/rds" component={Rds} />
                                     <Route exact path="/userRole" component={UserRole} />
                                     <Route exact path="/taskManage" component={TaskManage} />
                                     <Route exact path="/mysqlConsoleNew" component={MysqlConsoleNew} />
-
+                                    <Route exact path="/metaCompare" component={MetaCompare} />
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>

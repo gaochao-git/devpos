@@ -73,7 +73,9 @@ class NavService extends Component {
                     <Menu.Item key="/mysqlConsole">
                         <Link to="/mysqlConsole">MySQL数据查询</Link>
                     </Menu.Item>
-                    <Menu.Item key="2">MySQL拓扑查询</Menu.Item>
+                    <Menu.Item key="2">
+                        <Link to="/metaCompare">MySQL表结构对比</Link>
+                    </Menu.Item>
                 </SubMenu>
             </Menu>
         )

@@ -40,6 +40,9 @@ urlpatterns = [
     # 循环/定时任务管理
     path('api/task_manage/', include("app_task_manage.urls")),
 
+    # jks任务
+    path('api/jks/', include("app_jks.urls")),
+
     # 服务器资源
     path('api/server_resource/v1/get_server_info/', server_info_controller.GetServerInfoController.as_view(), kwargs={"access": RouterAccess.all}), # server--查看主机信息
     # mysql资源
