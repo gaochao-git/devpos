@@ -161,8 +161,7 @@ export default class Server extends Component  {
                     dataSource={this.state.server_info}
                     columns={columns}
                     pagination={{
-                        total:this.state.server_info.length,
-                        showTotal:(count=this.state.server_info.length)=>{return '共'+count+'条'}
+                        showTotal: ((total) => {return `共 ${total} 条`}),
                     }}
                     bordered
                     size="small"

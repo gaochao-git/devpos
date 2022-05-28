@@ -1,7 +1,7 @@
 import React,{Component} from 'react';
 import axios from 'axios'
 import MyAxios from "../common/interface"
-import {Button, Table, Input, Modal, Tabs, Form, Row, Select, data, Card, AutoComplete, Tooltip,message,Col,Descriptions,Collapse} from "antd";
+import {Button, Table, Input, Modal, Tabs, Form, Row, Select, data, Card, AutoComplete, Tooltip,message,Col,Descriptions,Collapse,Tag,Checkbox} from "antd";
 import { Link } from 'react-router-dom';
 import ReactDiffViewer from 'react-diff-viewer';
 import "antd/dist/antd.css";
@@ -27,6 +27,13 @@ export default class MetaCompare extends Component  {
             TableDetailModal:false,
             source_table_meta:"",
             target_table_meta:"",
+            source_table:"",
+            target_table:"",
+            compare_ret_list_filter:[{text: 'ok', value: 'ok'},{text: 'error', value: 'error'}],
+            ignore_table_auto_id:"yes",
+            ignore_table_name:"yes",
+            ignore_table_charset:"no",
+            ignore_table_comment:"no",
         }
     }
 
@@ -49,6 +56,10 @@ export default class MetaCompare extends Component  {
         let params = {
             source_info: this.state.source_info,
             target_info: this.state.target_info,
+            ignore_table_name:this.state.ignore_table_name,
+            ignore_table_auto_id:this.state.ignore_table_auto_id,
+            ignore_table_charset:this.state.ignore_table_charset,
+            ignore_table_comment:this.state.ignore_table_comment,
         };
         await MyAxios.post('/web_console/v1/meta_table_compare/',params).then(
             res => {
@@ -75,6 +86,8 @@ export default class MetaCompare extends Component  {
                         TableDetailModal:true,
                         source_table_meta:res.data.data['source_table_meta'],
                         target_table_meta:res.data.data['target_table_meta'],
+                        source_table:record.source,
+                        target_table:record.target
                     });
                     message.success("提交任务成功");
                 }else{
@@ -89,23 +102,26 @@ export default class MetaCompare extends Component  {
     render() {
 
     const newStyles = {
-    variables: {
-      dark: {
-        highlightBackground: '#fefed5',
-        highlightGutterBackground: '#ffcd3c',
+      variables: {
+        dark: {
+          highlightBackground: '#fefed5',
+          highlightGutterBackground: '#ffcd3c',
+        },
       },
-    },
-    line: {
-      padding: '10px 2px',
-      '&:hover': {
-        background: '#a26ea1',
+      line: {
+        padding: '10px 2px',
+        '&:hover': {
+          background: '#a26ea1',
+        },
       },
-    },
-    contentText: {
-      width: '600px',
-      display: "block",
-      overflow:"scroll"
-    },
+      contentText: {
+        width: '1000px',
+      },
+      diffContainer:{
+        width: '100%',
+        display: "block",
+        overflow:"scroll",
+      }
     }
         const columns = [
           {
@@ -116,17 +132,19 @@ export default class MetaCompare extends Component  {
                 title: '目标',
                 dataIndex: 'target',
             },
-            {
-              title: '源表md5',
-              dataIndex: 'source_tb_md5',
-          },
-            {
-                title: '目标表md5',
-                dataIndex: 'target_tb_md5',
-            },
           {
             title: '对比结果',
             dataIndex: 'compare_ret',
+            filters: this.state.compare_ret_list_filter,
+            filterMultiple: false,
+            onFilter: (value, record) =>  record.compare_ret === (value),
+            render: (text,record,index) => {
+                let color = "red"
+                if (text === 'ok') {
+                  color = 'green';
+                }
+                return (<Tag color={color}>{text}</Tag>);
+            },
           },
           {
             title: '对比时间',
@@ -135,7 +153,7 @@ export default class MetaCompare extends Component  {
           {
             title: '详情',
             render: (text,record) => {
-              return ( <Button onClick={()=>this.getSourceTargetTableDetail(record)}>查看</Button>)
+              return ( <Button onClick={()=>this.getSourceTargetTableDetail(record)}>实时查看</Button>)
             }
           }
 
@@ -145,10 +163,10 @@ export default class MetaCompare extends Component  {
                 <Tabs>
                     <TabPane tab="表结构对比" key="1">
                         <div className="sub-title-input">
-                            <Select defaultValue="选择对比类型" style={{ width: 300 }} onChange={e => this.setState({idc:e})}>
-                                <Option value="BJ10">BJ10</Option>
-                                <Option value="BJ11">BJ11</Option>
-                            </Select>
+                            <Checkbox checked={this.state.ignore_table_name==="yes"?true:false} onChange={(e)=>this.setState({ignore_table_name:e.target.checked?"yes":"no"})}>忽略表名</Checkbox>
+                            <Checkbox checked={this.state.ignore_table_auto_id==="yes"?true:false} onChange={(e)=>this.setState({ignore_table_auto_id:e.target.checked?"yes":"no"})}>忽略表AUTO_INCREMENT</Checkbox>
+                            <Checkbox checked={this.state.ignore_table_charset==="yes"?true:false} onChange={(e)=>this.setState({ignore_table_charset:e.target.checked?"yes":"no"})}>忽略表CHARSET</Checkbox>
+                            <Checkbox checked={this.state.ignore_table_comment==="yes"?true:false} onChange={(e)=>this.setState({ignore_table_comment:e.target.checked?"yes":"no"})}>忽略表COMMENT</Checkbox>
                         </div>
                         <div>
                             <Row>
@@ -167,8 +185,7 @@ export default class MetaCompare extends Component  {
                             columns={columns}
                             size="small"
                             pagination={{
-                                total:this.state.submit_info.length,
-                                showTotal:(count=this.state.submit_info.length)=>{return '共'+count+'条'}
+                                showTotal: ((total) => {return `共 ${total} 条`}),
                             }}
                             bordered
                             size="small"
@@ -180,8 +197,7 @@ export default class MetaCompare extends Component  {
                             rowKey={(row ,index) => index}
                             columns={columns}
                             pagination={{
-                                total:this.state.submit_info.length,
-                                showTotal:(count=this.state.submit_info.length)=>{return '共'+count+'条'}
+                                showTotal: ((total) => {return `共 ${total} 条`}),
                             }}
                             bordered
                             size="small"
@@ -203,19 +219,9 @@ export default class MetaCompare extends Component  {
                         onCancel={() => this.setState({TableDetailModal:false})}
                         title="表结构详情"
                         footer={false}
-                        width={1400}
+                        width="100%"
                     >
-                        <Row>
-                            <Col span={12}>
-                                源表结构
-                                <TextArea rows={10} style={{overflow:"scroll"}} value={this.state.source_table_meta}/>
-                            </Col>
-                            <Col span={12}>
-                                目标表结构
-                                <TextArea rows={10} style={{overflow:"scroll"}} value={this.state.target_table_meta}/>
-                            </Col>
-                        </Row>
-                        <ReactDiffViewer styles={newStyles} oldValue={this.state.source_table_meta} newValue={this.state.target_table_meta} splitView={true} />
+                        <ReactDiffViewer leftTitle={this.state.source_table} rightTitle={this.state.target_table} styles={newStyles} oldValue={this.state.source_table_meta} newValue={this.state.target_table_meta} splitView={true} />
                     </Modal>
             </div>
         )

@@ -141,8 +141,7 @@ export default class Rds extends Component  {
                         rowKey={(row ,index) => index}
                         columns={columns}
                         pagination={{
-                            total:this.state.submit_info.length,
-                            showTotal:(count=this.state.submit_info.length)=>{return '共'+count+'条'}
+                            showTotal: ((total) => {return `共 ${total} 条`}),
                         }}
                         bordered
                         size="small"
