@@ -61,6 +61,7 @@ export default class MetaCompare extends Component  {
             ignore_table_charset:this.state.ignore_table_charset,
             ignore_table_comment:this.state.ignore_table_comment,
         };
+        this.setState({submit_info:[]});
         await MyAxios.post('/web_console/v1/meta_table_compare/',params).then(
             res => {
                 if(res.data.status==="ok") {
