@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm,Spin,Tooltip } from 'antd';
+import { Table, Row, Col, Button, message, Modal, Input, Checkbox,Popconfirm,Spin,Tooltip,Steps } from 'antd';
 import { Link } from 'react-router-dom';
 import axios from "axios";
 import {backendServerApiRoot} from "../common/util";
@@ -9,6 +9,7 @@ import {AditSqlTable} from './auditSqlCommon'
 import {ReadCodemirror,AuditSqlModifyCodemirror} from "../common/myCodemirror";
 const Column = Table.Column;
 const TextArea = Input.TextArea;
+const { Step } = Steps;
 const EditableCell = ({ editable, value, onChange }) => (
     <div>
         {editable
@@ -80,6 +81,7 @@ export default class ExecuteSql extends Component {
             celery_split_id:"",
             celery_recheck_id:"",
             celery_execute_id:"",
+            showExecuteStageVisible:false,
         }
         this.cacheData = this.state.data.map(item => ({ ...item }));
     }
@@ -478,7 +480,16 @@ export default class ExecuteSql extends Component {
         }else {
             message.error(res.data.message)
         }
+    }
 
+    //查看SQL执行阶段
+    async ViewExecuteStage(split_sql_file_path){
+        let params = {
+            split_sql_file_path:split_sql_file_path
+        };
+        this.setState({
+                showExecuteStageVisible: true,
+            });
     }
 
     //查看执行SQL结果
@@ -748,6 +759,12 @@ export default class ExecuteSql extends Component {
               }
             },
             {
+              title: '工单执行阶段状态',
+              render: (text, row) => {
+                return <button className="link-button" onClick={()=>{this.ViewExecuteStage(row.split_sql_file_path)}}>查看</button>
+              }
+            },
+            {
               title: '查看进度',
               render: (text, row) => {
                 return (
@@ -772,20 +789,20 @@ export default class ExecuteSql extends Component {
               title: '执行结果',
               dataIndex: "execute_status",
               render: (val, row) => {
-                    if (val === "执行成功"){
-                        return <span style={{color:"#52c41a"}}>{val}</span>
-                    }else if (val === "执行失败" && row.rerun_flag !==0 ){
-                        return <React.Fragment>
-                                   <div><span style={{color:"#fa541c"}}>{val}</span></div>
-                                   <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"include_error_sql")}}>生成重做SQL含错误SQL</button></div>
-                                   <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"ignore_error_sql")}}>生成重做SQL忽略错误SQL</button></div>
-                               </React.Fragment>
-                    }else if (val === '执行成功(含警告)'){
-                        return <span style={{color:"#ffbb96"}}>{val}</span>
-                    }else {
-                        return <span style={{color:"#bfbfbf"}}>{val}</span>
-                    }
-                }
+                  if (val === "执行成功"){
+                      return <span style={{color:"#52c41a"}}>{val}</span>
+                  }else if (val === "执行失败" && row.rerun_flag !==0 ){
+                      return <React.Fragment>
+                                 <div><span style={{color:"#fa541c"}}>{val}</span></div>
+                                 <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"include_error_sql")}}>生成重做SQL含错误SQL</button></div>
+                                 <div><button className="link-button" onClick={()=>{this.RecreateSql(row.split_sql_file_path,"ignore_error_sql")}}>生成重做SQL忽略错误SQL</button></div>
+                             </React.Fragment>
+                  }else if (val === '执行成功(含警告)'){
+                      return <span style={{color:"#ffbb96"}}>{val}</span>
+                  }else {
+                      return <span style={{color:"#bfbfbf"}}>{val}</span>
+                  }
+              }
             },
             {
               title: '执行方式',
@@ -796,6 +813,7 @@ export default class ExecuteSql extends Component {
               dataIndex: "inception_execute_time",
             },
         ];
+
         return (
             <div>
             <Spin spinning={this.state.global_loading} size="large">
@@ -1036,6 +1054,22 @@ export default class ExecuteSql extends Component {
                             <Button type="danger" onClick={()=>{this.handleReCheckSql()}} style={{ marginRight: '10px' }}>执行</Button>
                             <Button onClick={() => this.setState({showReCheckVisible:false})} type="primary">返回</Button>
                         </Row>
+                    </Modal>
+                    <Modal visible={this.state.showExecuteStageVisible}
+                        onCancel={() => this.setState({showExecuteStageVisible:false})}
+                        title="SQL执行阶段?"
+                        footer={false}
+                        width="90%"
+                    >
+                        <Steps>
+                          <Step title="send_task" description="产生异步任务" status="finish"/>
+                          <Step title="exe_task" description="消费者获取到任务" status="finish"/>
+                          <Step title="precheck" description="执行SQL前检查" status="finish"/>
+                          <Step title="send_inc" description="发送SQL到执行工具" status="finish"/>
+                          <Step title="inc_exe" description="执行工具执行" status="error"/>
+                          <Step title="process_result" description="执行结果写入数据库" status="wait"/>
+                          <Step title="mark_status" description="标记子工单状态" status="wait"/>
+                        </Steps>
                     </Modal>
                 </div>
                 </div>
