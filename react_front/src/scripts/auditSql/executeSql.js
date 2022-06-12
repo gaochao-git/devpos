@@ -82,7 +82,9 @@ export default class ExecuteSql extends Component {
             celery_recheck_id:"",
             celery_execute_id:"",
             showExecuteStageVisible:false,
-            ticket_stage_status:{"get_task":"wait","exe_task":"wait","precheck":"wait","send_inc":"wait","inc_exe":"wait","process_result":"wait","mark_status":"wait"}
+            ticket_stage_status:{"get_task":"wait","exe_task":"wait","precheck":"wait","send_inc":"wait","inc_exe":"wait","process_result":"wait","mark_status":"wait"},
+            review_ticket:{"submit_team_review":"finish","execute_team_review":"finish"},
+            showReviewWorkFlowVisible:false
         }
         this.cacheData = this.state.data.map(item => ({ ...item }));
     }
@@ -128,6 +130,7 @@ export default class ExecuteSql extends Component {
             is_submit:res.data.data[0]["is_submit"],
             sql_command_type: res.data.data[0]["sql_command_type"],
             sql_check_max_code: res.data.data[0]["inception_error_level"],
+            review_ticket: JSON.parse(res.data.data[0]["review_ticket"]),
             view_submit_split_sql_info:res_split_sql.data.data,
         })
     };
@@ -493,6 +496,15 @@ export default class ExecuteSql extends Component {
         });
 
     }
+    //查看SQL执行阶段
+    async ViewReviewWorkFlow(){
+        this.setState({
+            showReviewWorkFlowVisible:true,
+        });
+
+    }
+
+
 
     //查看执行SQL结果
     async ViewExecuteSubmitSqlResultsByUuid(split_sql_file_path) {
@@ -881,6 +893,11 @@ export default class ExecuteSql extends Component {
                                 </Col>
                             </Row>
                             <Row gutter={8}>
+                                <Col style={{padding:5}} span={8}>审批状态:</Col>
+                                <span style={{color:"#52c41a"}}>[{this.state.dba_check}]</span>
+                                <Button className="link-button" onClick={()=>this.ViewReviewWorkFlow()} style={{padding:5}} span={16}>查看审批流</Button>
+                            </Row>
+                            <Row gutter={8}>
                                 <Col style={{padding:5}} span={6}>执行DBA:</Col>
                                 <Col style={{padding:5}} span={18}>
                                     [{this.state.dba_execute_user_name}]
@@ -891,17 +908,9 @@ export default class ExecuteSql extends Component {
                         </Col>
                     </Row>
                     <br/>
-                    <h3>审核</h3>
-                    <Steps
-                        size="small"
-                        onChange={(current)=>message.success(current)}
-                    >
-                      <Step title="执行团队审核" description="执行团队审核" status="finish"/>
-                      <Step title="测试审核" description="测试审核" status={this.state.ticket_stage_status.precheck}/>
-                      <Step title="DBA审核" description="DBA审核" status={this.state.ticket_stage_status.inc_exe}/>
-                    </Steps>
                     {(this.state.login_user_name_role!=="dba" && this.state.dba_check==="未审核") ?
                         <div>
+                            <h3>审核</h3>
                             <div className="input-padding">
                                 { (this.state.leader_check==="未审核" && this.state.login_user_name_role==="leader") ? <Button type="primary" style={{marginRight:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核工单</Button>:null}
                                 { (this.state.qa_check === '未审核' && this.state.login_user_name_role==="qa") ? <Button type="primary" style={{marginRight:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核工单</Button>:null}
@@ -1077,6 +1086,21 @@ export default class ExecuteSql extends Component {
                           <Step title="inc_exe" description="连接目标源执行SQL" status={this.state.ticket_stage_status.inc_exe}/>
                           <Step title="process_result" description="执行结果写入数据库" status={this.state.ticket_stage_status.process_result}/>
                           <Step title="mark_status" description="标记状态" status={this.state.ticket_stage_status.mark_status}/>
+                        </Steps>
+                    </Modal>
+                    <Modal visible={this.state.showReviewWorkFlowVisible}
+                        onCancel={() => this.setState({showReviewWorkFlowVisible:false})}
+                        title="SQL执行各阶段状态"
+                        footer={false}
+                        width="90%"
+                    >
+                        <Steps
+                            size="small"
+                            onChange={(current)=>message.success(this.state.review_ticket.submit_team_review)}
+                        >
+                          <Step title="申请团队审核" description="申请团队审核" status={this.state.review_ticket.submit_team_review}/>
+                          <Step title="业务线DBA审核" description="业务线DBA审核" status={this.state.review_ticket.execute_team_review}/>
+                          <Step title="执行团队审核" description="执行团队审核" status={this.state.review_ticket.execute_team_review}/>
                         </Steps>
                     </Modal>
                 </div>

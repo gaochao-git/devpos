@@ -72,7 +72,8 @@ def get_apply_sql_by_uuid_dao(submit_sql_uuid):
                comment_info,
                submit_sql_file_path,
                case is_submit when 0 then '暂不提交' when 1 then '提交' end as is_submit,
-               user_offer_rollback_sql_file_path
+               user_offer_rollback_sql_file_path,
+               review_ticket
         from sql_submit_info
         where submit_sql_uuid='{0}'
     """.format(submit_sql_uuid)
@@ -181,8 +182,8 @@ def submit_sql_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_
                                          submit_sql_uuid,
                                          submit_source_db_type,
                                          cluster_name,
-                                         user_offer_rollback_sql_file_path) 
-                 values(%(p1)s,%(p2)s,%(p3)s,%(p4)s,%(p5)s,%(p6)s,1,%(p7)s,1,%(p8)s,1,%(p9)s,%(p10)s,%(p11)s,%(p12)s,%(p13)s,%(p14)s)
+                                         user_offer_rollback_sql_file_path,review_ticket) 
+                 values(%(p1)s,%(p2)s,%(p3)s,%(p4)s,%(p5)s,%(p6)s,1,%(p7)s,1,%(p8)s,1,%(p9)s,%(p10)s,%(p11)s,%(p12)s,%(p13)s,%(p14)s,%(p15)s)
         """
     params = {
         'p1': login_user_name,
@@ -198,7 +199,8 @@ def submit_sql_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_
         'p11': uuid_str,
         'p12': submit_source_db_type,
         'p13': cluster_name,
-        'p14': user_offer_rollback_sql_file_path
+        'p14': user_offer_rollback_sql_file_path,
+        'p15': '{"submit_team_review":"finish","execute_team_review":"wait"}'
     }
     return db_helper.dml(sql, params)
 
