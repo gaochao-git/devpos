@@ -30,6 +30,7 @@ class ExecuteSql:
         # 执行工单---->推送到celery----->获取到任务------->预检查----->发送审核工具执行----->处理审核工具返回结果----->标记工单状态
         try:
             common.audit_sql_log(self.file_path, 0, "======================执行SQL开始=================")
+            audit_sql_dao.mark_ticket_stage_status(self.file_path,"get_task","finish")
             self.get_ticket_info()
             self.pre_check()
             self.osc_config()
@@ -44,20 +45,23 @@ class ExecuteSql:
             common.audit_sql_log(self.file_path, 0, "======================执行SQL结束=================")
 
     def pre_check(self):
-        # 判断工单是否已执行
+        # check1,判断工单是否已执行
+        audit_sql_dao.mark_ticket_stage_status(self.file_path, "precheck", "process")
         dba_execute = self.ticket_info["dba_execute"]
         execute_status = self.ticket_info["execute_status"]
         if dba_execute != 1 or execute_status != 1:
             common.audit_sql_log(self.file_path, 1, "该工单已执行")
+            audit_sql_dao.mark_ticket_stage_status(self.file_path, "precheck", "error")
             raise Exception("该工单已执行")
-        else:
-            self.mark_ticket_status(2, 2) # 更新工单状态为已执行
-            common.audit_sql_log(self.file_path, 0, "预检查完成")
-
         # check2,判断当前实例read_only状态
         read_only_ret = common.get_read_only(self.des_ip, self.des_port)
-        if read_only_ret['status'] != 'ok': raise Exception("执行SQL获取read_only出现异常")
-        if read_only_ret['data'][0]['read_only'] != 'OFF': raise Exception("read_only角色不满足")
+        if read_only_ret['status'] != 'ok':
+            raise Exception("执行SQL获取read_only出现异常")
+        if read_only_ret['data'][0]['read_only'] != 'OFF':
+            raise Exception("read_only角色不满足")
+        self.mark_ticket_status(2, 2)  # 更新工单状态为已执行
+        audit_sql_dao.mark_ticket_stage_status(self.file_path, "precheck", "finish")
+        common.audit_sql_log(self.file_path, 0, "预检查通过")
 
     def get_ticket_info(self):
         """
@@ -107,13 +111,16 @@ class ExecuteSql:
         :return:
         """
         common.audit_sql_log(self.file_path, 0, "任务发送到审核工具执行")
+        audit_sql_dao.mark_ticket_stage_status(self.file_path, "inc_exe", "process")
         ret = inception.execute_sql(self.des_ip, self.des_port, self.inc_backup, self.inc_ignore_warn,
                                     self.inc_ignore_err, self.execute_sql, self.file_path, self.osc_config_sql,self.inc_sleep)
         if ret['status'] != "ok": 
-            self.mark_ticket_status(2,4)
+            self.mark_ticket_status(2, 4)
+            audit_sql_dao.mark_ticket_stage_status(self.file_path, "inc_exe", "error")
             common.audit_sql_log(self.file_path, 1, "任务发送到审核工具执行出现异常:%s" % ret['message'])
             raise Exception(ret['message'])
-        else: 
+        else:
+            audit_sql_dao.mark_ticket_stage_status(self.file_path, "inc_exe", "finish")
             self.inc_ret_rows = ret['data']
             common.audit_sql_log(self.file_path, 0, "任务发送到审核工具执行完成")
 
@@ -122,6 +129,7 @@ class ExecuteSql:
         处理inception执行结果,为了加快插入速度不用公共的db_helper
         :return:
         """
+        audit_sql_dao.mark_ticket_stage_status(self.file_path, "process_result", "process")
         cursor = connection.cursor()
         try:
             sql_key = """
@@ -179,8 +187,10 @@ class ExecuteSql:
             if max(result_error_level_list) == 1: self.mark_ticket_status(2, 5)
             if max(result_error_level_list) == 2: self.mark_ticket_status(2, 4)
             common.audit_sql_log(self.file_path, 0, "标记工单状态完成")
+            audit_sql_dao.mark_ticket_stage_status(self.file_path, "process_result", "finish")
         except Exception as e:
             logger.exception(e)
+            audit_sql_dao.mark_ticket_stage_status(self.file_path, "process_result", "error")
             common.audit_sql_log(self.file_path, 1, "处理执行结果出现异常:%s" % e)
             self.mark_ticket_status(2, 7)
         finally:
@@ -195,13 +205,18 @@ class ExecuteSql:
         :return:
         """
         # 标记子工单
+        audit_sql_dao.mark_ticket_stage_status(self.file_path, "mark_status", "process")
         sql = """
                 update sql_execute_split 
                     set dba_execute={},execute_status={},submit_sql_execute_plat_or_manual=1 
                 where split_sql_file_path='{}'
              """.format(is_execute, execute_status, self.file_path)
         ret = db_helper.dml(sql)
-        if ret['status'] != 'ok': raise Exception("更新子工单状态出现异常")
+        if ret['status'] != 'ok':
+            audit_sql_dao.mark_ticket_stage_status(self.file_path, "mark_status", "error")
+            raise Exception("更新子工单状态出现异常")
+        else:
+            audit_sql_dao.mark_ticket_stage_status(self.file_path, "mark_status", "finish")
         # 判断所有子工单标记主工单
         get_code_sql = """
                     select distinct(execute_status) as execute_status from sql_execute_split where submit_sql_uuid='{}'

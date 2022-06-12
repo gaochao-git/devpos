@@ -25,6 +25,7 @@ urlpatterns = [
     path('v1/create_block_sql/', audit_sql_controller.create_block_sql_controller),  # 生成用id切割的SQL用来删除或者更新数据,防止大事物
     path('v1/get_celery_task_status/', common.get_celery_task_status),  # 获取审核状态
     path('v1/get_pre_check_result/', audit_sql_controller.GetPreCheckResultCrotroller.as_view()),  # 生成用id切割的SQL用来删除或者更新数据,防止大事物
+    path('v1/get_ticket_stage_status/', audit_sql_controller.GetTicketStageStatusCrotroller.as_view()),
     ]
 
 

@@ -338,6 +338,21 @@ def execute_submit_sql_by_file_path_manual_dao(submit_sql_uuid,split_sql_file_pa
     finally:
         return update_status
 
+
+def mark_ticket_stage_status(split_sql_file_path, stage_name, stage_value):
+    """
+    标记状态
+    :return:
+    """
+    get_info_sql = "select ticket_stage_status from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
+    ret = db_helper.find_all(get_info_sql)
+    ticket_stage_status = json.loads(ret['data'][0]['ticket_stage_status'])
+    ticket_stage_status[stage_name] = stage_value
+    ticket_stage_status = json.dumps(ticket_stage_status)
+    sql = "update sql_execute_split set ticket_stage_status='{}' where split_sql_file_path='{}'".format(ticket_stage_status, split_sql_file_path)
+    return db_helper.dml(sql)
+
+
 # 查看执行结果
 def get_execute_results_dao(split_sql_file_path):
     sql = """select a.inception_id as ID,
@@ -437,6 +452,8 @@ def recreate_sql_dao(split_sql_file_path, recreate_sql_flag):
 
 # 拆分SQL结果入库
 def write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,rerun_seq, inception_osc_config):
+    ticket_stage_status = {"get_task": "wait", "precheck":"wait", "inc_exe":"wait", "process_result":"wait", "mark_status":"wait"}
+    ticket_stage_status = json.dumps(ticket_stage_status)
     sql = """insert into sql_execute_split(
                                         submit_sql_uuid,
                                         split_seq,
@@ -448,9 +465,10 @@ def write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_p
                                         cluster_name,
                                         rerun_sequence,
                                         rerun_seq,
-                                        inception_osc_config
-                                        ) values('{}',{},'{}',{},{},'{}',{},'{}','{}',{},'{}')
-                                    """.format(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,rerun_seq, inception_osc_config)
+                                        inception_osc_config,
+                                        ticket_stage_status
+                                        ) values('{}',{},'{}',{},{},'{}',{},'{}','{}',{},'{}','{}')
+                                    """.format(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,rerun_seq, inception_osc_config,ticket_stage_status)
     return db_helper.dml(sql)
 
 
@@ -505,15 +523,10 @@ def get_task_send_celery(split_sql_file_path):
     finally:
         return rows
 
+
 def set_task_send_celery(split_sql_file_path):
     sql = "update sql_execute_split set task_send_celery=1  where split_sql_file_path='{}'".format(split_sql_file_path)
-    try:
-        update_status = db_helper.dml(sql)
-    except Exception as e:
-        update_status = "error"
-        logger.error(e)
-    finally:
-        return update_status
+    return db_helper.dml(sql)
 
 
 def get_pre_check_result_dao(check_sql_uuid):
@@ -561,3 +574,14 @@ def mark_ticket_dao(submit_sql_uuid, is_submit):
     """
     sql = "update sql_submit_info set is_submit={} where submit_sql_uuid='{}'".format(is_submit, submit_sql_uuid)
     return db_helper.dml(sql)
+
+
+def get_ticket_stage_status_dao(split_sql_file_path):
+    """
+    获取各阶段状态
+    :param split_sql_file_path:
+    :return:
+    """
+    sql = "select ticket_stage_status from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
+    print(sql)
+    return db_helper.find_all(sql)

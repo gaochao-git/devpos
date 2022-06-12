@@ -5,6 +5,7 @@
 
 import pymysql
 import re
+from app_audit_sql.dao import audit_sql_dao
 import logging
 from django.conf import settings
 logger = logging.getLogger('inception_execute_logger')
@@ -98,7 +99,6 @@ def execute_sql(des_ip, des_port, inc_backup,inc_ignore_warn, inc_ignore_err, ex
         inception_magic_start;
         {}   
         inception_magic_commit;""".format(des_ip, des_port, inc_backup, inc_ignore_warn, inc_ignore_err,inc_sleep, execute_sql)
-    print(sql)
     conn = None
     try:
         conn = pymysql.connect(host=inception_host, user='', passwd='', db='', port=inception_port,charset="utf8")  # inception服务器

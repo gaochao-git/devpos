@@ -82,6 +82,7 @@ export default class ExecuteSql extends Component {
             celery_recheck_id:"",
             celery_execute_id:"",
             showExecuteStageVisible:false,
+            ticket_stage_status:{"get_task":"wait","exe_task":"wait","precheck":"wait","send_inc":"wait","inc_exe":"wait","process_result":"wait","mark_status":"wait"}
         }
         this.cacheData = this.state.data.map(item => ({ ...item }));
     }
@@ -484,12 +485,13 @@ export default class ExecuteSql extends Component {
 
     //查看SQL执行阶段
     async ViewExecuteStage(split_sql_file_path){
-        let params = {
-            split_sql_file_path:split_sql_file_path
-        };
+        let params = {split_sql_file_path:split_sql_file_path};
+        let res = await MyAxios.post('/audit_sql/v1/get_ticket_stage_status/',params);
         this.setState({
-                showExecuteStageVisible: true,
-            });
+            ticket_stage_status:JSON.parse(res.data.data[0]['ticket_stage_status']),
+            showExecuteStageVisible:true,
+        });
+
     }
 
     //查看执行SQL结果
@@ -834,6 +836,7 @@ export default class ExecuteSql extends Component {
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={8}>执行SQL预览:</Col>
                                 <Button className="link-button" loading={this.state.sql_view_loading} onClick={()=>this.GetViewSqlByUuid()} style={{padding:5}} span={16}>查看</Button>
+                                {this.state.dba_check==="未审核" ? <Button className="link-button" onClick={()=>this.GetModifySqlByUuid()}>修改SQL</Button>:null}
                             </Row>
                             <Row gutter={8}>
                                 <Col style={{padding:5}} span={8}>回滚SQL预览:</Col>
@@ -888,11 +891,18 @@ export default class ExecuteSql extends Component {
                         </Col>
                     </Row>
                     <br/>
-                    {this.state.dba_check==="未审核" ? <Button type="primary" onClick={()=>this.GetModifySqlByUuid()}>修改SQL</Button>:null}
+                    <h3>审核</h3>
+                    <Steps
+                        size="small"
+                        onChange={(current)=>message.success(current)}
+                    >
+                      <Step title="执行团队审核" description="执行团队审核" status="finish"/>
+                      <Step title="测试审核" description="测试审核" status={this.state.ticket_stage_status.precheck}/>
+                      <Step title="DBA审核" description="DBA审核" status={this.state.ticket_stage_status.inc_exe}/>
+                    </Steps>
                     {(this.state.login_user_name_role!=="dba" && this.state.dba_check==="未审核") ?
                         <div>
                             <div className="input-padding">
-                                <h3>审核操作</h3>
                                 { (this.state.leader_check==="未审核" && this.state.login_user_name_role==="leader") ? <Button type="primary" style={{marginRight:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核工单</Button>:null}
                                 { (this.state.qa_check === '未审核' && this.state.login_user_name_role==="qa") ? <Button type="primary" style={{marginRight:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核工单</Button>:null}
                                 { (this.state.dba_check === '未审核' && this.state.login_user_name_role!=="dba") ? <Button type="primary" style={{marginRight:16}} onClick={() => this.setState({ApplyModalVisible:true})}>审核工单</Button>:null}
@@ -1057,18 +1067,16 @@ export default class ExecuteSql extends Component {
                     </Modal>
                     <Modal visible={this.state.showExecuteStageVisible}
                         onCancel={() => this.setState({showExecuteStageVisible:false})}
-                        title="SQL执行阶段?"
+                        title="SQL执行各阶段状态"
                         footer={false}
                         width="90%"
                     >
-                        <Steps>
-                          <Step title="send_task" description="产生异步任务" status="finish"/>
-                          <Step title="exe_task" description="消费者获取到任务" status="finish"/>
-                          <Step title="precheck" description="执行SQL前检查" status="finish"/>
-                          <Step title="send_inc" description="发送SQL到执行工具" status="finish"/>
-                          <Step title="inc_exe" description="执行工具执行" status="error"/>
-                          <Step title="process_result" description="执行结果写入数据库" status="wait"/>
-                          <Step title="mark_status" description="标记子工单状态" status="wait"/>
+                        <Steps size="small">
+                          <Step title="get_task" description="获取执行任务" status={this.state.ticket_stage_status.get_task}/>
+                          <Step title="precheck" description="执行SQL前检查" status={this.state.ticket_stage_status.precheck}/>
+                          <Step title="inc_exe" description="连接目标源执行SQL" status={this.state.ticket_stage_status.inc_exe}/>
+                          <Step title="process_result" description="执行结果写入数据库" status={this.state.ticket_stage_status.process_result}/>
+                          <Step title="mark_status" description="标记状态" status={this.state.ticket_stage_status.mark_status}/>
                         </Steps>
                     </Modal>
                 </div>

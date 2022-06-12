@@ -444,8 +444,8 @@ class ExecuteSqlByFilePath:
             task_res = inception_execute.delay(self.des_ip, self.des_port, self.inc_bak, self.inc_war, self.inc_err,
                                               self.file_path, self.submit_sql_uuid, self.inc_sleep, self.exe_user_name)
             self.celery_id = task_res.id
-            update_task_ret = audit_sql_dao.set_task_send_celery(self.file_path)
-            if update_task_ret['status'] != 'ok': raise Exception("发送task任务成功,更新task表出现异常")
+            # 标记状态,如果标记失败不返回错误,因为任务已经下发给消费者了,返回错误会误导用户再次点击执行
+            audit_sql_dao.set_task_send_celery(self.file_path)
         except Exception as e:
             logger.exception("发送任务失败:%s" % str(e))
             raise Exception("发送任务失败")

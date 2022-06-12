@@ -5,6 +5,7 @@
 
 import json
 from app_audit_sql.service import audit_sql
+from app_audit_sql.dao import audit_sql_dao
 from apps.utils.common import CheckValidators,BaseView,my_response
 from validator import Required, Not, Truthy, Blank, Range, Equals, In, validate,InstanceOf,Length
 import logging
@@ -27,6 +28,24 @@ class GetPreCheckResultCrotroller(BaseView):
         """
         check_sql_uuid = request.GET.get("check_sql_uuid")  # None或者str
         ret = audit_sql.get_pre_check_result(check_sql_uuid)
+        return self.my_response(ret)
+
+
+class GetTicketStageStatusCrotroller(BaseView):
+    def post(self, request):
+        """
+        check_sql_uuid如果为None表示预检查SQL,如果为str则表示修改已提交SQL再次审核
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "split_sql_file_path": [Length(0, 100)],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:return self.my_response({"status": "error","message": str(valid_ret.errors)})
+        split_sql_file_path = request_body.get('split_sql_file_path')
+        ret = audit_sql_dao.get_ticket_stage_status_dao(split_sql_file_path)
         return self.my_response(ret)
 
 
