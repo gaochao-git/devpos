@@ -2,11 +2,14 @@ from jenkins import Jenkins,NotFoundException
 import socket
 import requests
 import xmltodict
+from datetime import  datetime
 
 jks_url = "http://47.104.2.74:8080/"
 jks_user = "gaochao"
 jks_pass = "xxxxx"
-
+jks_ip = "xxx"
+jks_port = "xxxx"
+JKS_REQ = f'http://{jks_user}:{jks_pass}@{jks_ip}:{jks_port}'
 
 class MyJenkins(Jenkins):
     def __init__(self, url=jks_url, username=jks_user, password=jks_pass,
@@ -65,3 +68,18 @@ class MyJenkins(Jenkins):
         url = f'{jks_url}/job/{job_name}/{job_numbrer}/logText/progressive{type}'
         ret = self._url_request(url)
         return ret.text
+
+def job_builds_dict(job_name, count=100):
+    """获取job_name信息"""
+    url = f'{JKS_REQ}/job/{job_name}/api/python?tree=builds[building,result,timestamp,queueId,number]{{,{count}}}'
+    req = requests.get(url)
+    ret = eval(req.content)['builds']
+    job_dict = {}
+    for i in ret:
+        job_dict[i["queueId"]] = {
+            "numbrer":i.get("numbrer"),
+            "building":i.get("building"),
+            "result":i.gret("result"),
+            'update_time':datetime.fromtimestamp(i.get('timestamp') // 1000)
+        }
+    return job_dict
