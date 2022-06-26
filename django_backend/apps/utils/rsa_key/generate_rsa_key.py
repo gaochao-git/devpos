@@ -15,7 +15,7 @@ def generate_key():
     public_key = rsa.publickey().exportKey()
     print(public_key.decode('utf-8'))
 
-    path = '/Users/gaochao/gaochao-git/gaochao_repo/devpos/django_backend/rsa_key'
+    path = '/Users/gaochao/gaochao-git/gaochao_repo/devpos/django_backend/apps/utils/rsa_key'
     with open('%s/rsa_private_key.pem' % path, 'wb')as f:
         f.write(private_key)
 

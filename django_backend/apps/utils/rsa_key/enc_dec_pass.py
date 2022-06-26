@@ -15,7 +15,7 @@ def get_key(key_file):
 
 
 def encrypt_data(msg):
-    public_key = get_key('sa_public_key.pem')
+    public_key = get_key('rsa_public_key.pem')
     cipher = PKCS1_cipher.new(public_key)
     encrypt_text = base64.b64encode(cipher.encrypt(bytes(msg.encode("utf8"))))
     return encrypt_text.decode('utf-8')
@@ -26,3 +26,7 @@ def decrypt_data(encrypt_msg):
     cipher = PKCS1_cipher.new(private_key)
     back_text = cipher.decrypt(base64.b64decode(encrypt_msg), 0)
     return back_text.decode('utf-8')
+
+if __name__ == "__main__":
+    aa = encrypt_data('fffjjj')
+    print(aa)

@@ -4,61 +4,45 @@
 # @Author  : 高超
 
 import logging
-from app_web_console.dao import web_console_dao
+from app_jks.utils.ansible_parse import ini2json
+import jenkins
+from apps.utils.common import CheckValidators
 
 logger = logging.getLogger('devops')
 
 
-def get_table_data(des_ip_port, sql, schema_name, explain):
+def install_mysql(job_name, deploy_type, deploy_version, deploy_topos):
     """
-    获取数据
-    :param ip:
-    :param port:
-    :param sql:
+    安装mysql
+    :param job_name:
+    :param deploy_type:
+    :param deploy_version:
+    :param deploy_topos:
     :return:
     """
-    return web_console_dao.get_table_data_dao(des_ip_port, sql, schema_name, explain)
-
-def get_favorite_data(favorite_type):
-    """
-    获取收藏信息
-    :param favorite_type:
-    :return:
-    """
-    return web_console_dao.get_favorite_data_dao(favorite_type)
-
-def get_schema_list(instance_name):
-    """
-    获取所有库名
-    :param instance_name:
-    :return:
-    """
-    return web_console_dao.get_schema_list_dao(instance_name)
-
-def get_db_connect(instance_name):
-    """
-    探活
-    :param instance_name:
-    :return:
-    """
-    return web_console_dao.get_db_connect_dao(instance_name)
-
-
-def get_table_list(instance_name,schema_name,table_name):
-    """
-    获取库中所有表
-    :param schema_name:
-    :return:
-    """
-    return web_console_dao.get_table_list_dao(instance_name,schema_name,table_name)
-
-
-def get_column_list(instance_name,schema_name,table_name):
-    """
-    获取表中的列
-    :param instance_name:
-    :param schema_name:
-    :param table_name:
-    :return:
-    """
-    return web_console_dao.get_column_list_dao(instance_name,schema_name,table_name)
+    hosts_info = ini2json(deploy_topos)
+    print(hosts_info)
+    for k, v in hosts_info.items():
+        ip = k
+        port = v.get('port')
+        instance_name = ip + '_' + str(port)
+        cluster_name = v.get('cluster_name')
+        cluster_group_name = v.get('cluster_group_name')
+        ha_type = v.get('ha_type')
+        if CheckValidators.check_ip(ip)['status'] != "ok": return {"status":"error", "message": "%s ip不合法" % ip}
+        if CheckValidators.check_port(port)['status'] != 'ok': return {"status":"error", "message": "%s port不合法" % ip}
+    params_dict = {}
+    params_dict['topos'] = deploy_topos
+    try:
+        server = jenkins.Jenkins('http://47.104.2.74:8080', username='gaochao', password='gaochao417326', timeout=3)
+        next_bn = server.get_job_info(job_name)['nextBuildNumber']
+        queue_number = server.build_job(job_name, parameters=params_dict)
+        queue_info = server.get_queue_item(queue_number)
+        print("next_build_number: %s" % next_bn)
+        print("current_queue_number: %s" % queue_number)
+        print("current_queue_info: %s" % queue_info)
+        print(server.get_job_info(job_name))
+        return {"status": "ok", "message": "下发任务成功","data": queue_number}
+    except Exception as e:
+        print(e)
+        return {"status": "error", "message": "下发任务失败"}

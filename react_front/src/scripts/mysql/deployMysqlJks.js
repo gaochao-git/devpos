@@ -19,15 +19,11 @@ export default class DeployMysqlJks extends Component  {
         this.state = {
             all_job_info:[],
             showSubmitVisible:false,
-            topo_source_placeholder:"说明:\n  部署实例1\n  部署实例2=>同步实例1\n例如:\n  47.104.2.74_3306\n  47.104.2.75_3306=>47.104.2.74_3306",
-            rds_placeholder:"说明:sdf\nsdfsf\n\n\n\n",
-            deploy_topos:"47.104.2.74_3306\n  47.104.2.75_3306=>47.104.2.74_3306",
-            deploy_version:"5.7.32",
-            idc:"BJ10",
-            deploy_archit:"m",
-            mem:"",
-            cpu:"",
-            disk:""
+            topo_source_placeholder:"ip port=3306 role=主  cluster_group_name=test cluster_name = test1 ha_type=mha\n ip port=3306 role=备 repl_master_ip=master_ip repl_master_port=master_port cluster_group_name=test cluster_name = test1 ha_type=mha",
+            deploy_topos:"47.104.2.74 port=3306 role=主  cluster_group_name=test cluster_name=test1 ha_type=mha\n 47.104.2.75 port=3306 role=备 repl_master_ip=47.104.2.74 repl_master_port=3306 cluster_group_name=test cluster_name=test1 ha_type=mha",
+            mysql_version:"5.7.32",
+            deploy_type:"新建集群",
+            job_name:"install_mysql",
         }
     }
 
@@ -49,10 +45,10 @@ export default class DeployMysqlJks extends Component  {
     //提交任务
     async submitJob() {
         let params = {
+            deploy_type: this.state.deploy_type,
             deploy_topos: this.state.deploy_topos,
-            deploy_version: this.state.deploy_version,
-            idc: this.state.idc,
-            deploy_archit: this.state.deploy_archit,
+            mysql_version: this.state.mysql_version,
+            job_name: this.state.job_name,
         };
         await MyAxios.post('/jks/v1/install_mysql/',params).then(
             res => {
@@ -79,7 +75,7 @@ export default class DeployMysqlJks extends Component  {
           },
             {
                 title: '版本',
-                dataIndex: 'deploy_version',
+                dataIndex: 'mysql_version',
             },
             {
                 title: '高可用架构',
@@ -133,18 +129,13 @@ export default class DeployMysqlJks extends Component  {
             <div>
             </div>
                 <Tabs>
-                <TabPane tab="新建集群" key="1">
+                <TabPane tab="部署" key="1">
                         <div className="sub-title-input">
-                            <Select defaultValue="选择机房" style={{ width: 300 }} onChange={e => this.setState({idc:e})}>
-                                <Option value="BJ10">BJ10</Option>
-                                <Option value="BJ11">BJ11</Option>
+                            <Select defaultValue="新建集群" style={{ width: 300 }} onChange={e => this.setState({deploy_type:e})}>
+                                <Option value="新建集群">新建集群</Option>
+                                <Option value="增加实例">增加实例</Option>
                             </Select>
-                            <Select defaultValue="选择集群类型" style={{ width: 300 }} onChange={e => this.setState({deploy_archit:e})}>
-                                <Option value="m">单点</Option>
-                                <Option value="ms">主从</Option>
-                                <Option value="MHA">高可用</Option>
-                            </Select>
-                            <Select defaultValue="选择MySQL版本" style={{ width: 300 }} onChange={e => this.setState({deploy_version:e})}>
+                            <Select defaultValue="选择MySQL版本" style={{ width: 300 }} onChange={e => this.setState({mysql_version:e})}>
                                 <Option value="mysql5.7.22">MySQL5.7</Option>
                                 <Option value="mysql8.0.22">MySQL8.0</Option>
                             </Select>
@@ -165,24 +156,6 @@ export default class DeployMysqlJks extends Component  {
                         bordered
                         size="small"
                     />
-                    </TabPane>
-
-                    <TabPane tab="扩容实例" key="3">
-                        <div className="sub-title-input">
-                            <Select defaultValue="选择集群" style={{ width: 300 }} onChange={e => this.setState({deploy_archit:e})}>
-                                <Option value="ms">单点</Option>
-                                <Option value="ms">主从</Option>
-                                <Option value="MHA">高可用</Option>
-                            </Select>
-                            <Select defaultValue="选择MySQL版本" style={{ width: 300 }} onChange={e => this.setState({deploy_version:e})}>
-                                <Option value="mysql5.7.22">MySQL5.7</Option>
-                                <Option value="mysql8.0.22">MySQL8.0</Option>
-                            </Select>
-                        </div>
-                        <div>
-                            <TextArea rows={10} placeholder={this.state.topo_source_placeholder} onChange={e => this.setState({deploy_topos:e.target.value})}/>
-                            <Button type="primary" loading={this.state.sql_check_loading} onClick={()=>{this.setState({showSubmitVisible:true})}}>提交工单</Button>
-                        </div>
                     </TabPane>
                 </Tabs>
                     <Modal visible={this.state.showSubmitVisible}

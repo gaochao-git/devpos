@@ -40,7 +40,7 @@ class CheckValidators:
         :param max_no:
         :return:
         """
-        if not my_params.isdigit():
+        if not str(my_params).isdigit():
             return {"status": "error", "message": "类型不合法"}
         if validators.between(int(my_params), min=min_no, max=max_no):
             return {"status": "ok", "message": "校验通过"}
@@ -62,7 +62,6 @@ class CheckValidators:
             print(444)
             return {"status": "error", "message": "实例不合法"}
         return {"status": "ok", "message": "校验通过"}
-
 
     @staticmethod
     def check_cluster_name(cluster_name, min_no, max_no):
