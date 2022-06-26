@@ -1,5 +1,5 @@
 import socket
-from apps.utils.enc_dec_pass import decrypt_data
+from apps.utils.rsa_key.enc_dec_pass import decrypt_data
 import logging
 logger = logging.getLogger('devops')
 
