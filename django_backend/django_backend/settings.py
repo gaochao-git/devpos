@@ -201,9 +201,9 @@ LOGGING = {
             'format': '[%(levelname)s][%(asctime)s][%(filename)s:%(lineno)d]%(message)s'
         },
         # 定义一个特殊的日志格式
-        'collect': {
-            'format': '%(message)s'
-        }
+        'my_access': {
+            'format': '%(asctime)s|%(filename)s:%(lineno)d|%(levelname)s|%(user_name)s|%(http_method)s|%(request_path)s|%(request_status)s|%(request_time)s|%(message)s'
+        },
     },
     # 过滤器
     'filters': {
@@ -226,7 +226,7 @@ LOGGING = {
             'when': 'D',
             'interval': 1,
             'backupCount': 365,  # 最多保留几个
-            'formatter': 'standard',
+            'formatter': 'my_access',
             'encoding': 'utf-8',
         },
         'info': {   # 专门用来记正常日志
@@ -267,8 +267,13 @@ LOGGING = {
         }
     },
     'loggers': {
-        'django': {             # 默认的logger应用如下配置
-            'handlers': ['default', 'console', 'error'],  # 上线之后可以把'console'移除
+        # 'django.server': {             # 默认的logger应用如下配置
+        #     'handlers': ['default'],
+        #     'level': 'INFO',
+        #     'propagate': True,  # 向不向更高级别的logger传递
+        # },
+        'my_access': {             # 默认的logger应用如下配置
+            'handlers': ['default'],  # 上线之后可以把'console'移除
             'level': 'INFO',
             'propagate': True,  # 向不向更高级别的logger传递
         },

@@ -6,6 +6,10 @@ from apps.utils.error_code import StatusCode
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework_jwt.utils import jwt_decode_handler
 import time
+from datetime import datetime
+import logging
+logger = logging.getLogger('my_access')
+
 
 
 class BaseView(APIView):
@@ -24,6 +28,7 @@ class BaseView(APIView):
         self.request_params = None
         self.request_user_info =None
         self.request_from = None
+        self._start_time = datetime.now()
 
     def dispatch(self, request, *args, **kwargs):
         """
@@ -91,6 +96,18 @@ class BaseView(APIView):
             if data.get('code') is None: data['code'] = StatusCode.ERR_COMMON.code
             if data.get('message') is None: data['message'] = StatusCode.ERR_COMMON.msg
         self.audit_log(data)
+        request_time = round((datetime.now() - self._start_time).total_seconds() * 1000)
+        extra = {
+            "user_name": self.request_user_info.get('username'),
+            "http_method": self.request_method,
+            "request_path": self.request_path,
+            "request_status": data.get('status'),
+            "request_time": request_time
+        }
+        if data.get('status') == "ok":
+            logger.info(data['message'], extra=extra)
+        else:
+            logger.error(data['message'], extra=extra)
         return HttpResponse(json.dumps(data, default=str), content_type=content_type)
 
     def audit_log(self,ret_info):

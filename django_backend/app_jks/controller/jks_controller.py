@@ -7,8 +7,6 @@ import logging
 from apps.utils.base_view import BaseView
 from validator import Required, Not, Truthy, Blank, Range, Equals, In, validate,InstanceOf,Length
 from app_jks.service import jks
-logger = logging.getLogger('devops')
-
 
 class InstallMysqlController(BaseView):
     def post(self, request):
