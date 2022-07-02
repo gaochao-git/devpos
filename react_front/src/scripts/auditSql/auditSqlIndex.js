@@ -183,7 +183,8 @@ class AuditSqlIndex extends Component {
     //获取审核任务状态
     async getCheckStatusByUuid() {
         let params = {celery_id:this.state.celery_id};
-        await MyAxios.post('/audit_sql/v1/get_celery_task_status/',params).then(
+        let headers = {"global_loading":false}
+        await MyAxios.post('/audit_sql/v1/get_celery_task_status/',params,{headers}).then(
             res => {
                 if (res.data.status==="ok"){
                    window.clearInterval(this.timerId);

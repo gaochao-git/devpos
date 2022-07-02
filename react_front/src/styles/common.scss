@@ -323,7 +323,7 @@ td.replacecolor{
 .down-tree{
     height: 200px;
     display: block;
-    overflow-y: scroll;
+    overflow: scroll;
 }
 
 
@@ -373,4 +373,18 @@ td.replacecolor{
   padding: 0 4px !important;
   cursor: pointer;
   transition: color 0.3s;
+}
+
+#loading {
+  position: absolute;
+  top: 0;
+  left:0 ;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  background: #F6F6F6;
+  opacity:0.3;
 }

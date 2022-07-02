@@ -316,7 +316,8 @@ export default class ExecuteSql extends Component {
     //获取执行任务状态
     async getExecuteStatus() {
         let params = {celery_id: this.state.celery_execute_id};
-        await MyAxios.post('/audit_sql/v1/get_celery_task_status/',params).then(
+        let headers = {"global_loading":false}
+        await MyAxios.post('/audit_sql/v1/get_celery_task_status/',params,{headers}).then(
             res => {
                 if (res.data.status==="ok"){
                     message.success("任务执行成功",3)
@@ -349,7 +350,8 @@ export default class ExecuteSql extends Component {
     //获取重新审核任务状态
     async getCheckStatusByUuid() {
         let params = {celery_id: this.state.celery_recheck_id};
-        await MyAxios.post('/audit_sql/v1/get_celery_task_status/',params).then(
+        let headers = {"global_loading":false}
+        await MyAxios.post('/audit_sql/v1/get_celery_task_status/',params,{headers}).then(
             res => {
                 if (res.data.status==="ok"){
                    window.clearInterval(this.timerId);
@@ -551,7 +553,8 @@ export default class ExecuteSql extends Component {
             split_sql_file_path:this.state.split_sql_file_path,
             submit_sql_uuid: this.state.submit_sql_uuid,
         };
-        let res = await MyAxios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,params);
+        let headers = {"global_loading":false}
+        let res = await MyAxios.post(`${backendServerApiRoot}/get_execute_process_by_uuid/`,params,{headers});
         if (res.data.data.length>0 && res.data.data[0]["inception_execute_percent"]!==0){
             this.setState({
                 execute_sql_process_results: res.data.data

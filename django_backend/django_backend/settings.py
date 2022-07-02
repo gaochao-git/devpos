@@ -267,11 +267,11 @@ LOGGING = {
         }
     },
     'loggers': {
-        # 'django.server': {             # 默认的logger应用如下配置
-        #     'handlers': ['default'],
-        #     'level': 'INFO',
-        #     'propagate': True,  # 向不向更高级别的logger传递
-        # },
+        'django.server': {             # debug为true时打印到console
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,  # 向不向更高级别的logger传递
+        },
         'my_access': {             # 默认的logger应用如下配置
             'handlers': ['default'],  # 上线之后可以把'console'移除
             'level': 'INFO',
