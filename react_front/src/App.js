@@ -103,13 +103,14 @@ class App extends Component {
                         <Layout>
                             <Header className="header">
                                 <div className="logo" style={{width:'10%'}}>
-                                    <img alt="Logo" src={imgURL} style={{width:'30px'}}/>
+                                    <img alt="Logo" src={imgURL} style={{width:'30px',marginRight:'20px'}}/>
+                                    <Icon
+                                      className="trigger"
+                                      type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
+                                      onClick={this.onCollapse}
+                                    />
                                 </div>
-                                <Icon
-                                  className="trigger"
-                                  type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
-                                  onClick={this.onCollapse}
-                                />
+
                                 <Menu
                                     theme="dark"
                                     mode="horizontal"

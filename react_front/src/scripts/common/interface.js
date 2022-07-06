@@ -71,8 +71,8 @@ MyAxios.interceptors.response.use(
     hideLoading()
     return response
   },
-  //接口错误状态处理，也就是说无响应时的处理
-  error => {
+  error => {//接口错误状态处理，也就是说无响应时的处理
+    hideLoading()
     return Promise.reject(error) // 返回接口返回的错误信息
   }
 )

@@ -588,7 +588,7 @@ export default class mysqlConsole extends Component {
                           size="small"
                           bordered
                           dataSource={this.state.db_info}
-                          renderItem={item => <p>{item}</p>}
+                          renderItem={item => <p style={{marginLeft:10}}>{item}</p>}
                           style={{borderRadius:0}}
                        />
                    </div>

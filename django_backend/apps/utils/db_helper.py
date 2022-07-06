@@ -10,28 +10,28 @@ db_all_remote_pass = "fffjjj"
 
 # pymysql自动提交默认为False,django会将自动提交改为True,也可以在setting中自己设置,如果某个SQL想单独设置，则需要单独开启事物
 ################################################# 本项目数据源公共方法 ##########################################
-def findall(sql):
-    """
-    获取多条数据
-    :param sql:
-    :return:
-    """
-    data = []
-    cursor = connection.cursor()
-    try:
-        cursor.execute(sql)
-        rows = cursor.fetchall()
-        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        status = "ok"
-        message = "执行SQL成功"
-        return data
-    except Exception as e:
-        status = "error"
-        message = "执行SQL失败"
-        logger.exception("sql执行失败:%s", e)
-    finally:
-        cursor.close()
-        connection.close()
+# def findall(sql):
+#     """
+#     获取多条数据
+#     :param sql:
+#     :return:
+#     """
+#     data = []
+#     cursor = connection.cursor()
+#     try:
+#         cursor.execute(sql)
+#         rows = cursor.fetchall()
+#         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+#         status = "ok"
+#         message = "执行SQL成功"
+#         return data
+#     except Exception as e:
+#         status = "error"
+#         message = "执行SQL失败"
+#         logger.exception("sql执行失败:%s", e)
+#     finally:
+#         cursor.close()
+#         connection.close()
 
 
 def find_all(sql, args=None):
