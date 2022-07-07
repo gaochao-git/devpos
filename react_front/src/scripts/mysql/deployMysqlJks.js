@@ -1,7 +1,7 @@
 import React,{Component} from 'react';
 import axios from 'axios'
 import MyAxios from "../common/interface"
-import {Button, Table, Input, Modal, Tabs, Form, Row, Select, data, Card, AutoComplete, Tooltip,message,Col,Descriptions,Collapse} from "antd";
+import {Button, Table, Input, Modal, Tabs, Form, Row, Select, data, Card, AutoComplete, Tooltip,message,Col,Descriptions,Collapse,Tag} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -24,6 +24,12 @@ export default class DeployMysqlJks extends Component  {
             mysql_version:"5.7.32",
             deploy_type:"新建集群",
             job_name:"install_mysql",
+            showParamsVisible:false,
+            task_params:"",
+            history_job_log:"",
+            showJobStopVisible:false,
+            stop_number:"",
+            stop_job_name:"",
         }
     }
 
@@ -33,7 +39,7 @@ export default class DeployMysqlJks extends Component  {
     //获取工单信息
     async getAllJobInfo() {
         let params = {job_name: "install_mysql"};
-        await MyAxios.get('/v1/jks/get_all_job/').then(
+        await MyAxios.post('/jks/v1/job_list/',params).then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     all_job_info: res.data.data
@@ -42,6 +48,38 @@ export default class DeployMysqlJks extends Component  {
                 message.error(res.data.message)}
         ).catch(err => {message.error(err.message)})
     }
+    //获取日志信息
+    async getJobLog(job_number, job_queue_id) {
+        let params = {
+                         job_number:job_number,
+                         job_queue_id:job_queue_id,
+                         job_name: "install_mysql"
+                     };
+        await MyAxios.post('/jks/v1/job_log/',params).then(
+            res => {res.data.status==="ok" ?
+                this.setState({
+                    showJobLogVisible:true,
+                    history_job_log: res.data.data.console_log.replace(/\r\n/g,'<br/>')
+                })
+            :
+                message.error(res.data.message)}
+        ).catch(err => {message.error(err.message)})
+    }
+     //停止任务
+    async JobStop() {
+        let params = {job_name:this.state.stop_job_name,job_number:this.state.stop_number,};
+        await MyAxios.post('/jks/v1/job_stop/',params).then(
+            res => {
+                if(res.data.status==="ok"){
+                    message.success(res.data.message)
+                   this.setState({showJobStopVisible:false})
+                }else{
+                    message.error(res.data.message)
+                }
+            }
+        ).catch(err => {message.error(err.message)})
+    }
+
     //提交任务
     async submitJob() {
         let params = {
@@ -67,51 +105,58 @@ export default class DeployMysqlJks extends Component  {
         const columns = [
           {
             title: '用户',
-            dataIndex: 'submit_user',
+            dataIndex: 'user_name',
           },
           {
-              title: '机房',
-              dataIndex: 'idc',
+              title: 'job_name',
+              dataIndex: 'job_name',
           },
             {
-                title: '版本',
-                dataIndex: 'mysql_version',
+                title: 'queue_id',
+                dataIndex: 'queue_id',
             },
             {
-                title: '高可用架构',
-                dataIndex: 'deploy_archit',
+                title: 'job_number',
+                dataIndex: 'number',
+            },
+            {
+                title: '构建中',
+                dataIndex: 'building',
             },
           {
-              title: '审核状态',
-              dataIndex: 'submit_check',
+              title: '构建结果',
+              dataIndex: 'result',
           },
           {
-              title: '审核内容',
-              dataIndex: 'submit_check_comment',
+              title: '创建时间',
+              dataIndex: 'create_time',
           },
          {
-             title: '是否执行',
-             dataIndex: 'submit_execute',
+             title: '更新时间',
+             dataIndex: 'update_time',
          },
           {
-            title: '执行结果',
-            dataIndex: 'deploy_status',
-          },
-          {
-            title: '创建时间',
-            dataIndex: 'create_time',
-          },
-          {
-            title: '更新时间',
-            dataIndex: 'update_time',
-          },
-          {
-            title: '操作',
-            render: (record) => {
-              return <Link to={`/viewDeployMysqlByUuid/${record.submit_uuid}`}>查看</Link>
+            title: '任务参数',
+            dataIndex: 'job_params',
+            render: (text,record) => {
+              return (
+                <Button type="dash" onClick={()=>{this.setState({task_params:text, showParamsVisible:true})}}>查看参数</Button>
+              )
             }
           }
+          ,
+          {
+            title: '操作',
+            render: (text,record) => {
+              return (
+              <div>
+                <Button type="danger"  onClick={()=>{this.setState({stop_number: record.number,stop_job_name:record.job_name, showJobStopVisible:true})}}>停止任务</Button>
+                <Button type="primary" onClick={()=>{this.getJobLog(record.number, record.queue_id)}}>查看日志</Button>
+              </div>
 
+              )
+            }
+          }
         ];
         return (
             <div className="server-list">
@@ -168,6 +213,32 @@ export default class DeployMysqlJks extends Component  {
                             <Button onClick={()=>this.submitJob()} type="primary" style={{ marginRight: '10px' }}>执行</Button>
                             <Button onClick={() => this.setState({showSubmitVisible:false})} type="primary">返回</Button>
                         </Row>
+                    </Modal>
+                    <Modal visible={this.state.showParamsVisible}
+                        onCancel={() => this.setState({showParamsVisible:false})}
+                        title="任务参数"
+                        footer={false}
+                        width={1200}
+                    >
+                        {this.state.task_params===""?null:
+                        <TextArea wrap="off" style={{overflow:"scroll"}} rows={10} value={JSON.stringify(eval('(' + this.state.task_params + ')'),null,4)}/>}
+                    </Modal>
+                    <Modal visible={this.state.showJobLogVisible}
+                        onCancel={() => this.setState({showJobLogVisible:false})}
+                        title="日志信息"
+                        footer={false}
+                        width={1200}
+                    >
+                        <div dangerouslySetInnerHTML = {{ __html: this.state.history_job_log}}></div>
+                    </Modal>
+                    <Modal visible={this.state.showJobStopVisible}
+                        onCancel={() => this.setState({showJobStopVisible:false})}
+                        title="停止任务"
+                        footer={false}
+                        width={300}
+                    >
+                        <Button onClick={()=>this.JobStop()} type="danger" style={{ marginRight: '10px' }}>停止任务</Button>
+                        <Button onClick={() => this.setState({showJobStopVisible:false})} type="primary">返回</Button>
                     </Modal>
             </div>
         )

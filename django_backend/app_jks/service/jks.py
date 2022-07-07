@@ -6,22 +6,33 @@
 import logging
 from app_jks.utils.ansible_parse import ini2json
 import jenkins
+from app_jks.utils.jks_util import MyJenkins,job_builds_dict
 from apps.utils.common import CheckValidators
-
 logger = logging.getLogger('devops')
 
 
-def install_mysql(job_name, deploy_type, deploy_version, deploy_topos):
+def job_list(job_name):
+    """
+    列出指定job任务
+    :param job_name:
+    :return:
+    """
+    ret = job_builds_dict("install_mysql")
+    print(ret)
+
+
+def install_mysql(user_name, request_body):
     """
     安装mysql
+    :param user_name:
     :param job_name:
     :param deploy_type:
     :param deploy_version:
     :param deploy_topos:
     :return:
     """
+    deploy_topos = request_body.get('deploy_topos')
     hosts_info = ini2json(deploy_topos)
-    print(hosts_info)
     for k, v in hosts_info.items():
         ip = k
         port = v.get('port')
@@ -31,18 +42,42 @@ def install_mysql(job_name, deploy_type, deploy_version, deploy_topos):
         ha_type = v.get('ha_type')
         if CheckValidators.check_ip(ip)['status'] != "ok": return {"status":"error", "message": "%s ip不合法" % ip}
         if CheckValidators.check_port(port)['status'] != 'ok': return {"status":"error", "message": "%s port不合法" % ip}
-    params_dict = {}
-    params_dict['topos'] = deploy_topos
+    params_dict = {'topos':deploy_topos}
+    server = MyJenkins()
+    queue_ret = server.run_job(user_name, request_body, **params_dict)
+    if queue_ret['status'] != "ok": return queue_ret
+    return {"status": "ok", "message": "下发任务成功","data": queue_ret.get('queue_id')}
+
+
+def job_log(job_name, job_number, job_queue_id):
+    """
+    从jenkins获取执行日志
+    :param job_name:
+    :param job_number:
+    :param job_queue_id:
+    :return:
+    """
+    req_params = {
+        "job_name": job_name,
+        "job_number": job_number,
+        "job_queue_id": job_queue_id
+    }
+    server = MyJenkins()
+    data = server.dynamic_job_info(**req_params)
+    return data
+
+
+def job_stop(job_name, job_number):
+    """
+    停止任务
+    :param job_name:
+    :param job_number:
+    :return:
+    """
+    server = MyJenkins()
     try:
-        server = jenkins.Jenkins('http://47.104.2.74:8080', username='gaochao', password='gaochao417326', timeout=3)
-        next_bn = server.get_job_info(job_name)['nextBuildNumber']
-        queue_number = server.build_job(job_name, parameters=params_dict)
-        queue_info = server.get_queue_item(queue_number)
-        print("next_build_number: %s" % next_bn)
-        print("current_queue_number: %s" % queue_number)
-        print("current_queue_info: %s" % queue_info)
-        print(server.get_job_info(job_name))
-        return {"status": "ok", "message": "下发任务成功","data": queue_number}
+        server.stop_build(job_name, job_number)
+        ret = {"status":"ok", "message":"下发停止任务成功"}
     except Exception as e:
-        print(e)
-        return {"status": "error", "message": "下发任务失败"}
+        ret = {"status": "error", "message": "停止任务失败%s" % str(e)}
+    return ret
