@@ -60,7 +60,7 @@ def find_all(sql, args=None):
         logger.exception("sql执行失败:%s", e)
     finally:
         if cursor: cursor.close()
-        # if connection : connection.close()  # 让django自己来关闭、新建连接,定时任务可能会出现长时间空闲断开场景,后续想办法处理
+        # if connection : connection.close()  # 让django自己来关闭、新建连接,定时任务可能会出现大量连接,后续想办法处理
         return {"status": status, "message": message, "code": code, "data": data, "row_count":row_count}
 
 def find_all_many(sql_list):
@@ -91,7 +91,7 @@ def find_all_many(sql_list):
         logger.exception("sql执行失败:%s", e)
     finally:
         if cursor: cursor.close()
-        # if connection: connection.close()  # 让django自己来关闭、新建连接,定时任务可能会出现长时间空闲断开场景,后续想办法处理
+        # if connection: connection.close()  # 让django自己来关闭、新建连接,定时任务可能会出现大量连接,后续想办法处理
         return {"status": status, "message": message, "code": code, "data": data, "row_count":row_count}
 
 
