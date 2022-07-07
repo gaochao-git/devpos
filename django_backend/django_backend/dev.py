@@ -14,8 +14,9 @@ DATABASES = {
         'USER': CONNECT_INFO['django_database_user'],
         'PASSWORD': CONNECT_INFO['django_database_pass'],
         'NAME': 'devops',
-        'cursorclass':pymysql.cursors.DictCursor,
-        'AUTOCOMMIT':True,           # pymysql默认AUTOCOMMIT为False,如果没有该参数django会将其设置为True,如果指定该参数django会忽略该参数
+        'cursorclass': pymysql.cursors.DictCursor,
+        'AUTOCOMMIT': True,  # pymysql默认AUTOCOMMIT为False,如果没有该参数django会将其设置为True,如果指定该参数django会忽略该参数
+        'CONN_MAX_AGE': 0, # 默认值0,每个请求进来重新关闭建立mysql连接,定时任务不生效
     }
 }
 

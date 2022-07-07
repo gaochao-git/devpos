@@ -41,12 +41,15 @@ def find_all(sql, args=None):
     :param args:
     :return:
     """
+    cursor = None
     data = []
+    row_count = 0
     try:
         cursor = connection.cursor()
         cursor.execute(sql, args)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+        row_count = cursor.cursor.rowcount
         status = "ok"
         message = StatusCode.OK.msg
         code = StatusCode.OK.code
@@ -56,23 +59,28 @@ def find_all(sql, args=None):
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:
-        cursor.close()
-        connection.close()
-        return {"status": status, "message": message, "code": code, "data": data}
+        if cursor: cursor.close()
+        # if connection : connection.close()  # 让django自己来关闭、新建连接,定时任务可能会出现长时间空闲断开场景,后续想办法处理
+        return {"status": status, "message": message, "code": code, "data": data, "row_count":row_count}
 
 def find_all_many(sql_list):
     """
-    传入SQL列表,有些SQL需要预处理SQL
+    传入SQL列表,有些SQL需要预处理SQL,如set xxxx
+    set xx xx;
+    select xxx from xxxx
     :param sql_list:
     :return:
     """
+    cursor = None
     data = []
+    row_count = 0
     try:
         cursor = connection.cursor()
         for sql in sql_list:
             cursor.execute(sql)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+        row_count = cursor.cursor.rowcount
         status = "ok"
         message = StatusCode.OK.msg
         code = StatusCode.OK.code
@@ -82,9 +90,9 @@ def find_all_many(sql_list):
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:
-        cursor.close()
-        connection.close()
-        return {"status": status, "message": message, "code": code, "data": data}
+        if cursor: cursor.close()
+        # if connection: connection.close()  # 让django自己来关闭、新建连接,定时任务可能会出现长时间空闲断开场景,后续想办法处理
+        return {"status": status, "message": message, "code": code, "data": data, "row_count":row_count}
 
 
 def dml(sql, args=None):
@@ -94,9 +102,11 @@ def dml(sql, args=None):
     :param args:
     :return:
     """
-    cursor = connection.cursor()
+    affected_rows = 0
+    cursor = None
     try:
-        cursor.execute(sql, args)
+        cursor = connection.cursor()
+        affected_rows = cursor.execute(sql, args)
         status = "ok"
         message = StatusCode.OK.msg
         code = StatusCode.OK.code
@@ -106,9 +116,9 @@ def dml(sql, args=None):
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:
-        cursor.close()
-        connection.close()
-        return {"status": status, "message": message, "code": code}
+        if cursor: cursor.close()
+        if connection: connection.close()
+        return {"status": status, "message": message, "code": code, "affected_rows": affected_rows}
 
 
 def dml_many(sql_list):
@@ -117,11 +127,14 @@ def dml_many(sql_list):
     :param sql_list:
     :return:
     """
+    affected_rows = 0
+    cursor = None
     try:
         with transaction.atomic():
             cursor = connection.cursor()
             for sql in sql_list:
-                cursor.execute(sql)
+                item_sql_affected_rows = cursor.execute(sql)
+                affected_rows += item_sql_affected_rows
         status = "ok"
         message = StatusCode.OK.msg
         code = StatusCode.OK.code
@@ -133,7 +146,7 @@ def dml_many(sql_list):
     finally:
         cursor.close()
         connection.close()
-        return {"status": status, "message": message, "code": code}
+        return {"status": status, "message": message, "code": code, "affected_rows": affected_rows}
 
 
 ################################################# 指定数据源公共方法 ##########################################
@@ -146,8 +159,10 @@ def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
     :param my_connect_timeout:
     :return:
     """
-    conn = False
+    conn = None
+    cursor = None
     data = []
+    row_count = 0
     try:
         conn = pymysql.connect(host=ip, port=int(port), user=db_all_remote_user, passwd=db_all_remote_pass, db=db,
                                charset="utf8",connect_timeout=my_connect_timeout)
@@ -158,6 +173,7 @@ def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
         end_time = datetime.now()
         diff_time = (end_time - start_time).microseconds/1000
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+        row_count = cursor.cursor.rowcount
         status = "ok"
         message = StatusCode.OK.msg
         code = StatusCode.OK.code
@@ -175,9 +191,9 @@ def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
         diff_time = 0
         logger.exception("sql执行失败:%s", e)
     finally:
-        if conn: cursor.close()
+        if cursor: cursor.close()
         if conn: connection.close()
-        return {"status": status, "message": message, "code": code, "data": data, 'query_time': diff_time}
+        return {"status": status, "message": message, "code": code, "data": data, "row_count": row_count, 'query_time': diff_time}
 
 
 def target_source_ping(ip, port):
@@ -200,12 +216,14 @@ def target_source_dml(ip, port, sql, my_connect_timeout=2):
     :param my_connect_timeout:
     :return:
     """
-    conn = False
+    conn = None
+    cursor = None
+    affected_rows = 0
     try:
         conn = pymysql.connect(host=ip, port=int(port), user=db_all_remote_user, passwd=db_all_remote_pass, db="",
                                charset="utf-8",connect_timeout=my_connect_timeout)
         cursor = conn.cursor()
-        cursor.execute(sql)
+        affected_rows = cursor.execute(sql)
         status = "ok"
         message = StatusCode.OK.msg
         code = StatusCode.OK.code
@@ -215,9 +233,9 @@ def target_source_dml(ip, port, sql, my_connect_timeout=2):
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:
-        if conn: cursor.close()
+        if cursor: cursor.close()
         if conn: connection.close()
-        return {"status": status, "message": message, "code": code}
+        return {"status": status, "message": message, "code": code, "affected_rows": affected_rows}
 
 
 def target_source_dml_many(ip, port, sql_list, my_connect_timeout=2):
@@ -229,13 +247,16 @@ def target_source_dml_many(ip, port, sql_list, my_connect_timeout=2):
     :param my_connect_timeout:
     :return:
     """
-    conn = False
+    conn = None
+    cursor = None
+    affected_rows = 0
     try:
         conn = pymysql.connect(host=ip, port=int(port), user=db_all_remote_user, passwd=db_all_remote_pass, db="",
                                charset="utf-8",connect_timeout=my_connect_timeout)
         cursor = conn.cursor()
         for sql in sql_list:
-            cursor.execute(sql)
+            item_sql_affected_rows = cursor.execute(sql)
+            affected_rows += item_sql_affected_rows
         status = "ok"
         message = StatusCode.OK.msg
         code = StatusCode.OK.code
@@ -245,6 +266,6 @@ def target_source_dml_many(ip, port, sql_list, my_connect_timeout=2):
         code = StatusCode.ERR_DB.code
         logger.exception("sql执行失败:%s", e)
     finally:
-        if conn: cursor.close()
+        if cursor: cursor.close()
         if conn: connection.close()
-        return {"status": status, "message": message, "code": code}
+        return {"status": status, "message": message, "code": code, "affected_rows": affected_rows}
