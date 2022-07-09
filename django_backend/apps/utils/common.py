@@ -279,3 +279,18 @@ def get_celery_task_status(request):
         logger.exception(e)
         ret = {"status": "error", "message": "参数不符合"}
     return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+
+
+def list_split_group(source_list, size=50):
+    """
+    对列表进行分片
+    :param source_list: []
+    :param size: every group size
+    :return: []或者[[],[],[]]
+    """
+    level1_list = []
+    for i in range(0, int(len(source_list)) + 1, size):
+        level2_list = source_list[i:i + size]
+        level1_list.append(level2_list)
+    target_group_list = [x for x in level1_list if x]
+    return target_group_list

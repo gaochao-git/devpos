@@ -210,65 +210,44 @@ def submit_sql_results_dao(uuid_str, check_sql_results, is_submit):
     :return:
     """
     # SQL审核结果写入数据库
-    cursor = connection.cursor()
-    try:
-        sql_key = """
-            insert into sql_check_results(submit_sql_uuid,
-                           inception_id,
-                           inception_stage,
-                           inception_error_level,
-                           inception_stage_status,
-                           inception_error_message,
-                           inception_sql,
-                           inception_affected_rows,
-                           inception_sequence,
-                           inception_backup_dbnames,
-                           inception_execute_time,
-                           inception_sqlsha1,
-                           inception_command,
-                           is_submit) values
-        """
-        sql_values = ""
-        total = len(check_sql_results)
-        i = 0
-        for check_sql_result in check_sql_results:
-            id = check_sql_result["ID"]
-            stage = check_sql_result["stage"]
-            error_level = check_sql_result["errlevel"]
-            stage_status = check_sql_result["stagestatus"]
-            error_message = pymysql.escape_string(check_sql_result["errormessage"])
-            sql = pymysql.escape_string(check_sql_result["SQL"])
-            affected_rows = check_sql_result["Affected_rows"]
-            sequence = pymysql.escape_string(check_sql_result["sequence"])
-            backup_dbnames = check_sql_result["backup_dbname"]
-            execute_time = check_sql_result["execute_time"]
-            sqlsha1 = check_sql_result["sqlsha1"]
-            command = check_sql_result["command"]
-            value = """
-                    ('{}',{},'{}',{},'{}','{}','{}','{}','{}','{}','{}','{}','{}',{}) 
-                """.format(uuid_str, id, stage, error_level, stage_status,error_message, sql,
-                           affected_rows, sequence, backup_dbnames, execute_time, sqlsha1, command, is_submit)
-            sql_values = sql_values + value + ','
-            i = i + 1
-            total = total - 1
-            if i < 50 and total == 0:  # 总数小于50或者最后一批不足50
-                sql_results_insert = sql_key + sql_values.rstrip(',')
-                cursor.execute(sql_results_insert)
-            elif i == 50: # 达到50就执行一批
-                sql_results_insert = sql_key + sql_values.rstrip(',')
-                cursor.execute(sql_results_insert)
-                sql_values = ""
-                i = 0
-        status = "ok"
-        message = "审核结果写入数据库成功"
-    except Exception as e:
-        logger.exception(str(e))
-        status = 'error'
-        message = "审核结果写入数据库失败"
-    finally:
-        cursor.close()
-        connection.close()
-        return {"status": status, "message": message}
+    sql = """
+        insert into sql_check_results(submit_sql_uuid,
+                       inception_id,
+                       inception_stage,
+                       inception_error_level,
+                       inception_stage_status,
+                       inception_error_message,
+                       inception_sql,
+                       inception_affected_rows,
+                       inception_sequence,
+                       inception_backup_dbnames,
+                       inception_execute_time,
+                       inception_sqlsha1,
+                       inception_command,
+                       is_submit) 
+                values(
+                    %(submit_sql_uuid)s,
+                    %(ID)s,
+                    %(stage)s,
+                    %(errlevel)s,
+                    %(stagestatus)s,
+                    %(errormessage)s,
+                    %(SQL)s,
+                    %(Affected_rows)s,
+                    %(sequence)s,
+                    %(backup_dbname)s,
+                    %(execute_time)s,
+                    %(sqlsha1)s,
+                    %(command)s,
+                    %(is_submit)s
+                )
+    """
+    [i.update({'submit_sql_uuid':uuid_str,'is_submit':is_submit}) for i in check_sql_results]
+    group_list = common.list_split_group(check_sql_results, size=50)
+    for batch in group_list:
+        ret = db_helper.batch_insert(sql, batch)
+        if ret['status'] != "ok": return ret
+    return {"status":"ok","message":"审核结果写入数据库成功"}
 
 
 # 标记工单为审核通过或者不通过

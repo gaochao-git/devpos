@@ -121,6 +121,33 @@ def dml(sql, args=None):
         return {"status": status, "message": message, "code": code, "affected_rows": affected_rows}
 
 
+def batch_insert(sql, args=None):
+    """
+    批量插入,不使用字符串拼接sql,通过传递参数解决sql注入问题
+    :param sql:
+    :param args:[{},{}]
+    :param batch_size:
+    :return:
+    """
+    affected_rows = 0
+    cursor = None
+    try:
+        cursor = connection.cursor()
+        affected_rows = cursor.executemany(sql, args)
+        status = "ok"
+        message = StatusCode.OK.msg
+        code = StatusCode.OK.code
+    except Exception as e:
+        status = "error"
+        message = StatusCode.ERR_DB.msg
+        code = StatusCode.ERR_DB.code
+        logger.exception("sql执行失败:%s", e)
+    finally:
+        if cursor: cursor.close()
+        if connection: connection.close()
+        return {"status": status, "message": message, "code": code, "affected_rows": affected_rows}
+
+
 def dml_many(sql_list):
     """
     多条DML
