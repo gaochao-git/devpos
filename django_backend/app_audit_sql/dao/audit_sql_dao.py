@@ -444,21 +444,20 @@ def recreate_sql_dao(split_sql_file_path, recreate_sql_flag):
 def write_split_sql_to_new_file_dao(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,rerun_seq, inception_osc_config):
     ticket_stage_status = {"get_task": "wait", "precheck":"wait", "inc_exe":"wait", "process_result":"wait", "mark_status":"wait"}
     ticket_stage_status = json.dumps(ticket_stage_status)
-    sql = """insert into sql_execute_split(
-                                        submit_sql_uuid,
-                                        split_seq,
-                                        split_sql_file_path,
-                                        sql_num,
-                                        ddlflag,
-                                        master_ip,
-                                        master_port,
-                                        cluster_name,
-                                        rerun_sequence,
-                                        rerun_seq,
-                                        inception_osc_config,
-                                        ticket_stage_status
-                                        ) values('{}',{},'{}',{},{},'{}',{},'{}','{}',{},'{}','{}')
-                                    """.format(submit_sql_uuid, split_seq, split_sql_file_path, sql_num, ddlflag,master_ip, master_port, cluster_name, rerun_sequence,rerun_seq, inception_osc_config,ticket_stage_status)
+    sql = f"""insert into sql_execute_split set
+        submit_sql_uuid='{submit_sql_uuid}',
+        split_seq='{split_seq}',
+        split_sql_file_path='{split_sql_file_path}',
+        sql_num='{sql_num}',
+        ddlflag='{ddlflag}',
+        master_ip='{master_ip}',
+        master_port='{master_port}',
+        cluster_name='{cluster_name}',
+        rerun_sequence='{rerun_sequence}',
+        rerun_seq='{rerun_seq}',
+        inception_osc_config='{inception_osc_config}',
+        ticket_stage_status='{ticket_stage_status}'
+    """
     return db_helper.dml(sql)
 
 
