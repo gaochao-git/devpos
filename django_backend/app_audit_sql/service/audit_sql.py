@@ -92,18 +92,8 @@ def get_view_sql_by_uuid(submit_sql_uuid):
 
 # 查看指定提交工单的详情
 def get_apply_sql_by_uuid(submit_sql_uuid):
-    data = []
-    try:
-        data = audit_sql_dao.get_apply_sql_by_uuid_dao(submit_sql_uuid)
-        status = "ok"
-        message = "ok"
-    except Exception as e:
-        status = "error"
-        message = e
-        logger.error(e)
-    finally:
-        content = {'status': status, 'message': message, 'data': data}
-        return content
+    return audit_sql_dao.get_apply_sql_by_uuid_dao(submit_sql_uuid)
+
 
 
 # 获取master ip
@@ -502,18 +492,8 @@ def get_execute_process_by_uuid(split_sql_file_path):
 
 # 获取页面拆分SQL
 def get_split_sql(submit_sql_uuid):
-    data = []
-    try:
-        data = audit_sql_dao.get_split_sql_dao(submit_sql_uuid)
-        status = "ok"
-        message = "ok"
-    except Exception as e:
-        status = "error"
-        message = e
-        logger.error(e)
-    finally:
-        content = {'status': status, 'message': message, 'data': data}
-        return content
+    return audit_sql_dao.get_split_sql_dao(submit_sql_uuid)
+
 
 
 # 工单执行失败点击生成重做数据

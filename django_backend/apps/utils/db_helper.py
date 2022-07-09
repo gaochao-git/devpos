@@ -49,7 +49,7 @@ def find_all(sql, args=None):
         cursor.execute(sql, args)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        row_count = cursor.cursor.rowcount
+        row_count = cursor.rowcount
         status = "ok"
         message = StatusCode.OK.msg
         code = StatusCode.OK.code
@@ -80,7 +80,7 @@ def find_all_many(sql_list):
             cursor.execute(sql)
         rows = cursor.fetchall()
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        row_count = cursor.cursor.rowcount
+        row_count = cursor.rowcount
         status = "ok"
         message = StatusCode.OK.msg
         code = StatusCode.OK.code
@@ -173,7 +173,7 @@ def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
         end_time = datetime.now()
         diff_time = (end_time - start_time).microseconds/1000
         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        row_count = cursor.cursor.rowcount
+        row_count = cursor.rowcount
         status = "ok"
         message = StatusCode.OK.msg
         code = StatusCode.OK.code

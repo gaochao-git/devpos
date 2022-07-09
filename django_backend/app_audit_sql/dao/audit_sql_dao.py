@@ -77,13 +77,7 @@ def get_apply_sql_by_uuid_dao(submit_sql_uuid):
         from sql_submit_info
         where submit_sql_uuid='{0}'
     """.format(submit_sql_uuid)
-    rows = []
-    try:
-        rows = db_helper.findall(sql)
-    except Exception as e:
-        logger.error(e)
-    finally:
-        return rows
+    return db_helper.find_all(sql)
 
 
 # 获取所有实例名
@@ -408,13 +402,7 @@ def get_split_sql_dao(submit_sql_uuid):
             b.rerun_flag
             from sql_submit_info a inner join sql_execute_split b on a.submit_sql_uuid=b.submit_sql_uuid left join sql_execute_results c on b.split_sql_file_path=c.split_sql_file_path where a.submit_sql_uuid='{}' group by b.split_sql_file_path order by b.split_seq,b.split_sql_file_path
     """.format(submit_sql_uuid)
-    rows = []
-    try:
-        rows = db_helper.findall(sql)
-    except Exception as e:
-        logger.error(e)
-    finally:
-        return rows
+    return db_helper.find_all(sql)
 
 
 # 获取执行SQL需要的目的ip、port、claster_name、osc配置
