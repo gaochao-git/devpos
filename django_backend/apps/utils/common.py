@@ -50,16 +50,12 @@ class CheckValidators:
     @staticmethod
     def check_instance_name(my_params):
         if not isinstance(my_params, str):
-            print(111)
             return {"status": "error", "message": "类型不合法"}
         if len(my_params.split('_')) != 2:
-            print(222)
             return {"status": "error", "message": "实例不合法"}
         if CheckValidators.check_ip(my_params.split('_')[0])['status'] != "ok":
-            print(333)
             return {"status": "error", "message": "实例不合法"}
         if CheckValidators.check_port(my_params.split('_')[1])['status'] != "ok":
-            print(444)
             return {"status": "error", "message": "实例不合法"}
         return {"status": "ok", "message": "校验通过"}
 
@@ -110,6 +106,48 @@ class CheckValidators:
             return {"status": "ok", "message": "校验通过"}
         else:
             return {"status": "error", "message": "uuid不合法"}
+
+
+def check_ip(ip):
+    """
+    校验ip
+    :param my_params: ip
+    :return:
+    """
+    if not isinstance(ip, str):
+        return {"status": "error", "message": "类型不合法"}
+    if validators.ipv4(ip):
+        return {"status": "ok", "message": "校验通过"}
+    else:
+        return {"status": "error", "message": "ip不合法"}
+
+
+def check_port(port, min_no=0, max_no=65535):
+    """
+    校验端口号
+    :param port:
+    :param min_no:
+    :param max_no:
+    :return:
+    """
+    if not str(port).isdigit():
+        return {"status": "error", "message": "类型不合法"}
+    if validators.between(int(port), min=min_no, max=max_no):
+        return {"status": "ok", "message": "校验通过"}
+    else:
+        return {"status": "error", "message": "数字有效范围为%d-%d" % (min_no, max_no)}
+
+
+def check_instance_name(ip_port):
+    if not isinstance(ip_port, str):
+        return {"status": "error", "message": "类型不合法"}
+    if len(ip_port.split('_')) != 2:
+        return {"status": "error", "message": "实例不合法"}
+    if CheckValidators.check_ip(ip_port.split('_')[0])['status'] != "ok":
+        return {"status": "error", "message": "实例不合法"}
+    if CheckValidators.check_port(ip_port.split('_')[1])['status'] != "ok":
+        return {"status": "error", "message": "实例不合法"}
+    return {"status": "ok", "message": "校验通过"}
 
 
 def my_response(data, content_type='application/json'):
