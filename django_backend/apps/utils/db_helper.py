@@ -34,34 +34,34 @@ db_all_remote_pass = "fffjjj"
 #         connection.close()
 
 
-def find_all(sql, args=None):
-    """
-    传入SQL
-    :param sql:
-    :param args:
-    :return:
-    """
-    cursor = None
-    data = []
-    row_count = 0
-    try:
-        cursor = connection.cursor()
-        cursor.execute(sql, args)
-        rows = cursor.fetchall()
-        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        row_count = cursor.rowcount
-        status = "ok"
-        message = StatusCode.OK.msg
-        code = StatusCode.OK.code
-    except Exception as e:
-        status = "error"
-        message = StatusCode.ERR_DB.msg
-        code = StatusCode.ERR_DB.code
-        logger.exception("sql执行失败:%s", e)
-    finally:
-        if cursor: cursor.close()
-        # if connection : connection.close()  # 让django自己来关闭、新建连接,定时任务可能会出现大量连接,后续想办法处理
-        return {"status": status, "message": message, "code": code, "data": data, "row_count":row_count}
+# def find_all(sql, args=None):
+#     """
+#     传入SQL
+#     :param sql:
+#     :param args:
+#     :return:
+#     """
+#     cursor = None
+#     data = []
+#     row_count = 0
+#     try:
+#         cursor = connection.cursor()
+#         cursor.execute(sql, args)
+#         rows = cursor.fetchall()
+#         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+#         row_count = cursor.rowcount
+#         status = "ok"
+#         message = StatusCode.OK.msg
+#         code = StatusCode.OK.code
+#     except Exception as e:
+#         status = "error"
+#         message = StatusCode.ERR_DB.msg
+#         code = StatusCode.ERR_DB.code
+#         logger.exception("sql执行失败:%s", e)
+#     finally:
+#         if cursor: cursor.close()
+#         # if connection : connection.close()  # 让django自己来关闭、新建连接,定时任务可能会出现大量连接,后续想办法处理
+#         return {"status": status, "message": message, "code": code, "data": data, "row_count":row_count}
 
 def find_all_many(sql_list):
     """
@@ -95,30 +95,30 @@ def find_all_many(sql_list):
         return {"status": status, "message": message, "code": code, "data": data, "row_count":row_count}
 
 
-def dml(sql, args=None):
-    """
-    单条DML,不使用字符串拼接sql,通过传递参数解决sql注入问题
-    :param sql:
-    :param args:
-    :return:
-    """
-    affected_rows = 0
-    cursor = None
-    try:
-        cursor = connection.cursor()
-        affected_rows = cursor.execute(sql, args)
-        status = "ok"
-        message = StatusCode.OK.msg
-        code = StatusCode.OK.code
-    except Exception as e:
-        status = "error"
-        message = StatusCode.ERR_DB.msg
-        code = StatusCode.ERR_DB.code
-        logger.exception("sql执行失败:%s", e)
-    finally:
-        if cursor: cursor.close()
-        if connection: connection.close()
-        return {"status": status, "message": message, "code": code, "affected_rows": affected_rows}
+# def dml(sql, args=None):
+#     """
+#     单条DML,不使用字符串拼接sql,通过传递参数解决sql注入问题
+#     :param sql:
+#     :param args:
+#     :return:
+#     """
+#     affected_rows = 0
+#     cursor = None
+#     try:
+#         cursor = connection.cursor()
+#         affected_rows = cursor.execute(sql, args)
+#         status = "ok"
+#         message = StatusCode.OK.msg
+#         code = StatusCode.OK.code
+#     except Exception as e:
+#         status = "error"
+#         message = StatusCode.ERR_DB.msg
+#         code = StatusCode.ERR_DB.code
+#         logger.exception("sql执行失败:%s", e)
+#     finally:
+#         if cursor: cursor.close()
+#         if connection: connection.close()
+#         return {"status": status, "message": message, "code": code, "affected_rows": affected_rows}
 
 
 def batch_insert(sql, args=None):
@@ -171,9 +171,10 @@ def dml_many(sql_list):
     try:
         with transaction.atomic():
             cursor = connection.cursor()
-            for sql in sql_list:
-                item_sql_affected_rows = cursor.execute(sql)
-                affected_rows += item_sql_affected_rows
+            affected_rows = sum(cursor.execute(sql) for sql in sql_list)
+            # for sql in sql_list:
+            #     item_sql_affected_rows = cursor.execute(sql)
+            #     affected_rows += item_sql_affected_rows
         status = "ok"
         message = StatusCode.OK.msg
         code = StatusCode.OK.code
@@ -314,8 +315,8 @@ def get_dsn(ip=None,port=None,user=db_all_remote_user,pwd=db_all_remote_pass,cha
     return {"ip":ip,"port":port,"user":user,"pwd":pwd,"charset":charset,"connect_timeout":connect_timeout}
 
 
-class Db:
-    def __init__(self, from_http=True, dsn=None):
+class DbUtil:
+    def __init__(self, close_conn=False, dsn=None):
         self._status = "ok"
         self._message = StatusCode.OK.msg
         self._code = StatusCode.OK.code
@@ -325,19 +326,26 @@ class Db:
         self._execute_time = 0
         self._cursor = None
         self._dsn = dsn
-        self._from_http = from_http
-        if self._dsn is None:
-            self._connection = connection
-        else:
-            self._connection = pymysql.connect(
-                host=dsn.get('ip'),
-                port=int(dsn.get('port')),
-                user=dsn.get('user'),
-                passwd=dsn.get('pass'),
-                db=dsn.get('db'),
-                charset="utf-8",
-                connect_timeout=dsn.get('my_connect_timeout')
-            )
+        self._close_conn = close_conn
+        self._get_connection()
+        self._start_time = datetime.now()
+
+    def _get_connection(self):
+        try:
+            if self._dsn is None:
+                self._connection = connection
+            else:
+                self._connection = pymysql.connect(
+                    host=self._dsn.get('ip'),
+                    port=int(self._dsn.get('port')),
+                    user=self._dsn.get('user'),
+                    passwd=self._dsn.get('pass'),
+                    db=self._dsn.get('db'),
+                    charset="utf-8",
+                    connect_timeout=self._dsn.get('my_connect_timeout')
+                )
+        except Exception as e:
+            return self._err(str(e))
 
     def find_all(self, sql, args=None):
         try:
@@ -347,13 +355,9 @@ class Db:
             self._data = [dict(zip([col[0] for col in self._cursor.description], row)) for row in rows]
             self._row_count = self._cursor.rowcount
         except Exception as e:
-            return self._err()
+            return self._err(str(e))
         finally:
-            if self._cursor: self._cursor.close()
-            # 远程连接需要手动关闭连接
-            if self._dsn is not None and self._connection : self._connection.close()
-            # 非http调用执行的SQL需要手动关闭
-            if not self._from_http:self._connection.close()
+            self._close_session()
             return self._ok()
 
     def dml(self, sql, args=None):
@@ -361,20 +365,46 @@ class Db:
             self._cursor = self._connection.cursor()
             self._affected_rows = self._cursor.execute(sql, args)
         except Exception as e:
-            return self._err()
+            return self._err(str(e))
         finally:
-            if self._cursor: self._cursor.close()
-            # 远程连接需要手动关闭连接
-            if self._dsn is not None and self._connection: self._connection.close()
-            # 非http调用执行的SQL需要手动关闭
-            if not self._from_http: self._connection.close()
-            return self._ok()
+            self._close_session()
             return self._ok()
 
-    def _err(self):
+    def batch_insert(self, sql, args=None):
+        """
+        批量插入,不使用字符串拼接sql,通过传递参数解决sql注入问题
+        :param sql:
+        :param args:[{},{}]、[(),()]、((),())
+            1)[{},{}]
+            args = [{"name":"lisa","age":18},{"name":"bob","age":11}]
+            sql = "insert into emp(name,age) values(%(name)s,%(age)s)"
+            batch_insert(sql, args)
+            2)[(),()]
+            args = [("lisa",18),("bob",11)]
+            sql = "insert into emp(name,age) values(%s,%s)"
+            batch_insert(sql, args)
+            3)((),())
+            args = (("lisa",18),("bob",11))
+            sql = "insert into emp(name,age) values(%s,%s)"
+            batch_insert(sql, args)
+        :param batch_size:
+        :return:
+        """
+        try:
+            self._cursor = self._connection.cursor()
+            self._affected_rows = self._cursor.executemany(sql, args)
+        except Exception as e:
+            return self._err()
+        finally:
+            self._close_session()
+            return self._ok()
+
+    def _err(self, msg):
+        logger.exception(msg)
         self._status = "error"
         self._message = StatusCode.ERR_DB.msg
         self._code = StatusCode.ERR_DB.code
+        self._execute_time = (self._start_time - datetime.now()).microseconds/1000
         return {
             "status": self._status,
             "message": self._message,
@@ -386,6 +416,7 @@ class Db:
         }
 
     def _ok(self):
+        self._execute_time = (self._start_time - datetime.now()).microseconds / 1000
         return {
             "status": self._status,
             "message": self._message,
@@ -395,3 +426,22 @@ class Db:
             "affected_rows": self._affected_rows,
             "execute_time": self._execute_time
         }
+
+    def _close_session(self):
+        if self._cursor:
+            self._cursor.close()
+        # 远程连接需要手动关闭连接
+        if self._dsn is not None and self._connection:
+            self._connection.close()
+        # 如果手动指定关闭连接,则sql运行完毕后关闭连接,django web默认一个http请求用一个conn,会自动清理,非http请求需要手动关闭连接
+        if self._close_conn and self._connection:
+            self._connection.close()
+
+
+def find_all(sql, args=None):
+    db = DbUtil()
+    return db.find_all(sql, args)
+
+def dml(sql, args=None):
+    db = DbUtil()
+    return db.dml(sql, args)
