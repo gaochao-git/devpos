@@ -125,7 +125,19 @@ def batch_insert(sql, args=None):
     """
     批量插入,不使用字符串拼接sql,通过传递参数解决sql注入问题
     :param sql:
-    :param args:[{},{}]
+    :param args:[{},{}]、[(),()]、((),())
+        1)[{},{}]
+        args = [{"name":"lisa","age":18},{"name":"bob","age":11}]
+        sql = "insert into emp(name,age) values(%(name)s,%(age)s)"
+        batch_insert(sql, args)
+        2)[(),()]
+        args = [("lisa",18),("bob",11)]
+        sql = "insert into emp(name,age) values(%s,%s)"
+        batch_insert(sql, args)
+        3)((),())
+        args = (("lisa",18),("bob",11))
+        sql = "insert into emp(name,age) values(%s,%s)"
+        batch_insert(sql, args)
     :param batch_size:
     :return:
     """
@@ -296,3 +308,90 @@ def target_source_dml_many(ip, port, sql_list, my_connect_timeout=2):
         if cursor: cursor.close()
         if conn: connection.close()
         return {"status": status, "message": message, "code": code, "affected_rows": affected_rows}
+
+
+def get_dsn(ip=None,port=None,user=db_all_remote_user,pwd=db_all_remote_pass,charset="utf-8",connect_timeout=0.2):
+    return {"ip":ip,"port":port,"user":user,"pwd":pwd,"charset":charset,"connect_timeout":connect_timeout}
+
+
+class Db:
+    def __init__(self, from_http=True, dsn=None):
+        self._status = "ok"
+        self._message = StatusCode.OK.msg
+        self._code = StatusCode.OK.code
+        self._data = []
+        self._row_count = None
+        self._affected_rows = None
+        self._execute_time = 0
+        self._cursor = None
+        self._dsn = dsn
+        self._from_http = from_http
+        if self._dsn is None:
+            self._connection = connection
+        else:
+            self._connection = pymysql.connect(
+                host=dsn.get('ip'),
+                port=int(dsn.get('port')),
+                user=dsn.get('user'),
+                passwd=dsn.get('pass'),
+                db=dsn.get('db'),
+                charset="utf-8",
+                connect_timeout=dsn.get('my_connect_timeout')
+            )
+
+    def find_all(self, sql, args=None):
+        try:
+            self._cursor = connection.cursor()
+            self._cursor.execute(sql, args)
+            rows = self._cursor.fetchall()
+            self._data = [dict(zip([col[0] for col in self._cursor.description], row)) for row in rows]
+            self._row_count = self._cursor.rowcount
+        except Exception as e:
+            return self._err()
+        finally:
+            if self._cursor: self._cursor.close()
+            # 远程连接需要手动关闭连接
+            if self._dsn is not None and self._connection : self._connection.close()
+            # 非http调用执行的SQL需要手动关闭
+            if not self._from_http:self._connection.close()
+            return self._ok()
+
+    def dml(self, sql, args=None):
+        try:
+            self._cursor = self._connection.cursor()
+            self._affected_rows = self._cursor.execute(sql, args)
+        except Exception as e:
+            return self._err()
+        finally:
+            if self._cursor: self._cursor.close()
+            # 远程连接需要手动关闭连接
+            if self._dsn is not None and self._connection: self._connection.close()
+            # 非http调用执行的SQL需要手动关闭
+            if not self._from_http: self._connection.close()
+            return self._ok()
+            return self._ok()
+
+    def _err(self):
+        self._status = "error"
+        self._message = StatusCode.ERR_DB.msg
+        self._code = StatusCode.ERR_DB.code
+        return {
+            "status": self._status,
+            "message": self._message,
+            "code": self._code,
+            "data": self._data,
+            "row_count": self._row_count,
+            "affected_rows": self._affected_rows,
+            "execute_time": self._execute_time
+        }
+
+    def _ok(self):
+        return {
+            "status": self._status,
+            "message": self._message,
+            "code": self._code,
+            "data": self._data,
+            "row_count": self._row_count,
+            "affected_rows": self._affected_rows,
+            "execute_time": self._execute_time
+        }
