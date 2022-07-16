@@ -6,7 +6,10 @@ def generate_key():
     生成公私钥对
     :return:
     """
+
+    # 伪随机数生成器
     random_generator = Random.new().read
+    # rsa算法生成实例
     rsa = RSA.generate(2048, random_generator)
     # 生成私钥
     private_key = rsa.exportKey()
