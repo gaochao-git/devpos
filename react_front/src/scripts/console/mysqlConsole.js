@@ -795,10 +795,10 @@ export default class mysqlConsole extends Component {
           {
           this.state.contextMenuVisiable ?
            <div
-             style={{ ...this.state.contextMenuStyle, position: 'fixed',width:100,height:100,background:'#f1f2f5',zIndex:9999,paddingLeft:20,borderRadius:5}}
+             style={{ ...this.state.contextMenuStyle, position: 'fixed',width:130,height:200,background:'#f1f2f5',zIndex:9999,borderRadius:5}}
            >
-             <p>查看表结构</p>
-             <p>查询数据</p>
+             <Button type="link" onClick={()=>message.success('表结构')}>表结构</Button>
+             <Button type="link" onClick={()=>message.success('表信息')}>表信息</Button>
            </div>
            :null
           }
