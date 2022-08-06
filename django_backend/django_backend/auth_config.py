@@ -1,8 +1,10 @@
 import socket
-from apps.utils.rsa_key.enc_dec_pass import decrypt_data
+from apps.utils.enc_sm4 import PySM4
 import logging
 logger = logging.getLogger('devops')
 
+# 实例化加解密
+py_sm4 = PySM4()
 
 # 获取本机器ip来决定使用哪个配置文件
 try:
@@ -12,30 +14,29 @@ try:
     csock.close()
 except socket.error as e:
     logger.error(str(e))
-
 pro_host_list = ['47.104.2.74']
 if ip in pro_host_list:
     django_database_host = '47.104.2.74'
     django_database_port = 3306
     django_database_user = 'gaochao'
-    django_database_pass = decrypt_data('qs7LQMz0nxo2y1pZNUPkZXiBXUUxlbLmSi/xQitHGliGZ5/OZaKqDDaW6jY+IRwZtxHJdKaAcy1QqAejxkHPiqzYjwhzxhbyTFLMaSmatwAwbFv1YSDeB48y9dFvXVMnNCx0uzuIB4RPn32L7R0bhHYjGicYYkb85/rp7xePlWlkD3q7aNHkB6Nf4uyxalt/4wKzPLlaW0DgKXFg9TNNKJc1safd11KYSy8/8EM23hGYys8OH2IdcSa5lD+RNM3glyVnG6s/1qS0cr4c6L1ZhrAM0PPNL6OxQROkd6lWi5PMlCpKAXOmn6qJNkxy+3NCMPq+UQ+nH6RhEoWhxitMiA==')
+    django_database_pass = py_sm4.dec_sm4('627e679465395e8fd1b3cf68a4c25814')
     inception_host = '47.104.2.74'
     inception_port = 6669
     inception_backup_host = '47.104.2.74'
     inception_backup_port = 3306
     inception_backup_user = 'gaochao'
-    inception_backup_pass = decrypt_data('qs7LQMz0nxo2y1pZNUPkZXiBXUUxlbLmSi/xQitHGliGZ5/OZaKqDDaW6jY+IRwZtxHJdKaAcy1QqAejxkHPiqzYjwhzxhbyTFLMaSmatwAwbFv1YSDeB48y9dFvXVMnNCx0uzuIB4RPn32L7R0bhHYjGicYYkb85/rp7xePlWlkD3q7aNHkB6Nf4uyxalt/4wKzPLlaW0DgKXFg9TNNKJc1safd11KYSy8/8EM23hGYys8OH2IdcSa5lD+RNM3glyVnG6s/1qS0cr4c6L1ZhrAM0PPNL6OxQROkd6lWi5PMlCpKAXOmn6qJNkxy+3NCMPq+UQ+nH6RhEoWhxitMiA==')
+    inception_backup_pass = py_sm4.dec_sm4('627e679465395e8fd1b3cf68a4c25814')
 else:
     django_database_host = '47.104.2.74'
     django_database_port = 3306
     django_database_user = 'gaochao'
-    django_database_pass = decrypt_data('qs7LQMz0nxo2y1pZNUPkZXiBXUUxlbLmSi/xQitHGliGZ5/OZaKqDDaW6jY+IRwZtxHJdKaAcy1QqAejxkHPiqzYjwhzxhbyTFLMaSmatwAwbFv1YSDeB48y9dFvXVMnNCx0uzuIB4RPn32L7R0bhHYjGicYYkb85/rp7xePlWlkD3q7aNHkB6Nf4uyxalt/4wKzPLlaW0DgKXFg9TNNKJc1safd11KYSy8/8EM23hGYys8OH2IdcSa5lD+RNM3glyVnG6s/1qS0cr4c6L1ZhrAM0PPNL6OxQROkd6lWi5PMlCpKAXOmn6qJNkxy+3NCMPq+UQ+nH6RhEoWhxitMiA==')
+    django_database_pass = py_sm4.dec_sm4('627e679465395e8fd1b3cf68a4c25814')
     inception_host = '47.104.2.74'
     inception_port = 6669
     inception_backup_host = '47.104.2.74'
     inception_backup_port = 3306
     inception_backup_user = 'gaochao'
-    inception_backup_pass = decrypt_data('qs7LQMz0nxo2y1pZNUPkZXiBXUUxlbLmSi/xQitHGliGZ5/OZaKqDDaW6jY+IRwZtxHJdKaAcy1QqAejxkHPiqzYjwhzxhbyTFLMaSmatwAwbFv1YSDeB48y9dFvXVMnNCx0uzuIB4RPn32L7R0bhHYjGicYYkb85/rp7xePlWlkD3q7aNHkB6Nf4uyxalt/4wKzPLlaW0DgKXFg9TNNKJc1safd11KYSy8/8EM23hGYys8OH2IdcSa5lD+RNM3glyVnG6s/1qS0cr4c6L1ZhrAM0PPNL6OxQROkd6lWi5PMlCpKAXOmn6qJNkxy+3NCMPq+UQ+nH6RhEoWhxitMiA==')
+    inception_backup_pass = py_sm4.dec_sm4('627e679465395e8fd1b3cf68a4c25814')
 
 CONNECT_INFO = {
     # 项目数据库配置
