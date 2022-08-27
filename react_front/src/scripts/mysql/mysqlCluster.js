@@ -1,7 +1,7 @@
 import React,{Component} from 'react';
 import axios from 'axios'
 import MyAxios from "../common/interface"
-import {Table, Input, Badge, Tabs, Card, Col, Row, Button,message} from "antd";
+import {Table, Input, Badge, Tabs, Card, Col, Row, Button,message,Modal} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -16,6 +16,9 @@ export default class mysqlCluster extends Component  {
         super(props);
         this.state = {
             cluster_info:[],
+            cluster_instance_info:[],
+            MysqlInstanceVisible:false,
+            current_cluster:"",
         }
     }
 
@@ -45,9 +48,23 @@ export default class mysqlCluster extends Component  {
                 message.error(res.data.message)}
         ).catch(err => {message.error(err.message)})
     }
+    //获取集群实例
+    async getMysqlClusterIns(cluster_name) {
+        let params = { cluster_name:cluster_name};
+        await MyAxios.post('/db_resource/v1/get_mysql_cluster_ins_info/',params).then(
+            res => {res.data.status==="ok" ?
+                this.setState({
+                    cluster_instance_info: res.data.data,
+                    MysqlInstanceVisible:true,
+                    current_cluster:cluster_name,
+                })
+            :
+                message.error(res.data.message)}
+        ).catch(err => {message.error(err.message)})
+    }
 
     render() {
-        let {cluster_info} = this.state;
+        let {cluster_instance_info} = this.state;
         const temp = {}; // 当前重复的值,支持多列
         const mergeCells = (text, array, columns) => {
           let i = 0;
@@ -61,39 +78,55 @@ export default class mysqlCluster extends Component  {
           }
           return i;
         };
-        const columns = [
+        const cluster_columns = [
           {
             title: '集群名',
             dataIndex: 'cluster_name',
             key: 'cluster_name',
-            render: (text, record) => {
-              const obj = {
-                children: text,
-                props: {},
-              };
-              obj.props.rowSpan = mergeCells(record.cluster_name, cluster_info, 'cluster_name');
-              return obj;
-            },
+            render:(text, row) => {
+                return (
+                   <Button className="link-button" onClick={()=>{this.getMysqlClusterIns(text)}}>{text}</Button>
+                )
+              }
           },
           {
             title: '集群类型',
             dataIndex: 'cluster_type',
           },
           {
-              title: '主机名',
-              dataIndex: 'host_name',
+            title: 'vip',
+            dataIndex: 'vip',
           },
+          {
+            title: '业务线',
+            dataIndex: 'vip',
+          },
+          {
+            title: 'dba',
+            dataIndex: 'vip',
+          },
+          {
+            title: 'qa',
+            dataIndex: 'vip',
+          },
+          {
+            title: 'dev',
+            dataIndex: 'vip',
+          },
+        ];
+
+        const mysql_cluster_instance_columns = [
           {
               title: '实例名',
-              colSpan: 1,
               dataIndex: 'instance_name',
+              width:'20%',
+              render:(text,record) => {
+                return <span>{record.read_only ? <Badge status="success"/>:<Badge status="error"/>}{text}</span>
+            }
           },
           {
-            title: '实例状态',
-            dataIndex: 'instance_status',
-            render:(val) => {
-                return <span>{val==="正常服务" ? <Badge status="success"/>:<Badge status="error"/>}{val}</span>
-            }
+            title: '角色',
+            dataIndex: 'instance_role',
           },
           {
             title: 'read_only',
@@ -105,17 +138,74 @@ export default class mysqlCluster extends Component  {
           },
           {
               title: '字符集',
-              dataIndex: 'server_charset',
+              dataIndex: 'character_set_server',
           },
           {
-              title: 'master_ip',
-              dataIndex: 'master_ip',
+              title: '连接数',
+              dataIndex: 'conn_threads',
           },
           {
-              title: 'master_port',
-              dataIndex: 'master_port',
+              title: '活跃连接数',
+              dataIndex: 'active_threads',
+          },
+          {
+              title: '采集时间',
+              dataIndex: 'update_time',
+              width:'20%',
           },
         ];
+
+        const mysql_cluster_instance_repl_columns = [
+          {
+              title: '实例名',
+              dataIndex: 'instance_name',
+              width:'20%',
+              render:(text,record) => {
+                return <span>{record.read_only ? <Badge status="success"/>:<Badge status="error"/>}{text}</span>
+            }
+          },
+          {
+              title: 'io',
+              dataIndex: 'Slave_IO_Running',
+          },
+          {
+              title: 'sql',
+              dataIndex: 'Slave_SQL_Running',
+          },
+          {
+              title: 'delay(s)',
+              dataIndex: 'Seconds_Behind_Master',
+          },
+          {
+              title: 'm_ip',
+              dataIndex: 'Master_Host',
+          },
+          {
+              title: 'm_port',
+              dataIndex: 'Master_Port',
+          },
+          {
+              title: 'semi_m_enabled',
+              dataIndex: 'rpl_semi_sync_master_enabled',
+          },
+          {
+              title: 'semi_s_enabled',
+              dataIndex: 'rpl_semi_sync_slave_enabled',
+          },
+          {
+              title: 'semi_clients',
+              dataIndex: 'Rpl_semi_sync_master_clients',
+          },
+          {
+              title: 'semi_m_status',
+              dataIndex: 'Rpl_semi_sync_master_status',
+          },
+          {
+              title: 'semi_timeout(ms)',
+              dataIndex: 'rpl_semi_sync_master_timeout',
+          },
+        ];
+
         const hostDataSource = [
             {
                 key: '1',
@@ -325,7 +415,7 @@ export default class mysqlCluster extends Component  {
                 </div>
                 <Table
                     dataSource={this.state.cluster_info}
-                    columns={columns}
+                    columns={cluster_columns}
                     bordered
                     size="small"
                 />
@@ -533,6 +623,29 @@ export default class mysqlCluster extends Component  {
                         Content of Tab Pane 3
                     </TabPane>
               </Tabs>
+              <Modal visible={this.state.MysqlInstanceVisible}
+                        onCancel={() => this.setState({MysqlInstanceVisible:false})}
+                        title={this.state.current_cluster}
+                        footer={false}
+                        width={1300}
+                    >
+                        通用信息
+                        <Table
+                            dataSource={this.state.cluster_instance_info}
+                            columns={mysql_cluster_instance_columns}
+                            bordered
+                            size="small"
+                            pagination={false}
+                        />
+                        复制信息
+                        <Table
+                            dataSource={this.state.cluster_instance_info}
+                            columns={mysql_cluster_instance_repl_columns}
+                            bordered
+                            pagination={false}
+                            size="small"
+                        />
+                    </Modal>
             </div>
         )
     }

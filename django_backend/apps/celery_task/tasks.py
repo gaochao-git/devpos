@@ -7,6 +7,7 @@
 import time
 from celery import task
 from apps.celery_task.install_mysql import InstallMysql
+from apps.celery_task.cron_collect_mysql_info import CollectMysql
 import logging
 logger = logging.getLogger('inception_execute_logger')
 from apps.celery_task.callback import MyTaskCallback
@@ -30,3 +31,10 @@ def install_mysql(submit_uuid, deploy_topos, deploy_version):
     """
     install_mysql_task = InstallMysql(submit_uuid, deploy_topos, deploy_version)
     install_mysql_task.task_run()
+
+
+@task
+def collect_mysql():
+    pool_count = 20
+    collect_mysql_task = CollectMysql(pool_count)
+    collect_mysql_task.task_run()

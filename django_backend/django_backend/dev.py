@@ -27,8 +27,10 @@ DATABASES = {
 }
 
 ################# celery配置 ##################
+# python manage.py celery  beat -S djcelery.schedulers.DatabaseScheduler -l debug  -f logs/celery_beat.log
 # python manage.py celery  beat  -l debug  -f logs/celery_beat.log  # 启动定时任务
-# python manage.py celery worker -E -c 4 --loglevel=INFO -f logs/celery_worker.log  # 启动消费worker
+# python manage.py celery worker -E -c 4 --loglevel=INFO -f logs/celery_worker.log -Q default --purge  # 启动消费worker
+# python manage.py celery worker -E -c 4 --loglevel=DEBUG -f logs/celery_worker.log -Q async_task --purge -n async_worker1
 # python manage.py celerycam -l debug -f logs/celery_cam.log  # 启动监控各个任务状态及结果的进程
 djcelery.setup_loader()
 CELERY_IMPORTS= ('apps.celery_task.tasks',)
@@ -50,10 +52,10 @@ CELERY_SEND_TASK_SENT_EVENT = True
 # 定时任务,配置文件方式管理（定时任务支持配置文件与数据库两种管理方式）
 # CELERYBEAT_SCHEDULER = 'celery.beat:PersistentScheduler'       # beat默认调度器,Berkeley DB,本地celerybeat-schedule.db文件,使用shelve进行操作
 # CELERYBEAT_SCHEDULE_FILENAME = 'celerybeat-schedule.db'       # 存储最近间隔任务
-# CELERYBEAT_SCHEDULE = {                                       #
+# CELERYBEAT_SCHEDULER = {
 #     'check_cluster_health':{
-#         "task": "apps.celery_task.cron_check_cluster_health",
-#         "schedule": timedelta(seconds=30),
+#         "task": "apps.celery_task.cron_collect_mysql_info",
+#         "achedule": timedelta(seconds=30),
 #         "args": (),
 #     },
 # }

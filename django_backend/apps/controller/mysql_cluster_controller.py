@@ -32,3 +32,10 @@ def get_mysql_cluster_by_cluster_name_controller(request):
     cluster_name = json.loads(to_str)['cluster_name']
     ret = mysql_cluster.get_mysql_cluster_by_cluster_name(cluster_name)
     return HttpResponse(json.dumps(ret), content_type='application/json')
+
+
+def get_mysql_cluster_ins_info_controller(request):
+    to_str = str(request.body, encoding="utf-8")
+    cluster_name = json.loads(to_str)['cluster_name']
+    ret = mysql_cluster.get_mysql_cluster_ins_info(cluster_name)
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')

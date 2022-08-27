@@ -34,3 +34,9 @@ def get_mysql_cluster_by_cluster_name(cluster_name):
     finally:
         content = {'status': status, 'message': message, 'data': data}
         return content
+
+
+
+def get_mysql_cluster_ins_info(cluster_name):
+    ret = mysql_cluster_dao.get_mysql_cluster_ins_info_dao(cluster_name)
+    return ret

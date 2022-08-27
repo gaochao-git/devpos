@@ -134,6 +134,7 @@ class AddTaskController(BaseView):
             ret = self.create_cron_task()
         else:
             ret = self.create_interval_task()
+        print(ret)
         return self.my_response(ret)
 
     def create_cron_task(self):
