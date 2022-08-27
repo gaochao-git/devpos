@@ -122,6 +122,10 @@ def get_mysql_cluster_ins_info_dao(cluster_name):
         format_dict['rpl_semi_sync_master_enabled'] = instance_var.get('rpl_semi_sync_master_enabled')
         format_dict['rpl_semi_sync_slave_enabled'] = instance_var.get('rpl_semi_sync_slave_enabled')
         format_dict['rpl_semi_sync_master_timeout'] = instance_var.get('rpl_semi_sync_master_timeout')
+        format_dict['innodb_flush_log_at_trx_commit'] = instance_var.get('innodb_flush_log_at_trx_commit')
+        format_dict['innodb_buffer_pool_size'] = round(int(instance_var.get('innodb_buffer_pool_size'))/1024/1024/1024, 2) if instance_var.get('innodb_buffer_pool_size') is not None else None
+        format_dict['sync_binlog'] = instance_var.get('sync_binlog')
+        format_dict['have_ssl'] = instance_var.get('have_ssl')
 
         # 全局status
         format_dict['Rpl_semi_sync_master_clients'] = instance_status.get('Rpl_semi_sync_master_clients')

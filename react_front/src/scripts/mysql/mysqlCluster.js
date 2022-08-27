@@ -141,12 +141,28 @@ export default class mysqlCluster extends Component  {
               dataIndex: 'character_set_server',
           },
           {
-              title: '连接数',
+              title: 'conn',
               dataIndex: 'conn_threads',
           },
           {
-              title: '活跃连接数',
+              title: 'run',
               dataIndex: 'active_threads',
+          },
+          {
+              title: 'mem(G)',
+              dataIndex: 'innodb_buffer_pool_size',
+          },
+          {
+              title: 'ssl',
+              dataIndex: 'have_ssl',
+          },
+          {
+              title: 'binlog_sync',
+              dataIndex: 'sync_binlog',
+          },
+          {
+              title: 'redo_sync',
+              dataIndex: 'innodb_flush_log_at_trx_commit',
           },
           {
               title: '采集时间',

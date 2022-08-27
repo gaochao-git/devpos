@@ -431,10 +431,7 @@ class DbUtil:
         if self._cursor:
             self._cursor.close()
         # 远程连接需要手动关闭连接
-        if self._dsn is not None and self._connection:
-            self._connection.close()
-        # 如果手动指定关闭连接,则sql运行完毕后关闭连接,django web默认一个http请求用一个conn,会自动清理,非http请求需要手动关闭连接
-        if self._close_conn and self._connection:
+        if self._connection:
             self._connection.close()
 
 

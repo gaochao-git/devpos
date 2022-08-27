@@ -34,7 +34,7 @@ class CollectMysql:
 
         # 可迭代对象丢给线程池并发执行
         pool = ThreadPool(self._pool_count)
-        result = pool.map(self._collect_info, instance_list)
+        pool.map(self._collect_info, instance_list)
         pool.close()
         pool.join()
 
@@ -68,8 +68,12 @@ class CollectMysql:
         """获取连接数"""
         sql = 'select * from information_schema.processlist'
         ret = db_helper.target_source_find_all(ip, port ,sql)
-        conn_threads = len(ret['data'])
-        active_threads = len([i for i in ret['data'] if i.get('COMMAND') in['Query','Execute'] ])
+        if ret['status'] == "ok":
+            conn_threads = len(ret['data'])
+            active_threads = len([i for i in ret['data'] if i.get('COMMAND') in['Query','Execute'] ])
+        else:
+            conn_threads = None
+            active_threads = None
         return {"conn_threads": conn_threads, "active_threads": active_threads}
 
     def _get_global_var(self, ip, port):
@@ -83,7 +87,6 @@ class CollectMysql:
         filter_dict['version'] = var_dict.get('version')
         filter_dict['character_set_server'] = var_dict.get('character_set_server')
         filter_dict['have_ssl'] = var_dict.get('have_ssl')
-        filter_dict['have_openssl'] = var_dict.get('have_openssl')
         filter_dict['tls_version'] = var_dict.get('tls_version')
         filter_dict['system_time_zone'] = var_dict.get('system_time_zone')
         filter_dict['time_zone'] = var_dict.get('time_zone')
