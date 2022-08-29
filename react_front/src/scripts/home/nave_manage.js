@@ -10,6 +10,7 @@ class NavManage extends Component {
         //定义侧边栏主按钮与菜单对应关系
         var menu_path = {
             "/userRole":"sub1",
+            "/databaseResource":"sub1",
             "/taskManage":"sub2",
         }
         //确定侧边栏选中的菜单
@@ -35,6 +36,9 @@ class NavManage extends Component {
                 <SubMenu key="sub1" title={<span><Icon type="user" /><span>用户管理</span></span>}>
                     <Menu.Item key="/userRole">
                         <Link to="/userRole">角色管理</Link>
+                    </Menu.Item>
+                    <Menu.Item key="/databaseResource">
+                        <Link to="/databaseResource">database管理</Link>
                     </Menu.Item>
                 </SubMenu>
                 <SubMenu key="sub2" title={<span><Icon type="robot" /><span>任务管理</span></span>}>

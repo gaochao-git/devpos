@@ -332,3 +332,89 @@ def list_split_group(source_list, size=50):
         level1_list.append(level2_list)
     target_group_list = [x for x in level1_list if x]
     return target_group_list
+
+
+def record_2_json(records):
+    """
+    :param records: [
+        {'id': 1, 'country_name': '中国', 'company_name': 'nuxx', 'department_name': '基础设施', 'group_name': '技术组件', 'username': 'gaochao', 'display_username': '高超', 'user_email': ''},
+        {'id': 2, 'country_name': '中国', 'company_name': 'nuxx', 'department_name': '基础设施', 'group_name': '技术组件', 'username': 'zhangfei', 'display_username': '张飞', 'user_email': ''},
+        {'id': 3, 'country_name': '中国', 'company_name': 'nuxx', 'department_name': '一部', 'group_name': '交易', 'username': 'lisi', 'display_username': '李四', 'user_email': ''},
+        {'id': 4, 'country_name': '中国', 'company_name': 'nuxx', 'department_name': '基础设施', 'group_name': '运管团队', 'username': 'caocao', 'display_username': '曹操', 'user_email': ''}
+    ]
+    :return:[
+        {
+            'title': '基础设施',
+            'key': '基础设施',
+            'children': [
+                {
+                    'title': '技术组件',
+                    'key': '基础设施-技术组件',
+                    'children': [
+                        {'title': 'gaochao', 'key': '基础设施-技术组件-gaochao'},
+                        {'title': 'zhangfei', 'key': '基础设施-技术组件-zhangfei'}
+                    ]
+                },
+                {
+                    'title': '运管团队',
+                    'key': '基础设施-运管团队',
+                    'children': [
+                        {'title': 'caocao', 'key': '基础设施-运管团队-caocao'}
+                    ]
+                }
+            ]
+        },
+        {
+            'title': '一部',
+            'key': '一部',
+            'children': [
+                {
+                    'title': '交易',
+                    'key': '一部-交易',
+                    'children': [
+                        {'title': 'lisi', 'key': '一部-交易-lisi'}
+                    ]
+                }
+            ]
+        }
+    ]
+    """
+    l1_data = []
+    l2_data = []       # 衔接l1与l3
+    l3_data = []
+    for i in records:
+        # title=基础设施,key=基础设施,children=[]
+        l1_dict = {}
+        l1_dict['title'] = i.get('department_name')
+        l1_dict['key'] = i.get('department_name')
+        l1_dict['children'] = []
+        if l1_dict not in l1_data: l1_data.append(l1_dict)
+        # title=技术组件,key=基础设施-技术组件,children=[]
+        l2_dict = {}
+        l2_dict['title'] = i.get('group_name')
+        l2_dict['key'] = i.get('department_name') + '-' + i.get('group_name')
+        l2_dict['children'] = []
+        if l2_dict not in l2_data: l2_data.append(l2_dict)
+        # title="gaochao"key=基础设施-技术组件-gaochao
+        l3_dict = {}
+        l3_dict['title'] = i.get('username')
+        l3_dict['key'] = i.get('department_name') + '-' + i.get('group_name') + '-' + i.get('username')
+        if l3_dict not in l3_data:  l3_data.append(l3_dict)
+    # 第一次处理结果
+    # l1_data = [{'title': '基础设施', 'key': '基础设施', 'children': []}, {'title': '一部', 'key': '一部', 'children': []}]
+    # l2_data = [{'title': '技术组件', 'key': '基础设施-技术组件', 'children': []}, {'title': '交易', 'key': '一部-交易', 'children': []}, {'title': '运管团队', 'key': '基础设施-运管团队', 'children': []}]
+    # l3_data = [{'title': 'gaochao', 'key': '基础设施-技术组件-gaochao'}, {'title': 'zhangfei', 'key': '基础设施-技术组件-zhangfei'}, {'title': 'lisi', 'key': '一部-交易-lisi'}, {'title': 'caocao', 'key': '基础设施-运管团队-caocao'}]
+    # 将用户挂到小组中
+    for user in l3_data:
+        for group in l2_data:
+            print('-'.join(user.get('key').split('-')[0:2]))
+            if '-'.join(user.get('key').split('-')[0:2]) == group.get('key'):
+                group['children'].append(user)
+    # 将小组挂到部门，生成最终数据
+    for group1 in l2_data:
+        for department in l1_data:
+            print('-'.join(group1.get('key').split('-')[0:1]))
+            if '-'.join(group1.get('key').split('-')[0:1]) == department.get('key'):
+                department['children'].append(group1)
+    print('l1:%s' % l1_data)
+    return l1_data

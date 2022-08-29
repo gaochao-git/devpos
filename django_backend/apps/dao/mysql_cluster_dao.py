@@ -140,3 +140,16 @@ def get_mysql_cluster_ins_info_dao(cluster_name):
 
         format_list.append(format_dict)
     return {"status": "ok", "message": "获取数据成功", "data": format_list}
+
+
+def get_schema_list_dao(schema_name):
+    """
+    获取库名列表
+    :param schema_name:
+    :return:
+    """
+    if schema_name is None:
+        sql = "select cluster_name,schema_name from database_dict"
+    else:
+        sql = f"select cluster_name,schema_name from database_dict where schema_name='{schema_name}'"
+    return db_helper.find_all(sql)

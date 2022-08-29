@@ -28,6 +28,7 @@ import NavOps from './scripts/home/nave_ops'
 import imgURL from './my_logo.jpg'
 import HomeDbaInfo from './scripts/bigScreen/home_dba'
 import UserRole from './scripts/permission/userRole'
+import DatabaseResource from './scripts/permission/database_resource'
 import TaskManage from './scripts/task/taskManage'
 import MetaCompare from './scripts/console/metaCompare'
 
@@ -193,6 +194,7 @@ class App extends Component {
                                     <Route exact path="/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
                                     <Route exact path="/rds" component={Rds} />
                                     <Route exact path="/userRole" component={UserRole} />
+                                    <Route exact path="/databaseResource" component={DatabaseResource} />
                                     <Route exact path="/taskManage" component={TaskManage} />
                                     <Route exact path="/mysqlConsoleNew" component={MysqlConsoleNew} />
                                     <Route exact path="/metaCompare" component={MetaCompare} />

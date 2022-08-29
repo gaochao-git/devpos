@@ -119,7 +119,6 @@ export default class mysqlCluster extends Component  {
           {
               title: '实例名',
               dataIndex: 'instance_name',
-              width:'20%',
               render:(text,record) => {
                 return <span>{record.read_only ? <Badge status="success"/>:<Badge status="error"/>}{text}</span>
             }
@@ -165,22 +164,6 @@ export default class mysqlCluster extends Component  {
               dataIndex: 'innodb_flush_log_at_trx_commit',
           },
           {
-              title: '采集时间',
-              dataIndex: 'update_time',
-              width:'20%',
-          },
-        ];
-
-        const mysql_cluster_instance_repl_columns = [
-          {
-              title: '实例名',
-              dataIndex: 'instance_name',
-              width:'20%',
-              render:(text,record) => {
-                return <span>{record.read_only ? <Badge status="success"/>:<Badge status="error"/>}{text}</span>
-            }
-          },
-          {
               title: 'io',
               dataIndex: 'Slave_IO_Running',
           },
@@ -220,7 +203,14 @@ export default class mysqlCluster extends Component  {
               title: 'semi_timeout(ms)',
               dataIndex: 'rpl_semi_sync_master_timeout',
           },
+          {
+              title: '采集时间',
+              dataIndex: 'update_time',
+              fixed:'right'
+          },
+
         ];
+
 
         const hostDataSource = [
             {
@@ -640,28 +630,19 @@ export default class mysqlCluster extends Component  {
                     </TabPane>
               </Tabs>
               <Modal visible={this.state.MysqlInstanceVisible}
-                        onCancel={() => this.setState({MysqlInstanceVisible:false})}
-                        title={this.state.current_cluster}
-                        footer={false}
-                        width={1300}
-                    >
-                        通用信息
-                        <Table
-                            dataSource={this.state.cluster_instance_info}
-                            columns={mysql_cluster_instance_columns}
-                            bordered
-                            size="small"
-                            pagination={false}
-                        />
-                        复制信息
-                        <Table
-                            dataSource={this.state.cluster_instance_info}
-                            columns={mysql_cluster_instance_repl_columns}
-                            bordered
-                            pagination={false}
-                            size="small"
-                        />
-                    </Modal>
+                  onCancel={() => this.setState({MysqlInstanceVisible:false})}
+                  title={this.state.current_cluster}
+                  footer={false}
+                  width={1200}
+              >
+                  <Table
+                      dataSource={this.state.cluster_instance_info}
+                      columns={mysql_cluster_instance_columns}
+                      scroll={{ x: true }}
+                      pagination={false}
+                      size="small"
+                  />
+              </Modal>
             </div>
         )
     }
