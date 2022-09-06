@@ -459,13 +459,9 @@ export default class ExecuteSql extends Component {
 
     //inception变量配置Modal显示
     async ShowInceptionVariableConfigModal(split_sql_file_path) {
-        let params = {
-            split_sql_file_path:split_sql_file_path
-        };
-        let res = await MyAxios.post(`${backendServerApiRoot}/get_inception_variable_config_info/`,params);
-        this.setState({
-            data: res.data.data,
-        });
+        let params = {split_sql_file_path:split_sql_file_path};
+        let res = await MyAxios.post('/audit_sql/v1/get_inception_variable_config_info/',params);
+        this.setState({data: res.data.data});
         this.cacheData = this.state.data.map(item => ({ ...item }))
         this.setState({
             InceptionVariableConfigModalVisible: true,
@@ -676,7 +672,7 @@ export default class ExecuteSql extends Component {
     const target = newData.filter(item => key === item.name)[0];       //原始行记录target.value,target.name
     const cacheData =  [...this.cacheData];
     const cacheTarget = cacheData.filter(item => key === item.name)[0];   //新行记录cacheTarget.value,cacheTarget.name
-      let newConfigJson = this.state.newConfig
+    let newConfigJson = this.state.newConfig
     if (target) {
       if(this.state.newClusterCfg[this.state.editingKey] && cacheTarget.value !== target.value){
           newConfigJson[key]=target.value

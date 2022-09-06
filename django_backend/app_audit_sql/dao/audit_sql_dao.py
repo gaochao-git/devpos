@@ -102,29 +102,30 @@ def remove_last_results_dao(submit_sql_uuid):
     return db_helper.dml(sql)
 
 
-# 页面查看inception变量配置
 def get_inception_variable_config_info_dao(split_sql_file_path):
+    """
+    页面查看inception变量配置,页面显示的配置是通过变量表和每个SQL执行文件参数进行并集展示
+    :param split_sql_file_path:
+    :return:
+    """
     sql = "select variable_name name,variable_value value,variable_description,editable from sql_inception_osc_config"
     sql_split_osc_config = "select inception_osc_config from sql_execute_split where split_sql_file_path='{}'".format(split_sql_file_path)
-    try:
-        sql_split_osc_config_row = db_helper.findall(sql_split_osc_config)
-        if sql_split_osc_config_row[0]["inception_osc_config"] == "" or sql_split_osc_config_row[0]["inception_osc_config"] == "{}":
-            new_data = db_helper.findall(sql)
-        else:
-            data = db_helper.findall(sql)
-            new_data = []
-            for i in sql_split_osc_config_row:
-                osc_config_variable_dict = json.loads(i["inception_osc_config"])
-                for j in data:
-                    if j["name"] in osc_config_variable_dict:
-                        j["value"] = osc_config_variable_dict[j["name"]]
-                        new_data.append(j)
-                    else:
-                        new_data.append(j)
-    except Exception as e:
-        logger.error(e)
-    finally:
-        return new_data
+    # 如果待执行SQL未配置参数则选用配置表中配置,如果待执行SQL存在OSC配置参数,则取并集
+    sql_split_osc_config_data = db_helper.find_all(sql_split_osc_config)['data']  # 待执行SQL osc配置
+    osc_config_data = db_helper.find_all(sql)['data'] # osc配置表数据
+    osc_data = [] # 前端展示的最终osc配置
+    if sql_split_osc_config_data[0]["inception_osc_config"] == "" or sql_split_osc_config_data[0]["inception_osc_config"] == "{}":
+        osc_data = osc_config_data
+    else:
+        for i in sql_split_osc_config_data:
+            osc_config_variable_dict = json.loads(i["inception_osc_config"])
+            for j in osc_config_data:
+                if j["name"] in osc_config_variable_dict:
+                    j["value"] = osc_config_variable_dict[j["name"]]
+                    osc_data.append(j)
+                else:
+                    osc_data.append(j)
+    return osc_data
 
 
 # 页面修改inception变量配置
