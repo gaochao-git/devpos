@@ -161,7 +161,7 @@ def get_inception_variable_config_info_controller(request):
 def update_inception_variable_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
     split_sql_file_path = request_body['split_sql_file_path']
-    new_config = request_body["params"]["new_config_json"]
+    new_config = request_body["new_config_json"]
     request_body_json = json.dumps(new_config)
     ret = audit_sql.update_inception_variable(request_body_json,split_sql_file_path)
     return my_response(ret)

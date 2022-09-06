@@ -131,13 +131,7 @@ def get_inception_variable_config_info_dao(split_sql_file_path):
 # 页面修改inception变量配置
 def update_inception_variable_dao(request_body_json,split_sql_file_path):
     sql = "update sql_execute_split set inception_osc_config='{}' where split_sql_file_path='{}'".format(request_body_json,split_sql_file_path)
-    try:
-        update_status = db_helper.dml(sql)
-    except Exception as e:
-        update_status = "error"
-        logger.error(e)
-    finally:
-        return update_status
+    return db_helper.dml(sql)
 
 
 def submit_sql_dao(login_user_name,sql_title, db_ip, db_port, file_path, leader_name, qa_name, dba_name,

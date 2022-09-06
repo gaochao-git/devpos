@@ -141,19 +141,7 @@ def get_inception_variable_config_info(split_sql_file_path):
 
 # 页面修改inception变量配置
 def update_inception_variable(request_body_json,split_sql_file_path):
-    try:
-        status = audit_sql_dao.update_inception_variable_dao(request_body_json,split_sql_file_path)
-        if status == "ok":
-            message = "更改osc变量成功"
-        else:
-            message = "更改osc变量失败"
-    except Exception as e:
-        status = "error"
-        message = e
-        logger.error(e)
-    finally:
-        content = {'status': status, 'message': message}
-        return content
+    return audit_sql_dao.update_inception_variable_dao(request_body_json,split_sql_file_path)
 
 
 def submit_recheck_sql(submit_sql_uuid, is_submit):
