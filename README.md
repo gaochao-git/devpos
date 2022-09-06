@@ -36,7 +36,10 @@ insert into team_user(uid,gid,uname,department,title) values(1,1,'gaochao','运�
         python3.5 manage.py runserver 0.0.0.0:8000
         公司: D:\gaochao\SoftInstall\anaconda\envs\python36\python.exe .\manage.py runserver 0.0.0.0:8000
     4)启动celery
-        python3.5 manage.py celery worker --concurrency=4  --loglevel=info --logfile=./logs/celery.log
+        python manage.py celery worker -E -c 2 -O fair --loglevel=INFO -f logs/celery_worker.log -Q async_task --purge
+        python manage.py celery worker -E -c 2 -O fair --loglevel=INFO -f logs/celery_worker.log -Q default --purge
+        python manage.py celery  beat -S djcelery.schedulers.DatabaseScheduler -l debug  -f logs/celery_beat.log
+        python manage.py celery flower --basic_auth=root:root@123
 2.启动前端
     1)安装nodejs
         brew install nodejs #安装nodejs根据mac、windows、linux不同系统自行百度安装
