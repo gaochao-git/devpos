@@ -5,6 +5,8 @@
 from validator import Validator
 from apps.utils.common import check_ip, check_port,check_instance_name
 from django import forms
+from collections import namedtuple
+ValidationResult = namedtuple('ValidationResult', ['valid', 'errors'])
 
 
 class Ipv4(Validator):
@@ -135,6 +137,47 @@ class IpPortList(Validator):
         return True
 
 
-def validate_instance_name(ins):
-    if check_instance_name(ins)['status'] == "ok":
+def validate_ip_port(ip_port):
+    """
+    参数验证ip_port实例是否合法
+    :param ip_port: ip_port
+    :return:
+    """
+    if check_instance_name(ip_port)['status'] != "ok":
         raise forms.ValidationError("ip_port 不合法")
+
+
+# class BaseValidator:
+#     def __init__(self, request_body, rules):
+#         self.request_body = request_body
+#         self.rules = rules
+#         self.valid = True
+#         self.errors = ""
+#
+#     def validate(self):
+#         MyClass = type("TestClass", (forms.Form,), self.rules)
+#         obj = MyClass(self.request_body)
+#         self.valid = obj.is_valid()
+#         errors_json = obj.errors.get_json_data()
+#         for k, v in errors_json.items():
+#             self.errors = v[0].get('message')
+#             break
+
+def my_form_validate(request_body, rules):
+    """
+    用动态类封装一个参数验证公共方法
+    :param request_body:
+    :param rules:
+    :return:
+    """
+    # 生成动态类 type(类名,(继承的类),属性)
+    ValidateClass = type("ValidateClass", (forms.Form,), rules)
+    obj = ValidateClass(request_body)
+    errors = {}
+    errors_json = obj.errors.get_json_data()
+    for k, v in errors_json.items():
+        errors[k] = v[0].get('message')
+    if len(obj.errors) > 0:
+        return ValidationResult(valid=False, errors=errors)
+    else:
+        return ValidationResult(valid=True, errors=errors)

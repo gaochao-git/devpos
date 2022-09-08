@@ -9,29 +9,11 @@ import logging
 from app_web_console.service import web_console
 from  app_web_console.dao import web_console_dao
 from apps.utils.base_view import BaseView
-from validator import Required, Not, Truthy, Blank, Range, Equals, In, validate,InstanceOf,Length
-from apps.utils.my_validator import validate_instance_name
+from validator import Required, In, validate,Length
+from apps.utils.my_validator import validate_ip_port, my_form_validate
 from apps.utils import common
 from django import forms
 logger = logging.getLogger('devops')
-
-
-class TestForm(forms.Form):
-    des_ip_port = forms.CharField(validators=[validate_instance_name])
-    sql = forms.CharField(required=True, min_length=3,
-                          error_messages={"required": "sql 为必填", "min_length": "sql 长度不合法"})
-    schema_name = forms.CharField(required=True, min_length=3, max_length=64,
-                                  error_messages={"required": "sql 为必填", "min_length": "sql 长度不合法最少为3",
-                                                  "max_length": "sql 长度不合法最长为64"})
-
-    def err_msg(self):
-        """
-        每次只返回一个错误,防止大量错误影响可读性
-        :return:
-        """
-        msg = self.errors.get_json_data()
-        for k, v in msg.items():
-            return v[0].get('message')
 
 
 class GetTableDataController(BaseView):
@@ -43,9 +25,18 @@ class GetTableDataController(BaseView):
         """
         request_body = self.request_params
         # 验证参数方法1
-        valid_obj = TestForm(request_body)
-        if not valid_obj.is_valid():
-            return self.my_response({"status": "error", "message": valid_obj.err_msg()})
+        rules1 = {
+            "des_ip_port": forms.CharField(validators=[validate_ip_port]),
+            "sql": forms.CharField(required=True, min_length=300,
+                          error_messages={"required": "SQL为必填", "min_length": "SQL长度不合法最少为3"}),
+            "schema_name": forms.CharField(required=True, min_length=200, max_length=64,
+                                  error_messages={"required": "库名为必填", "min_length": "库名长度不合法,最少为2",
+                                                  "max_length": "库名长度不合法,最长为64"})
+        }
+        valid_ret = my_form_validate(request_body, rules1)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+
         # 验证参数方法2
         rules = {
             "des_ip_port": [lambda x: common.CheckValidators.check_instance_name(x)['status'] == "ok"],
