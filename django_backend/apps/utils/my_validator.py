@@ -4,6 +4,7 @@
 
 from validator import Validator
 from apps.utils.common import check_ip, check_port,check_instance_name
+from django import forms
 
 
 class Ipv4(Validator):
@@ -132,3 +133,8 @@ class IpPortList(Validator):
             self.not_message = "%s must be ip_port format" % ins
             if check_instance_name(ins)['status'] != "ok": return False
         return True
+
+
+def validate_instance_name(ins):
+    if check_instance_name(ins)['status'] == "ok":
+        raise forms.ValidationError("ip_port 不合法")
