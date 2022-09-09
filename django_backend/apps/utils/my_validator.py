@@ -147,27 +147,13 @@ def validate_ip_port(ip_port):
         raise forms.ValidationError("ip_port 不合法")
 
 
-# class BaseValidator:
-#     def __init__(self, request_body, rules):
-#         self.request_body = request_body
-#         self.rules = rules
-#         self.valid = True
-#         self.errors = ""
-#
-#     def validate(self):
-#         MyClass = type("TestClass", (forms.Form,), self.rules)
-#         obj = MyClass(self.request_body)
-#         self.valid = obj.is_valid()
-#         errors_json = obj.errors.get_json_data()
-#         for k, v in errors_json.items():
-#             self.errors = v[0].get('message')
-#             break
-
 def my_form_validate(request_body, rules):
     """
     用动态类封装一个参数验证公共方法
-    :param request_body:
-    :param rules:
+    优点：可以用于自定义错误信息
+    缺点：有些验证不支持自定义错误信息
+    :param request_body:请求参数
+    :param rules:验证规则
     :return:
     """
     # 生成动态类 type(类名,(继承的类),属性)

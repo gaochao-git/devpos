@@ -124,78 +124,138 @@ class ExecuteSql:
             self.inc_ret_rows = ret['data']
             common.audit_sql_log(self.file_path, 0, "任务发送到审核工具执行完成")
 
+    # def process_execute_results_bak(self):
+    #     """
+    #     处理inception执行结果,为了加快插入速度不用公共的db_helper
+    #     :return:
+    #     """
+    #     audit_sql_dao.mark_ticket_stage_status(self.file_path, "process_result", "process")
+    #     cursor = connection.cursor()
+    #     try:
+    #         sql_key = """
+    #             insert into sql_execute_results(submit_sql_uuid,
+    #                                             inception_id,
+    #                                             inception_stage,
+    #                                             inception_error_level,
+    #                                             inception_error_message,
+    #                                             inception_sql,
+    #                                             inception_affected_rows,
+    #                                             inception_execute_time,
+    #                                             inception_backup_dbname,
+    #                                             inception_sqlsha1,
+    #                                             inception_command,
+    #                                             inception_stage_status,
+    #                                             inception_sequence,
+    #                                             split_sql_file_path) values
+    #         """
+    #         result_error_level_list = []
+    #         sql_values = ""
+    #         total = len(self.inc_ret_rows)
+    #         i = 0
+    #         for check_sql_result in self.inc_ret_rows:
+    #             result_error_level_list.append(check_sql_result["errlevel"])
+    #             id = check_sql_result["ID"]
+    #             stage = check_sql_result["stage"]
+    #             error_level = check_sql_result["errlevel"]
+    #             stage_status = check_sql_result["stagestatus"]
+    #             error_message = pymysql.escape_string(check_sql_result["errormessage"])
+    #             sql = pymysql.escape_string(check_sql_result["SQL"])
+    #             sequence = pymysql.escape_string(check_sql_result["sequence"])
+    #             backup_dbnames = check_sql_result["backup_dbname"]
+    #             execute_time = check_sql_result["execute_time"]
+    #             sqlsha1 = check_sql_result["sqlsha1"]
+    #             command = check_sql_result["command"]
+    #             affected_rows = check_sql_result["Affected_rows"]
+    #             value = """
+    #                         ('{}',{},'{}',{},'{}','{}',{},'{}','{}','{}','{}','{}','{}','{}')
+    #                     """.format(self.submit_sql_uuid, id, stage, error_level, error_message, sql, affected_rows,
+    #                                execute_time, backup_dbnames, sqlsha1, command, stage_status, sequence,
+    #                                self.file_path)
+    #             sql_values = sql_values + value + ','
+    #             i = i + 1
+    #             total = total - 1
+    #             if i < 50 and total == 0:  # 总数小于50或者最后一批不足50
+    #                 sql_results_insert = sql_key + sql_values.rstrip(',')
+    #                 cursor.execute(sql_results_insert)
+    #             elif i == 50:  # 达到50就执行一批
+    #                 sql_results_insert = sql_key + sql_values.rstrip(',')
+    #                 cursor.execute(sql_results_insert)
+    #                 sql_values = ""
+    #                 i = 0
+    #         common.audit_sql_log(self.file_path, 0, "执行结果写入数据库完成")
+    #         if max(result_error_level_list) == 0: self.mark_ticket_status(2, 3)
+    #         if max(result_error_level_list) == 1: self.mark_ticket_status(2, 5)
+    #         if max(result_error_level_list) == 2: self.mark_ticket_status(2, 4)
+    #         common.audit_sql_log(self.file_path, 0, "标记工单状态完成")
+    #         audit_sql_dao.mark_ticket_stage_status(self.file_path, "process_result", "finish")
+    #     except Exception as e:
+    #         logger.exception(e)
+    #         audit_sql_dao.mark_ticket_stage_status(self.file_path, "process_result", "error")
+    #         common.audit_sql_log(self.file_path, 1, "处理执行结果出现异常:%s" % e)
+    #         self.mark_ticket_status(2, 7)
+    #     finally:
+    #         cursor.close()
+    #         connection.close()
+
     def process_execute_results(self):
         """
         处理inception执行结果,为了加快插入速度不用公共的db_helper
         :return:
         """
         audit_sql_dao.mark_ticket_stage_status(self.file_path, "process_result", "process")
-        cursor = connection.cursor()
-        try:
-            sql_key = """
-                insert into sql_execute_results(submit_sql_uuid,
-                                                inception_id,
-                                                inception_stage,
-                                                inception_error_level,
-                                                inception_error_message,
-                                                inception_sql,
-                                                inception_affected_rows,
-                                                inception_execute_time,
-                                                inception_backup_dbname,
-                                                inception_sqlsha1,
-                                                inception_command,
-                                                inception_stage_status,
-                                                inception_sequence,
-                                                split_sql_file_path) values
-            """
-            result_error_level_list = []
-            sql_values = ""
-            total = len(self.inc_ret_rows)
-            i = 0
-            for check_sql_result in self.inc_ret_rows:
-                result_error_level_list.append(check_sql_result["errlevel"])
-                id = check_sql_result["ID"]
-                stage = check_sql_result["stage"]
-                error_level = check_sql_result["errlevel"]
-                stage_status = check_sql_result["stagestatus"]
-                error_message = pymysql.escape_string(check_sql_result["errormessage"])
-                sql = pymysql.escape_string(check_sql_result["SQL"])
-                sequence = pymysql.escape_string(check_sql_result["sequence"])
-                backup_dbnames = check_sql_result["backup_dbname"]
-                execute_time = check_sql_result["execute_time"]
-                sqlsha1 = check_sql_result["sqlsha1"]
-                command = check_sql_result["command"]
-                affected_rows = check_sql_result["Affected_rows"]
-                value = """
-                            ('{}',{},'{}',{},'{}','{}',{},'{}','{}','{}','{}','{}','{}','{}')
-                        """.format(self.submit_sql_uuid, id, stage, error_level, error_message, sql, affected_rows,
-                                   execute_time, backup_dbnames, sqlsha1, command, stage_status, sequence,
-                                   self.file_path)
-                sql_values = sql_values + value + ','
-                i = i + 1
-                total = total - 1
-                if i < 50 and total == 0:  # 总数小于50或者最后一批不足50
-                    sql_results_insert = sql_key + sql_values.rstrip(',')
-                    cursor.execute(sql_results_insert)
-                elif i == 50:  # 达到50就执行一批
-                    sql_results_insert = sql_key + sql_values.rstrip(',')
-                    cursor.execute(sql_results_insert)
-                    sql_values = ""
-                    i = 0
+        sql = """
+            insert into sql_execute_results(
+                submit_sql_uuid,
+                inception_id,
+                inception_stage,
+                inception_error_level,
+                inception_stage_status,
+                inception_error_message,
+                inception_sql,
+                inception_affected_rows,
+                inception_sequence,
+                inception_backup_dbname,
+                inception_execute_time,
+                inception_sqlsha1,
+                inception_command,
+                split_sql_file_path) 
+            values(
+                %(submit_sql_uuid)s,
+                %(ID)s,
+                %(stage)s,
+                %(errlevel)s,
+                %(stagestatus)s,
+                %(errormessage)s,
+                %(SQL)s,
+                %(Affected_rows)s,
+                %(sequence)s,
+                %(backup_dbname)s,
+                %(execute_time)s,
+                %(sqlsha1)s,
+                %(command)s,
+                %(split_sql_file_path)s
+            )
+        """
+        # 收集执行结果、动态增加submit_sql_uuid、split_sql_file_path
+        result_error_level_list = []
+        for execute_sql_result in self.inc_ret_rows:
+            result_error_level_list.append(execute_sql_result["errlevel"])
+            execute_sql_result.update({'submit_sql_uuid': self.submit_sql_uuid, 'split_sql_file_path': self.file_path})
+        # 获取分片
+        group_list = common.list_split_group(self.inc_ret_rows, size=50)
+        # 分片写入数据库
+        ret_list = [db_helper.batch_insert(sql, batch).get('status') for batch in group_list]
+        # 判断写入过程中有无失败
+        if 'error' in ret_list:
+            common.audit_sql_log(self.file_path, 1, "执行结果写入数据库出现异常")
+        else:
             common.audit_sql_log(self.file_path, 0, "执行结果写入数据库完成")
-            if max(result_error_level_list) == 0: self.mark_ticket_status(2, 3)
-            if max(result_error_level_list) == 1: self.mark_ticket_status(2, 5)
-            if max(result_error_level_list) == 2: self.mark_ticket_status(2, 4)
-            common.audit_sql_log(self.file_path, 0, "标记工单状态完成")
-            audit_sql_dao.mark_ticket_stage_status(self.file_path, "process_result", "finish")
-        except Exception as e:
-            logger.exception(e)
-            audit_sql_dao.mark_ticket_stage_status(self.file_path, "process_result", "error")
-            common.audit_sql_log(self.file_path, 1, "处理执行结果出现异常:%s" % e)
-            self.mark_ticket_status(2, 7)
-        finally:
-            cursor.close()
-            connection.close()
+        # 根据执行结果标记工单状态
+        if max(result_error_level_list) == 0: self.mark_ticket_status(2, 3)
+        if max(result_error_level_list) == 1: self.mark_ticket_status(2, 5)
+        if max(result_error_level_list) == 2: self.mark_ticket_status(2, 4)
+        common.audit_sql_log(self.file_path, 0, "标记工单状态完成")
+        audit_sql_dao.mark_ticket_stage_status(self.file_path, "process_result", "finish")
 
     def mark_ticket_status(self, is_execute, execute_status):
         """

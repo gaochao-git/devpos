@@ -31,7 +31,10 @@ class GetTableDataController(BaseView):
                           error_messages={"required": "SQL为必填", "min_length": "SQL长度不合法最少为3"}),
             "schema_name": forms.CharField(required=True, min_length=200, max_length=64,
                                   error_messages={"required": "库名为必填", "min_length": "库名长度不合法,最少为2",
-                                                  "max_length": "库名长度不合法,最长为64"})
+                                                  "max_length": "库名长度不合法,最长为64"}),
+            "explain": forms.ChoiceField(choices=([('no', '分析SQL'), ('yes', '执行SQL')]),
+                                         error_messages={"invalid": "可选参数不合法"})
+
         }
         valid_ret = my_form_validate(request_body, rules1)
         if not valid_ret.valid:
