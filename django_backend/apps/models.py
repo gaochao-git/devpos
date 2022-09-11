@@ -26,6 +26,12 @@ class MysqlClusterInstance(models.Model):
     cluster_name = models.CharField(max_length=64)
     instance_name = models.CharField(unique=True, max_length=100)
     instance_role = models.CharField(max_length=64)
+    instance_var = models.TextField(blank=True, null=True)
+    instance_status = models.TextField(blank=True, null=True)
+    instance_slave_status = models.TextField(blank=True, null=True)
+    instance_connection = models.TextField(blank=True, null=True)
+    create_time = models.DateTimeField()
+    update_time = models.DateTimeField()
 
     class Meta:
         managed = False

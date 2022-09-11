@@ -46,6 +46,9 @@ INSTALLED_APPS = [
     'django_cas_ng',
 ]
 
+# ============================= 认证类型 ===================================
+LOGIN_TYPE = "cloud"   # cloud、sso、ldap
+
 # ============================= SSO 认证 begin=============================
 CAS_SERVER_URL = 'http://sso-xxxx.xxx.com'
 CAS_VERSION = '3'

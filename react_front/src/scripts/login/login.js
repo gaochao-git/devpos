@@ -20,7 +20,7 @@ class Login extends Component  {
     };
     // 登陆验证
     async login(username, password) {
-        MyAxios.post('/login/v2/auth/', {username, password}).then(function(res){
+        MyAxios.post('/login/v1/auth_web/', {username, password}).then(function(res){
             window.localStorage.setItem('token', res.data.token)
             window.location.reload()
         }).catch(function (error) {
