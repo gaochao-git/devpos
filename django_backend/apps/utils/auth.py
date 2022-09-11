@@ -43,13 +43,13 @@ class Middleware(MiddlewareMixin):
 
     def process_exception(self, request, exception):
         """
-        正常代码不论错误还是正确不会用到这个异常，除非一些异常没有被捕获到就会被这个异常不过到并处理
+        正常代码不论错误还是正确不会用到这个异常，除非一些异常没有被捕获到就会被这个异常捕获并处理
         :param request:
         :param exception:
         :return:
         """
-        logger.exception("未手动捕获的异常%s,%s", request,exception)
-        content = {"status": "error", "message": "后端服务异常", "code": StatusCode.ERROR.code}
+        logger.exception("未手动捕获的异常%s,%s", request, exception)
+        content = {"status": "error", "message": "后端服务异常", "code": StatusCode.ERR_COMMON.code}
         return HttpResponse(json.dumps(content), content_type='application/json')
 
 

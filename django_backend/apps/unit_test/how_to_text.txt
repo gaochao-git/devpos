@@ -6,7 +6,8 @@ python3.6 manage.py inspectdb mysql_cluster mysql_cluster_instance >./apps/model
 2.替换models.py中的信息,反解析出来的model默认不受migration管理,需要改为True
 managed = False-------------->managed = True
 # 3.生成migration
-# python3.6 manage.py makemigrations
+# python3.6 manage.py makemigrations  # 所有，貌似不用这一步也可以自动创建表,好像是有migrations目录则用migrations目录下文件信息,否则用modal中的信心
+# python3.6 manage.py makemigrations apps # 指定某个app，貌似不用这一步也可以自动创建表
 
 二、准备测试数据
 1.django单元测试,每次开始的时候会自动创建测数据库(默认为test_xxxx),并通过migrations里面的文件将所有表创建,如果case中

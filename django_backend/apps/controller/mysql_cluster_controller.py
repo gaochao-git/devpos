@@ -10,22 +10,33 @@ from apps.service import mysql_cluster
 from apps.dao import mysql_cluster_dao
 from apps.utils.base_view import BaseView
 from validator import Required, Not, Truthy, Blank, Range, Equals, In, validate,InstanceOf,Length
-
+from apps.models import MysqlCluster
+from django.core import serializers
+from django.forms.models import model_to_dict
+from django.db import connection
 logger = logging.getLogger('devops')
-
 
 # 获取所有集群信息
 def get_mysql_cluster_controller(request):
     ret = mysql_cluster.get_mysql_cluster()
-    return HttpResponse(json.dumps(ret), content_type='application/json')
+    return HttpResponse(json.dumps(ret, default=str), content_type='application/json')
+
+
+class GetMysqlClusterController(BaseView):
+    def get(self, request):
+        """
+        获取所有集群信息
+        :param request:
+        :return:
+        """
+        data = MysqlCluster.objects.values()
+        return self.res_success(data=data)
 
 # 获取集群实例信息
 def get_mysql_cluster_ins_controller(request):
     request_body = json.loads(str(request.body, encoding="utf-8"))
-    print(request_body)
     cluster_name = request_body.get('cluster_name')
     ins_role = request_body.get('ins_role')
-    print(request_body)
     ret = mysql_cluster.get_mysql_cluster_ins(cluster_name, ins_role)
     return HttpResponse(json.dumps(ret), content_type='application/json')
 

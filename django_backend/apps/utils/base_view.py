@@ -7,6 +7,7 @@ from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework_jwt.utils import jwt_decode_handler
 import time
 from datetime import datetime
+import django
 import logging
 logger = logging.getLogger('my_access')
 
@@ -109,6 +110,25 @@ class BaseView(APIView):
         else:
             logger.error(data['message'], extra=extra)
         return HttpResponse(json.dumps(data, default=str), content_type=content_type)
+
+    def res_success(self, status="ok", message=StatusCode.OK.msg, code=StatusCode.OK.code, data=None):
+        if isinstance(data, django.db.models.query.QuerySet):
+            data = list(data)
+        ret = {
+            "status": status,
+            "message": message,
+            "code": code,
+            "data": data
+        }
+        return self.my_response(ret)
+
+    def res_err(self, status="error", message=StatusCode.ERR_COMMON.msg, code=StatusCode.ERR_COMMON.code):
+        ret = {
+            "status": status,
+            "message": message,
+            "code": code,
+        }
+        return self.my_response(ret)
 
     def audit_log(self,ret_info):
         """

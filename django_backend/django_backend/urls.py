@@ -46,7 +46,8 @@ urlpatterns = [
     # 服务器资源
     path('api/server_resource/v1/get_server_info/', server_info_controller.GetServerInfoController.as_view(), kwargs={"access": RouterAccess.all}), # server--查看主机信息
     # mysql资源
-    path('api/db_resource/v1/get_mysql_cluster/', mysql_cluster_controller.get_mysql_cluster_controller),  # 获取mysql集群信息
+    # path('api/db_resource/v1/get_mysql_cluster/', mysql_cluster_controller.get_mysql_cluster_controller),  # 获取mysql集群信息
+    path('api/db_resource/v1/get_mysql_cluster/', mysql_cluster_controller.GetMysqlClusterController.as_view(), kwargs={"access": RouterAccess.all}),  # 获取mysql集群信息
     path('api/db_resource/v1/get_mysql_cluster_ins/', mysql_cluster_controller.get_mysql_cluster_ins_controller),  # 获取mysql集群实例信息
     path('api/db_resource/v1/get_mysql_instance_info/', mysql_instance_controller.get_mysql_instance_info_handler),  # 获取所有mysql实例
     path('api/db_resource/v1/get_mysql_cluster_ins_info/', mysql_cluster_controller.get_mysql_cluster_ins_info_controller),  # 获取所有mysql实例
