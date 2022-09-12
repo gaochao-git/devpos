@@ -71,6 +71,7 @@ class AddTaskController(BaseView):
     任务加入后,beat会自动重载
     """
     def __init__(self):
+        super(AddTaskController, self).__init__()  # 由于子类重写了__init__,所以需要显示调用父类__init__
         self.task_type = None
         self.task_name = None
         self.task = None
@@ -92,7 +93,6 @@ class AddTaskController(BaseView):
         :return:
         """
         request_body = self.request_params
-        print(request_body)
         rules = {
             "task": [Required, Length(2, 100)],  # 任务
             "task_name": [Required, Length(2, 100)],  # 任务名
@@ -129,12 +129,10 @@ class AddTaskController(BaseView):
         except Exception as e:
             print(e)
         ret = {"status": "error","message": "执行出现异常"}
-        print(self.task_type)
         if self.task_type == "Crontab":
             ret = self.create_cron_task()
         else:
             ret = self.create_interval_task()
-        print(ret)
         return self.my_response(ret)
 
     def create_cron_task(self):
@@ -220,6 +218,7 @@ class ModifyTaskController(BaseView):
     任务加入后,beat会自动重载
     """
     def __init__(self):
+        super(ModifyTaskController, self).__init__()  # 由于子类重写了__init__,所以需要显示调用父类__init__
         self.task_type = None
         self.task_name = None
         self.task = None

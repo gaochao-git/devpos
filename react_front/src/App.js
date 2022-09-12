@@ -47,7 +47,7 @@ class App extends Component {
         super(props);
         this.state = {
             login_user_name:"",
-            login_user_name_role:"",
+            login_user_role:"",
             current_nav:"",
             current_time:"",
             week_day:"",
@@ -74,8 +74,10 @@ class App extends Component {
                 if(res.data.status==="ok")
                 {
                     this.setState({
+                        login_name:res.data.data[0]['name'],
                         login_user_name:res.data.data[0]['username'],
-                        login_user_name_role:res.data.data[0]['title'],
+                        login_user_role:res.data.data[0]['user_role'],
+                        login_user_email:res.data.data[0]['email']
                     },)
                 }else
                 {
@@ -135,13 +137,13 @@ class App extends Component {
                                     title={
                                         <span>
                                             用户名:{this.state.login_user_name}
-                                            <br/>角色:{this.state.login_user_name_role}
+                                            <br/>角色:{this.state.login_user_role}
                                             <br/>部门:
-                                            <br/>邮箱:
+                                            <br/>邮箱:{this.state.login_user_email}
                                         </span>
                                     }
                                 >
-                                    <Icon type="user" />{this.state.login_user_name}
+                                    <Icon type="user" />{this.state.login_name}
                                 </Tooltip>
                                 <Button
                                     icon="poweroff"
