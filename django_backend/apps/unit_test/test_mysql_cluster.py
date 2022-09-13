@@ -4,8 +4,8 @@ from apps.unit_test.common import change_modal_managed_for_tests
 
 
 class TestMysqlCluster(TransactionTestCase):
-    # fixtures = ['db.json']
     change_modal_managed_for_tests()
+    # fixtures = ['db.json']
 
     def setUp(self):
         change_modal_managed_for_tests()
