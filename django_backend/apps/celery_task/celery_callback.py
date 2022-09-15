@@ -13,6 +13,8 @@ djcelery目前调用信号不生效
  * task_failure : 任务失败时
  * task_revoked : 任务被撤销或终止时
 """
+
+
 class MyTaskCallback(celery.Task):
     """
     增加celery回调功能
@@ -21,26 +23,25 @@ class MyTaskCallback(celery.Task):
         """
         任务失败时执行
         """
-        print("我执行失败了")
+        pass
 
     def on_success(self, retval, task_id, args, kwargs):
         """
         任务成功时执行
         """
-        print("我执行成功了:%s" % retval)
-        print(retval, task_id, args, kwargs)
+        pass
 
     def on_retry(self, exc, task_id, args, kwargs, einfo):
         """
         任务重试时执行
         """
-        print("我需要重试")
+        pass
 
     def after_return(self, status, retval, task_id, args, kwargs, einfo):
         """
         任务返回时
         """
-        print("我返回信息了")
+        pass
 
 
 @after_setup_task_logger.connect

@@ -345,7 +345,7 @@ class DbUtil:
                     connect_timeout=self._dsn.get('my_connect_timeout')
                 )
         except Exception as e:
-            return self._err(str(e))
+            return self._err(e)
 
     def find_all(self, sql, args=None):
         try:
@@ -354,21 +354,17 @@ class DbUtil:
             rows = self._cursor.fetchall()
             self._data = [dict(zip([col[0] for col in self._cursor.description], row)) for row in rows]
             self._row_count = self._cursor.rowcount
-        except Exception as e:
-            return self._err(str(e))
-        finally:
-            self._close_session()
             return self._ok()
+        except Exception as e:
+            return self._err(e)
 
     def dml(self, sql, args=None):
         try:
             self._cursor = self._connection.cursor()
             self._affected_rows = self._cursor.execute(sql, args)
-        except Exception as e:
-            return self._err(str(e))
-        finally:
-            self._close_session()
             return self._ok()
+        except Exception as e:
+            return self._err(e)
 
     def batch_insert(self, sql, args=None):
         """
@@ -393,14 +389,13 @@ class DbUtil:
         try:
             self._cursor = self._connection.cursor()
             self._affected_rows = self._cursor.executemany(sql, args)
-        except Exception as e:
-            return self._err()
-        finally:
-            self._close_session()
             return self._ok()
+        except Exception as e:
+            return self._err(e)
 
     def _err(self, msg):
-        logger.exception(msg)
+        self._close_session()
+        logger.error("execute sql error %d: %s" %(msg.args[0], msg.args[1]))
         self._status = "error"
         self._message = StatusCode.ERR_DB.msg
         self._code = StatusCode.ERR_DB.code
@@ -416,6 +411,7 @@ class DbUtil:
         }
 
     def _ok(self):
+        self._close_session()
         self._execute_time = (self._start_time - datetime.now()).microseconds / 1000
         return {
             "status": self._status,
@@ -438,6 +434,7 @@ class DbUtil:
 def find_all(sql, args=None):
     db = DbUtil()
     return db.find_all(sql, args)
+
 
 def dml(sql, args=None):
     db = DbUtil()

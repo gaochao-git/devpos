@@ -81,6 +81,7 @@ JWT_AUTH = {
 
 
 MIDDLEWARE = [
+    'apps.utils.log_trace.RequestIDMiddleware',
     'django.middleware.security.SecurityMiddleware',   # 一些安全设置，比如XSS脚本过滤
     'django.contrib.sessions.middleware.SessionMiddleware',  # django_session的表
     'corsheaders.middleware.CorsMiddleware',  # 解决跨域问题
@@ -196,12 +197,11 @@ LOGGING = {
     'formatters': {
         # 详细的日志格式
         'standard': {
-            'format': '[%(asctime)s][%(threadName)s:%(thread)d][task_id:%(name)s][%(filename)s:%(lineno)d]'
-                      '[%(levelname)s][%(message)s]'
+            'format': '%(asctime)s|%(request_id)s|%(filename)s:%(lineno)d|%(levelname)s|%(message)s'
         },
         # 简单的日志格式
         'simple': {
-            'format': '[%(levelname)s][%(asctime)s][%(filename)s:%(lineno)d]%(message)s'
+            'format': '%(asctime)s|%(filename)s:%(lineno)d|%(levelname)s|%(message)s'
         },
         # 定义一个特殊的日志格式
         'my_access': {
@@ -213,6 +213,9 @@ LOGGING = {
         'require_debug_true': {
             '()': 'django.utils.log.RequireDebugTrue',
         },
+        'request_id': {
+            '()': 'apps.utils.log_trace.TraceInfoFilter'
+        }
     },
     # 处理器
     'handlers': {
@@ -289,11 +292,13 @@ LOGGING = {
             'handlers': ['console', 'error','info'],  # 上线之后可以把'console'移除
             'level': 'INFO',
             'propagate': True,  # 向不向更高级别的logger传递
+            'filters': ['request_id'],
         },
         'sql_logger': {
             'handlers': ['sql_log_handler','console'],
             'level': 'INFO',
-            'propagate': False
+            'propagate': False,
+            'filters': ['request_id'],
         },
     },
 }
