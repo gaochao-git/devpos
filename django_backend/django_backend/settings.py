@@ -295,11 +295,6 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False
         },
-        'inception_execute_logger': {
-            'handlers': ['inception_execute_log_handler'],
-            'level': 'INFO',
-            'propagate': False
-        }
     },
 }
 

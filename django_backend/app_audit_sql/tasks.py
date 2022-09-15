@@ -4,13 +4,10 @@
 # @Author  : gaochao
 # @File    : task.py
 
-import time
 from celery import task
 from app_audit_sql.celery_task.check_sql_task import AsyncCheckSql
 from app_audit_sql.celery_task.execute_sql_task import ExecuteSql
 from app_audit_sql.celery_task.split_sql_task import AsyncSplitSql
-import logging
-logger = logging.getLogger('inception_execute_logger')
 from apps.celery_task.celery_callback import MyTaskCallback
 # ======================================= 异步任务================================
 @task()

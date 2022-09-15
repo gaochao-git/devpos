@@ -8,7 +8,7 @@ import re
 from app_audit_sql.dao import audit_sql_dao
 import logging
 from django.conf import settings
-logger = logging.getLogger('inception_execute_logger')
+logger = logging.getLogger('devops')
 
 inception_host = settings.INCEPTION_ADDRESS["inception_host"]
 inception_port = settings.INCEPTION_ADDRESS["inception_port"]
