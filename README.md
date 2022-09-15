@@ -36,8 +36,8 @@ insert into team_user(uid,gid,uname,department,title) values(1,1,'gaochao','运�
         python3.5 manage.py runserver 0.0.0.0:8000
         公司: D:\gaochao\SoftInstall\anaconda\envs\python36\python.exe .\manage.py runserver 0.0.0.0:8000
     4)启动celery
-        python manage.py celery worker -E -c 2 -O fair --loglevel=INFO -f logs/celery_worker.log -Q async_task --purge  # 异步任务worker
-        python manage.py celery worker -E -c 2 -O fair --loglevel=INFO -f logs/celery_worker.log -Q default --purge  # 定时任务worker
+        python manage.py celery worker -E -c 2 -O fair --loglevel=INFO -f logs/celery_async_worker.log -Q async_task --purge  # 异步任务worker
+        python manage.py celery worker -E -c 2 -O fair --loglevel=INFO -f logs/celery_cron_worker.log -Q default --purge  # 定时任务worker
         python manage.py celery  beat -l debug  -f logs/celery_beat.log  # 定时任务beat,只能启动1个
         python manage.py celery flower --basic_auth=root:root@123        # 任监控插件,只能启动1个
         python manage.py celerycam -l debug -f logs/celery_cam.log  # 启动监控各个任务状态及结果的进程,只能启动1个,djcelery_workerstate、djcelery_taskstate

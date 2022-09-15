@@ -2,9 +2,8 @@ from apps.utils import common
 from app_audit_sql.dao import audit_sql_dao
 from app_audit_sql.utils import inception
 from django_backend.settings import upload_base_path
-
-import logging
-logger = logging.getLogger('devops')
+from celery.utils.log import get_task_logger
+logger = get_task_logger(__name__)
 
 
 class AsyncCheckSql:

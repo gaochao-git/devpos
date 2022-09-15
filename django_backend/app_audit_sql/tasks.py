@@ -11,7 +11,7 @@ from app_audit_sql.celery_task.execute_sql_task import ExecuteSql
 from app_audit_sql.celery_task.split_sql_task import AsyncSplitSql
 import logging
 logger = logging.getLogger('inception_execute_logger')
-from apps.celery_task.callback import MyTaskCallback
+from apps.celery_task.celery_callback import MyTaskCallback
 # ======================================= 异步任务================================
 @task()
 def inception_execute(des_ip, des_port, inc_bak, inc_war, inc_err,file_path, submit_sql_uuid, inc_sleep, exe_user_name):

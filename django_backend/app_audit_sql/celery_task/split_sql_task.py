@@ -2,8 +2,8 @@ from app_audit_sql.utils import inception
 from app_audit_sql.dao import audit_sql_dao
 from apps.utils import common
 from django_backend.settings import upload_base_path
-import logging
-logger = logging.getLogger('inception_execute_logger')
+from celery.utils.log import get_task_logger
+logger = get_task_logger(__name__)
 
 
 class AsyncSplitSql:

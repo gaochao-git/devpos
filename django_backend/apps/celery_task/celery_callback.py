@@ -1,7 +1,6 @@
 import celery
-from celery.signals import after_task_publish,before_task_publish,celeryd_init
-from celery.signals import task_success
-
+from celery.signals import after_setup_task_logger,after_setup_logger
+from celery.app.log import TaskFormatter
 """
 celery几种任务信号:https://docs.celeryproject.org/en/latest/userguide/signals.html
 djcelery目前调用信号不生效
@@ -43,3 +42,16 @@ class MyTaskCallback(celery.Task):
         """
         print("我返回信息了")
 
+
+@after_setup_task_logger.connect
+def setup_task_logger(logger, *args, **kwargs):
+    """自定义celery worker日志格式"""
+    for handler in logger.handlers:
+        handler.setFormatter(TaskFormatter('%(asctime)s|%(threadName)s|%(task_id)s|%(filename)s|%(lineno)d|%(levelname)s|%(message)s'))
+
+
+@after_setup_logger.connect()
+def setup_loggers(logger, *args, **kwargs):
+    """自定义celery beat及总日志格式"""
+    for handler in logger.handlers:
+        handler.setFormatter(TaskFormatter('%(asctime)s|%(threadName)s|%(levelname)s|%(message)s'))

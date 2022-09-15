@@ -1,8 +1,9 @@
 from apps.utils import db_helper
 from multiprocessing.dummy import Pool as ThreadPool
-import logging
-logger = logging.getLogger('inception_execute_logger')
 import pymysql
+
+from celery.utils.log import get_task_logger   # 多线程task_name、task_id为???问题
+logger = get_task_logger(__name__)
 
 
 class CollectMysql:
@@ -27,7 +28,7 @@ class CollectMysql:
         gtid可能相差较大,可以通过对实例表cluster_name排序来确保1套集群时间相近
         :return:
         """
-        logger.info("task_run")
+        logger.info("任务开始执行")
         sql = "SELECT instance_name FROM mysql_cluster_instance order by cluster_name"
         ret = db_helper.find_all(sql)
         instance_list = ret['data']
@@ -37,6 +38,7 @@ class CollectMysql:
         pool.map(self._collect_info, instance_list)
         pool.close()
         pool.join()
+        logger.info("任务执行结束")
 
     def _collect_info(self, instance_dict):
         """

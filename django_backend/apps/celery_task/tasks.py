@@ -10,7 +10,6 @@ from apps.celery_task.install_mysql import InstallMysql
 from apps.celery_task.cron_collect_mysql_info import CollectMysql
 import logging
 logger = logging.getLogger('inception_execute_logger')
-from apps.celery_task.callback import MyTaskCallback
 
 
 # ======================================= 定时任务================================
