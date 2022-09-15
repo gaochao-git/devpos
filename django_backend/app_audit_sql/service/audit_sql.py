@@ -50,11 +50,10 @@ def check_sql(submit_type, check_sql_info, cluster_name, instance_name, check_sq
         如果任务注册成功则返回task_res,否则出现异常
         """
         task_res = inception_check.delay(des_ip, des_port, check_sql_uuid, check_sql_info, check_user,check_type,user_offer_rollback_sql)
-        logger.info("celery发送审核任务成功返回task_id:%s,工单id:%s" % (task_res.id, check_sql_uuid))
         data = {"check_sql_uuid": check_sql_uuid, "celery_id": task_res.id}
         ret = {"status": "ok", "message": "发送任务成功", "data": data}
     except Exception as e:
-        logger.exception("发送任务失败:%s" % str(e))
+        logger.exception("发送sql检查任务失败:%s" % str(e))
         ret = {"status": "error", "message": "发送任务失败"}
     return ret
 
