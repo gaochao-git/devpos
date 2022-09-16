@@ -81,7 +81,7 @@ JWT_AUTH = {
 
 
 MIDDLEWARE = [
-    'apps.utils.log_trace.RequestIDMiddleware',
+    'apps.utils.my_middleware.MyLogMiddleware',
     'django.middleware.security.SecurityMiddleware',   # 一些安全设置，比如XSS脚本过滤
     'django.contrib.sessions.middleware.SessionMiddleware',  # django_session的表
     'corsheaders.middleware.CorsMiddleware',  # 解决跨域问题
@@ -91,8 +91,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware', # 将代表当前登录用户的用户属性添加到每个传入的 HttpRequest 对象
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'apps.utils.auth.Middleware',  # 自定义中间件登陆认证
-    'easyaudit.middleware.easyaudit.EasyAuditMiddleware',    # 操作审计，目前没有审计到操作用户，应该是认证方式的原因，暂时自己实现吧
+    'apps.utils.my_middleware.MyAuthMiddleware',  # 自定义中间件登陆认证
 ]
 
 
@@ -214,7 +213,7 @@ LOGGING = {
             '()': 'django.utils.log.RequireDebugTrue',
         },
         'request_id': {
-            '()': 'apps.utils.log_trace.TraceInfoFilter'
+            '()': 'apps.utils.my_middleware.TraceInfoFilter'
         }
     },
     # 处理器
