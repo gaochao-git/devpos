@@ -480,7 +480,7 @@ def find_all(sql, args=None):
 def find_all_many(sql_list, args=None):
     """
     本地数据源
-    :param sql_list:
+    :param sql_list:[sql1, sql2, ...]
     :param args:
     :return:
     """
@@ -499,15 +499,15 @@ def dml(sql, args=None):
     return db.dml(sql, args)
 
 
-def dml_many(sql, args=None):
+def dml_many(sql_list, args=None):
     """
     本地数据源
-    :param sql:
+    :param sql_list:[sql1, sql2, ...]
     :param args:
     :return:
     """
     db = DbUtil()
-    return db.dml_many(sql, args)
+    return db.dml_many(sql_list, args)
 
 
 def batch_insert(sql, args=None):
