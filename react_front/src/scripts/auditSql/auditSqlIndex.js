@@ -150,7 +150,8 @@ class AuditSqlIndex extends Component {
             submit_sql_button_disabled:"hide",
             global_loading:true,
         });
-        await MyAxios.post('/audit_sql/v1/check_sql/',params).then(
+        let headers = {"global_loading":false}
+        await MyAxios.post('/audit_sql/v1/check_sql/',params,{headers}).then(
             res => {
                 if (res.data.status==="ok"){
                    message.success("异步审核任务已发起,请等待",3);

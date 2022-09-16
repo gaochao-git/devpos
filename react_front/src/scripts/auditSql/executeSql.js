@@ -98,8 +98,9 @@ export default class ExecuteSql extends Component {
         let params = {
             submit_sql_uuid: this.props.match.params["submit_sql_uuid"],
         };
-        let res = await MyAxios.get("/audit_sql/v1/get_apply_sql/",{params});
-        let res_split_sql = await MyAxios.post("/audit_sql/v1/get_split_sql/",params);
+        let headers = {"global_loading":false}
+        let res = await MyAxios.get("/audit_sql/v1/get_apply_sql/",{params,headers});
+        let res_split_sql = await MyAxios.post("/audit_sql/v1/get_split_sql/",params,{headers});
         if (res.data.data[0]["cluster_name"].length>0){
             this.setState({
                 cluster_name:res.data.data[0]["cluster_name"]
@@ -181,12 +182,11 @@ export default class ExecuteSql extends Component {
 
     //查看SQL审核结果
     async GetSqlCheckResultsByUuid() {
-        this.setState({global_loading:true,view_check_sql_result:[]})
+        this.setState({view_check_sql_result:[]})
         let params = {submit_sql_uuid: this.props.match.params["submit_sql_uuid"],};
         let res = await MyAxios.post("/audit_sql/v1/get_check_sql_results/",params);
         this.setState({
-            view_check_sql_result:res.data.data,
-            global_loading:false
+            view_check_sql_result:res.data.data
         });
     };
     //审核通过或不通过
@@ -199,7 +199,8 @@ export default class ExecuteSql extends Component {
             check_user_name_role:this.state.login_user_name_role,
             check_comment:this.state.check_comment,
         };
-        await MyAxios.post('/audit_sql/v1/pass_submit_sql_by_uuid/',params).then(
+        let headers = {"global_loading":false}
+        await MyAxios.post('/audit_sql/v1/pass_submit_sql_by_uuid/',params,{headers}).then(
             res=>{
                 if (res.data.status === "ok"){
                     this.setState({
@@ -230,7 +231,8 @@ export default class ExecuteSql extends Component {
             check_user_name_role:this.state.login_user_name_role,
             check_comment:this.state.check_comment,
         };
-        await MyAxios.post('/audit_sql/v1/pass_submit_sql_by_uuid/',params).then(
+        let headers = {"global_loading":false}
+        await MyAxios.post('/audit_sql/v1/pass_submit_sql_by_uuid/',params,{headers}).then(
             res=>{
                 if (res.data.status === "ok"){
                     this.setState({
@@ -267,7 +269,8 @@ export default class ExecuteSql extends Component {
             showReCheckVisible:false,
             view_check_sql_result:[]
         });
-        await MyAxios.post('/audit_sql/v1/check_sql/',params).then(
+        let headers = {"global_loading":false}
+        await MyAxios.post('/audit_sql/v1/check_sql/',params,{headers}).then(
             res => {
                 if (res.data.status==="ok"){
                    message.success("异步审核任务已发起,请等待",3);
@@ -294,7 +297,8 @@ export default class ExecuteSql extends Component {
     //获取拆分任务状态
     async getSplitStatusByUuid() {
         let params = {celery_id: this.state.celery_split_id};
-        await MyAxios.post('/audit_sql/v1/get_celery_task_status/',params).then(
+        let headers = {"global_loading":false}
+        await MyAxios.post('/audit_sql/v1/get_celery_task_status/',params,{headers}).then(
             res => {
                 if (res.data.status==="ok"){
                     message.success("DDL/DML任务拆分成功",3)
@@ -426,7 +430,8 @@ export default class ExecuteSql extends Component {
                     execute_status: "执行中",
                     global_loading:true
                 });
-                await MyAxios.post('/audit_sql/v1/execute_submit_sql_by_file_path/', params).then(
+                let headers = {"global_loading":false}
+                await MyAxios.post('/audit_sql/v1/execute_submit_sql_by_file_path/', params,{headers}).then(
                     res => {
                         if (res.data.status === "ok"){
                             this.setState({celery_execute_id: res.data.data["celery_id"]});

@@ -274,7 +274,7 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,  # 向不向更高级别的logger传递
         },
-        'my_access': {             # 默认的logger应用如下配置
+        'my_access': {             # 自定义接口access日志
             'handlers': ['default'],
             'level': 'DEBUG',
             'propagate': True,  # 向不向更高级别的logger传递
