@@ -190,50 +190,50 @@ db_all_remote_pass = "fffjjj"
 
 
 ################################################# 指定数据源公共方法 ##########################################
-def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
-    """
-    连接远程数据库执行查询命令
-    :param ip:
-    :param port:
-    :param sql:
-    :param my_connect_timeout:
-    :return:
-    """
-    conn = None
-    cursor = None
-    data = []
-    row_count = 0
-    try:
-        conn = pymysql.connect(host=ip, port=int(port), user=db_all_remote_user, passwd=db_all_remote_pass, db=db,
-                               charset="utf8",connect_timeout=my_connect_timeout)
-        cursor = conn.cursor()
-        start_time = datetime.now()
-        cursor.execute(sql)
-        rows = cursor.fetchall()
-        end_time = datetime.now()
-        diff_time = (end_time - start_time).microseconds/1000
-        data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
-        row_count = cursor.rowcount
-        status = "ok"
-        message = StatusCode.OK.msg
-        code = StatusCode.OK.code
-    except pymysql.Error as e:
-        print(e.args[0], e.args[1])
-        status = "error"
-        message = str(e.args[0]) + ':' + e.args[1]
-        code = StatusCode.ERR_DB.code
-        diff_time = 0
-        logger.exception("sql执行失败:%s", e)
-    except Exception as e:
-        status = "error"
-        message = StatusCode.ERR_DB.msg
-        code = StatusCode.ERR_DB.code
-        diff_time = 0
-        logger.exception("sql执行失败:%s", e)
-    finally:
-        if cursor: cursor.close()
-        if conn: connection.close()
-        return {"status": status, "message": message, "code": code, "data": data, "row_count": row_count, 'query_time': diff_time}
+# def target_source_find_all(ip, port, sql, db=None, my_connect_timeout=2):
+#     """
+#     连接远程数据库执行查询命令
+#     :param ip:
+#     :param port:
+#     :param sql:
+#     :param my_connect_timeout:
+#     :return:
+#     """
+#     conn = None
+#     cursor = None
+#     data = []
+#     row_count = 0
+#     try:
+#         conn = pymysql.connect(host=ip, port=int(port), user=db_all_remote_user, passwd=db_all_remote_pass, db=db,
+#                                charset="utf8",connect_timeout=my_connect_timeout)
+#         cursor = conn.cursor()
+#         start_time = datetime.now()
+#         cursor.execute(sql)
+#         rows = cursor.fetchall()
+#         end_time = datetime.now()
+#         diff_time = (end_time - start_time).microseconds/1000
+#         data = [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+#         row_count = cursor.rowcount
+#         status = "ok"
+#         message = StatusCode.OK.msg
+#         code = StatusCode.OK.code
+#     except pymysql.Error as e:
+#         print(e.args[0], e.args[1])
+#         status = "error"
+#         message = str(e.args[0]) + ':' + e.args[1]
+#         code = StatusCode.ERR_DB.code
+#         diff_time = 0
+#         logger.exception("sql执行失败:%s", e)
+#     except Exception as e:
+#         status = "error"
+#         message = StatusCode.ERR_DB.msg
+#         code = StatusCode.ERR_DB.code
+#         diff_time = 0
+#         logger.exception("sql执行失败:%s", e)
+#     finally:
+#         if cursor: cursor.close()
+#         if conn: connection.close()
+#         return {"status": status, "message": message, "code": code, "data": data, "row_count": row_count, 'query_time': diff_time}
 
 
 def target_source_ping(ip, port):
@@ -311,8 +311,21 @@ def target_source_dml_many(ip, port, sql_list, my_connect_timeout=2):
         return {"status": status, "message": message, "code": code, "affected_rows": affected_rows}
 
 
-def get_dsn(ip=None,port=None,user=db_all_remote_user,pwd=db_all_remote_pass,charset="utf-8",connect_timeout=0.2):
-    return {"ip":ip,"port":port,"user":user,"pwd":pwd,"charset":charset,"connect_timeout":connect_timeout}
+# def get_dsn(
+#         ip=None,
+#         port=None,
+#         user=db_all_remote_user,
+#         pwd=db_all_remote_pass,
+#         charset="utf-8",
+#         connect_timeout=0.2):
+#     return {
+#         "ip": ip,
+#         "port": port,
+#         "user": user,
+#         "pwd": pwd,
+#         "charset": charset,
+#         "connect_timeout": connect_timeout
+#     }
 
 
 class DbUtil:
@@ -339,12 +352,13 @@ class DbUtil:
                     host=self._dsn.get('ip'),
                     port=int(self._dsn.get('port')),
                     user=self._dsn.get('user'),
-                    passwd=self._dsn.get('pass'),
+                    passwd=self._dsn.get('passwd'),
                     db=self._dsn.get('db'),
-                    charset="utf-8",
-                    connect_timeout=self._dsn.get('my_connect_timeout')
+                    charset="utf8",
+                    connect_timeout=self._dsn.get('connect_timeout')
                 )
         except Exception as e:
+            print(e)
             return self._err(e)
 
     def find_all(self, sql, args=None):
@@ -505,3 +519,16 @@ def batch_insert(sql, args=None):
     """
     db = DbUtil()
     return db.batch_insert(sql, args)
+
+
+def target_source_find_all(ip, port, sql, user=db_all_remote_user, passwd=db_all_remote_pass, db=None, connect_timeout=2,args=None):
+    dsn = {
+        "ip": ip,
+        "port": port,
+        "user": user,
+        "passwd": passwd,
+        "db": db,
+        "connect_timeout": connect_timeout
+    }
+    db = DbUtil(dsn=dsn)
+    return db.find_all(sql, args)

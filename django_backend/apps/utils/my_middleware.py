@@ -39,7 +39,6 @@ class MyLogMiddleware(MiddlewareMixin):
     def process_request(self, request):
         trace_id = str(uuid.uuid4())
         local.request_id = trace_id
-        print(dir(local))
 
     def process_response(self, request, response):
         if hasattr(request, 'request_id'):
