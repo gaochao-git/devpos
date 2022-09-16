@@ -262,19 +262,11 @@ LOGGING = {
             'backupCount': 1,
             'formatter':'standard',
         },
-        'inception_execute_log_handler': {
-            'level':'DEBUG',
-            'class':'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(log_path, "inception_execute.log"),
-            'maxBytes': 1024*1024*5,
-            'backupCount': 50,
-            'formatter':'simple',
-        }
     },
     'loggers': {
         'django.server': {             # http请求,debug为true时打印到console
             'handlers': ['console'],
-            'level': 'INFO',
+            'level': 'DEBUG',
             'propagate': True,  # 向不向更高级别的logger传递
         },
         'django.db.backends': {             # SQL语句与执行耗时,debug为true时打印到console
@@ -283,19 +275,19 @@ LOGGING = {
             'propagate': True,  # 向不向更高级别的logger传递
         },
         'my_access': {             # 默认的logger应用如下配置
-            'handlers': ['default'],  # 上线之后可以把'console'移除
-            'level': 'INFO',
+            'handlers': ['default'],
+            'level': 'DEBUG',
             'propagate': True,  # 向不向更高级别的logger传递
         },
         'devops': {             # 默认的logger应用如下配置
-            'handlers': ['console', 'error','info'],  # 上线之后可以把'console'移除
-            'level': 'INFO',
+            'handlers': ['error'],  # 上线之后可以把'console'移除
+            'level': 'DEBUG',
             'propagate': True,  # 向不向更高级别的logger传递
             'filters': ['request_id'],
         },
         'sql_logger': {
-            'handlers': ['sql_log_handler','console'],
-            'level': 'INFO',
+            'handlers': ['sql_log_handler'],
+            'level': 'DEBUG',
             'propagate': False,
             'filters': ['request_id'],
         },
