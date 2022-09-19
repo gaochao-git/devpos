@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 
 
 class ZabbixApi:
@@ -67,9 +68,8 @@ class ZabbixApi:
         }
         ret = self._request(data)
         if ret is not None:
-            hostid = ret['result'][0]['hostid']
-            print(hostid)
-            return hostid
+            host_id = ret['result'][0]['hostid']
+            return host_id
         else:
             return None
 
@@ -124,6 +124,41 @@ class ZabbixApi:
         else:
             return None
 
+    def maintenance_create(self, host_ip_list, period=31536000):
+        """
+        创建维护组
+        :param host_ip_list:
+        :param period:
+        :return:
+        """
+        start_time = int(time.time())
+        end_time = start_time + period
+        host_id_list = [self.get_host_id(host_ip) for host_ip in host_ip_list]
+        data = {
+            "jsonrpc": "2.0",
+            "method": "maintenance.create",
+            "params": {
+                "name": "xx",
+                "active_since": start_time,  # 维护模式生效的时刻，期间timeperiods设置的规则生效
+                "active_till": end_time,     # 维护模式失效的时刻，期间timeperiods设置的规则生效
+                "hostids": host_id_list,     # host id list
+                "tags_evaltype": 0,    # Problem tag evaluation method: 0: And/Or,2:Or.
+                "maintenance_type": 0,  # 0:关闭报警,收集数据,1:关闭报警,不收集数据
+                "timeperiods": [
+                    {
+                        "timeperiod_type": 0,   # 期间类型 0:one time only, 2:daily, 3:weekly, 4:monthly.
+                        "start_date": start_time,  # 规则生效时间
+                        "period": period  # 维护期间长度
+                    }
+                ]
+            },
+            "auth": self._auth_token,
+            "id": 1
+        }
+        ret = self._request(data)
+        print(data)
+        print(ret)
+
 
     def zabbix_xx(self):
         data = {
@@ -163,3 +198,4 @@ if __name__ == '__main__':
     zabbix_obj = ZabbixApi()
     zabbix_obj.get_host_id('127.0.0.1')
     zabbix_obj.get_host_info('127.0.0.1')
+    zabbix_obj.maintenance_create(['127.0.0.1'])
