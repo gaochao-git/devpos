@@ -2,12 +2,15 @@ from rest_framework.views import APIView
 from django.http import HttpResponse
 import json
 from apps.utils.error_code import StatusCode
+# from rest_framework.authentication import TokenAuthentication
+from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework_jwt.utils import jwt_decode_handler
 import time
 from datetime import datetime
 import django
 import logging
 logger = logging.getLogger('my_access')
+
 
 
 class BaseView(APIView):
@@ -111,7 +114,7 @@ class BaseView(APIView):
         :param access:
         :return:
         """
-        user_role = self.request_user_info.get('user_role')
+        user_role = self.request_user_info['user_role'] 
         return user_role in access.value
 
     def _get_user_info(self, request):
@@ -129,7 +132,7 @@ class BaseView(APIView):
         self.request_user_info['orig_iat_format'] = time.strftime("%Y-%m-%d %H:%M:%S", orig_iat_timestamp)
         self.request_user_info['user_role'] = 'dba'    # 后续在用户信息中加入该角色动态获取
 
-    def _audit_log(self, ret_info):
+    def audit_log(self,ret_info):
         """
         审计日志
         :return:

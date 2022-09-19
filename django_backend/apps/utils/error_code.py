@@ -10,6 +10,7 @@ class StatusCode(Enum):
     ERR_COMMON = (5000, 'server error')
     ERR_PARAM = (5001, 'param error')
     ERR_DB = (5002, 'db error')
+    ERR_API = (5003, 'api disabled')
 
     @property
     def code(self):
