@@ -409,7 +409,7 @@ class AuditSqlIndex extends Component {
                         <Column title="操作"
                             fixed='right'
                             render={record => {
-                                return <Link target='_blank' to={`/service/viewApplySqlByUuid/${record.submit_sql_uuid}`}>查看</Link>
+                                return <Link target='_blank' to={`/service/worksheet/viewApplySqlByUuid/${record.submit_sql_uuid}`}>查看</Link>
                             }}/>
                     </Table>
                 </TabPane>

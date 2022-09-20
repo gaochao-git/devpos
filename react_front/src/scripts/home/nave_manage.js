@@ -7,43 +7,30 @@ const { SubMenu } = Menu;
 
 class NavManage extends Component {
     render() {
-        //定义侧边栏主按钮与菜单对应关系
-        var menu_path = {
-            "/userRole":"sub1",
-            "/databaseResource":"sub1",
-            "/taskManage":"sub2",
-        }
-        //确定侧边栏选中的菜单
         if (this.props.location.pathname==='/'){
-            var path = '/Server'
+            var path = '/service/server/Server'
         }else{
             var path = this.props.location.pathname
-        }
-        //确定侧边栏默认展开的menu
-        if (path in menu_path){
-            var main_sub = menu_path[path]
-        }else{
-            message.warning(`${path}:路由未找到`)
         }
         return(
             <Menu
                 mode="inline"
                 style={{ height: '100%' }}
                 theme='dark'
-                defaultOpenKeys={[main_sub]}
+                defaultOpenKeys={[window.localStorage.current_nav_l1]}
                 selectedKeys={[path]}
             >
-                <SubMenu key="sub1" title={<span><Icon type="user" /><span>用户管理</span></span>}>
-                    <Menu.Item key="/manage/userRole">
-                        <Link to="/manage/userRole">角色管理</Link>
+                <SubMenu key="permission" title={<span><Icon type="user" /><span>用户管理</span></span>}>
+                    <Menu.Item key="/manage/permission/userRole">
+                        <Link to="/manage/permission/userRole">角色管理</Link>
                     </Menu.Item>
-                    <Menu.Item key="/manage/databaseResource">
-                        <Link to="/manage/databaseResource">database管理</Link>
+                    <Menu.Item key="/manage/permission/databaseResource">
+                        <Link to="/manage/permission/databaseResource">database管理</Link>
                     </Menu.Item>
                 </SubMenu>
-                <SubMenu key="sub2" title={<span><Icon type="robot" /><span>任务管理</span></span>}>
-                    <Menu.Item key="/manage/taskManage">
-                        <Link to="/manage/taskManage">Celery任务</Link>
+                <SubMenu key="task" title={<span><Icon type="robot" /><span>任务管理</span></span>}>
+                    <Menu.Item key="/manage/task/taskManage">
+                        <Link to="/manage/task/taskManage">Celery任务</Link>
                     </Menu.Item>
                 </SubMenu>
             </Menu>

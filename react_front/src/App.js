@@ -90,6 +90,12 @@ class App extends Component {
     handlerClick = e =>{
         this.setState({current_nav:e.key});
         window.localStorage.setItem("current_nav", e.key)
+        const urlParams = new URL(window.location.href);
+        const pathname = urlParams?.pathname;
+        var l1_path = pathname.split("/")[2]
+        window.localStorage.setItem("current_nav_l1", l1_path)
+        var l2_path = pathname.split("/")[3]
+        window.localStorage.setItem("current_nav_l2", l2_path)
     }
 
     onCollapse = collapsed => {
@@ -122,13 +128,13 @@ class App extends Component {
                                     style={{width:'60%'}}
                                 >
                                     <Menu.Item key="服务" style={{marginLeft:'35px'}} >
-                                        <Link to="/service/Server">服务</Link>
+                                        <Link to="/service/server/Server">服务</Link>
                                     </Menu.Item>
                                     <Menu.Item key="运维" style={{marginLeft:'20px'}}>
-                                        <Link to="/ops/deployMysql">运维</Link>
+                                        <Link to="/ops/deploy/deployMysql">运维</Link>
                                     </Menu.Item>
                                     <Menu.Item key="管理" style={{marginLeft:'20px'}}>
-                                        <Link to="/manage/userRole">管理</Link>
+                                        <Link to="/manage/permission/userRole">管理</Link>
                                     </Menu.Item>
                                 </Menu>
                                 <HeadTimer />
@@ -180,25 +186,25 @@ class App extends Component {
                                     }}/>
                                     <Route exact path="/home" component={Login} />
                                     <Route exact path="/homeDbaInfo" component={HomeDbaInfo} />
-                                    <Route exact path="/service/Server" component={Server} />
-                                    <Route exact path="/service/mysqlCluster" component={mysqlCluster} />
-                                    <Route exact path="/service/mysqlInstance" component={mysqlInstance} />
-                                    <Route exact path="/service/auditSqlIndex" component={AuditSqlIndex} />
-                                    <Route exact path="/service/viewApplySqlByUuid/:submit_sql_uuid" component={ExecuteSql} />
-                                    <Route exact path="/service/privilegesApply" component={privilegesApply} />
-                                    <Route exact path="/service/viewPrivilegeInfoByUuid/:order_uuid" component={OrderInformation} />
-                                    <Route exact path="/service/mysqlConsoleNew" component={MysqlConsoleNew} />
-                                    <Route exact path="/service/metaCompare" component={MetaCompare} />
-                                    <Route exact path="/service/mysqlConsole" component={mysqlConsole} />
-                                    <Route exact path="/service/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
-                                    <Route exact path="/service/rds" component={Rds} />
+                                    <Route exact path="/service/server/Server" component={Server} />
+                                    <Route exact path="/service/mysql/mysqlCluster" component={mysqlCluster} />
+                                    <Route exact path="/service/mysql/mysqlInstance" component={mysqlInstance} />
+                                    <Route exact path="/service/worksheet/auditSqlIndex" component={AuditSqlIndex} />
+                                    <Route exact path="/service/worksheet/viewApplySqlByUuid/:submit_sql_uuid" component={ExecuteSql} />
+                                    <Route exact path="/service/worksheet/privilegesApply" component={privilegesApply} />
+                                    <Route exact path="/service/worksheet/viewPrivilegeInfoByUuid/:order_uuid" component={OrderInformation} />
+                                    <Route exact path="/service/console/mysqlConsoleNew" component={MysqlConsoleNew} />
+                                    <Route exact path="/service/console/metaCompare" component={MetaCompare} />
+                                    <Route exact path="/service/console/mysqlConsole" component={mysqlConsole} />
+                                    <Route exact path="/service/worksheet/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
+                                    <Route exact path="/service/deploy/rds" component={Rds} />
                                     <Route exact path="/manage/databaseResource" component={DatabaseResource} />
-                                    <Route exact path="/ops/deployMysql" component={DeployMysql} />
-                                    <Route exact path="/ops/deployMysqljks" component={DeployMysqlJks} />
-                                    <Route exact path="/manage/userRole" component={UserRole} />
-                                    <Route exact path="/manage/taskManage" component={TaskManage} />
-                                    <Route exact path="/manage/publicManage" component={publicManage} />
-                                    <Route exact path="/manage/commonUser" component={commonUser} />
+                                    <Route exact path="/ops/deploy/deployMysql" component={DeployMysql} />
+                                    <Route exact path="/ops/deploy/deployMysqljks" component={DeployMysqlJks} />
+                                    <Route exact path="/manage/permission/userRole" component={UserRole} />
+                                    <Route exact path="/manage/task/taskManage" component={TaskManage} />
+                                    <Route exact path="/manage/permission/publicManage" component={publicManage} />
+                                    <Route exact path="/manage/permission/commonUser" component={commonUser} />
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>
