@@ -23,7 +23,7 @@ class NavManage extends Component {
         if (path in menu_path){
             var main_sub = menu_path[path]
         }else{
-            message.warning('路由未找到')
+            message.warning(`${path}:路由未找到`)
         }
         return(
             <Menu
@@ -34,16 +34,16 @@ class NavManage extends Component {
                 selectedKeys={[path]}
             >
                 <SubMenu key="sub1" title={<span><Icon type="user" /><span>用户管理</span></span>}>
-                    <Menu.Item key="/userRole">
-                        <Link to="/userRole">角色管理</Link>
+                    <Menu.Item key="/manage/userRole">
+                        <Link to="/manage/userRole">角色管理</Link>
                     </Menu.Item>
-                    <Menu.Item key="/databaseResource">
-                        <Link to="/databaseResource">database管理</Link>
+                    <Menu.Item key="/manage/databaseResource">
+                        <Link to="/manage/databaseResource">database管理</Link>
                     </Menu.Item>
                 </SubMenu>
                 <SubMenu key="sub2" title={<span><Icon type="robot" /><span>任务管理</span></span>}>
-                    <Menu.Item key="/taskManage">
-                        <Link to="/taskManage">Celery任务</Link>
+                    <Menu.Item key="/manage/taskManage">
+                        <Link to="/manage/taskManage">Celery任务</Link>
                     </Menu.Item>
                 </SubMenu>
             </Menu>

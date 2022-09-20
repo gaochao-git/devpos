@@ -60,11 +60,9 @@ class App extends Component {
           this.getUserInfo();
         };
         //如果tab主标签存在则跳到指定tab，否则跳到服务标签
-        if (window.localStorage.current_nav){
-            this.setState({current_nav: window.localStorage.current_nav});
-        }else {
-            this.setState({current_nav:"服务"});
-        };
+        if (!window.localStorage.current_nav){
+            window.localStorage.setItem("current_nav", "服务")
+        }
     }
 
     //根据token获取登陆信息
@@ -120,17 +118,17 @@ class App extends Component {
                                     mode="horizontal"
                                     defaultOpenKeys={[this.state.current_nav]}
                                     onClick={this.handlerClick}
-                                    selectedKeys={[this.state.current_nav]}
+                                    selectedKeys={[window.localStorage.current_nav]}
                                     style={{width:'60%'}}
                                 >
                                     <Menu.Item key="服务" style={{marginLeft:'35px'}} >
-                                        <Link to="/Server">服务</Link>
+                                        <Link to="/service/Server">服务</Link>
                                     </Menu.Item>
                                     <Menu.Item key="运维" style={{marginLeft:'20px'}}>
-                                        <Link to="/deployMysql">运维</Link>
+                                        <Link to="/ops/deployMysql">运维</Link>
                                     </Menu.Item>
                                     <Menu.Item key="管理" style={{marginLeft:'20px'}}>
-                                        <Link to="/userRole">管理</Link>
+                                        <Link to="/manage/userRole">管理</Link>
                                     </Menu.Item>
                                 </Menu>
                                 <HeadTimer />
@@ -163,9 +161,9 @@ class App extends Component {
                                     onCollapse={this.onCollapse}
                                     trigger={null}
                                 >
-                                    {this.state.current_nav === "服务"? <NavService/>:null}
-                                    {this.state.current_nav === "运维"? <NavOps/>:null}
-                                    {this.state.current_nav === "管理"? <NavManage/>:null}
+                                    {window.localStorage.current_nav === "服务"? <NavService/>:null}
+                                    {window.localStorage.current_nav === "运维"? <NavOps/>:null}
+                                    {window.localStorage.current_nav === "管理"? <NavManage/>:null}
                                 </Sider>
                                 <Content
                                     style={{
@@ -180,27 +178,27 @@ class App extends Component {
                                             return <HomeDbaInfo/>
                                         }
                                     }}/>
-                                    <Route exact path="/Server" component={Server} />
-                                    <Route exact path="/mysqlCluster" component={mysqlCluster} />
-                                    <Route exact path="/mysqlInstance" component={mysqlInstance} />
-                                    <Route exact path="/publicManage" component={publicManage} />
-                                    <Route exact path="/auditSqlIndex" component={AuditSqlIndex} />
-                                    <Route exact path="/viewApplySqlByUuid/:submit_sql_uuid" component={ExecuteSql} />
-                                    <Route exact path="/privilegesApply" component={privilegesApply} />
-                                    <Route exact path="/viewPrivilegeInfoByUuid/:order_uuid" component={OrderInformation} />
-                                    <Route exact path="/commonUser" component={commonUser} />
                                     <Route exact path="/home" component={Login} />
-                                    <Route exact path="/mysqlConsole" component={mysqlConsole} />
                                     <Route exact path="/homeDbaInfo" component={HomeDbaInfo} />
-                                    <Route exact path="/deployMysql" component={DeployMysql} />
-                                    <Route exact path="/deployMysqljks" component={DeployMysqlJks} />
-                                    <Route exact path="/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
-                                    <Route exact path="/rds" component={Rds} />
-                                    <Route exact path="/userRole" component={UserRole} />
-                                    <Route exact path="/databaseResource" component={DatabaseResource} />
-                                    <Route exact path="/taskManage" component={TaskManage} />
-                                    <Route exact path="/mysqlConsoleNew" component={MysqlConsoleNew} />
-                                    <Route exact path="/metaCompare" component={MetaCompare} />
+                                    <Route exact path="/service/Server" component={Server} />
+                                    <Route exact path="/service/mysqlCluster" component={mysqlCluster} />
+                                    <Route exact path="/service/mysqlInstance" component={mysqlInstance} />
+                                    <Route exact path="/service/auditSqlIndex" component={AuditSqlIndex} />
+                                    <Route exact path="/service/viewApplySqlByUuid/:submit_sql_uuid" component={ExecuteSql} />
+                                    <Route exact path="/service/privilegesApply" component={privilegesApply} />
+                                    <Route exact path="/service/viewPrivilegeInfoByUuid/:order_uuid" component={OrderInformation} />
+                                    <Route exact path="/service/mysqlConsoleNew" component={MysqlConsoleNew} />
+                                    <Route exact path="/service/metaCompare" component={MetaCompare} />
+                                    <Route exact path="/service/mysqlConsole" component={mysqlConsole} />
+                                    <Route exact path="/service/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
+                                    <Route exact path="/service/rds" component={Rds} />
+                                    <Route exact path="/manage/databaseResource" component={DatabaseResource} />
+                                    <Route exact path="/ops/deployMysql" component={DeployMysql} />
+                                    <Route exact path="/ops/deployMysqljks" component={DeployMysqlJks} />
+                                    <Route exact path="/manage/userRole" component={UserRole} />
+                                    <Route exact path="/manage/taskManage" component={TaskManage} />
+                                    <Route exact path="/manage/publicManage" component={publicManage} />
+                                    <Route exact path="/manage/commonUser" component={commonUser} />
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>

@@ -116,7 +116,7 @@ export default class DeployMysql extends Component  {
           {
             title: '操作',
             render: (record) => {
-              return <Link to={`/viewDeployMysqlByUuid/${record.submit_uuid}`}>查看</Link>
+              return <Link to={`/service/viewDeployMysqlByUuid/${record.submit_uuid}`}>查看</Link>
             }
           }
 

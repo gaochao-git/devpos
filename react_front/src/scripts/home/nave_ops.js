@@ -14,11 +14,11 @@ class NavOps extends Component {
                 theme='dark'
             >
                 <SubMenu key="sub1" title={<span><Icon type="cloud-server" /><span>部署</span></span>}>
-                    <Menu.Item key="/deployMysql">
-                        <Link to="/deployMysql"><span>部署mysql集群ansible</span></Link>
+                    <Menu.Item key="/ops/deployMysql">
+                        <Link to="/ops/deployMysql"><span>部署mysql集群ansible</span></Link>
                     </Menu.Item>
-                    <Menu.Item key="/deployMysqlJks">
-                        <Link to="/deployMysqlJks"><span>部署mysql集群Jks</span></Link>
+                    <Menu.Item key="/ops/deployMysqlJks">
+                        <Link to="/ops/deployMysqlJks"><span>部署mysql集群Jks</span></Link>
                     </Menu.Item>
                 </SubMenu>
             </Menu>
