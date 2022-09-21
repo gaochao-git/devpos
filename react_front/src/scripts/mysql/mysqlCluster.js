@@ -99,19 +99,19 @@ export default class mysqlCluster extends Component  {
           },
           {
             title: '业务线',
-            dataIndex: 'vip',
+            dataIndex: 'department',
           },
           {
             title: 'dba',
-            dataIndex: 'vip',
+            dataIndex: 'dba',
           },
           {
             title: 'qa',
-            dataIndex: 'vip',
+            dataIndex: '1a',
           },
           {
             title: 'dev',
-            dataIndex: 'vip',
+            dataIndex: 'dev',
           },
         ];
 
@@ -420,6 +420,7 @@ export default class mysqlCluster extends Component  {
                     </div>
                 </div>
                 <Table
+                    rowKey={(row ,index) => index}
                     dataSource={this.state.cluster_info}
                     columns={cluster_columns}
                     bordered
@@ -636,6 +637,7 @@ export default class mysqlCluster extends Component  {
                   width={1200}
               >
                   <Table
+                      rowKey={(row ,index) => index}
                       dataSource={this.state.cluster_instance_info}
                       columns={mysql_cluster_instance_columns}
                       scroll={{ x: true }}

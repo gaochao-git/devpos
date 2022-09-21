@@ -122,7 +122,7 @@ class App extends Component {
                                 <Menu
                                     theme="dark"
                                     mode="horizontal"
-                                    defaultOpenKeys={[this.state.current_nav]}
+                                    defaultOpenKeys={[window.localStorage.current_nav]}
                                     onClick={this.handlerClick}
                                     selectedKeys={[window.localStorage.current_nav]}
                                     style={{width:'60%'}}
@@ -198,7 +198,7 @@ class App extends Component {
                                     <Route exact path="/service/console/mysqlConsole" component={mysqlConsole} />
                                     <Route exact path="/service/worksheet/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
                                     <Route exact path="/service/deploy/rds" component={Rds} />
-                                    <Route exact path="/manage/databaseResource" component={DatabaseResource} />
+                                    <Route exact path="/manage/permission/databaseResource" component={DatabaseResource} />
                                     <Route exact path="/ops/deploy/deployMysql" component={DeployMysql} />
                                     <Route exact path="/ops/deploy/deployMysqljks" component={DeployMysqlJks} />
                                     <Route exact path="/manage/permission/userRole" component={UserRole} />
