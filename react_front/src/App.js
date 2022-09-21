@@ -59,9 +59,18 @@ class App extends Component {
         if (window.localStorage.getItem('token')){
           this.getUserInfo();
         };
-        //如果tab主标签存在则跳到指定tab，否则跳到服务标签
-        if (!window.sessionStorage.current_nav){
-            window.sessionStorage.setItem("current_nav", "服务")
+        this.routerChange();
+    }
+
+    routerChange= ()=>{
+        console.log('window.location.pathname')
+        var path = window.location.pathname.split("/")[1]
+        if (path=="service"){
+            this.setState({current_nav:"服务"})
+        }else if (path=="ops"){
+            this.setState({current_nav:"运维"})
+        }else if (path=="manage"){
+            this.setState({current_nav:"管理"})
         }
     }
 
@@ -89,7 +98,6 @@ class App extends Component {
     //更改服务、运维、管理标签
     handlerClick = e =>{
         this.setState({current_nav:e.key});
-        window.sessionStorage.setItem("current_nav", e.key)
     }
 
     onCollapse = collapsed => {
@@ -116,9 +124,9 @@ class App extends Component {
                                 <Menu
                                     theme="dark"
                                     mode="horizontal"
-                                    defaultOpenKeys={[window.sessionStorage.current_nav]}
+                                    defaultOpenKeys={[this.state.current_nav]}
                                     onClick={this.handlerClick}
-                                    selectedKeys={[window.sessionStorage.current_nav]}
+                                    selectedKeys={[this.state.current_nav]}
                                     style={{width:'60%'}}
                                 >
                                     <Menu.Item key="服务" style={{marginLeft:'35px'}} >
@@ -161,9 +169,9 @@ class App extends Component {
                                     onCollapse={this.onCollapse}
                                     trigger={null}
                                 >
-                                    {window.sessionStorage.current_nav === "服务"? <NavService/>:null}
-                                    {window.sessionStorage.current_nav === "运维"? <NavOps/>:null}
-                                    {window.sessionStorage.current_nav === "管理"? <NavManage/>:null}
+                                    {this.state.current_nav === "服务"? <NavService/>:null}
+                                    {this.state.current_nav === "运维"? <NavOps/>:null}
+                                    {this.state.current_nav === "管理"? <NavManage/>:null}
                                 </Sider>
                                 <Content
                                     style={{

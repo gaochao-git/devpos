@@ -32,18 +32,6 @@ function hideLoading(){
     }
 }
 
-// 拦截前端路由设置header主路由、侧边栏路由
-export function routerChange(pathname){
-    console.log("pathname:", pathname);
-    var path = pathname.split("/")[1]
-    if (path=="service"){
-        window.sessionStorage.setItem("current_nav", "服务")
-    }else if (path=="ops"){
-        window.sessionStorage.setItem("current_nav", "运维")
-    }else if (path=="manage"){
-        window.sessionStorage.setItem("current_nav", "管理")
-    }
-}
 
 MyAxios.interceptors.request.use(
     config => {

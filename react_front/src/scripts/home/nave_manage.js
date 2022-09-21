@@ -6,10 +6,6 @@ const { SubMenu } = Menu;
 
 
 class NavManage extends Component {
-    componentWillMount() {
-        routerChange(window.location.pathname)
-    }
-
     render() {
         var l1_path = this.props.location.pathname.split("/")[2]
         var l2_path = this.props.location.pathname.split("/")[3]
