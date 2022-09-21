@@ -90,12 +90,6 @@ class App extends Component {
     handlerClick = e =>{
         this.setState({current_nav:e.key});
         window.localStorage.setItem("current_nav", e.key)
-        const urlParams = new URL(window.location.href);
-        const pathname = urlParams?.pathname;
-        var l1_path = pathname.split("/")[2]
-        window.localStorage.setItem("current_nav_l1", l1_path)
-        var l2_path = pathname.split("/")[3]
-        window.localStorage.setItem("current_nav_l2", l2_path)
     }
 
     onCollapse = collapsed => {

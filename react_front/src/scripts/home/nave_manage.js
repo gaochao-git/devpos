@@ -7,29 +7,26 @@ const { SubMenu } = Menu;
 
 class NavManage extends Component {
     render() {
-        if (this.props.location.pathname==='/'){
-            var path = '/service/server/Server'
-        }else{
-            var path = this.props.location.pathname
-        }
+        var l1_path = this.props.location.pathname.split("/")[2]
+        var l2_path = this.props.location.pathname.split("/")[3]
         return(
             <Menu
                 mode="inline"
                 style={{ height: '100%' }}
                 theme='dark'
-                defaultOpenKeys={[window.localStorage.current_nav_l1]}
-                selectedKeys={[path]}
+                defaultOpenKeys={[l1_path]}
+                selectedKeys={[l2_path]}
             >
                 <SubMenu key="permission" title={<span><Icon type="user" /><span>用户管理</span></span>}>
-                    <Menu.Item key="/manage/permission/userRole">
+                    <Menu.Item key="userRole">
                         <Link to="/manage/permission/userRole">角色管理</Link>
                     </Menu.Item>
-                    <Menu.Item key="/manage/permission/databaseResource">
+                    <Menu.Item key="databaseResource">
                         <Link to="/manage/permission/databaseResource">database管理</Link>
                     </Menu.Item>
                 </SubMenu>
                 <SubMenu key="task" title={<span><Icon type="robot" /><span>任务管理</span></span>}>
-                    <Menu.Item key="/manage/task/taskManage">
+                    <Menu.Item key="taskManage">
                         <Link to="/manage/task/taskManage">Celery任务</Link>
                     </Menu.Item>
                 </SubMenu>

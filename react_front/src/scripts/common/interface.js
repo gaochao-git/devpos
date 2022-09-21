@@ -42,10 +42,6 @@ function routerChange(pathname){
     }else if (path=="manage"){
         window.localStorage.setItem("current_nav", "管理")
     }
-    var l1_path = pathname.split("/")[2]
-    window.localStorage.setItem("current_nav_l1", l1_path)
-    var l2_path = pathname.split("/")[3]
-    window.localStorage.setItem("current_nav_l2", l2_path)
 }
 
 MyAxios.interceptors.request.use(

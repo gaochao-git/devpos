@@ -7,24 +7,21 @@ const { SubMenu } = Menu;
 
 class NavOps extends Component {
     render() {
-        if (this.props.location.pathname==='/'){
-            var path = '/service/server/Server'
-        }else{
-            var path = this.props.location.pathname
-        }
+        var l1_path = this.props.location.pathname.split("/")[2]
+        var l2_path = this.props.location.pathname.split("/")[3]
         return(
             <Menu
                 mode="inline"
                 style={{ height: '100%' }}
                 theme='dark'
-                defaultOpenKeys={[window.localStorage.current_nav_l1]}
-                selectedKeys={[path]}
+                defaultOpenKeys={[l1_path]}
+                selectedKeys={[l2_path]}
             >
                 <SubMenu key="deploy" title={<span><Icon type="cloud-server" /><span>部署</span></span>}>
-                    <Menu.Item key="/ops/deploy/deployMysql">
+                    <Menu.Item key="deployMysql">
                         <Link to="/ops/deploy/deployMysql"><span>部署mysql集群ansible</span></Link>
                     </Menu.Item>
-                    <Menu.Item key="/ops/deploy/deployMysqlJks">
+                    <Menu.Item key="deployMysqlJks">
                         <Link to="/ops/deploy/deployMysqlJks"><span>部署mysql集群Jks</span></Link>
                     </Menu.Item>
                 </SubMenu>
