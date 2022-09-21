@@ -1,4 +1,4 @@
-import React,{Component} from 'react';
+import React,{Component,useEffect, useState} from 'react';
 import {Button, Table, Input, Modal, Tabs, Form, Row, Select, message, Card, AutoComplete, Tooltip, Menu, Layout, Icon
 } from "antd";
 import {Link, withRouter} from 'react-router-dom';
@@ -6,6 +6,10 @@ const { SubMenu } = Menu;
 
 
 class NavManage extends Component {
+    componentWillMount() {
+        routerChange(window.location.pathname)
+    }
+
     render() {
         var l1_path = this.props.location.pathname.split("/")[2]
         var l2_path = this.props.location.pathname.split("/")[3]

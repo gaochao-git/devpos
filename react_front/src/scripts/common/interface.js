@@ -32,15 +32,15 @@ function hideLoading(){
 }
 
 // 拦截前端路由设置header主路由、侧边栏路由
-function routerChange(pathname){
-    console.log("pathname:", pathname.split("/")[1]);
+export function routerChange(pathname){
+    console.log("pathname:", pathname);
     var path = pathname.split("/")[1]
     if (path=="service"){
-        window.localStorage.setItem("current_nav", "服务")
+        window.sessionStorage.setItem("current_nav", "服务")
     }else if (path=="ops"){
-        window.localStorage.setItem("current_nav", "运维")
+        window.sessionStorage.setItem("current_nav", "运维")
     }else if (path=="manage"){
-        window.localStorage.setItem("current_nav", "管理")
+        window.sessionStorage.setItem("current_nav", "管理")
     }
 }
 
@@ -58,10 +58,6 @@ MyAxios.interceptors.request.use(
         }
         delete config.headers.global_loading //使用完立即删除掉,防止跨域失败
       }
-      // 拦截前端路由设置header主路由、侧边栏路由
-      const urlParams = new URL(window.location.href);
-      const pathname = urlParams?.pathname;
-      routerChange(pathname)
       //放行拦截
       return config
     },
