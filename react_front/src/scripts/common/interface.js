@@ -17,6 +17,7 @@ const MyAxios = axios.create()
 //let params = {task_name:this.state.del_task_name}
 //let headers = {"global_loading":false}
 //await MyAxios.post('/task_manage/v1/del_task/',params,{headers})
+//await MyAxios.get('/task_manage/v1/del_task/',{params,headers})
 
 function showLoading(){
     var dom = document.createElement('div')
