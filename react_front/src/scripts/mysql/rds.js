@@ -114,7 +114,7 @@ export default class Rds extends Component  {
           {
             title: '操作',
             render: (record) => {
-              return <Link to={`/viewDeployMysqlByUuid/${record.submit_uuid}`}>查看</Link>
+              return <Link to={`/ops/deploy/viewDeployMysqlByUuid/${record.submit_uuid}`}>查看</Link>
             }
           }
 

@@ -198,7 +198,7 @@ class App extends Component {
                                     <Route exact path="/service/console/mysqlConsoleNew" component={MysqlConsoleNew} />
                                     <Route exact path="/service/console/metaCompare" component={MetaCompare} />
                                     <Route exact path="/service/console/mysqlConsole" component={mysqlConsole} />
-                                    <Route exact path="/service/worksheet/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
+                                    <Route exact path="/ops/deploy/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
                                     <Route exact path="/service/deploy/rds" component={Rds} />
                                     <Route exact path="/manage/permission/databaseResource" component={DatabaseResource} />
                                     <Route exact path="/ops/deploy/deployMysql" component={DeployMysql} />
