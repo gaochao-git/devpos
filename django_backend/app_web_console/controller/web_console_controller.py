@@ -27,9 +27,9 @@ class GetTableDataController(BaseView):
         # 验证参数方法1
         rules1 = {
             "des_ip_port": forms.CharField(validators=[validate_ip_port]),
-            "sql": forms.CharField(required=True, min_length=300,
+            "sql": forms.CharField(required=True, min_length=3,
                           error_messages={"required": "SQL为必填", "min_length": "SQL长度不合法最少为3"}),
-            "schema_name": forms.CharField(required=True, min_length=200, max_length=64,
+            "schema_name": forms.CharField(required=True, min_length=3, max_length=64,
                                   error_messages={"required": "库名为必填", "min_length": "库名长度不合法,最少为2",
                                                   "max_length": "库名长度不合法,最长为64"}),
             "explain": forms.ChoiceField(choices=([('no', '分析SQL'), ('yes', '执行SQL')]),
