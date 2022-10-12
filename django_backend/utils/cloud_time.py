@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2022/10/12 3:17 PM
 # @Author  : 高超
-# 时间处理
+# 时间处理公共脚本
 
 
 def secs_to_hms(seconds):
