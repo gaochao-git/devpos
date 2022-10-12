@@ -7,6 +7,10 @@
 
 def seconds_to_dhms(seconds):
     """
+    所以闭包产生的三个条件（缺一不可）：
+        1、必须嵌套一个内部函数
+        2、内部函数必须引用外部函数的变量
+        3、外部函数必须返回内部函数
     秒转为可读性强的时间
     seconds_to_dhms(886403)-------->10days,6hours,13min,23sec
     :param seconds:
