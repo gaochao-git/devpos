@@ -27,10 +27,10 @@ def secs_to_hms(seconds):
     hours = (seconds // 3600) % 24
     minutes = (seconds // 60) % 60
     seconds = seconds % 60
-    if days > 0 :
+    if days > 0:
         return _days(days)+_hours(hours)+_minutes(minutes)+_seconds(seconds)
-    if hours > 0 :
+    if hours > 0:
         return _hours(hours)+_minutes(minutes)+_seconds(seconds)
-    if minutes > 0 :
+    if minutes > 0:
         return _minutes(minutes)+_seconds(seconds)
     return _seconds(seconds)
