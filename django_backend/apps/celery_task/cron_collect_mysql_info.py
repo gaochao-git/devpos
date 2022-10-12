@@ -1,6 +1,7 @@
 from apps.utils import db_helper
 from multiprocessing.dummy import Pool as ThreadPool
 import pymysql
+from utils import cloud_time
 
 from celery.utils.log import get_task_logger   # 多线程task_name、task_id为???问题
 logger = get_task_logger(__name__)
@@ -23,14 +24,13 @@ class CollectMysql:
 
     def task_run(self):
         """
-        1.获取所有mysql集群-->并发所有集群获取信息--->循环集群每个节点获取信息,然后组装信息存入数据库
-        2.如果从实例表获取实例然后并发会更快,但是一套集群可能收集时间就会有了先后之分,如果有对比集群gtid的场景
-        gtid可能相差较大,可以通过对实例表cluster_name排序来确保1套集群时间相近
+        获取所有mysql实例-->并发所有集群实例获取信息,然后组装信息存入数据库，对集群名排序可以减少集群不同实例收集时间
         :return:
         """
         logger.info("任务开始执行")
         sql = "SELECT instance_name FROM mysql_cluster_instance order by cluster_name"
         ret = db_helper.find_all(sql)
+        assert ret['status'] == 'ok'
         instance_list = ret['data']
 
         # 可迭代对象丢给线程池并发执行
@@ -48,8 +48,8 @@ class CollectMysql:
         """
         # 获取目标表结构md5
         instance_name = instance_dict.get('instance_name')
-        ip = instance_name.split('_')[0]
-        port = instance_name.split('_')[1]
+        ip = instance_name.split('_')[0].strip()
+        port = instance_name.split('_')[1].strip()
         connections = pymysql.escape_string(str(self._get_connections(ip, port)))
         get_global_var = pymysql.escape_string(str(self._get_global_var(ip, port)))
         global_status = pymysql.escape_string(str(self._get_global_status(ip, port)))
@@ -116,7 +116,7 @@ class CollectMysql:
         filter_dict = {}
         filter_dict['Rpl_semi_sync_master_clients'] = status_dict.get('Rpl_semi_sync_master_clients')
         filter_dict['Rpl_semi_sync_master_status'] = status_dict.get('Rpl_semi_sync_master_status')
-
+        filter_dict['Uptime'] = cloud_time.secs_to_hms(int(status_dict.get('Uptime')))
         return filter_dict
 
     def _get_slave_status(self, ip, port):

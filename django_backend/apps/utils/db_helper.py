@@ -330,6 +330,8 @@ def target_source_dml_many(ip, port, sql_list, my_connect_timeout=2):
 
 class DbUtil:
     def __init__(self, close_conn=False, dsn=None):
+        self._start_time = datetime.now()
+        self._connection = None
         self._status = "ok"
         self._message = StatusCode.OK.msg
         self._code = StatusCode.OK.code
@@ -341,7 +343,6 @@ class DbUtil:
         self._dsn = dsn
         self._close_conn = close_conn
         self._get_connection()
-        self._start_time = datetime.now()
 
     def _get_connection(self):
         try:
@@ -430,7 +431,7 @@ class DbUtil:
 
     def _err(self, msg):
         self._close_session()
-        logger.error("execute sql error %d: %s" %(msg.args[0], msg.args[1]))
+        logger.error("execute sql error %s" %(msg))
         self._status = "error"
         self._message = StatusCode.ERR_DB.msg
         self._code = StatusCode.ERR_DB.code
