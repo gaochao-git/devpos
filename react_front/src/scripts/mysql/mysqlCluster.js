@@ -204,6 +204,10 @@ export default class mysqlCluster extends Component  {
               dataIndex: 'rpl_semi_sync_master_timeout',
           },
           {
+              title: '启动时间',
+              dataIndex: 'Uptime',
+          },
+          {
               title: '采集时间',
               dataIndex: 'update_time',
               fixed:'right'

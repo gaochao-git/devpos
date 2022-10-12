@@ -130,6 +130,7 @@ def get_mysql_cluster_ins_info_dao(cluster_name):
         # 全局status
         format_dict['Rpl_semi_sync_master_clients'] = instance_status.get('Rpl_semi_sync_master_clients')
         format_dict['Rpl_semi_sync_master_status'] = instance_status.get('Rpl_semi_sync_master_status')
+        format_dict['Uptime'] = instance_status.get('Uptime')
 
         # 复制信息
         format_dict['Slave_IO_Running'] = instance_slave_status.get('Slave_IO_Running')
