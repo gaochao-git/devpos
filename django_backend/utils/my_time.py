@@ -34,16 +34,3 @@ def seconds_to_dhms(seconds):
     if minutes > 0 :
         return _minutes(minutes)+_seconds(seconds)
     return _seconds(seconds)
-
-
-a = 123
-def outer(b):
-    def inner(b):
-        print(b)
-        a = 44
-        print(b)
-        print('current a:',a)
-    return inner
-outer(3)                #这一步只会访问到  outer() 这一层，而这一层什么都没有打印
-# in0 = outer()     #通过这种方式才能访问到里层函数inner（）
-# in0()
