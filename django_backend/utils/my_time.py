@@ -5,7 +5,7 @@
 # 时间处理
 
 
-def seconds_to_dhms(seconds):
+def secs_to_hms(seconds):
     """
     秒转为可读性强的时间
     seconds_to_dhms(886403)-------->10days,6hours,13min,23sec
