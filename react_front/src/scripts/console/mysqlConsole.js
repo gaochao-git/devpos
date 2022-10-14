@@ -223,6 +223,27 @@ export default class mysqlConsole extends Component {
     console.log('onExpand', selectedKeys, info);
   };
 
+  // 快速获取表结构、数据、信息
+  fastTableInfo = (table, type) => {
+    //根据不同类型确定SQL
+    if (type === 'data'){
+        var sql = "select * from " + table
+    }else if (type === 'struct'){
+        var sql = "show create table  " + table
+    }else if (type === 'status'){
+        var sql = "show table status like " + "'" + table + "'"
+    }
+    // 设置状态
+    if (this.state.sql_content===""){
+        this.setState({sql_content: sql});
+        var sql_content = sql
+    }else{
+        var sql_content = this.state.sql_content + '\n' + sql
+    }
+    this.setState({sql: sql,sql_content:sql_content,DrawerVisible:false},()=>this.getTableData('no'))
+    console.log(table);
+  };
+
   onInputRead = async (cm, change, editor) => {
     const tableName = {"table6": ["c1", "c2"]}; // 获取库表列表
     const { text } = change;
@@ -797,8 +818,9 @@ export default class mysqlConsole extends Component {
            <div
              style={{ ...this.state.contextMenuStyle, position: 'fixed',width:130,height:200,background:'#f1f2f5',zIndex:9999,borderRadius:5}}
            >
-             <Button type="link" onClick={()=>message.success('表结构')}>表结构</Button>
-             <Button type="link" onClick={()=>message.success('表信息')}>表信息</Button>
+             <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"struct")}>表结构</Button>
+             <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"data")}>表数据</Button>
+             <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"status")}>表信息</Button>
            </div>
            :null
           }

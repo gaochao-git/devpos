@@ -50,7 +50,7 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
         if ret['status'] !='ok':
             return ret
         k_v_data[j] = ret['data']
-        k_v_time[j] = ret['query_time']
+        k_v_time[j] = ret['execute_time']
         j = j + 1
         ret_list.append(k_v_data)
         query_time_list.append(k_v_time)
