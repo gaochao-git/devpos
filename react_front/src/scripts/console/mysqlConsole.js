@@ -818,9 +818,9 @@ export default class mysqlConsole extends Component {
            <div
              style={{ ...this.state.contextMenuStyle, position: 'fixed',width:130,height:200,background:'#f1f2f5',zIndex:9999,borderRadius:5}}
            >
-             <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"struct")}>表结构</Button>
-             <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"data")}>表数据</Button>
-             <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"status")}>表信息</Button>
+             <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"struct")}>查看表结构</Button>
+             <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"data")}>查看表数据</Button>
+             <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"status")}>查看表信息</Button>
            </div>
            :null
           }
