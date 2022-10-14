@@ -227,11 +227,11 @@ export default class mysqlConsole extends Component {
   fastTableInfo = (table, type) => {
     //根据不同类型确定SQL
     if (type === 'data'){
-        var sql = "select * from " + table
+        var sql = "select * from " + table + ";"
     }else if (type === 'struct'){
-        var sql = "show create table  " + table
+        var sql = "show create table  " + table + ";"
     }else if (type === 'status'){
-        var sql = "show table status like " + "'" + table + "'"
+        var sql = "show table status like " + "'" + table + "'" + ";"
     }
     // 设置状态
     if (this.state.sql_content===""){
