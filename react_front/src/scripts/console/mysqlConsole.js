@@ -272,7 +272,23 @@ export default class mysqlConsole extends Component {
           var my_child = []
           for (var i=0;i<this.state.table_column_list.length;i++){
             let column_dir = {}
-            column_dir['title'] = this.state.table_column_list[i]['Field']  + ':  ' + this.state.table_column_list[i]['Type']
+            //column_dir['title'] = this.state.table_column_list[i]['Field']  + ':  ' + this.state.table_column_list[i]['Type']
+            column_dir['title'] = <Tooltip
+                                      placement="rightBottom"
+                                      style={{ color: 'black' }}
+                                      title={
+                                          <span>
+                                              列是否允许为NULL: {this.state.table_column_list[i]['Null']}
+                                              <br/>列索引类型: {this.state.table_column_list[i]['Key'] }
+                                              <br/>列默认值: {this.state.table_column_list[i]['Default']}
+                                          </span>
+                                      }
+                                  >
+                                      {this.state.table_column_list[i]['Field']}
+                                      <span style={{ color: 'gray' }}>:
+                                          {this.state.table_column_list[i]['Type']}
+                                      </span>
+                                  </Tooltip>
             column_dir['key'] = treeNode.props.eventKey + ':' + this.state.table_column_list[i]['Field']
             column_dir['isLeaf'] = true
             my_child.push(column_dir)
