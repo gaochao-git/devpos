@@ -272,7 +272,7 @@ export default class mysqlConsole extends Component {
           var my_child = []
           for (var i=0;i<this.state.table_column_list.length;i++){
             let column_dir = {}
-            column_dir['title'] = this.state.table_column_list[i]['Field']
+            column_dir['title'] = this.state.table_column_list[i]['Field']  + ':  ' + this.state.table_column_list[i]['Type']
             column_dir['key'] = treeNode.props.eventKey + ':' + this.state.table_column_list[i]['Field']
             column_dir['isLeaf'] = true
             my_child.push(column_dir)
