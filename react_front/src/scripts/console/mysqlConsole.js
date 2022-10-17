@@ -69,7 +69,8 @@ export default class mysqlConsole extends Component {
       recreate_tree:true,  //通过这个变量让tree隐藏或者显示,不然会出现展开过的table，搜索框搜索表名后箭头消失导致无法再次点击
       contextMenuVisiable: false,// 显示右键菜单
       contextMenuStyle:"",// 右键菜单位置
-      my_pos:{line:0,ch:0}
+      my_pos:{line:0,ch:0},
+      tables_hint:{}, //表名补全
     }
   }
 
@@ -89,9 +90,7 @@ export default class mysqlConsole extends Component {
   }
 
   handleColumnWidth = (text,record,index) =>{
-          console.log(record)
           let columnWidth = text?text.width:30;
-          console.log(columnWidth)
           if(columnWidth < 30 && index != 0) {
               columnWidth = 30;
           }
@@ -180,14 +179,12 @@ export default class mysqlConsole extends Component {
     };
 
   async getMySource(e) {
-      console.log(e)
       let my_db_source = JSON.parse(window.localStorage.getItem("my_db_source"))
       if (!my_db_source){
         return
       }
       let cluster_name_dir_arr = []
       window.localStorage.setItem("my_db_source", JSON.stringify(my_db_source))
-      console.log(JSON.parse(window.localStorage.getItem("my_db_source")))
 
       for (var i=0;i<my_db_source.length;i++){
           let cluster_name_dir = {}
@@ -196,7 +193,6 @@ export default class mysqlConsole extends Component {
           cluster_name_dir['selectable'] = false
           cluster_name_dir['icon'] = <Icon type="cloud"/>
           cluster_name_dir_arr.push(cluster_name_dir)
-          console.log(cluster_name_dir_arr)
       }
       this.setState({source_slider_info:cluster_name_dir_arr})
   }
@@ -241,11 +237,10 @@ export default class mysqlConsole extends Component {
         var sql_content = this.state.sql_content + '\n' + sql
     }
     this.setState({sql: sql,sql_content:sql_content,DrawerVisible:false},()=>this.getTableData('no'))
-    console.log(table);
   };
 
   onInputRead = async (cm, change, editor) => {
-    const tableName = {"table6": ["c1", "c2"]}; // 获取库表列表
+    const tableName = this.state.tables_hint; // 获取库表列表
     const { text } = change;
     const ignore_chars = ['.', ',',' ',';'];     //这些字符不提示
     const ignore = ignore_chars.includes(text[0]);
@@ -462,8 +457,10 @@ export default class mysqlConsole extends Component {
           res=>{
               if( res.data.status === 'ok'){
                   var table_dir_arr = []
+                  var table_hint_obj = {}
                   for (var i=0;i<res.data.data.length;i++){
                     let table_dir = {}
+                    table_hint_obj[res.data.data[i]['TABLE_NAME']] = []
                     table_dir['title'] = <Tooltip
                                              placement="rightBottom"
                                              style={{ color: 'black' }}
@@ -489,7 +486,7 @@ export default class mysqlConsole extends Component {
                     table_dir['icon'] = <Icon type="table"/>
                     table_dir_arr.push(table_dir)
                   }
-                  this.setState({source_slider_info:table_dir_arr,recreate_tree:true,collapsed:false});
+                  this.setState({source_slider_info:table_dir_arr,recreate_tree:true,collapsed:false,tables_hint:table_hint_obj});
               } else{
                   message.error(res.data.message)
               }
