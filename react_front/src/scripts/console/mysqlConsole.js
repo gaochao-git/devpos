@@ -619,7 +619,7 @@ export default class mysqlConsole extends Component {
                 collapsed={this.state.collapsed}
                 onCollapse={this.onCollapse}
                 trigger={null}
-                width={220}
+                width={300}
                 collapsedWidth={0}
             >
             <div>
