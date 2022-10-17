@@ -159,22 +159,25 @@ def get_table_list_dao(instance_name,schema_name,table_name):
     """
     ip = instance_name.split('_')[0]
     port = instance_name.split('_')[1]
-    sql = "show tables from {} like '%{}%'".format(schema_name,table_name)
+    # sql = "show tables from {} like '%{}%'".format(schema_name,table_name)
+    sql = f"""
+        select 
+            TABLE_SCHEMA,
+            TABLE_NAME,
+            ENGINE,
+            CREATE_TIME,
+            TABLE_COMMENT,
+            AUTO_INCREMENT,
+            AVG_ROW_LENGTH,
+            DATA_LENGTH,
+            DATA_FREE,
+            INDEX_LENGTH,
+            TABLE_ROWS
+        from information_schema.TABLES
+        where TABLE_SCHEMA='{schema_name}' and TABLE_NAME like '%{table_name}%' limit 100
+    """
+    print(sql)
     ret = db_helper.target_source_find_all(ip, port, sql)
-    data = ret['data']
-    new_data = []
-    try:
-        num = 0
-        for i in data:
-            new_data_dict = {}
-            for k,v in i.items():
-                new_data_dict[schema_name] = v
-                new_data.append(new_data_dict)
-            num = num + 1
-            if num == 30: break
-    except Exception as e:
-        print(e)
-    ret['data'] = new_data
     return ret
 
 
@@ -186,7 +189,19 @@ def get_column_list_dao(instance_name,schema_name,table_name):
     """
     ip = instance_name.split('_')[0]
     port = instance_name.split('_')[1]
-    sql = "desc {}.{}".format(schema_name,table_name)
+    # sql = "desc {}.{}".format(schema_name,table_name)
+    sql = f"""
+        select 
+            COLUMN_NAME,
+            COLUMN_TYPE,
+            IS_NULLABLE,
+            COLUMN_KEY,
+            case when COLUMN_DEFAULT='' then '空' when COLUMN_DEFAULT is null then 'Null' else COLUMN_DEFAULT end as COLUMN_DEFAULT,
+            EXTRA,
+            COLUMN_COMMENT 
+        from information_schema.columns
+        where TABLE_SCHEMA='{schema_name}' and TABLE_NAME='{table_name}'
+    """
     return db_helper.target_source_find_all(ip, port, sql)
 
 

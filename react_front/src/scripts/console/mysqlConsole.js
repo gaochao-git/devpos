@@ -272,24 +272,27 @@ export default class mysqlConsole extends Component {
           var my_child = []
           for (var i=0;i<this.state.table_column_list.length;i++){
             let column_dir = {}
-            //column_dir['title'] = this.state.table_column_list[i]['Field']  + ':  ' + this.state.table_column_list[i]['Type']
+            //column_dir['title'] = this.state.table_column_list[i]['COLUMN_NAME']  + ':  ' + this.state.table_column_list[i]['Type']
             column_dir['title'] = <Tooltip
                                       placement="rightBottom"
                                       style={{ color: 'black' }}
+                                      overlayStyle={{ maxWidth: 350 }}
                                       title={
                                           <span>
-                                              列是否允许为NULL: {this.state.table_column_list[i]['Null']}
-                                              <br/>列索引类型: {this.state.table_column_list[i]['Key'] }
-                                              <br/>列默认值: {this.state.table_column_list[i]['Default']}
+                                              IS_NULLABLE: {this.state.table_column_list[i]['IS_NULLABLE']}
+                                              <br/>COLUMN_KEY: {this.state.table_column_list[i]['COLUMN_KEY'] }
+                                              <br/>COLUMN_DEFAULT: {this.state.table_column_list[i]['COLUMN_DEFAULT']}
+                                              <br/>EXTRA: {this.state.table_column_list[i]['EXTRA']}
+                                              <br/>COLUMN_COMMENT: {this.state.table_column_list[i]['COLUMN_COMMENT']}
                                           </span>
                                       }
                                   >
-                                      {this.state.table_column_list[i]['Field']}
+                                      {this.state.table_column_list[i]['COLUMN_NAME']}
                                       <span style={{ color: 'gray' }}>:
-                                          {this.state.table_column_list[i]['Type']}
+                                          {this.state.table_column_list[i]['COLUMN_TYPE']}
                                       </span>
                                   </Tooltip>
-            column_dir['key'] = treeNode.props.eventKey + ':' + this.state.table_column_list[i]['Field']
+            column_dir['key'] = treeNode.props.eventKey + ':' + this.state.table_column_list[i]['COLUMN_NAME']
             column_dir['isLeaf'] = true
             my_child.push(column_dir)
           }
@@ -461,8 +464,28 @@ export default class mysqlConsole extends Component {
                   var table_dir_arr = []
                   for (var i=0;i<res.data.data.length;i++){
                     let table_dir = {}
-                    table_dir['title'] = res.data.data[i][this.state.current_schema]
-                    table_dir['key'] = res.data.data[i][this.state.current_schema]
+                    table_dir['title'] = <Tooltip
+                                             placement="rightBottom"
+                                             style={{ color: 'black' }}
+                                             overlayStyle={{ maxWidth: 350 }}
+                                             title={
+                                                 <span>
+                                                     TABLE_COMMENT: {res.data.data[i]['TABLE_COMMENT']}
+                                                     <br/>ENGINE: {res.data.data[i]['ENGINE']}
+                                                     <br/>CREATE_TIME: {res.data.data[i]['CREATE_TIME']}
+                                                     <br/>AUTO_INCREMENT: {res.data.data[i]['AUTO_INCREMENT']}
+                                                     <br/>DATA_LENGTH: {res.data.data[i]['DATA_LENGTH']} bytes
+                                                     <br/>DATA_FREE: {res.data.data[i]['DATA_FREE']} bytes
+                                                     <br/>INDEX_LENGTH: {res.data.data[i]['INDEX_LENGTH']} bytes
+                                                     <br/>TABLE_ROWS: {res.data.data[i]['TABLE_ROWS']}
+                                                 </span>
+                                             }
+                                         >
+                                             <span style={{ color: 'gray' }}>
+                                                 {res.data.data[i]['TABLE_NAME']}
+                                             </span>
+                                         </Tooltip>
+                    table_dir['key'] = res.data.data[i]['TABLE_NAME']
                     table_dir['icon'] = <Icon type="table"/>
                     table_dir_arr.push(table_dir)
                   }
