@@ -7,6 +7,7 @@ from apps.utils import db_helper
 import logging
 import sqlparse
 from sqlparse.tokens import Keyword
+from apps.utils.error_code import err_goto_exit
 
 logger = logging.getLogger('sql_logger')
 
@@ -25,30 +26,21 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
     query_time_list = []
     sql_list = sqlparse.split(sql)
     while '' in sql_list:sql_list.remove('')
-    if len(sql_list) > 10:return {"status": "error", "message": "最多10条"}
-    if explain not in['yes','no']: return {"status": "error", "message": "explain参数不合法"}
-    if explain == 'yes':
-        new_sql_list = []
-        for i in sql_list:
-            explain_sql = 'explain ' + i
-            new_sql_list.append(explain_sql)
-        sql_list = new_sql_list
+    if len(sql_list) > 10: return {"status": "error", "message": "最多10条"}
+    if explain not in['yes', 'no']: return {"status": "error", "message": "explain参数不合法"}
+    if explain == 'yes': sql_list = ['explain ' + i for i in sql_list]
     # 处理SQL
     j = 0
     for item_sql in sql_list:
         # SQL类型检查
-        check_cmd_type_ret = process_web_console_cmd_type_dao(item_sql)
-        if check_cmd_type_ret['status'] != 'ok': return check_cmd_type_ret
-        # limit处理
-        check_limit_ret = process_web_console_limit_dao(item_sql)
-        if check_limit_ret['status'] != "ok": return  check_limit_ret
-        item_sql = check_limit_ret['data']
+        process_web_console_cmd_type_dao(item_sql)
+        # limit追加或改写
+        rewrite_item_sql = process_web_console_limit_dao(item_sql)
         # 组装数据
         k_v_data = {}
         k_v_time = {}
-        ret = db_helper.target_source_find_all(ip, port, item_sql, db=schema_name)
-        if ret['status'] !='ok':
-            return ret
+        ret = db_helper.target_source_find_all(ip, port, rewrite_item_sql, db=schema_name)
+        if ret['status'] != 'ok': return ret
         k_v_data[j] = ret['data']
         k_v_time[j] = ret['execute_time']
         j = j + 1
@@ -71,10 +63,10 @@ def process_web_console_cmd_type_dao(sql):
     # 通过sqlparse进行第一场校验
     result = sqlparse.sql.Statement(token_list)
     if result.get_type() in black_sql_type_list:
-        return {"status": "error", "message": "不运行DML/DDL,sql开始只允许%s" % white_sql_type_list}
+        err_goto_exit("不允许DML/DDL,sql开始只允许%s" % white_sql_type_list, err_code=2001)
     # sql类型二次检查,多检查一次防止sqlparse解析不完全
     if sql.split(' ')[0].lower() not in white_sql_type_list:
-        return {"status": "error", "message": "sql开始只允许%s" % white_sql_type_list}
+        err_goto_exit("sql开始只允许%s" % white_sql_type_list, err_code=2002)
     return {"status": "ok", "message": "sql类型检查通过"}
 
 
@@ -91,10 +83,7 @@ def process_web_console_limit_dao(sql):
     limit_flag = False
     result = sqlparse.sql.Statement(token_list)
     # 处理原始token列表,过滤掉空白字符产生新列表用于后续分析
-    new_token_list = []
-    for tk in token_list:
-        if not tk.value == ' ':
-            new_token_list.append(tk)
+    new_token_list = [tk for tk in token_list if tk.value != ' ']
     try:
         for token in new_token_list:
             """
@@ -114,18 +103,15 @@ def process_web_console_limit_dao(sql):
                     logger.info('limit x,y格式')
                     limit_rows = int(new_token_list[token_index + 1].value.split(',')[1].strip(''))
                 if limit_rows > max_limit_rows:
-                    return {"status": "error", "message": "select最多获取%d条数据" % max_limit_rows}
+                    err_goto_exit("select最多获取%d条数据" % max_limit_rows)
             token_index += 1
-        status = "ok"
-        message = "limit检查通过"
     except Exception as e:
         logger.exception(e)
-        status = "error"
-        message = "解析SQL出现异常"
+        err_goto_exit("解析SQL limit 出现异常")
     # 如果用户没有显示limit，平台给select追加limit
     if not limit_flag and result.get_type() == 'SELECT':
         sql = sql.rstrip(';') + ' limit %d;' % max_limit_rows
-    return {"status": status, "message": message, "data": sql}
+    return sql
 
 
 def get_schema_list_dao(instance_name):
@@ -176,7 +162,6 @@ def get_table_list_dao(instance_name,schema_name,table_name):
         from information_schema.TABLES
         where TABLE_SCHEMA='{schema_name}' and TABLE_NAME like '%{table_name}%' limit 100
     """
-    print(sql)
     ret = db_helper.target_source_find_all(ip, port, sql)
     return ret
 

@@ -274,11 +274,11 @@ export default class mysqlConsole extends Component {
                                       overlayStyle={{ maxWidth: 350 }}
                                       title={
                                           <span>
-                                              IS_NULLABLE: {this.state.table_column_list[i]['IS_NULLABLE']}
+                                              COLUMN_COMMENT: {this.state.table_column_list[i]['COLUMN_COMMENT']}
+                                              <br/>IS_NULLABLE: {this.state.table_column_list[i]['IS_NULLABLE']}
                                               <br/>COLUMN_KEY: {this.state.table_column_list[i]['COLUMN_KEY'] }
                                               <br/>COLUMN_DEFAULT: {this.state.table_column_list[i]['COLUMN_DEFAULT']}
                                               <br/>EXTRA: {this.state.table_column_list[i]['EXTRA']}
-                                              <br/>COLUMN_COMMENT: {this.state.table_column_list[i]['COLUMN_COMMENT']}
                                           </span>
                                       }
                                   >

@@ -74,8 +74,14 @@ class MyAuthMiddleware(MiddlewareMixin):
         :param exception:
         :return:
         """
-        logger.exception("未手动捕获的异常%s,%s", request, exception)
-        content = {"status": "error", "message": "后端服务异常", "code": StatusCode.ERR_COMMON.code}
+        if len(exception.args) > 0:
+            message = exception.args[0]
+            code = exception.args[1]
+        else:
+            message = '后端服务异常'
+            code = StatusCode.ERR_COMMON.code
+            logger.exception("非预期异常%s,%s", request, exception)
+        content = {"status": "error", "message": message, "code": code}
         return HttpResponse(json.dumps(content), content_type='application/json')
 
 
