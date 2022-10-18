@@ -167,12 +167,10 @@ export default class mysqlConsole extends Component {
                   this.setState({
                     global_loading:false
                   });
-                  message.error(111111)
                   message.error(res.data.message);
               }
           }
       ).catch(err => {
-          message.error(111111)
           message.error(err.message);
           this.setState({
               table_data: [],
