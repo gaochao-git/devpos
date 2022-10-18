@@ -1,5 +1,4 @@
 import React,{Component} from 'react';
-import ReactDOM from 'react-dom';
 import 'antd/dist/antd.css';
 import { Table,Popover } from 'antd';
 import { Resizable } from 'react-resizable';
