@@ -234,18 +234,18 @@ LOGGING = {
             'formatter': 'my_access',
             'encoding': 'utf-8',
         },
-        'info': {   # 专门用来记正常日志
-            'level': 'INFO',
-            'class': 'logging.handlers.TimedRotatingFileHandler',  # 日期满足后切割
-            'filename': os.path.join(log_path, "error.log"),  # 日志文件
-            'when': 'D',
-            'interval': 1,
-            'backupCount': 365,
-            'formatter': 'standard',
-            'encoding': 'utf-8',
-        },
+        # 'info': {   # 专门用来记正常日志
+        #     'level': 'INFO',
+        #     'class': 'logging.handlers.TimedRotatingFileHandler',  # 日期满足后切割
+        #     'filename': os.path.join(log_path, "error.log"),  # 日志文件
+        #     'when': 'D',
+        #     'interval': 1,
+        #     'backupCount': 365,
+        #     'formatter': 'standard',
+        #     'encoding': 'utf-8',
+        # },
         'error': {   # 专门用来记错误日志
-            'level': 'ERROR',
+            'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',  # 日期满足后切割
             'filename': os.path.join(log_path, "error.log"),  # 日志文件
             'when': 'D',

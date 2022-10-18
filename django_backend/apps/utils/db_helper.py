@@ -433,7 +433,7 @@ class DbUtil:
         self._close_session()
         logger.error("execute sql error %s" %(msg))
         self._status = "error"
-        self._message = StatusCode.ERR_DB.msg
+        self._message = msg
         self._code = StatusCode.ERR_DB.code
         self._execute_time = (self._start_time - datetime.now()).microseconds/1000
         return {

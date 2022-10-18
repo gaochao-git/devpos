@@ -9,7 +9,7 @@ import sqlparse
 from sqlparse.tokens import Keyword
 from apps.utils.error_code import err_goto_exit
 
-logger = logging.getLogger('sql_logger')
+logger = logging.getLogger('devops')
 
 
 def get_table_data_dao(des_ip_port, sql, schema_name, explain):
@@ -80,31 +80,26 @@ def process_web_console_limit_dao(sql):
     result = sqlparse.sql.Statement(token_list)
     # 处理原始token列表,过滤掉空白字符产生新列表用于后续分析
     new_token_list = [tk for tk in token_list if not tk.value == ' ']
-    print(new_token_list)
-    try:
-        for token in new_token_list:
-            """
-            limit 1           取1行
-            limit 5,2         从5开始取2行
-            limit 2 offset 5  从5开始取2行
-            """
-            if token.ttype is Keyword and token.value.lower() == 'limit':
-                limit_flag = True
-                if new_token_list[token_index + 1].value.isdigit():
-                    limit_rows = int(new_token_list[token_index + 1].value)
-                    if new_token_list[token_index + 2].value == 'offset':
-                        logger.info('limit x offset y格式')
-                    else:
-                        logger.info('limit x格式')
+    for token in new_token_list:
+        """
+        limit 1           取1行
+        limit 5,2         从5开始取2行
+        limit 2 offset 5  从5开始取2行
+        """
+        if token.ttype is Keyword and token.value.lower() == 'limit':
+            limit_flag = True
+            if new_token_list[token_index + 1].value.isdigit():
+                limit_rows = int(new_token_list[token_index + 1].value)
+                if new_token_list[token_index + 2].value == 'offset':
+                    logger.info('limit x offset y格式')
                 else:
-                    logger.info('limit x,y格式')
-                    limit_rows = int(new_token_list[token_index + 1].value.split(',')[1].strip(''))
-                if limit_rows > max_limit_rows:
-                    err_goto_exit("select最多获取%d条数据" % max_limit_rows)
-            token_index += 1
-    except Exception as e:
-        logger.exception(e)
-        err_goto_exit("解析SQL limit 出现异常")
+                    logger.info('limit x格式')
+            else:
+                logger.info('limit x,y格式')
+                limit_rows = int(new_token_list[token_index + 1].value.split(',')[1].strip(''))
+            if limit_rows > max_limit_rows:
+                err_goto_exit("select最多获取%d条数据" % max_limit_rows)
+        token_index += 1
     # 如果用户没有显示limit，平台给select追加limit
     if not limit_flag and result.get_type() == 'SELECT':
         sql = sql.rstrip(';') + ' limit %d;' % max_limit_rows
