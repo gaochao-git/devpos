@@ -121,10 +121,12 @@ export default class mysqlConsole extends Component {
                   let table_label_list = []
                   let query_time_list = []
                   let col_format_res_list = []
+                  // sql1=select user from mysql.user limit 1;  sql2=select host from mysql.user limit 1;
+                  // res.data.data = [{"0": [{"user": "gaochao"}]}, {"1": [{"host": "%"}]}]
                   for (var j=0; j<res.data.data.length;j++){
                       let column_arr = []
                       let label = '结果' + (j+1)
-                      if (res.data.data.length >0){
+                      if (res.data.data[j][j].length >0){
                           for (var i=0; i<Object.keys(res.data.data[j][j][0]).length;i++){
                               let column_obj = {};
                               column_obj['title'] = [Object.keys(res.data.data[j][j][0])[i]]
@@ -165,10 +167,12 @@ export default class mysqlConsole extends Component {
                   this.setState({
                     global_loading:false
                   });
+                  message.error(111111)
                   message.error(res.data.message);
               }
           }
       ).catch(err => {
+          message.error(111111)
           message.error(err.message);
           this.setState({
               table_data: [],

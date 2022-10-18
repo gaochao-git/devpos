@@ -59,13 +59,9 @@ def process_web_console_cmd_type_dao(sql):
     token_list = parsed[0].tokens
     # sql类型白名单
     white_sql_type_list = ['select', 'show', 'explain']
-    black_sql_type_list = ['INSERT', 'DELETE', 'UPDATE','CREATE','DROP','ALTER']
-    # 通过sqlparse进行第一场校验
+    # 通过sqlparse进行第一次校验
     result = sqlparse.sql.Statement(token_list)
-    if result.get_type() in black_sql_type_list:
-        err_goto_exit("不允许DML/DDL,sql开始只允许%s" % white_sql_type_list, err_code=2001)
-    # sql类型二次检查,多检查一次防止sqlparse解析不完全
-    if sql.split(' ')[0].lower() not in white_sql_type_list:
+    if result.get_type().lower() not in white_sql_type_list:
         err_goto_exit("sql开始只允许%s" % white_sql_type_list, err_code=2002)
     return {"status": "ok", "message": "sql类型检查通过"}
 
@@ -83,7 +79,8 @@ def process_web_console_limit_dao(sql):
     limit_flag = False
     result = sqlparse.sql.Statement(token_list)
     # 处理原始token列表,过滤掉空白字符产生新列表用于后续分析
-    new_token_list = [tk for tk in token_list if tk.value != ' ']
+    new_token_list = [tk for tk in token_list if not tk.value == ' ']
+    print(new_token_list)
     try:
         for token in new_token_list:
             """
