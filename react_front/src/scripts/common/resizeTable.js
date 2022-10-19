@@ -52,6 +52,6 @@ export class MyResizeTable extends Component {
       }),
     }));
 
-    return <Table pagination={{defaultPageSize: 2000}} className="rowStyle" scroll={{x:'true',y:320}} size= "small" bordered={true} components={this.components} columns={columns} dataSource={this.props.dataSource} />;
+    return <Table pagination={false} className="rowStyle" scroll={{x:'true',y:320}} size= "small" bordered={true} components={this.components} columns={columns} dataSource={this.props.dataSource} />;
   }
 }

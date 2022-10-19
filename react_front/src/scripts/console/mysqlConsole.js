@@ -272,7 +272,6 @@ export default class mysqlConsole extends Component {
             //column_dir['title'] = this.state.table_column_list[i]['COLUMN_NAME']  + ':  ' + this.state.table_column_list[i]['Type']
             column_dir['title'] = <Tooltip
                                       placement="rightBottom"
-                                      style={{ color: 'black' }}
                                       overlayStyle={{ maxWidth: 350 }}
                                       title={
                                           <span>
@@ -285,7 +284,7 @@ export default class mysqlConsole extends Component {
                                       }
                                   >
                                       {this.state.table_column_list[i]['COLUMN_NAME']}
-                                      <span style={{ color: 'gray' }}>:
+                                      <span style={{ color: '#d1cdcd', marginLeft: 10}}>
                                           {this.state.table_column_list[i]['COLUMN_TYPE']}
                                       </span>
                                   </Tooltip>
@@ -465,7 +464,6 @@ export default class mysqlConsole extends Component {
                     table_hint_obj[res.data.data[i]['TABLE_NAME']] = []
                     table_dir['title'] = <Tooltip
                                              placement="rightBottom"
-                                             style={{ color: 'black' }}
                                              overlayStyle={{ maxWidth: 350 }}
                                              title={
                                                  <span>
@@ -647,7 +645,7 @@ export default class mysqlConsole extends Component {
                           size="small"
                           bordered
                           dataSource={this.state.db_info}
-                          renderItem={item => <p style={{marginLeft:10}}>{item}</p>}
+                          renderItem={item => <p style={{marginLeft:10,marginBottom: 2}}>{item}</p>}
                           style={{borderRadius:0}}
                        />
                    </div>

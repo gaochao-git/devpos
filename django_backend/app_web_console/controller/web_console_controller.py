@@ -139,7 +139,6 @@ def get_table_list_controller(request):
     schema_name = request_body['schema_name']
     table_name = request_body['table_name']
     ret = web_console.get_table_list(instance_name,schema_name,table_name)
-    print(ret)
     return HttpResponse(json.dumps(ret, default=str), 'application/json')
 
 

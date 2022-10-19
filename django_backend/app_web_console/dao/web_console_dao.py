@@ -57,7 +57,7 @@ def process_web_console_cmd_type_dao(sql):
     """
     parsed = sqlparse.parse(sql)
     token_list = parsed[0].tokens
-    # sql类型白名单
+    # sql类型白名单,sqlparse无法解析show命令
     white_sql_type_list = ['select', 'show', 'explain']
     # 通过sqlparse进行第一次校验
     result = sqlparse.sql.Statement(token_list)
@@ -154,8 +154,7 @@ def get_table_list_dao(instance_name,schema_name,table_name):
         from information_schema.TABLES
         where TABLE_SCHEMA='{schema_name}' and TABLE_NAME like '%{table_name}%' limit 100
     """
-    ret = db_helper.target_source_find_all(ip, port, sql)
-    return ret
+    return db_helper.target_source_find_all(ip, port, sql)
 
 
 def get_column_list_dao(instance_name,schema_name,table_name):
