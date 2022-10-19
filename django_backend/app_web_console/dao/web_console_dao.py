@@ -4,10 +4,12 @@
 # @Author  : 高超
 
 from apps.utils import db_helper
+import json
 import logging
 import sqlparse
 from sqlparse.tokens import Keyword
 from apps.utils.error_code import err_goto_exit
+from app_web_console.utils.mysql_parser import MyParser
 
 logger = logging.getLogger('devops')
 
@@ -32,10 +34,8 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
     # 处理SQL
     j = 0
     for item_sql in sql_list:
-        # SQL类型检查
-        process_web_console_cmd_type_dao(item_sql)
-        # limit追加或改写
-        rewrite_item_sql = process_web_console_limit_dao(item_sql)
+        # SQL规则处理
+        rewrite_item_sql = process_audit_sql(item_sql, schema_name)
         # 组装数据
         k_v_data = {}
         k_v_time = {}
@@ -49,60 +49,56 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
     return {"status":"ok","message": "所有SQL正常执行完成","data":ret_list, "query_time": query_time_list}
 
 
-def process_web_console_cmd_type_dao(sql):
+def process_audit_sql(item_sql, schema_name):
     """
-    校验web sql 类型是否满足需求
-    :param sql:
+    SQL处理规则
+    :param item_sql:
+    :param schema_name:
     :return:
     """
-    parsed = sqlparse.parse(sql)
-    token_list = parsed[0].tokens
-    # sql类型白名单,sqlparse无法解析show命令
-    white_sql_type_list = ['select', 'show', 'explain']
-    # 通过sqlparse进行第一次校验
-    result = sqlparse.sql.Statement(token_list)
-    if result.get_type().lower() not in white_sql_type_list:
+    # 连接mysql parser 解析SQL
+    parser_obj = MyParser(item_sql, db=schema_name)
+    parser_ret = parser_obj.parse_sql()
+    if parser_ret['status'] != 'ok': err_goto_exit(parser_ret['message'])
+    parse_tree_node = parser_ret['data']
+    logger.info("query_tree_node: %s", parse_tree_node)
+    sql_type = parse_tree_node.get('command_type')
+    # SQL类型检查
+    process_cmd_type(sql_type)
+    # select 阻断、改写
+    if sql_type == 'SQLCOM_SELECT':
+        item_sql = process_select_limit(item_sql, parse_tree_node)
+    return item_sql
+
+
+def process_cmd_type(sql_type):
+    """
+    校验web sql 类型是否满足需求
+    :param sql_type:
+    :return:
+    """
+    # sql类型白名单,后续用表配置
+    white_sql_type_list = ['SQLCOM_SELECT', 'SQLCOM_SHOW_TABLES']
+    if sql_type not in white_sql_type_list:
         err_goto_exit("sql开始只允许%s" % white_sql_type_list, err_code=2002)
     return {"status": "ok", "message": "sql类型检查通过"}
 
 
-def process_web_console_limit_dao(sql):
+def process_select_limit(sql, parse_tree_node):
     """
     对返回数据量做处理,如果用户显示加了limit则判断limit返回数量,如果没有加则平台自动增加限制
     :param sql:
+    :param parse_tree_node:
     :return:
     """
-    parsed = sqlparse.parse(sql)
-    token_list = parsed[0].tokens
+    tree_dict = json.loads(parse_tree_node.get('query_tree'))
+    sql_limit = tree_dict.get('limit')
     max_limit_rows = 200
-    token_index = 0
-    limit_flag = False
-    result = sqlparse.sql.Statement(token_list)
-    # 处理原始token列表,过滤掉空白字符产生新列表用于后续分析
-    new_token_list = [tk for tk in token_list if not tk.value == ' ']
-    for token in new_token_list:
-        """
-        limit 1           取1行
-        limit 5,2         从5开始取2行
-        limit 2 offset 5  从5开始取2行
-        """
-        if token.ttype is Keyword and token.value.lower() == 'limit':
-            limit_flag = True
-            if new_token_list[token_index + 1].value.isdigit():
-                limit_rows = int(new_token_list[token_index + 1].value)
-                if new_token_list[token_index + 2].value == 'offset':
-                    logger.info('limit x offset y格式')
-                else:
-                    logger.info('limit x格式')
-            else:
-                logger.info('limit x,y格式')
-                limit_rows = int(new_token_list[token_index + 1].value.split(',')[1].strip(''))
-            if limit_rows > max_limit_rows:
-                err_goto_exit("select最多获取%d条数据" % max_limit_rows)
-        token_index += 1
     # 如果用户没有显示limit，平台给select追加limit
-    if not limit_flag and result.get_type() == 'SELECT':
+    if sql_limit is None:
         sql = sql.rstrip(';') + ' limit %d;' % max_limit_rows
+    elif int(sql_limit) > max_limit_rows:
+        err_goto_exit(f"limit 数量超过最大限制:{max_limit_rows}")
     return sql
 
 

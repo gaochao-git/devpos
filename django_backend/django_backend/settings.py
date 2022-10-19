@@ -184,6 +184,15 @@ INCEPTION_ADDRESS = {
     'inception_port': 6669,
 }
 
+
+################# mysql_parser配置 ##################
+MYSQL_PARSER_ADDRESS = {
+    'mysql_parser_host': '127.0.0.1',
+    'mysql_parser_port': 3306,
+    'mysql_parser_user': 'gaochao',
+    'mysql_parser_pwd': 'fffjjj',
+}
+
 ################# 日志配置 ##################
 log_path = os.path.join(BASE_DIR, "logs/")
 if not os.path.exists(log_path):
