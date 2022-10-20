@@ -12,7 +12,7 @@ import 'codemirror/addon/hint/sql-hint.js';
 import 'codemirror/theme/ambiance.css';
 import 'codemirror/addon/selection/active-line';
 import MyAxios from "../common/interface"
-import {tableToExcel} from "../common/excel"
+import {tableToExcel} from "../common/export_data"
 import { MyResizeTable } from "../common/resizeTable"
 import {MyTree,MyTree1,MyTree2} from "../common/myComponent"
 const {Option} = Select

@@ -95,7 +95,7 @@ def process_select_limit(sql, parse_tree_node):
     sql_limit = tree_dict.get('limit')
     max_limit_rows = 200
     # 如果用户没有显示limit，平台给select追加limit
-    if sql_limit is None:
+    if sql_limit == "None":
         sql = sql.rstrip(';') + ' limit %d;' % max_limit_rows
     elif int(sql_limit) > max_limit_rows:
         err_goto_exit(f"limit 数量超过最大限制:{max_limit_rows}")

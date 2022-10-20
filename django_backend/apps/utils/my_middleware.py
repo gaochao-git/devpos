@@ -74,7 +74,8 @@ class MyAuthMiddleware(MiddlewareMixin):
         :param exception:
         :return:
         """
-        if len(exception.args) > 0:
+        # 手动抛出异常需要有err_goto_exit标识
+        if str(exception).startswith('err_goto_exit'):
             message = exception.args[0]
             code = exception.args[1]
         else:

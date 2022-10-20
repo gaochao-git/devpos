@@ -32,4 +32,5 @@ def err_goto_exit(err_msg, err_code=StatusCode.ERR_COMMON.code):
     :param err_code:
     :return:
     """
+    err_msg = 'err_goto_exit' + ":" + err_msg
     raise Exception(err_msg, err_code)
