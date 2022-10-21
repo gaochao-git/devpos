@@ -133,7 +133,7 @@ export default class mysqlConsole extends Component {
                               column_obj['dataIndex'] = [Object.keys(res.data.data[j][j][0])[i]]
                               column_obj['render'] = (text, record, index) => {return this.handleColumnWidth(text,record,index);}
                               if (i<Object.keys(res.data.data[j][j][0]).length){
-                                column_obj['width'] = 100
+                                column_obj['width'] = 160
                               }
                               column_arr.push(column_obj)
                           }
@@ -854,8 +854,8 @@ export default class mysqlConsole extends Component {
            <div
              style={{ ...this.state.contextMenuStyle, position: 'fixed',width:130,height:200,background:'#f1f2f5',zIndex:9999,borderRadius:5}}
            >
-             <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"struct")}>查看表结构</Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"data")}>查看表数据</Button>
+             <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"struct")}>查看表结构</Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"status")}>查看表信息</Button>
            </div>
            :null
