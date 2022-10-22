@@ -184,6 +184,11 @@ INCEPTION_ADDRESS = {
     'inception_port': 6669,
 }
 
+################# go_inception配置 ##################
+GO_INCEPTION_ADDRESS = {
+    'go_inception_host': '47.104.2.74',
+    'go_inception_port': 4000,
+}
 
 ################# mysql_parser配置 ##################
 MYSQL_PARSER_ADDRESS = {

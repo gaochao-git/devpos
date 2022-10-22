@@ -7,7 +7,7 @@ from apps.utils import db_helper
 import json
 import logging
 import sqlparse
-from sqlparse.tokens import Keyword
+from app_web_console.utils import data_mask
 from apps.utils.error_code import err_goto_exit
 from app_web_console.utils.mysql_parser import MyParser
 
@@ -41,7 +41,8 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
         k_v_time = {}
         ret = db_helper.target_source_find_all(ip, port, rewrite_item_sql, db=schema_name)
         if ret['status'] != 'ok': return ret
-        k_v_data[j] = ret['data']
+        data = data_mask.data_masking(des_ip_port, schema_name, sql, ret['data'])
+        k_v_data[j] = data
         k_v_time[j] = ret['execute_time']
         j = j + 1
         ret_list.append(k_v_data)
