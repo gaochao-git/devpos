@@ -11,6 +11,7 @@ import 'codemirror/addon/hint/show-hint.js';
 import 'codemirror/addon/hint/sql-hint.js';
 import 'codemirror/theme/ambiance.css';
 import 'codemirror/addon/selection/active-line';
+import { Resizable } from "re-resizable";
 import MyAxios from "../common/interface"
 import {tableToExcel} from "../common/export_data"
 import { MyResizeTable } from "../common/resizeTable"
@@ -38,7 +39,6 @@ export default class mysqlConsole extends Component {
       table_column:[],
       current_schema:"选择库名",
       schema_list:[],
-      schema_table_list:[],
       instance_list:[],
       instance_name:"选择实例名",
       cluster_name_list:[],
@@ -66,7 +66,6 @@ export default class mysqlConsole extends Component {
       favorite_type:"选择收藏类型",   //收藏类型
       favorite_name:"",
       favorite_detail:"",
-      recreate_tree:true,  //通过这个变量让tree隐藏或者显示,不然会出现展开过的table，搜索框搜索表名后箭头消失导致无法再次点击
       contextMenuVisiable: false,// 显示右键菜单
       contextMenuStyle:"",// 右键菜单位置
       my_pos:{line:0,ch:0},
@@ -453,7 +452,7 @@ export default class mysqlConsole extends Component {
           instance_name:this.state.instance_name,
           table_name:this.state.table_search,
       };
-      this.setState({recreate_tree:false});   // source_slider_info中的表变化时让tree重新渲染
+      this.setState({source_slider_info:[]});   // source_slider_info中的表变化时让tree重新渲染
       await MyAxios.post('/web_console/v1/get_table_list/',params).then(
           res=>{
               if( res.data.status === 'ok'){
@@ -486,7 +485,7 @@ export default class mysqlConsole extends Component {
                     table_dir['icon'] = <Icon type="table"/>
                     table_dir_arr.push(table_dir)
                   }
-                  this.setState({source_slider_info:table_dir_arr,recreate_tree:true,collapsed:false,tables_hint:table_hint_obj});
+                  this.setState({source_slider_info:table_dir_arr,collapsed:false,tables_hint:table_hint_obj});
               } else{
                   message.error(res.data.message)
               }
@@ -610,61 +609,56 @@ export default class mysqlConsole extends Component {
     return (
       <div>
         <Layout style={{ marginTop:1,marginLeft:1}}>
-            <Sider
-                style={{ background: 'white'}}
-                collapsible
-                collapsed={this.state.collapsed}
-                onCollapse={this.onCollapse}
-                trigger={null}
-                width={300}
-                collapsedWidth={0}
-            >
-            <div>
-               {!this.state.collapsed ?
-                   <div>
-                       <span>
-                           <Search size="small" style={{ marginBottom: 8,marginLeft:5,width:'95%'}} placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
-                       </span>
-                       <div className="down-tree">
-                        {
-                            this.state.recreate_tree ?
-                                <Tree
-                                   showIcon
-                                   loadData={this.onLoadData}
-                                   onSelect={this.onSelect}
-                                   onExpand={this.onExpand}
-                                   onRightClick={this.rightClickTree}
-                                >
-                                   {this.renderTreeNodes(this.state.source_slider_info)}
-                                </Tree>
-                           :null
-                        }
-                       </div>
-                       <List
-                          header={<span>连接信息</span>}
-                          size="small"
-                          bordered
-                          dataSource={this.state.db_info}
-                          renderItem={item => <p style={{marginLeft:10,marginBottom: 2}}>{item}</p>}
-                          style={{borderRadius:0}}
-                       />
-                   </div>
-               :
-               <Icon
-                     className="trigger"
-                     type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
-                     onClick={this.onCollapseTable}
-                   />
-               }
-           </div>
-          </Sider>
+          <div>
+              <Sider
+                  style={{ background: 'white'}}
+                  collapsible
+                  collapsed={this.state.collapsed}
+                  onCollapse={this.onCollapse}
+                  trigger={null}
+                  width='100%'
+                  collapsedWidth={0}
+              >
+                {!this.state.collapsed ?
+                  <div>
+                    <Resizable style={{overflow:'scroll',display:'block'}} defaultSize={{width:320, height:'400'}} minWidth='140'>
+                        <Search size="small" placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
+                        <Tree
+                           showIcon
+                           loadData={this.onLoadData}
+                           onSelect={this.onSelect}
+                           onExpand={this.onExpand}
+                           onRightClick={this.rightClickTree}
+                        >
+                          {this.renderTreeNodes(this.state.source_slider_info)}
+                        </Tree>
+                    </Resizable>
+                    <List
+                       header={<span>连接信息</span>}
+                       size="small"
+                       bordered
+                       dataSource={this.state.db_info}
+                       renderItem={item => <p style={{marginLeft:10,marginBottom: 2}}>{item}</p>}
+                       style={{borderRadius:0}}
+                    />
+                  </div>
+                :
+                  <Icon
+                        className="trigger"
+                        type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
+                        onClick={this.onCollapseTable}
+                      />
+                  }
+              </Sider>
+
+          </div>
           <Content style={{margin:0,padding:0}}>
-          <Icon
-              className="trigger"
-              type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
-              onClick={this.onCollapseTable}
-          />
-          <Switch
+            <Icon
+                className="trigger"
+                type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
+                onClick={this.onCollapseTable}
+            />
+            <Switch
               checkedChildren="Select"
               unCheckedChildren="Input"
               defaultChecked
@@ -672,7 +666,7 @@ export default class mysqlConsole extends Component {
               style={{marginLeft:5}}
               onClick={()=>this.setState({input_source_type:!this.state.input_source_type,instance_name:"",db_info:""})}
             />
-          {
+            {
             this.state.input_source_type ?
             <Input size="small" style={{ width: 150,marginLeft:2}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
             :
@@ -717,7 +711,7 @@ export default class mysqlConsole extends Component {
                 style={{width:200,marginLeft:2}}
                 value={this.state.current_schema}
                 onChange={e=>this.setState({current_schema:e},()=>this.getTable())}
-                onDropdownVisibleChange={open=>open ?this.getSchema(): null}
+//                onDropdownVisibleChange={open=>open ?this.getSchema(): null}
             >
                 {this.state.schema_list.map(record =>{
                     return <Option value={record.Database} key={record.Database}>{record.Database}</Option>
@@ -776,35 +770,35 @@ export default class mysqlConsole extends Component {
                onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
             />
             <Tabs defaultActiveKey='1' tabPosition="bottom" size="small" style={{ margin:1}}>
-          {
-              this.state.multi_label.map((item,index)=>{
-              return(
-                  <TabPane tab={item} key={index}>
+              {
+                  this.state.multi_label.map((item,index)=>{
+                  return(
+                      <TabPane tab={item} key={index}>
 
-                      {
-                          this.state.res_format === 'row'
-                          ?
-                          <div className="components-table-resizable-column">
-                               <MyResizeTable dataSource={this.state.multi_table_data[index]} columns={this.state.multi_table_column[index]}/>
-                          </div>
-                          : <TextArea rows={10} value={this.state.col_format_res_list[index]}/>
+                          {
+                              this.state.res_format === 'row'
+                              ?
+                              <div className="components-table-resizable-column">
+                                   <MyResizeTable dataSource={this.state.multi_table_data[index]} columns={this.state.multi_table_column[index]}/>
+                              </div>
+                              : <TextArea rows={10} value={this.state.col_format_res_list[index]}/>
 
-                      }
+                          }
 
-                    共{this.state.multi_table_data[index].length}条,  耗时:{this.state.multi_query_time[index]} ms
-                      <Button
-                          style={{marginLeft: '10px'}}
-                          onClick={tableToExcel.bind(this, this.state.multi_table_data[index], this.state.multi_table_column[index], 'query_result')}
-                      >
-                          导出
-                      </Button>
-                      <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
-                      <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
-                  </TabPane>
-              )
-              })
-          }
-        </Tabs>
+                        共{this.state.multi_table_data[index].length}条,  耗时:{this.state.multi_query_time[index]} ms
+                          <Button
+                              style={{marginLeft: '10px'}}
+                              onClick={tableToExcel.bind(this, this.state.multi_table_data[index], this.state.multi_table_column[index], 'query_result')}
+                          >
+                              导出
+                          </Button>
+                          <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
+                          <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
+                      </TabPane>
+                  )
+                  })
+              }
+            </Tabs>
           </Content>
         </Layout>
 
