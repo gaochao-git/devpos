@@ -5,18 +5,13 @@
 
 import pymysql
 import re
-import json
 from django.conf import settings
 import logging
 logger = logging.getLogger('devops')
 
 
-#go_inception_host = settings.GO_INCEPTION_ADDRESS["go_inception_host"]
-#go_inception_port = settings.GO_INCEPTION_ADDRESS["go_inception_port"]
-go_inception_host = '47.104.2.74'
-go_inception_port = 4000
-inception_host = '47.104.2.74'
-inception_port = 6669
+go_inception_host = settings.GO_INCEPTION_ADDRESS["go_inception_host"]
+go_inception_port = settings.GO_INCEPTION_ADDRESS["go_inception_port"]
 
 
 class MyGoInception:
@@ -27,13 +22,19 @@ class MyGoInception:
         self._db = db
 
     def parse_select_field(self):
-        sql = f"""/*--user=gaochao;--password=fffjjj;--host=172.30.243.38;--masking=1;--port=3306;*/\
+        """
+        解析SQL中涉及的字段名及其所在位置
+        :return:
+        """
+        sql = f"""/*--user=gaochao;--password=fffjjj;--host={self._host};--port={self._port};--masking=1;*/\
             inception_magic_start;
             use {self._db};
             {self._sql};
             inception_magic_commit;
         """
         conn = None
+        cur = None
+        content = {"status": "error", "message": "解析select 列失败"}
         try:
             conn = pymysql.connect(host=go_inception_host, user='', passwd='', db='', port=go_inception_port,charset="utf8")  # inception服务器
             cur = conn.cursor()
@@ -42,8 +43,8 @@ class MyGoInception:
             data = [dict(zip([col[0] for col in cur.description], row)) for row in results]
             content = {'status': "ok", 'inception审核完成': "ok", 'data': data}
         except Exception as e:
-            logger.exception("inception审核失败:%s", str(e))
-            message = "调用inception出现异常"
+            logger.exception("go_inception解析失败:%s", str(e))
+            message = "调用go_inception出现异常"
             if re.findall('1875', str(e)):
                 message = "语法错误"
             elif re.findall('2003', str(e)):

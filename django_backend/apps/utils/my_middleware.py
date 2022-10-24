@@ -16,6 +16,7 @@ from apps.utils.error_code import StatusCode
 from django.utils.deprecation import MiddlewareMixin
 from django_cas_ng.signals import cas_user_authenticated,cas_user_logout
 from django.dispatch import receiver
+from utils.exceptions import BusinessException
 local = threading.local()
 import logging
 logger = logging.getLogger('devops')
@@ -74,10 +75,9 @@ class MyAuthMiddleware(MiddlewareMixin):
         :param exception:
         :return:
         """
-        # 手动抛出异常需要有err_goto_exit标识
-        if str(exception).startswith('err_goto_exit'):
-            message = exception.args[0]
-            code = exception.args[1]
+        if isinstance(exception, BusinessException):    # 手动抛出异常需要有BusinessException标识
+            message = exception.errmsg
+            code = exception.code
         else:
             message = '后端服务异常'
             code = StatusCode.ERR_COMMON.code

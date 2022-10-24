@@ -21,16 +21,3 @@ class StatusCode(Enum):
     def msg(self):
         """获取状态码信息"""
         return self.value[1]
-
-
-def err_goto_exit(err_msg, err_code=StatusCode.ERR_COMMON.code):
-    """
-    抛出异常，减少错误场景下多层级别返回response
-    这个异常信息msg会被my_middleware中的process_exception捕获并返回给客户端
-    不直接使用raise Exception(str)是因为封装成公共方法便于后续功能扩展
-    :param err_msg:
-    :param err_code:
-    :return:
-    """
-    err_msg = 'err_goto_exit' + ":" + err_msg
-    raise Exception(err_msg, err_code)

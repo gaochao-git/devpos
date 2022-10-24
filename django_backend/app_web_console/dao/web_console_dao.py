@@ -8,7 +8,7 @@ import json
 import logging
 import sqlparse
 from app_web_console.utils import data_mask
-from apps.utils.error_code import err_goto_exit
+from utils.exceptions import BusinessException
 from app_web_console.utils.mysql_parser import MyParser
 
 logger = logging.getLogger('devops')
@@ -60,7 +60,7 @@ def process_audit_sql(item_sql, schema_name):
     # 连接mysql parser 解析SQL
     parser_obj = MyParser(item_sql, db=schema_name)
     parser_ret = parser_obj.parse_sql()
-    if parser_ret['status'] != 'ok': err_goto_exit(parser_ret['message'])
+    if parser_ret['status'] != 'ok': raise BusinessException(parser_ret['message'])
     parse_tree_node = parser_ret['data']
     logger.info("query_tree_node: %s", parse_tree_node)
     sql_type = parse_tree_node.get('command_type')
@@ -81,7 +81,7 @@ def process_cmd_type(sql_type):
     # sql类型白名单,后续用表配置
     white_sql_type_list = ['SQLCOM_SELECT', 'SQLCOM_SHOW_TABLES']
     if sql_type not in white_sql_type_list:
-        err_goto_exit("sql开始只允许%s" % white_sql_type_list, err_code=2002)
+        raise BusinessException("sql开始只允许%s" % white_sql_type_list, err_code=2002)
     return {"status": "ok", "message": "sql类型检查通过"}
 
 
@@ -99,7 +99,7 @@ def process_select_limit(sql, parse_tree_node):
     if sql_limit == "None":
         sql = sql.rstrip(';') + ' limit %d;' % max_limit_rows
     elif int(sql_limit) > max_limit_rows:
-        err_goto_exit(f"limit 数量超过最大限制:{max_limit_rows}")
+        raise BusinessException(f"limit 数量超过最大限制:{max_limit_rows}")
     return sql
 
 
