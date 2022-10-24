@@ -23,6 +23,7 @@ class MyParser:
     def parse_sql(self):
         conn = None
         cur = None
+        content = {"status": "error", "message": "解析sql失败"}
         try:
             logger.info('mysql parser 开始解析')
             conn = pymysql.connect(
@@ -41,7 +42,6 @@ class MyParser:
             results = cur.fetchall()
             data = [dict(zip([col[0] for col in cur.description], row)) for row in results]
             content = {'status': "ok", 'message': "解析SQL完成", 'data': data[0]}
-            logger.info('mysql parser 解析SQL完成')
         except Exception as e:
             content = {'status': "error", 'message': "mysql parser 解析SQL失败:%s" % str(e)}
             logger.exception(e)

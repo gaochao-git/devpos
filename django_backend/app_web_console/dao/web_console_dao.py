@@ -81,7 +81,7 @@ def process_cmd_type(sql_type):
     # sql类型白名单,后续用表配置
     white_sql_type_list = ['SQLCOM_SELECT', 'SQLCOM_SHOW_TABLES']
     if sql_type not in white_sql_type_list:
-        raise BusinessException("sql开始只允许%s" % white_sql_type_list, err_code=2002)
+        raise BusinessException("sql开始只允许%s" % white_sql_type_list, code=2002)
     return {"status": "ok", "message": "sql类型检查通过"}
 
 
