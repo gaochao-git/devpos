@@ -12,7 +12,7 @@ import re
 from django.shortcuts import HttpResponse
 from rest_framework_jwt.utils import jwt_decode_handler
 from django_backend.settings import LOGIN_TYPE
-from apps.utils.error_code import StatusCode
+from utils.error_code import StatusCode
 from django.utils.deprecation import MiddlewareMixin
 from django_cas_ng.signals import cas_user_authenticated,cas_user_logout
 from django.dispatch import receiver

@@ -4,8 +4,6 @@
 # @Date: 2021/09/24 8:14
 # http://www.qb5200.com/article/405816.html
 
-from apps.utils.error_code import StatusCode
-
 
 class CommonException(Exception):
     """公共异常类"""

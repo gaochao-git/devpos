@@ -1,5 +1,5 @@
 import socket
-from apps.utils.enc_sm4 import PySM4
+from utils.enc_sm4 import PySM4
 import logging
 logger = logging.getLogger('devops')
 

@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from django.http import HttpResponse
 import json
-from apps.utils.error_code import StatusCode
+from utils.error_code import StatusCode
 from rest_framework_jwt.utils import jwt_decode_handler
 import time
 from datetime import datetime

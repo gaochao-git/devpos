@@ -3,7 +3,7 @@ import logging
 import pymysql
 from django.db import transaction
 from datetime import datetime
-from apps.utils.error_code import StatusCode
+from utils.error_code import StatusCode
 logger = logging.getLogger('sql_logger')
 db_all_remote_user = "gaochao"
 db_all_remote_pass = "fffjjj"
