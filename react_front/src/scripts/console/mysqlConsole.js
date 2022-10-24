@@ -32,6 +32,11 @@ const STORE_TYPE = ['收藏数据源','收藏SQL']
 export default class mysqlConsole extends Component {
   constructor(props) {
     super(props);
+    this.newTabIndex = 0;
+    const panes = [
+      { title: 'Tab 1', content: 'Content of Tab Pane 1', key: '1' },
+      { title: 'Tab 2', content: 'Content of Tab Pane 2', key: '2' },
+    ];
     this.state = {
       sql_content: '',
       sql: '',
@@ -70,6 +75,8 @@ export default class mysqlConsole extends Component {
       contextMenuStyle:"",// 右键菜单位置
       my_pos:{line:0,ch:0},
       tables_hint:{}, //表名补全
+      activeKey: panes[0].key,
+      panes:panes,
     }
   }
 
@@ -581,6 +588,41 @@ export default class mysqlConsole extends Component {
     }
   };
 
+
+  onChange = activeKey => {
+    this.setState({ activeKey });
+  };
+
+  onEdit = (targetKey, action) => {
+    this[action](targetKey);
+  };
+
+  add = () => {
+    const { panes } = this.state;
+    const activeKey = `newTab${this.newTabIndex++}`;
+    panes.push({ title: 'New Tab', content: 'Content of new Tab', key: activeKey });
+    this.setState({ panes, activeKey });
+  };
+
+  remove = targetKey => {
+    let { activeKey } = this.state;
+    let lastIndex;
+    this.state.panes.forEach((pane, i) => {
+      if (pane.key === targetKey) {
+        lastIndex = i - 1;
+      }
+    });
+    const panes = this.state.panes.filter(pane => pane.key !== targetKey);
+    if (panes.length && activeKey === targetKey) {
+      if (lastIndex >= 0) {
+        activeKey = panes[lastIndex].key;
+      } else {
+        activeKey = panes[0].key;
+      }
+    }
+    this.setState({ panes, activeKey });
+  };
+
   render() {
     const favorite_column = [
       {
@@ -652,38 +694,66 @@ export default class mysqlConsole extends Component {
               </Sider>
           </div>
           <Content style={{margin:0,padding:0}}>
-            <Icon
-                className="trigger"
-                type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
-                onClick={this.onCollapseTable}
-            />
-            <Switch
-              checkedChildren="Select"
-              unCheckedChildren="Input"
-              defaultChecked
-              size="small"
-              style={{marginLeft:5}}
-              onClick={()=>this.setState({input_source_type:!this.state.input_source_type,instance_name:"",db_info:""})}
-            />
-            {
-              this.state.input_source_type ?
-              <Input size="small" style={{ width: 150,marginLeft:2}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
-              :
-              <span>
-                  <Select
-                  size="small"
-                  showSearch
-                  filterOption={(input,option)=>
-                      option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
-                  }
-                  style={{width:180,marginLeft:2}}
-                  value={this.state.cluster_name}
-                  onChange={e=>this.getClusterIns(e)}
-              >
-                  {this.state.cluster_name_list.map(record =>{
-                      return <Option value={record.cluster_name} key={record.cluster_name}>{record.cluster_name}</Option>
-                  })}
-              </Select>
+          <Tabs
+            onChange={this.onChange}
+            activeKey={this.state.activeKey}
+            type="editable-card"
+            onEdit={this.onEdit}
+          >
+            {this.state.panes.map(pane => (
+              <TabPane tab={pane.title} key={pane.key} closable={pane.closable}>
+                {pane.content}
+              </TabPane>
+            ))}
+          </Tabs>
+              <Icon
+                  className="trigger"
+                  type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
+                  onClick={this.onCollapseTable}
+              />
+              <Switch
+                checkedChildren="Select"
+                unCheckedChildren="Input"
+                defaultChecked
+                size="small"
+                style={{marginLeft:5}}
+                onClick={()=>this.setState({input_source_type:!this.state.input_source_type,instance_name:"",db_info:""})}
+              />
+              {
+                this.state.input_source_type ?
+                <Input size="small" style={{ width: 150,marginLeft:2}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
+                :
+                <span>
+                    <Select
+                    size="small"
+                    showSearch
+                    filterOption={(input,option)=>
+                        option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                    }
+                    style={{width:180,marginLeft:2}}
+                    value={this.state.cluster_name}
+                    onChange={e=>this.getClusterIns(e)}
+                >
+                    {this.state.cluster_name_list.map(record =>{
+                        return <Option value={record.cluster_name} key={record.cluster_name}>{record.cluster_name}</Option>
+                    })}
+                </Select>
+                <Select
+                    size="small"
+                    showSearch
+                    filterOption={(input,option)=>
+                        option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                    }
+                    style={{width:200,marginLeft:2}}
+                    value={this.state.instance_name}
+                    onChange={e=>this.setState({instance_name:e},()=>this.getSchema())}
+                >
+                    {this.state.instance_list.map(record =>{
+                        return <Option value={record.instance_name} key={record.instance_name}>{record.instance_name}({record.instance_role})</Option>
+                    })}
+                </Select>
+                </span>
+              }
               <Select
                   size="small"
                   showSearch
@@ -691,112 +761,96 @@ export default class mysqlConsole extends Component {
                       option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
                   }
                   style={{width:200,marginLeft:2}}
-                  value={this.state.instance_name}
-                  onChange={e=>this.setState({instance_name:e},()=>this.getSchema())}
+                  value={this.state.current_schema}
+                  onChange={e=>this.setState({current_schema:e},()=>this.getTable())}
+//                  onDropdownVisibleChange={open=>open ?this.getSchema(): null}
               >
-                  {this.state.instance_list.map(record =>{
-                      return <Option value={record.instance_name} key={record.instance_name}>{record.instance_name}({record.instance_role})</Option>
+                  {this.state.schema_list.map(record =>{
+                      return <Option value={record.Database} key={record.Database}>{record.Database}</Option>
                   })}
               </Select>
-              </span>
-            }
-            <Select
-                size="small"
-                showSearch
-                filterOption={(input,option)=>
-                    option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
-                }
-                style={{width:200,marginLeft:2}}
-                value={this.state.current_schema}
-                onChange={e=>this.setState({current_schema:e},()=>this.getTable())}
-//                onDropdownVisibleChange={open=>open ?this.getSchema(): null}
-            >
-                {this.state.schema_list.map(record =>{
-                    return <Option value={record.Database} key={record.Database}>{record.Database}</Option>
-                })}
-            </Select>
 
-            <hr style={{margin:0}}/>
-            <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
-            <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>解释</Button>
-            <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sql_content:sqlFormatter.format(this.state.sql_content)})}>美化</Button>
-            <Button type="link"  icon="star" onClick={()=> this.setState({favoriteVisible:true})}></Button>
-            <Tooltip
-                placement="bottomRight"
-               title={
-                   <div>
-                     <p>
-                        <Button type="link" onClick={()=> this.setState({favorite_type:"db_source"},()=>this.getFavorite())}>我的数据源</Button>
-                     </p>
-                     <p>
-                        <Button type="link" onClick={()=> this.setState({favorite_type:"db_sql"},()=>this.getFavorite())}>我的SQL</Button>
-                     </p>
-                     <p>
-                        <Button type="link" onClick={()=> this.setState({favorite_type:"db_sql"},()=>message.success('开发中'))}>公共快捷键</Button>
-                     </p>
-                   </div>
-               }
-           >
-               <Icon type="folder-open" />
-           </Tooltip>
-            <CodeMirror
-              editorDidMount={this.onEditorDidMount}
-              value={this.state.sql_content}
-              resize="vertical"
-              options={{
-                lineNumbers: true,
-                mode: {name: "text/x-mysql"},
-                extraKeys: {"Tab": "autocomplete"},
-                theme: 'idea',
-                styleActiveLine: true,
-                lineWrapping:true,
-                // 代码提示功能
-                hintOptions: {
-                  // 避免由于提示列表只有一个提示信息时，自动填充
-                  completeSingle: false,
-                  // 不同的语言支持从配置中读取自定义配置 sql语言允许配置表和字段信息，用于代码提示
-                  tables: {
-                    "table1": ["c1", "c2"],
-                    "table2": ["c1", "c2"],
+              <hr style={{margin:0}}/>
+              <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
+              <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>解释</Button>
+              <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sql_content:sqlFormatter.format(this.state.sql_content)})}>美化</Button>
+              <Button type="link"  icon="star" onClick={()=> this.setState({favoriteVisible:true})}></Button>
+              <Tooltip
+                   placement="bottomRight"
+                  title={
+                      <div>
+                        <p>
+                           <Button type="link" onClick={()=> this.setState({favorite_type:"db_source"},()=>this.getFavorite())}>我的数据源</Button>
+                        </p>
+                        <p>
+                           <Button type="link" onClick={()=> this.setState({favorite_type:"db_sql"},()=>this.getFavorite())}>我的SQL</Button>
+                        </p>
+                        <p>
+                           <Button type="link" onClick={()=> this.setState({favorite_type:"db_sql"},()=>message.success('开发中'))}>公共快捷键</Button>
+                        </p>
+                      </div>
+                  }
+              >
+                  <Icon type="folder-open" />
+              </Tooltip>
+              <CodeMirror
+                editorDidMount={this.onEditorDidMount}
+                value={this.state.sql_content}
+                resize="vertical"
+                options={{
+                  lineNumbers: true,
+                  mode: {name: "text/x-mysql"},
+                  extraKeys: {"Tab": "autocomplete"},
+                  theme: 'idea',
+                  styleActiveLine: true,
+                  lineWrapping:true,
+                  // 代码提示功能
+                  hintOptions: {
+                    // 避免由于提示列表只有一个提示信息时，自动填充
+                    completeSingle: false,
+                    // 不同的语言支持从配置中读取自定义配置 sql语言允许配置表和字段信息，用于代码提示
+                    tables: {
+                      "table1": ["c1", "c2"],
+                      "table2": ["c1", "c2"],
+                    },
                   },
-                },
-              }}
-              // onChange={(cm) => this.setState({sql_content: cm.getValue()})} // sql变化事件
-              // onFocus={(cm) => this.setState({sql_content: cm.getValue()})}
-               // onCursorActivity={(cm) => this.onCursorActivity(cm)} // 用来完善选中监听
-               onBlur={cm=>this.onBlur(cm)}
-               onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
-            />
-            <Tabs defaultActiveKey='1' tabPosition="bottom" size="small" style={{ margin:1}}>
-              {
-                  this.state.multi_label.map((item,index)=>{
-                  return(
-                      <TabPane tab={item} key={index}>
+                }}
+                // onChange={(cm) => this.setState({sql_content: cm.getValue()})} // sql变化事件
+                // onFocus={(cm) => this.setState({sql_content: cm.getValue()})}
+                 // onCursorActivity={(cm) => this.onCursorActivity(cm)} // 用来完善选中监听
+                 onBlur={cm=>this.onBlur(cm)}
+                 onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
+              />
+              <Tabs defaultActiveKey='1' tabPosition="bottom" size="small" style={{ margin:1}}>
+                {
+                    this.state.multi_label.map((item,index)=>{
+                    return(
+                        <TabPane tab={item} key={index}>
 
-                          {
-                              this.state.res_format === 'row'
-                              ?
-                              <div className="components-table-resizable-column">
-                                   <MyResizeTable dataSource={this.state.multi_table_data[index]} columns={this.state.multi_table_column[index]}/>
-                              </div>
-                              : <TextArea rows={10} value={this.state.col_format_res_list[index]}/>
+                            {
+                                this.state.res_format === 'row'
+                                ?
+                                <div className="components-table-resizable-column">
+                                     <MyResizeTable dataSource={this.state.multi_table_data[index]} columns={this.state.multi_table_column[index]}/>
+                                </div>
+                                : <TextArea rows={10} value={this.state.col_format_res_list[index]}/>
 
-                          }
+                            }
 
-                        共{this.state.multi_table_data[index].length}条,  耗时:{this.state.multi_query_time[index]} ms
-                          <Button
-                              style={{marginLeft: '10px'}}
-                              onClick={tableToExcel.bind(this, this.state.multi_table_data[index], this.state.multi_table_column[index], 'query_result')}
-                          >
-                              导出
-                          </Button>
-                          <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
-                          <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
-                      </TabPane>
-                  )
-                  })
-              }
-            </Tabs>
+                          共{this.state.multi_table_data[index].length}条,  耗时:{this.state.multi_query_time[index]} ms
+                            <Button
+                                style={{marginLeft: '10px'}}
+                                onClick={tableToExcel.bind(this, this.state.multi_table_data[index], this.state.multi_table_column[index], 'query_result')}
+                            >
+                                导出
+                            </Button>
+                            <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
+                            <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
+                        </TabPane>
+                    )
+                    })
+                }
+              </Tabs>
           </Content>
         </Layout>
 
