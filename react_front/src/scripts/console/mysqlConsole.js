@@ -650,7 +650,6 @@ export default class mysqlConsole extends Component {
                       />
                   }
               </Sider>
-
           </div>
           <Content style={{margin:0,padding:0}}>
             <Icon
@@ -667,41 +666,40 @@ export default class mysqlConsole extends Component {
               onClick={()=>this.setState({input_source_type:!this.state.input_source_type,instance_name:"",db_info:""})}
             />
             {
-            this.state.input_source_type ?
-            <Input size="small" style={{ width: 150,marginLeft:2}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
-            :
-            <span>
-                <Select
-                size="small"
-                showSearch
-                filterOption={(input,option)=>
-                    option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
-                }
-                style={{width:180,marginLeft:2}}
-                value={this.state.cluster_name}
-                onChange={e=>this.getClusterIns(e)}
-            >
-                {this.state.cluster_name_list.map(record =>{
-                    return <Option value={record.cluster_name} key={record.cluster_name}>{record.cluster_name}</Option>
-                })}
-            </Select>
-            <Select
-                size="small"
-                showSearch
-                filterOption={(input,option)=>
-                    option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
-                }
-                style={{width:200,marginLeft:2}}
-                value={this.state.instance_name}
-                onChange={e=>this.setState({instance_name:e},()=>this.getSchema())}
-            >
-                {this.state.instance_list.map(record =>{
-                    return <Option value={record.instance_name} key={record.instance_name}>{record.instance_name}({record.instance_role})</Option>
-                })}
-            </Select>
-            </span>
-          }
-
+              this.state.input_source_type ?
+              <Input size="small" style={{ width: 150,marginLeft:2}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
+              :
+              <span>
+                  <Select
+                  size="small"
+                  showSearch
+                  filterOption={(input,option)=>
+                      option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                  }
+                  style={{width:180,marginLeft:2}}
+                  value={this.state.cluster_name}
+                  onChange={e=>this.getClusterIns(e)}
+              >
+                  {this.state.cluster_name_list.map(record =>{
+                      return <Option value={record.cluster_name} key={record.cluster_name}>{record.cluster_name}</Option>
+                  })}
+              </Select>
+              <Select
+                  size="small"
+                  showSearch
+                  filterOption={(input,option)=>
+                      option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                  }
+                  style={{width:200,marginLeft:2}}
+                  value={this.state.instance_name}
+                  onChange={e=>this.setState({instance_name:e},()=>this.getSchema())}
+              >
+                  {this.state.instance_list.map(record =>{
+                      return <Option value={record.instance_name} key={record.instance_name}>{record.instance_name}({record.instance_role})</Option>
+                  })}
+              </Select>
+              </span>
+            }
             <Select
                 size="small"
                 showSearch
