@@ -75,7 +75,6 @@ export class BaseConsole extends Component {
 
   componentDidMount() {
     this.getClusterName();
-    document.onclick = () => this.setState({contextMenuVisiable:false});
   }
 
     exportBuInfoToExcel = () => {
@@ -237,7 +236,7 @@ export class BaseConsole extends Component {
     }else{
         var sql_content = this.state.sql_content + '\n' + sql
     }
-    this.setState({sql: sql,sql_content:sql_content,DrawerVisible:false},()=>this.getTableData('no'))
+    this.setState({sql: sql,sql_content:sql_content,DrawerVisible:false,contextMenuVisiable:false},()=>this.getTableData('no'))
   };
 
   onInputRead = async (cm, change, editor) => {
@@ -847,6 +846,7 @@ export class BaseConsole extends Component {
              style={{ ...this.state.contextMenuStyle, position: 'fixed',width:130,height:200,background:'#f1f2f5',zIndex:9999,borderRadius:5}}
            >
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"data")}>查看表数据</Button>
+             <Button type="dash" style={{padding:2}} onClick={()=>this.setState({contextMenuVisiable:false})}><Icon type="close" /></Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"struct")}>查看表结构</Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"status")}>查看表信息</Button>
            </div>
