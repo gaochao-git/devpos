@@ -5,7 +5,6 @@
 # 项目自定义middleware
 
 import threading
-import uuid
 import json
 import jwt
 import re
@@ -22,36 +21,6 @@ import logging
 logger = logging.getLogger('devops')
 
 
-# ============================ 日志 ===================================
-class TraceInfoFilter(logging.Filter):
-    """
-    给日志增加request_id便于日志排查,filter
-    """
-
-    def filter(self, record):
-        record.request_id = getattr(local, 'request_id', "none")
-        return True
-
-
-class MyLogMiddleware(MiddlewareMixin):
-    """
-    给日志增加request_id便于日志排查,middleware
-    """
-    def process_request(self, request):
-        trace_id = str(uuid.uuid4())
-        local.request_id = trace_id
-
-    def process_response(self, request, response):
-        if hasattr(request, 'request_id'):
-            response['X-Request-ID'] = local.request_id
-        try:
-            del local.request_id
-        except AttributeError:
-            pass
-        return response
-
-
-# ============================ 认证 ===================================
 class MyAuthMiddleware(MiddlewareMixin):
     """
     登陆验证中间件,除了登陆接口所有接口均需要验证
@@ -139,4 +108,3 @@ def cas_user_logout_callback(sender, **kwargs):
     :return:
     """
     print("sso登出")
-# ============================ 其他 ===================================

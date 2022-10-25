@@ -1,26 +1,12 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Author: Hui
-# @Desc: { 项目异常模块 }
-# @Date: 2021/09/24 8:14
-# http://www.qb5200.com/article/405816.html
+# @Time    : 2019/4/17 3:17 PM
+# @Author  : 高超
+# 项目自定义Exception
 
-
-class CommonException(Exception):
-    """公共异常类"""
-
-    def __init__(self):
-        self.code = 5000
-        self.errmsg = 'xxxxx'
-        super().__init__()
-
-
-class BusinessException(CommonException):
+class BusinessException(Exception):
     """业务异常类"""
     def __init__(self, msg, code=5000):
         self.code = code
         self.errmsg = msg
-
-
-class APIException(CommonException):
-    """接口异常类"""
-    pass
+        super().__init__()
