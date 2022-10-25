@@ -29,6 +29,7 @@
     "diff-match-patch": "^1.0.5",
     "dotenv": "8.2.0",
     "dotenv-expand": "5.1.0",
+    "dumi": "^1.1.48",
     "eslint": "^6.6.0",
     "eslint-config-react-app": "^5.1.0",
     "eslint-loader": "3.0.2",
