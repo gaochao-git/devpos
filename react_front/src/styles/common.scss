@@ -389,3 +389,24 @@ td.replacecolor{
   background: #F6F6F6;
   opacity:0.3;
 }
+
+// 重写web_console新增查询窗口按钮
+.ant-tabs.ant-tabs-card .ant-tabs-extra-content {
+    float: left !important;
+}
+
+// 重写web_console新增查询窗口按钮
+.ant-tabs-extra-content .ant-tabs-new-tab {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    color: black !important;
+    font-size: 15px;
+    line-height: 20px;
+    text-align: center;
+    border: 1px solid #e8e8e8;
+    border-radius: 2px;
+    cursor: pointer;
+    -webkit-transition: all 0.3s;
+    transition: all 0.3s;
+}
