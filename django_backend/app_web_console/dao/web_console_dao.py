@@ -127,7 +127,8 @@ def audit_select_by_go_inception(ip, port, item_sql, schema_name):
     tables = parse_ret.get('tables')
     db_list = [table.get('schema') for table in tables if table.get('schema') is not None]
     if len(db_list) > 1 or schema_name not in db_list:
-        raise BusinessException(f"不允许跨库查询:{db_list}")
+        pass
+        # raise BusinessException(f"不允许跨库查询:{db_list}")
     return item_sql
 
 
