@@ -641,12 +641,7 @@ export class BaseConsole extends Component {
                        style={{borderRadius:0}}
                     />
                   </div>
-                :
-                  <Icon
-                        className="trigger"
-                        type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
-                        onClick={this.onCollapseTable}
-                      />
+                :null
                   }
               </Sider>
           </div>
@@ -846,7 +841,7 @@ export class BaseConsole extends Component {
              style={{ ...this.state.contextMenuStyle, position: 'fixed',width:130,height:200,background:'#f1f2f5',zIndex:9999,borderRadius:5}}
            >
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"data")}>查看表数据</Button>
-             <Button type="dash" style={{padding:2}} onClick={()=>this.setState({contextMenuVisiable:false})}><Icon type="close" /></Button>
+             <Button type="dash" style={{margin:0,padding:0}} onClick={()=>this.setState({contextMenuVisiable:false})}><Icon type="close" /></Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"struct")}>查看表结构</Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"status")}>查看表信息</Button>
            </div>
