@@ -1,4 +1,4 @@
-from app_audit_sql.utils import inception
+from app_audit_sql.utils.inception import MyInception
 from app_audit_sql.dao import audit_sql_dao
 from apps.utils import common
 from django_backend.settings import upload_base_path
@@ -55,7 +55,9 @@ class AsyncSplitSql:
             logger.exception(e)
             raise Exception("读取拆分源文件失败")
         # 调用inception连接数据源拆分SQL
-        split_ret = inception.start_split_sql(self.cal_des_ip, self.cal_des_port, split_sql)
+        #split_ret = inception.start_split_sql(self.cal_des_ip, self.cal_des_port, split_sql)
+        inception_engine = MyInception(self.des_ip, self.des_port, split_sql)
+        split_ret = inception_engine.split_sql()
         if split_ret['status'] == 'ok':
             self.inc_ret_rows = split_ret['data']
             common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到审核工具拆分完成")

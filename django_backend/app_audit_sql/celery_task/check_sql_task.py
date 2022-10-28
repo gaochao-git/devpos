@@ -1,6 +1,6 @@
 from apps.utils import common
 from app_audit_sql.dao import audit_sql_dao
-from app_audit_sql.utils import inception
+from app_audit_sql.utils.inception import MyInception
 from django_backend.settings import upload_base_path
 from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
@@ -56,7 +56,9 @@ class AsyncCheckSql:
         :return:
         """
         common.audit_sql_log(self.submit_sql_uuid, 0, "任务发送到工具检查")
-        ret = inception.check_sql(self.des_ip, self.des_port, self.check_sql)
+        # ret = inception.check_sql(self.des_ip, self.des_port, self.check_sql)
+        inception_engine = MyInception(self.des_ip, self.des_port, self.check_sql)
+        ret = inception_engine.check_sql()
         if ret['status'] != "ok":
             raise Exception(ret['message'])
         else:

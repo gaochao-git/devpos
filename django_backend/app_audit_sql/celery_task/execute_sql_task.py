@@ -1,5 +1,5 @@
 from apps.utils import db_helper
-from app_audit_sql.utils import inception
+from app_audit_sql.utils.inception import MyInception
 from app_audit_sql.dao import audit_sql_dao
 from apps.utils import common
 import json
@@ -110,9 +110,10 @@ class ExecuteSql:
         """
         common.audit_sql_log(self.file_path, 0, "任务发送到审核工具执行")
         audit_sql_dao.mark_ticket_stage_status(self.file_path, "inc_exe", "process")
-        ret = inception.execute_sql(self.des_ip, self.des_port, self.inc_backup, self.inc_ignore_warn,
-                                    self.inc_ignore_err, self.execute_sql, self.file_path, self.osc_config_sql,self.inc_sleep)
-        if ret['status'] != "ok": 
+        #ret = inception.execute_sql(self.des_ip, self.des_port, self.inc_backup, self.inc_ignore_warn, self.inc_ignore_err, self.execute_sql, self.file_path, self.osc_config_sql,self.inc_sleep)
+        inception_engine = MyInception(self.des_ip, self.des_port, self.execute_sql)
+        ret = inception_engine.execute_sql(self.inc_backup, self.inc_ignore_warn, self.inc_ignore_err, self.file_path, self.osc_config_sql, self.inc_sleep)
+        if ret['status'] != "ok":
             self.mark_ticket_status(2, 4)
             audit_sql_dao.mark_ticket_stage_status(self.file_path, "inc_exe", "error")
             common.audit_sql_log(self.file_path, 1, "任务发送到审核工具执行出现异常:%s" % ret['message'])
