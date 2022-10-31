@@ -87,20 +87,25 @@ def target_source_dml_many(ip, port, sql_list, my_connect_timeout=2):
 
 
 class DbUtil:
-    def __init__(self, close_conn=False, dsn=None):
+    def __init__(self, dsn=None):
+        """
+        有dsn是连接远程数据源,否则为连接项目数据源
+        :param dsn:
+        """
         self._start_time = datetime.now()
         self._connection = None
-        self._status = "ok"
-        self._message = StatusCode.OK.msg
-        self._code = StatusCode.OK.code
-        self._data = []
-        self._row_count = None
-        self._affected_rows = None
-        self._execute_time = 0
         self._cursor = None
         self._dsn = dsn
-        self._close_conn = close_conn
         self._get_connection()
+        self._query_results = {
+            "status": "ok",
+            "message": StatusCode.OK.msg,
+            "code": StatusCode.OK.code,
+            "data": [],
+            "row_count": None,
+            "affected_rows": None,
+            "execute_time": 0
+        }
 
     def _get_connection(self):
         try:
@@ -125,8 +130,8 @@ class DbUtil:
             self._cursor = self._connection.cursor()
             self._cursor.execute(sql, args)
             rows = self._cursor.fetchall()
-            self._data = [dict(zip([col[0] for col in self._cursor.description], row)) for row in rows]
-            self._row_count = self._cursor.rowcount
+            self._query_results['data'] = [dict(zip([col[0] for col in self._cursor.description], row)) for row in rows]
+            self._query_results['row_count'] = self._cursor.rowcount
             return self._ok()
         except Exception as e:
             return self._err(e)
@@ -143,8 +148,8 @@ class DbUtil:
             for sql in sql_list:
                 self._cursor.execute(sql, args)
             rows = self._cursor.fetchall()
-            self._data = [dict(zip([col[0] for col in self._cursor.description], row)) for row in rows]
-            self._row_count = self._cursor.rowcount
+            self._query_results['data'] = [dict(zip([col[0] for col in self._cursor.description], row)) for row in rows]
+            self._query_results['row_count'] = self._cursor.rowcount
             return self._ok()
         except Exception as e:
             return self._err(e)
@@ -152,7 +157,7 @@ class DbUtil:
     def dml(self, sql, args=None):
         try:
             self._cursor = self._connection.cursor()
-            self._affected_rows = self._cursor.execute(sql, args)
+            self._query_results['affected_rows'] = self._cursor.execute(sql, args)
             return self._ok()
         except Exception as e:
             return self._err(e)
@@ -167,7 +172,7 @@ class DbUtil:
         try:
             with transaction.atomic():
                 self._cursor = self._connection.cursor()
-                self._affected_rows = sum(self._cursor.execute(sql) for sql in sql_list)
+                self._query_results['affected_rows'] = sum(self._cursor.execute(sql) for sql in sql_list)
             return self._ok()
         except Exception as e:
             return self._err(e)
@@ -194,40 +199,26 @@ class DbUtil:
         """
         try:
             self._cursor = self._connection.cursor()
-            self._affected_rows = self._cursor.executemany(sql, args)
+            self._query_results['affected_rows'] = self._cursor.executemany(sql, args)
             return self._ok()
         except Exception as e:
             return self._err(e)
 
     def _err(self, msg):
+        logger.error("execute sql error %s" % (msg))
         self._close_session()
-        logger.error("execute sql error %s" %(msg))
-        self._status = "error"
-        self._message = msg
-        self._code = StatusCode.ERR_DB.code
         self._execute_time = (self._start_time - datetime.now()).microseconds/1000
-        return {
-            "status": self._status,
-            "message": self._message,
-            "code": self._code,
-            "data": self._data,
-            "row_count": self._row_count,
-            "affected_rows": self._affected_rows,
-            "execute_time": self._execute_time
-        }
+        self._query_results['status'] = "error"
+        self._query_results['message'] = msg
+        self._query_results['code'] = StatusCode.ERR_DB.code
+        self._query_results['execute_time'] = self._execute_time
+        return self._query_results
 
     def _ok(self):
         self._close_session()
         self._execute_time = (self._start_time - datetime.now()).microseconds / 1000
-        return {
-            "status": self._status,
-            "message": self._message,
-            "code": self._code,
-            "data": self._data,
-            "row_count": self._row_count,
-            "affected_rows": self._affected_rows,
-            "execute_time": self._execute_time
-        }
+        self._query_results['execute_time'] = self._execute_time
+        return self._query_results
 
     def _close_session(self):
         if self._cursor:
