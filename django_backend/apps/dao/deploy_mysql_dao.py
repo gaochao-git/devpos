@@ -31,7 +31,7 @@ def submit_install_mysql_dao(deploy_topos, idc, deploy_version, deploy_archit):
     sql_list = []
     sql_list.append(sql1)
     sql_list.append(sql2)
-    return db_helper.dml_many(sql_list)
+    return db_helper.dml(sql_list)
 
 
 def get_deploy_mysql_submit_info_dao():
@@ -127,7 +127,7 @@ def pass_submit_deploy_mysql_dao(submit_uuid,check_status,check_username,check_c
     sql_list = []
     sql_list.append(sql1)
     sql_list.append(sql2)
-    return db_helper.dml_many(sql_list)
+    return db_helper.dml(sql_list)
 
 
 def set_task_celery_dao(submit_uuid):
@@ -144,7 +144,7 @@ def set_task_celery_dao(submit_uuid):
     sql_list = []
     sql_list.append(sql1)
     sql_list.append(sql2)
-    return db_helper.dml_many(sql_list)
+    return db_helper.dml(sql_list)
 
 
 def get_work_flow_by_uuid_dao(submit_uuid):

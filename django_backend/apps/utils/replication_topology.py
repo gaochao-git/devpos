@@ -65,7 +65,7 @@ class ReplInfo():
         :return:
         """
         # 探测输入的ip、port是否可以连接
-        ping_ret = db_helper.target_source_ping(self.input_ip, self.input_port)
+        ping_ret = db_helper.target_source_find_all(self.input_ip, self.input_port, "select 1")
         if ping_ret['status'] != "ok": return ping_ret
         # 获取集群top节点
         status, top_host, top_port = ReplInfo.get_top_node(self.input_ip, self.input_port)
@@ -192,7 +192,7 @@ class ReplInfo():
             slave_host = slave_instance.split(":")[0]
             slave_port = slave_instance.split(":")[1]
             # 过滤无法连接的实例
-            ping_ret = db_helper.target_source_ping(slave_host, slave_port)
+            ping_ret = db_helper.target_source_find_all(slave_host, slave_port,"select 1")
             if ping_ret['status'] != 'ok':
                 logger.info("该实例连接失败需要过滤:%s" % slave_instance)
                 continue

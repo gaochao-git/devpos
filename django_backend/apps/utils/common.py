@@ -278,7 +278,7 @@ def write_celery_task(task_id, submit_id, task_type):
         sql_list = []
         sql_list.append(del_sql)
         sql_list.append(int_sql)
-        return db_helper.dml_many(sql_list)
+        return db_helper.dml(sql_list)
     else:
         return db_helper.dml(int_sql)
 

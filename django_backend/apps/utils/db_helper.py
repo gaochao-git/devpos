@@ -10,82 +10,6 @@ db_all_remote_pass = "fffjjj"
 
 # pymysql自动提交默认为False,django会将自动提交改为True,也可以在setting中自己设置,如果某个SQL想单独设置，则需要单独开启事物
 ################################################# 本项目数据源公共方法 ##########################################
-
-def target_source_ping(ip, port):
-    """
-    ping远程服务器
-    :param ip:
-    :param port:
-    :return:
-    """
-    sql = "select 1"
-    return target_source_find_all(ip, port, sql, 0.2)
-
-
-def target_source_dml(ip, port, sql, my_connect_timeout=2):
-    """
-    连接远程mysql执行管理类命令、更新类命令
-    :param ip:
-    :param port:
-    :param sql:
-    :param my_connect_timeout:
-    :return:
-    """
-    conn = None
-    cursor = None
-    affected_rows = 0
-    try:
-        conn = pymysql.connect(host=ip, port=int(port), user=db_all_remote_user, passwd=db_all_remote_pass, db="",
-                               charset="utf-8",connect_timeout=my_connect_timeout)
-        cursor = conn.cursor()
-        affected_rows = cursor.execute(sql)
-        status = "ok"
-        message = StatusCode.OK.msg
-        code = StatusCode.OK.code
-    except Exception as e:
-        status = "error"
-        message = StatusCode.ERR_DB.msg
-        code = StatusCode.ERR_DB.code
-        logger.exception("sql执行失败:%s", e)
-    finally:
-        if cursor: cursor.close()
-        if conn: connection.close()
-        return {"status": status, "message": message, "code": code, "affected_rows": affected_rows}
-
-
-def target_source_dml_many(ip, port, sql_list, my_connect_timeout=2):
-    """
-    连接远程mysql执行管理类命令、更新类命令
-    :param ip:
-    :param port:
-    :param sql:
-    :param my_connect_timeout:
-    :return:
-    """
-    conn = None
-    cursor = None
-    affected_rows = 0
-    try:
-        conn = pymysql.connect(host=ip, port=int(port), user=db_all_remote_user, passwd=db_all_remote_pass, db="",
-                               charset="utf-8",connect_timeout=my_connect_timeout)
-        cursor = conn.cursor()
-        for sql in sql_list:
-            item_sql_affected_rows = cursor.execute(sql)
-            affected_rows += item_sql_affected_rows
-        status = "ok"
-        message = StatusCode.OK.msg
-        code = StatusCode.OK.code
-    except Exception as e:
-        status = "error"
-        message = StatusCode.ERR_DB.msg
-        code = StatusCode.ERR_DB.code
-        logger.exception("sql执行失败:%s", e)
-    finally:
-        if cursor: cursor.close()
-        if conn: connection.close()
-        return {"status": status, "message": message, "code": code, "affected_rows": affected_rows}
-
-
 class DbUtil:
     def __init__(self, dsn=None):
         """
@@ -125,10 +49,18 @@ class DbUtil:
             print(e)
             return self._err(e)
 
-    def find_all(self, sql, args=None):
+    def query(self, sqls, args=None):
+        """
+        :param sqls:list|string
+        :param args:
+        :return:
+        """
         try:
             self._cursor = self._connection.cursor()
-            self._cursor.execute(sql, args)
+            if isinstance(sqls, list):
+                for sql in sqls: self._cursor.execute(sql, args)
+            else:
+                self._cursor.execute(sqls, args)
             rows = self._cursor.fetchall()
             self._query_results['data'] = [dict(zip([col[0] for col in self._cursor.description], row)) for row in rows]
             self._query_results['row_count'] = self._cursor.rowcount
@@ -136,43 +68,20 @@ class DbUtil:
         except Exception as e:
             return self._err(e)
 
-    def find_all_many(self, sql_list, args=None):
+    def dml(self, sqls, args=None):
         """
-        有时候在查询之前需要执行一些前置SQL,如更改sql_mode、设置变量等
-        :param sql_list:
+        :param sqls:list|string
         :param args:
         :return:
         """
         try:
             self._cursor = self._connection.cursor()
-            for sql in sql_list:
-                self._cursor.execute(sql, args)
-            rows = self._cursor.fetchall()
-            self._query_results['data'] = [dict(zip([col[0] for col in self._cursor.description], row)) for row in rows]
-            self._query_results['row_count'] = self._cursor.rowcount
-            return self._ok()
-        except Exception as e:
-            return self._err(e)
-
-    def dml(self, sql, args=None):
-        try:
-            self._cursor = self._connection.cursor()
-            self._query_results['affected_rows'] = self._cursor.execute(sql, args)
-            return self._ok()
-        except Exception as e:
-            return self._err(e)
-
-    def dml_many(self, sql_list, args=None):
-        """
-        执行多条SQL,需要包在一个事物里面
-        :param sql_list:
-        :param args:
-        :return:
-        """
-        try:
-            with transaction.atomic():
-                self._cursor = self._connection.cursor()
-                self._query_results['affected_rows'] = sum(self._cursor.execute(sql) for sql in sql_list)
+            if isinstance(sqls, list):
+                with transaction.atomic():
+                    self._cursor = self._connection.cursor()
+                    self._query_results['affected_rows'] = sum(self._cursor.execute(sql) for sql in sqls)
+            else:
+                self._query_results['affected_rows'] = self._cursor.execute(sqls, args)
             return self._ok()
         except Exception as e:
             return self._err(e)
@@ -231,23 +140,12 @@ class DbUtil:
 def find_all(sql, args=None):
     """
     本地数据源
-    :param sql:
+    :param sql:list|string
     :param args:
     :return:
     """
     db = DbUtil()
-    return db.find_all(sql, args)
-
-
-def find_all_many(sql_list, args=None):
-    """
-    本地数据源
-    :param sql_list:[sql1, sql2, ...]
-    :param args:
-    :return:
-    """
-    db = DbUtil()
-    return db.find_all_many(sql_list, args)
+    return db.query(sql, args)
 
 
 def dml(sql, args=None):
@@ -259,17 +157,6 @@ def dml(sql, args=None):
     """
     db = DbUtil()
     return db.dml(sql, args)
-
-
-def dml_many(sql_list, args=None):
-    """
-    本地数据源
-    :param sql_list:[sql1, sql2, ...]
-    :param args:
-    :return:
-    """
-    db = DbUtil()
-    return db.dml_many(sql_list, args)
 
 
 def batch_insert(sql, args=None):
@@ -293,4 +180,17 @@ def target_source_find_all(ip, port, sql, user=db_all_remote_user, passwd=db_all
         "connect_timeout": connect_timeout
     }
     db = DbUtil(dsn=dsn)
-    return db.find_all(sql, args)
+    return db.query(sql, args)
+
+
+def target_source_dml(ip, port, sql, user=db_all_remote_user, passwd=db_all_remote_pass, db=None, connect_timeout=2,args=None):
+    dsn = {
+        "ip": ip,
+        "port": port,
+        "user": user,
+        "passwd": passwd,
+        "db": db,
+        "connect_timeout": connect_timeout
+    }
+    db = DbUtil(dsn=dsn)
+    return db.dml(sql, args)

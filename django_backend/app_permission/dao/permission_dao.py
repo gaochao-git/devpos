@@ -86,4 +86,4 @@ def change_schema_permisson_dao(cluster_name, schema_name, permission_user):
             sql2 = sql2 + value + ','
         sql_list.append(sql2.rstrip(','))
     print(sql_list)
-    return db_helper.dml_many(sql_list)
+    return db_helper.dml(sql_list)
