@@ -51,14 +51,14 @@ class DbUtil:
 
     def query(self, sqls, args=None):
         """
-        :param sqls:list|string
+        :param sqls:list|string,如果为list则args不生效
         :param args:
         :return:
         """
         try:
             self._cursor = self._connection.cursor()
             if isinstance(sqls, list):
-                for sql in sqls: self._cursor.execute(sql, args)
+                for sql in sqls: self._cursor.execute(sql)
             else:
                 self._cursor.execute(sqls, args)
             rows = self._cursor.fetchall()
@@ -70,7 +70,7 @@ class DbUtil:
 
     def dml(self, sqls, args=None):
         """
-        :param sqls:list|string
+        :param sqls:list|string,如果为list则args不生效
         :param args:
         :return:
         """
