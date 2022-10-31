@@ -132,6 +132,12 @@ class DbUtil:
             return self._err(e)
 
     def find_all_many(self, sql_list, args=None):
+        """
+        有时候在查询之前需要执行一些前置SQL,如更改sql_mode、设置变量等
+        :param sql_list:
+        :param args:
+        :return:
+        """
         try:
             self._cursor = self._connection.cursor()
             for sql in sql_list:
@@ -152,6 +158,12 @@ class DbUtil:
             return self._err(e)
 
     def dml_many(self, sql_list, args=None):
+        """
+        执行多条SQL,需要包在一个事物里面
+        :param sql_list:
+        :param args:
+        :return:
+        """
         try:
             with transaction.atomic():
                 self._cursor = self._connection.cursor()
