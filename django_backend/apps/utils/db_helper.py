@@ -16,11 +16,11 @@ class DbUtil:
         有dsn是连接远程数据源,否则为连接项目数据源
         :param dsn:
         """
+
         self._start_time = datetime.now()
+        self._dsn = dsn
         self._connection = None
         self._cursor = None
-        self._dsn = dsn
-        self._get_connection()
         self._query_results = {
             "status": "ok",
             "message": StatusCode.OK.msg,
@@ -28,26 +28,23 @@ class DbUtil:
             "data": [],
             "row_count": None,
             "affected_rows": None,
-            "execute_time": 0
+            "execute_time": 0,
+            "warning": None
         }
 
     def _get_connection(self):
-        try:
-            if self._dsn is None:
-                self._connection = connection
-            else:
-                self._connection = pymysql.connect(
-                    host=self._dsn.get('ip'),
-                    port=int(self._dsn.get('port')),
-                    user=self._dsn.get('user'),
-                    passwd=self._dsn.get('passwd'),
-                    db=self._dsn.get('db'),
-                    charset="utf8",
-                    connect_timeout=self._dsn.get('connect_timeout')
-                )
-        except Exception as e:
-            print(e)
-            return self._err(e)
+        if self._dsn is None:
+            return connection
+        else:
+            return pymysql.connect(
+                host=self._dsn.get('ip'),
+                port=int(self._dsn.get('port')),
+                user=self._dsn.get('user'),
+                passwd=self._dsn.get('passwd'),
+                db=self._dsn.get('db'),
+                charset="utf8",
+                connect_timeout=self._dsn.get('connect_timeout')
+            )
 
     def query(self, sqls, args=None):
         """
@@ -56,6 +53,7 @@ class DbUtil:
         :return:
         """
         try:
+            self._connection = self._get_connection()
             self._cursor = self._connection.cursor()
             if isinstance(sqls, list):
                 for sql in sqls: self._cursor.execute(sql)
@@ -65,6 +63,8 @@ class DbUtil:
             self._query_results['data'] = [dict(zip([col[0] for col in self._cursor.description], row)) for row in rows]
             self._query_results['row_count'] = self._cursor.rowcount
             return self._ok()
+        except pymysql.Warning as e:
+            self._query_results['warning'] = str(e)
         except Exception as e:
             return self._err(e)
 
@@ -75,6 +75,7 @@ class DbUtil:
         :return:
         """
         try:
+            self._connection = self._get_connection()
             self._cursor = self._connection.cursor()
             if isinstance(sqls, list):
                 with transaction.atomic():
@@ -83,6 +84,8 @@ class DbUtil:
             else:
                 self._query_results['affected_rows'] = self._cursor.execute(sqls, args)
             return self._ok()
+        except pymysql.Warning as e:
+            self._query_results['warning'] = str(e)
         except Exception as e:
             return self._err(e)
 
@@ -107,9 +110,12 @@ class DbUtil:
         :return:
         """
         try:
+            self._connection = self._get_connection()
             self._cursor = self._connection.cursor()
             self._query_results['affected_rows'] = self._cursor.executemany(sql, args)
             return self._ok()
+        except pymysql.Warning as e:
+            self._query_results['warning'] = str(e)
         except Exception as e:
             return self._err(e)
 
