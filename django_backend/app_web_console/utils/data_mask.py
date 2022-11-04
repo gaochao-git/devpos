@@ -48,4 +48,3 @@ def data_masking(instance_name, db_name, sql, sql_result):
                 g.update({list(g.keys())[hint_column]: '脱敏****'})
     except Exception as msg:
         logger.exception(f"数据脱敏异常，错误信息：{msg}")
-    return sql_result

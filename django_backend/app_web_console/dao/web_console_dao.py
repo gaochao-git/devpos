@@ -43,8 +43,9 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
         k_v_time = {}
         ret = db_helper.target_source_find_all(ip, port, rewrite_item_sql, db=schema_name)
         if ret['status'] != 'ok': return ret
-        data = data_mask.data_masking(des_ip_port, schema_name, item_sql, ret['data'])
-        k_v_data[j] = data
+        # 直接在原始数据进行脱敏,脱敏成功则脱敏,否则放行
+        data_mask.data_masking(des_ip_port, schema_name, item_sql, ret['data'])
+        k_v_data[j] = ret['data']
         k_v_time[j] = ret['execute_time']
         j = j + 1
         ret_list.append(k_v_data)
