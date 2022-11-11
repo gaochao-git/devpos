@@ -81,6 +81,47 @@ class MyGoInception:
         parse_ret = {"tables": tables, "limit_offset": limit_offset}
         return parse_ret
 
+    def check_sql(self):
+        """
+        sql检查
+        :param self:
+        :return:
+        """
+        base_sql = f"""
+            /*--user=gaochao;--password=fffjjj;--host={self._host};--check=1;--port={self._port};*/
+           inception_magic_start;
+           {self._sql}
+           inception_magic_commit;
+        """
+        return self._base_engine(base_sql)
+
+    def check_sql_go_to_c(self):
+        """
+        sql检查
+        :param self:
+        :return:
+        """
+        base_sql = f"""
+            /*--user=gaochao;--password=fffjjj;--host={self._host};--check=1;--port={self._port};*/
+           inception_magic_start;
+           {self._sql}
+           inception_magic_commit;
+        """
+        ret = self._base_engine(base_sql)
+        new_data = []
+        for row in ret['data']:
+            new_dict = {}
+            new_dict['ID'] = row['order_id']
+            new_dict['stage'] = row['stage']
+            new_dict['SQL'] = row['sql']
+            new_dict['stagestatus'] = row['stage_status']
+            new_dict['errlevel'] = row['error_level']
+            new_dict['errormessage'] = row['error_message']
+            new_dict['Affected_rows'] = row['affected_rows']
+            new_data.append(new_dict)
+        ret['data'] = new_data
+        return ret
+
 
 def parse_table_ref(query_tree, db_name=None):
     __author__ = "xxlrr"

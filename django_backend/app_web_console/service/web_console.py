@@ -5,6 +5,7 @@
 
 import logging
 from app_web_console.dao import web_console_dao
+from utils.go_inception_ import MyGoInception
 
 logger = logging.getLogger('devops')
 
@@ -18,6 +19,7 @@ def get_table_data(des_ip_port, sql, schema_name, explain):
     :return:
     """
     return web_console_dao.get_table_data_dao(des_ip_port, sql, schema_name, explain)
+
 
 def get_favorite_data(favorite_type):
     """
@@ -62,3 +64,18 @@ def get_column_list(instance_name,schema_name,table_name):
     :return:
     """
     return web_console_dao.get_column_list_dao(instance_name,schema_name,table_name)
+
+
+def check_generate_sql(generate_sql):
+    """
+    调用inception校验语法
+    :param generate_sql:
+    :return:
+    """
+    ip = '47.104.2.74'
+    port = 3306
+    generate_sql = 'use mysql;' + '\n' + generate_sql
+    inception_engine = MyGoInception(ip, port, generate_sql)
+    parse_ret = inception_engine.check_sql_go_to_c()
+    print(parse_ret)
+    return parse_ret

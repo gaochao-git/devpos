@@ -167,3 +167,21 @@ class GetDbInfoController(BaseView):
         des_ip_port = request_body.get('des_ip_port')
         ret = web_console_dao.get_db_info_dao(des_ip_port)
         return self.my_response(ret)
+
+
+class CheckGenerateSqlController(BaseView):
+    def post(self, request):
+        """
+        获取源与目标表结构
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "generate_sql": [Required, Length(2, 10000)],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        generate_sql = request_body.get('generate_sql')
+        ret = web_console.check_generate_sql(generate_sql)
+        return self.my_response(ret)

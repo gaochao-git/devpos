@@ -17,4 +17,5 @@ urlpatterns = [
     # 表结构对比
     path('v1/meta_table_compare/', meta_compare_controller.CompareTableController.as_view(),kwargs={"access": RouterAccess.dba}),  # 批量对比
     path('v1/get_source_target_table_meta/', meta_compare_controller.GetSourceTargetTableMetaController.as_view(),kwargs={"access": RouterAccess.dba}),  # 获取源与目标表结构
+    path('v1/check_generate_sql/', web_console_controller.CheckGenerateSqlController.as_view(),kwargs={"access": RouterAccess.all}),
 ]
