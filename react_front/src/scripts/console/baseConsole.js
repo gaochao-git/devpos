@@ -13,7 +13,7 @@ import 'codemirror/theme/ambiance.css';
 import 'codemirror/addon/selection/active-line';
 import { Resizable } from "re-resizable";
 import MyAxios from "../common/interface"
-import {tableToExcel} from "../common/export_data"
+import {tableToExcel,SaveFile} from "../common/export_data"
 import { MyResizeTable } from "../common/resizeTable"
 import {EditableTable} from "./tableBaseInfo"
 const {Option} = Select
@@ -71,6 +71,7 @@ export class BaseConsole extends Component {
       my_pos:{line:0,ch:0},
       tables_hint:{}, //表名补全
       editTableModal:false,
+      sql_preview:""
     }
   }
 
@@ -581,6 +582,11 @@ export class BaseConsole extends Component {
     }
   };
 
+  getChildSqlPreview = (sql) => {
+      this.setState({sql_preview:sql})
+  }
+
+
   render() {
     const favorite_column = [
       {
@@ -845,7 +851,7 @@ export class BaseConsole extends Component {
              <Button type="dash" style={{margin:0,padding:0}} onClick={()=>this.setState({contextMenuVisiable:false})}><Icon type="close" /></Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"struct")}>查看表结构</Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"status")}>查看表信息</Button>
-             <Button type="link" onClick={()=>this.setState({edit_table:this.state.rightClickData.key,editTableModal:true,contextMenuVisiable:false})}>编辑表结构</Button>
+             <Button type="link" onClick={()=>this.setState({editTableModal:true,contextMenuVisiable:false})}>新建表</Button>
            </div>
            :null
           }
@@ -858,13 +864,19 @@ export class BaseConsole extends Component {
         >
             <Tabs onChange={console.log(1111)} type="card" tabPosition="left">
                 <TabPane tab="基本信息" key="1">
-                  <EditableTable/>
+                  <EditableTable generateSql={this.getChildSqlPreview}/>
                 </TabPane>
                 <TabPane tab="列信息" key="2">
                   Content of Tab Pane 2
                 </TabPane>
                 <TabPane tab="索引信息" key="3">
                   Content of Tab Pane 3
+                </TabPane>
+                <TabPane tab="SQL预览" key="4">
+                  <TextArea rows={10} value={this.state.sql_preview}/>
+                  <Button onClick={()=>SaveFile(this.state.sql_preview,'table.sql')} type="primary" style={{ marginBottom: 16 }}>
+                    导出SQL
+                  </Button>
                 </TabPane>
             </Tabs>
         </Modal>

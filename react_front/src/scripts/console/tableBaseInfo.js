@@ -14,9 +14,12 @@ const EditableRow = ({ form, index, ...props }) => (
 const EditableFormRow = Form.create()(EditableRow);
 
 class EditableCell extends React.Component {
-  state = {
-    editing: false,
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      editing:false
+    }
+  }
 
   toggleEdit = () => {
     const editing = !this.state.editing;
@@ -205,9 +208,14 @@ export class EditableTable extends React.Component {
     };
   }
 
+  componentDidMount() {
+    this.generateSql();
+  }
+
   handleDelete = key => {
     const dataSource = [...this.state.dataSource];
-    this.setState({ dataSource: dataSource.filter(item => item.key !== key) });
+    this.setState({ dataSource: dataSource.filter(item => item.key !== key)},()=>this.generateSql());
+
   };
 
   upRow = position => {
@@ -217,7 +225,7 @@ export class EditableTable extends React.Component {
     var dataSource = [...this.state.dataSource];
     if (index1 !==0){
         dataSource[index1] = dataSource.splice(index2, 1, dataSource[index1])[0];
-        this.setState({dataSource: dataSource})
+        this.setState({dataSource: dataSource},()=>this.generateSql());
     }
   };
 
@@ -229,7 +237,7 @@ export class EditableTable extends React.Component {
     var dataSource = [...this.state.dataSource];
     if (index1 !== dataSource.length - 1){
         dataSource[index1] = dataSource.splice(index2, 1, dataSource[index1])[0];
-        this.setState({dataSource: dataSource})
+        this.setState({dataSource: dataSource},()=>this.generateSql());
     }
   };
 
@@ -237,7 +245,7 @@ export class EditableTable extends React.Component {
     const { count, dataSource } = this.state;
     const newData = {
       key: dataSource.length + 1,
-      name: '',
+      name: 'col_',
       type: '',
       length: 0,
       point:0,
@@ -250,7 +258,7 @@ export class EditableTable extends React.Component {
     this.setState({
       dataSource: [...dataSource, newData],
       count: count + 1,
-    });
+    },()=>this.generateSql());
   };
 
   handleSave = row => {
@@ -262,7 +270,7 @@ export class EditableTable extends React.Component {
       ...item,
       ...row,
     });
-    this.setState({ dataSource: newData });
+    this.setState({ dataSource: newData},()=>this.generateSql());
   };
 
 
@@ -272,7 +280,7 @@ export class EditableTable extends React.Component {
        row.type=r;
        console.log(t,e,r)
        console.log(this.state.dataSource)
-       this.setState({ dataSource: newData });
+       this.setState({ dataSource: newData},()=>this.generateSql());
    }
    changeNull =(t,e,r) =>{
        const newData = [...this.state.dataSource];
@@ -281,7 +289,7 @@ export class EditableTable extends React.Component {
        row.not_null=r;
        console.log(t,e,r)
        console.log(this.state.dataSource)
-       this.setState({ dataSource: newData });
+       this.setState({ dataSource: newData},()=>this.generateSql());
    }
    changePrimaryKey =(t,e,r) =>{
        const newData = [...this.state.dataSource];
@@ -290,7 +298,7 @@ export class EditableTable extends React.Component {
        row.primary_key=r
        console.log(t,e,r)
        console.log(this.state.dataSource)
-       this.setState({ dataSource: newData });
+       this.setState({ dataSource: newData},()=>this.generateSql());
    }
    changeComment =(text,record,idx,new_value) =>{
        const newData = [...this.state.dataSource];
@@ -299,7 +307,7 @@ export class EditableTable extends React.Component {
        row.comment=new_value
        console.log(text,record,idx)
        console.log(this.state.dataSource)
-       this.setState({ dataSource: newData });
+       this.setState({ dataSource: newData},()=>this.generateSql());
    }
 
    changeLength =(text,record,idx,new_value) =>{
@@ -309,7 +317,7 @@ export class EditableTable extends React.Component {
        row.length=new_value
        console.log(text,record,idx)
        console.log(this.state.dataSource)
-       this.setState({ dataSource: newData });
+       this.setState({ dataSource: newData},()=>this.generateSql());
    }
 
    changePoint =(text,record,idx,new_value) =>{
@@ -319,7 +327,7 @@ export class EditableTable extends React.Component {
        row.point=new_value
        console.log(text,record,idx)
        console.log(this.state.dataSource)
-       this.setState({ dataSource: newData });
+       this.setState({ dataSource: newData},()=>this.generateSql());
    }
 
    changeDefault =(text,record,idx,new_value) =>{
@@ -329,7 +337,7 @@ export class EditableTable extends React.Component {
        row.default_value=new_value
        console.log(text,record,idx)
        console.log(this.state.dataSource)
-       this.setState({ dataSource: newData });
+       this.setState({ dataSource: newData},()=>this.generateSql());
    }
 
 
@@ -373,6 +381,7 @@ export class EditableTable extends React.Component {
 
        sql = table_head + '\n' + table_columns + '，\n' + primary_keys + table_index + '\n' + table_engine + table_charset
        console.log(sql)
+       this.props.generateSql(sql)
        console.log(this.state.dataSource)
    }
    
@@ -403,9 +412,14 @@ export class EditableTable extends React.Component {
       }
       return COLUMN_TYPE
    }
-    
+
+
 
   render() {
+    const {baseData}=this.props
+    console.log(111)
+    console.log(baseData)
+    console.log(222)
     const { dataSource } = this.state;
     const components = {
       body: {
@@ -432,9 +446,6 @@ export class EditableTable extends React.Component {
       <div>
         <Button onClick={this.handleAdd} type="primary" style={{ marginBottom: 16 }}>
           Add a row
-        </Button>
-        <Button onClick={()=>this.generateSql()} type="primary" style={{ marginBottom: 16 }}>
-          生成SQL
         </Button>
         <Table
           rowKey={(row ,index) => index}
