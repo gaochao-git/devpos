@@ -15,7 +15,7 @@ import { Resizable } from "re-resizable";
 import MyAxios from "../common/interface"
 import {tableToExcel} from "../common/export_data"
 import { MyResizeTable } from "../common/resizeTable"
-import {MyTree,MyTree1,MyTree2} from "../common/myComponent"
+import {EditableTable} from "./tableBaseInfo"
 const {Option} = Select
 const {TabPane} = Tabs
 const { TextArea } = Input
@@ -70,6 +70,7 @@ export class BaseConsole extends Component {
       contextMenuStyle:"",// 右键菜单位置
       my_pos:{line:0,ch:0},
       tables_hint:{}, //表名补全
+      editTableModal:false,
     }
   }
 
@@ -844,10 +845,29 @@ export class BaseConsole extends Component {
              <Button type="dash" style={{margin:0,padding:0}} onClick={()=>this.setState({contextMenuVisiable:false})}><Icon type="close" /></Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"struct")}>查看表结构</Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"status")}>查看表信息</Button>
+             <Button type="link" onClick={()=>this.setState({edit_table:this.state.rightClickData.key,editTableModal:true,contextMenuVisiable:false})}>编辑表结构</Button>
            </div>
            :null
           }
         </Fragment>
+        <Modal
+          visible={this.state.editTableModal}
+          onOk={()=>console.log(22222)}
+          onCancel={()=>this.setState({editTableModal:false})}
+          width={1400}
+        >
+            <Tabs onChange={console.log(1111)} type="card" tabPosition="left">
+                <TabPane tab="基本信息" key="1">
+                  <EditableTable/>
+                </TabPane>
+                <TabPane tab="列信息" key="2">
+                  Content of Tab Pane 2
+                </TabPane>
+                <TabPane tab="索引信息" key="3">
+                  Content of Tab Pane 3
+                </TabPane>
+            </Tabs>
+        </Modal>
       </div>
     );
   }
