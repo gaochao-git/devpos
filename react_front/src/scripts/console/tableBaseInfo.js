@@ -1,4 +1,4 @@
-import { Table, Input, Button, Popconfirm, Form,Select,Checkbox,message,Tabs } from 'antd';
+import { Table, Input, Button, Popconfirm, Form,Select,Checkbox,message,Tabs,Icon,Modal } from 'antd';
 import React, { Component } from "react";
 import {SaveFile} from "../common/export_data"
 import MyAxios from "../common/interface"
@@ -101,6 +101,8 @@ class EditableCell extends React.Component {
   }
 }
 
+
+//主组件
 export class EditableTable extends React.Component {
   constructor(props) {
     super(props);
@@ -108,17 +110,16 @@ export class EditableTable extends React.Component {
       {
         title: '列名',
         dataIndex: 'name',
-        width: '20%',
+        width: '10%',
         editable: true,
       },
       {
         title: '类型',
         dataIndex: 'type',
-        width: '20%',
         render: (text, record, idx) => {
           return (
                   <Select
-                      style={{ width: 200 }}
+                      style={{ width: 130 }}
                       id="type"
                       onChange={(value)=>this.changeType(text,record,idx,value)}
                       value={text}
@@ -151,7 +152,7 @@ export class EditableTable extends React.Component {
       {
         title: '其他属性',
         dataIndex: 'extra_info',
-        width: '30%',
+        width: '20%',
         render: (text, record, idx) => (
           <Select
             mode="multiple"
@@ -181,15 +182,20 @@ export class EditableTable extends React.Component {
         dataIndex: 'operation',
         width: '20%',
         render: (text, record,idx) =>
-          this.state.dataSource.length >= 1 ? (
-            <div>
-              <Popconfirm title="Sure to delete?" onConfirm={() => this.handleDelete(record.key)}>
-                <a>Delete</a>
-              </Popconfirm>
-              <Button style={{marginLeft:5}} onClick={()=>this.upRow(idx)}>上移</Button>
-              <Button onClick={()=>this.downRow(idx)}>下移</Button>
-            </div>
-          ) : null,
+          <div>
+            <Popconfirm title="Sure to delete?" onConfirm={() => this.handleDelete(record.key)}>
+              <a>Delete</a>
+            </Popconfirm>
+            <Button style={{marginLeft:5}} onClick={()=>this.upRow(idx)}>
+              <Icon type="arrow-up" />
+            </Button>
+            <Button onClick={()=>this.downRow(idx)}>
+              <Icon type="arrow-down" />
+            </Button>
+            <Button onClick={()=>this.handleAddNextColumn(record, idx)}>
+              <Icon type="plus" />
+            </Button>
+          </div>
       },
     ];
 
@@ -204,7 +210,14 @@ export class EditableTable extends React.Component {
         title: '索引列',
         dataIndex: 'index_column',
         width: '20%',
-        render: (text, record, idx) => <Input value={record.index_column} onChange={(e)=>this.changeIndexColumn(text,record,idx,e.target.value)}/>
+        render: (text, record, idx) => (
+          <div>
+            <Input style={{width:'80%'}} value={record.index_column} onChange={(e)=>this.changeIndexColumn(text,record,idx,e.target.value)}/>
+            <Button onClick={()=>this.setState({idx_select_keys:[]},()=>this.editIndex(text, record, idx))}>
+              <Icon type="edit" />
+            </Button>
+          </div>
+        )
       },
       {
         title: '索引类型',
@@ -235,6 +248,52 @@ export class EditableTable extends React.Component {
               </Popconfirm>
             </div>
           ) : null,
+      },
+    ];
+
+    this.select_index_columns = [
+      {
+        title: '字段名',
+        dataIndex: 'column_name',
+        width: '20%',
+        render: (text, record, idx) => {
+          return (
+            <Select
+              style={{ width: 200 }}
+              id="type"
+              onChange={(value)=>this.changeIndexColumns(text,record,idx,value)}
+              value={text}
+              defaultValue="normal"
+            >
+                {this.state.column_name_list.map((name) => <Option key={name} value={name}>{name}</Option>)}
+            </Select>
+          )
+        }
+      },
+      {
+        title: '索引前缀长度',
+        dataIndex: 'length',
+        render: (text, record, idx) => <Input value={text} onChange={(e)=>this.changeIndexLength(text,record,idx,e.target.value)}/>
+      },
+      {
+        title: 'operation',
+        dataIndex: 'operation',
+        width: '50%',
+        render: (text, record,idx) =>
+          <div>
+            <Popconfirm title="Sure to delete?" onConfirm={() => this.handleDelete(record.key)}>
+              <a>Delete</a>
+            </Popconfirm>
+            <Button style={{marginLeft:5}} onClick={()=>this.upRow(idx)}>
+              <Icon type="arrow-up" />
+            </Button>
+            <Button onClick={()=>this.downRow(idx)}>
+              <Icon type="arrow-down" />
+            </Button>
+            <Button onClick={()=>this.handleAddNextColumn(record, idx)}>
+              <Icon type="plus" />
+            </Button>
+          </div>
       },
     ];
 
@@ -282,22 +341,30 @@ export class EditableTable extends React.Component {
           key: 1,
           index_name: 'idx_create_time',
           index_type: 'normal',
-          index_column: 'create_time'
+          index_column: 'create_time',
+          index_column_detail: [],
         },
         {
           key: 2,
           index_name: 'idx_update_time',
           index_type: 'normal',
-          index_column: 'update_time'
+          index_column: 'update_time',
+          index_column_detail: [],
         },
       ],
       count: 3,
-      index_count:2,
-      extra_info:[],
+      index_count: 2,
+      extra_info: [],
       table_name:"t_",
-      table_engine:"innodb",
-      table_charset:"utf8",
-      table_comment:""
+      table_engine: "innodb",
+      table_charset: "utf8",
+      table_comment: "",
+      columnIndexSource: [],
+      editIndexModal:false,
+      column_name_list:[],
+      selected_row_keys:[],
+      row_index_select_keys_map:{},
+      columnIndexSourceCount:0
     };
   }
 
@@ -357,7 +424,39 @@ export class EditableTable extends React.Component {
     }
   };
 
-  handleAddColumn = () => {
+  handleAddNextColumn = (record,position) => {
+
+    const { count, dataSource } = this.state;
+    const newData = {
+      key: record.key + 1,
+      name: 'col_',
+      type: '',
+      length: 0,
+      point:0,
+      not_null:true,
+      default_value:'',
+      comment:'',
+      primary_key:false,
+      extra_info:[]
+    };
+    var newDataSource = []
+    //更改每行key
+    dataSource.forEach(row=>{
+      newDataSource.push(row)
+      if (row.key===record.key){
+        newDataSource.push(newData)
+      }else if (row.key>record.key){
+        row.key = row.key+1
+      }
+    })
+    console.log(newDataSource)
+    this.setState({
+      dataSource: newDataSource,
+      count: count + 1,
+    });
+  };
+
+  handleAddTailColumn = () => {
     const { count, dataSource } = this.state;
     const newData = {
       key: dataSource.length + 1,
@@ -377,6 +476,18 @@ export class EditableTable extends React.Component {
     });
   };
 
+  handleAddTailIndexColumn = () => {
+    const { columnIndexSource, indexSource } = this.state;
+    const newData = {
+      key: indexSource[this.state.current_edit_index]['index_column_detail'].length + 1,
+      column_name: '',
+      length: 0,
+    };
+    this.setState({
+      index_detail: [...indexSource[this.state.current_edit_index]['index_column_detail'], newData],
+    });
+  };
+
   handleAddIndex = () => {
     const { indexCount, indexSource } = this.state;
     const newIndex = {
@@ -384,11 +495,17 @@ export class EditableTable extends React.Component {
       index_name: '',
       index_column: '',
       index_type: 'normal',
+      index_column_detail:[]
     };
     this.setState({
       indexSource: [...indexSource, newIndex],
       indexCount: indexCount + 1,
     });
+    var row_index_select_keys_map = {}
+    for (var m=0; m<this.state.indexSource.length;m++){
+        row_index_select_keys_map[m] = []
+    }
+    this.setState({row_index_select_keys_map: row_index_select_keys_map})
   };
 
   handleSave = row => {
@@ -488,6 +605,14 @@ export class EditableTable extends React.Component {
        this.setState({ dataSource: newData});
    }
 
+   changeIndexInfo =(text,record,idx,new_value) =>{
+       console.log(new_value)
+       const newData = [...this.state.indexSource];
+       let row = record;
+       row.index_column=new_value
+       this.setState({ indexSource: newData});
+   }
+
    handleExtraInfo =(record) =>{
        switch(record.type) {
            case 'datetime':
@@ -499,6 +624,50 @@ export class EditableTable extends React.Component {
            default:
               break
       }
+   }
+
+
+   editIndex =(text,record,idx,new_value) =>{
+       this.setState({editIndexModal:true, current_edit_index:idx,index_detail:this.state.indexSource[idx]['index_column_detail']})
+   }
+
+   //更改索引列公共方法
+   generateIndex =(newIndexSource) =>{
+       newIndexSource[this.state.current_edit_index]['index_column_detail'].sort((a,b)=>{ return a.key-b.key})
+       var index_columns = ""  //每次都重新生成
+       for (var i=0; i<newIndexSource[this.state.current_edit_index]['index_column_detail'].length;i++){
+           var column_name = newIndexSource[this.state.current_edit_index]['index_column_detail'][i]['column_name']
+           var index_prefix_length = newIndexSource[this.state.current_edit_index]['index_column_detail'][i]['length']
+           if (Number(index_prefix_length)>0){
+             index_columns = index_columns + column_name + '(' + index_prefix_length + ')' + ','
+           }else {
+             index_columns = index_columns + column_name  + ','
+           }
+       }
+       newIndexSource[this.state.current_edit_index]['index_column'] = index_columns
+       this.setState({indexSource:newIndexSource})
+   }
+
+
+   //索引列选择框触发
+   changeIndexColumns=(text,record,idx,new_value) =>{
+       const newIndexSource = [...this.state.indexSource];
+       if (!newIndexSource[this.state.current_edit_index]['index_column_detail'].includes(record)){
+         newIndexSource[this.state.current_edit_index]['index_column_detail'].push(record)
+       }
+       newIndexSource[this.state.current_edit_index]['index_column_detail'][idx]['column_name'] = new_value
+       this.generateIndex(newIndexSource)
+   }
+
+
+   //索引列选择框触发
+   changeIndexLength=(text,record,idx,new_value) =>{
+       const newIndexSource = [...this.state.indexSource];
+       if (!newIndexSource[this.state.current_edit_index]['index_column_detail'].includes(record)){
+         newIndexSource[this.state.current_edit_index]['index_column_detail'].push(record)
+       }
+       newIndexSource[this.state.current_edit_index]['index_column_detail'][idx]['length']=new_value
+       this.generateIndex(newIndexSource)
    }
 
 
@@ -517,8 +686,9 @@ export class EditableTable extends React.Component {
        var table_head = 'CREATE TABLE ' + this.state.table_name + '('
        var table_engine = ') ENGINE=' + this.state.table_engine
        var table_charset = ' DEFAULT CHARACTER SET=' + this.state.table_charset
-       var table_comment = this.state.table_comment.length !== 0 ? ' COMMENT ' + this.state.table_comment : ""
+       var table_comment = this.state.table_comment.length !== 0 ? ' COMMENT ' + "'" + this.state.table_comment + "'" : ""
        //生成列
+       var column_name_list = []
        this.state.dataSource.forEach(field_detail => {
            var column_info = ""
            var name = field_detail['name']
@@ -532,6 +702,7 @@ export class EditableTable extends React.Component {
            column_info = name + ' ' + format_column_type + ' ' + allow_null + ' ' + default_value + ' ' + comment
            table_columns = table_columns.length>0 ? table_columns + ',\n' + '  ' + column_info: '  ' + column_info
            var primary_key = field_detail['primary_key'] ? primary_keys.push(field_detail['name']): null
+           column_name_list.push(name)
        });
        //生成主键
        primary_keys = primary_keys.length > 0 ? '  primary key' + '(' + primary_keys.join(',') + ')' + ',\n': ""
@@ -549,7 +720,34 @@ export class EditableTable extends React.Component {
        })
 
        sql = table_head + '\n' + table_columns + ',\n' + primary_keys + table_index + '\n' + table_engine + table_charset + table_comment + ';'
-       this.setState({sql_preview:sql})
+       this.setState({sql_preview:sql,column_name_list:column_name_list})
+   }
+
+
+   initIndexInfo =() =>{
+       //如果columnIndexSource为空列表，则使用所有列信息、选中列、已有索引信息初始化columnIndexSource
+       //如果columnIndexSource为非空列表，则动态修改
+       var row_list = []
+       var column_name_list = []
+       for (var i=0; i<this.state.indexSource.length;i++){
+           var row = {}
+           row['key'] = i
+           row['column_name'] = this.state.indexSource[i]['column_name']
+           row['length'] = this.state.indexSource[i]['length']
+           row['index_column_detail'] = this.state.indexSource[i]['index_column_detail']
+           column_name_list.push(this.state.dataSource[i]['name'])
+           row_list.push(row)  //如果之前没有则构造信息并追加
+           var keys_map = {}
+           for (var j=0; j<this.state.columnIndexSource.length;j++){
+               var select_keys = []
+               if (i.name === j.column_name){
+                   select_keys.push(j)  //如果之前有则追加
+               }
+               keys_map[j] = select_keys
+           }
+       }
+       console.log(row_list,keys_map)
+       this.setState({columnIndexSource:row_list,row_index_select_keys_map:keys_map,column_name_list:column_name_list})
    }
 
    //生成SQL基础校验
@@ -587,6 +785,13 @@ export class EditableTable extends React.Component {
                   COLUMN_TYPE=type + '(' + length + ',' + point + ')'
               }
               break;
+           case 'char': case 'varchar':
+              if (length===0){
+                  message.error(type + "长度不允许为0")
+              }else {
+                  COLUMN_TYPE=type + '(' + length + ')'
+              }
+              break;
            default:
               COLUMN_TYPE = type
       }
@@ -596,6 +801,10 @@ export class EditableTable extends React.Component {
    callbackTabPane = (key) =>{
       if(key==="4"){
         this.generateSql()
+      }else if (key==="3"){
+//        this.initIndexInfo()
+        this.generateSql()
+        console.log(111)
       }
     }
 
@@ -667,14 +876,22 @@ export class EditableTable extends React.Component {
             </div>,
           </TabPane>
           <TabPane tab="列信息" key="2">
-            <Button onClick={this.handleAddColumn} type="primary" style={{ marginBottom: 16 }}>
+            <Button onClick={this.handleAddTailColumn} type="primary" style={{ marginBottom: 16 }}>
               Add a Field
             </Button>
             <Table
               rowKey={(row ,index) => index}
               size="small"
               components={components}
-              rowClassName={() => 'editable-row'}
+              rowClassName={(record, index) => {
+                    let className = 'row-detail-default ';
+                    if (record.name === 'col_') {
+                        className = 'row-detail-error';
+                        return className;
+                    }else {
+                        return className;
+                    }
+                }}
               bordered
               dataSource={dataSource}
               columns={columns}
@@ -708,6 +925,24 @@ export class EditableTable extends React.Component {
             />
           </TabPane>
         </Tabs>
+        <Modal
+          visible={this.state.editIndexModal}
+          onOk={()=>console.log(22222)}
+          onCancel={()=>this.setState({editIndexModal:false})}
+          width={800}
+        >
+            <Button onClick={this.handleAddTailIndexColumn} type="primary" style={{ marginBottom: 16 }}>
+              Add a Row
+            </Button>
+            <Table
+              rowKey={(row ,index) => index}
+              size="small"
+              components={components}
+              bordered
+              dataSource={this.state.index_detail}
+              columns={this.select_index_columns}
+            />
+        </Modal>
       </div>
     );
   }
