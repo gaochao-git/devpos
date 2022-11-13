@@ -281,18 +281,9 @@ export class EditableTable extends React.Component {
         width: '50%',
         render: (text, record,idx) =>
           <div>
-            <Popconfirm title="Sure to delete?" onConfirm={() => this.handleDelete(record.key)}>
+            <Popconfirm title="Sure to delete?" onConfirm={() => this.handleDeleteIndexColumn(text, record,idx)}>
               <a>Delete</a>
             </Popconfirm>
-            <Button style={{marginLeft:5}} onClick={()=>this.upRow(idx)}>
-              <Icon type="arrow-up" />
-            </Button>
-            <Button onClick={()=>this.downRow(idx)}>
-              <Icon type="arrow-down" />
-            </Button>
-            <Button onClick={()=>this.handleAddNextColumn(record, idx)}>
-              <Icon type="plus" />
-            </Button>
           </div>
       },
     ];
@@ -395,13 +386,11 @@ export class EditableTable extends React.Component {
 
   };
 
+  //删除索引
   handleDeleteIndex = key => {
     const indexSource = [...this.state.indexSource];
     this.setState({ indexSource: indexSource.filter(item => item.key !== key)});
-
   };
-
-
 
   upRow = position => {
     var index1 = position
@@ -477,15 +466,21 @@ export class EditableTable extends React.Component {
   };
 
   handleAddTailIndexColumn = () => {
-    const { columnIndexSource, indexSource } = this.state;
+    const indexSource = [...this.state.indexSource];
     const newData = {
       key: indexSource[this.state.current_edit_index]['index_column_detail'].length + 1,
       column_name: '',
       length: 0,
     };
+
+    var index_detail = [...indexSource[this.state.current_edit_index]['index_column_detail'], newData]
+    var newIndexSource = indexSource
+    newIndexSource[this.state.current_edit_index]['index_column_detail'] = index_detail
     this.setState({
-      index_detail: [...indexSource[this.state.current_edit_index]['index_column_detail'], newData],
+      index_detail: index_detail,
+      indexSource: newIndexSource
     });
+    console.log(newIndexSource)
   };
 
   handleAddIndex = () => {
@@ -644,8 +639,17 @@ export class EditableTable extends React.Component {
              index_columns = index_columns + column_name  + ','
            }
        }
+       index_columns = index_columns.slice(0,index_columns.length-1);   //去掉多余逗号
        newIndexSource[this.state.current_edit_index]['index_column'] = index_columns
        this.setState({indexSource:newIndexSource})
+   }
+
+   //删除索引列触发
+   handleDeleteIndexColumn = (text,record,idx,new_value) => {
+     const newIndexSource = [...this.state.indexSource];
+     console.log(newIndexSource)
+     newIndexSource[this.state.current_edit_index]['index_column_detail'].splice(idx,1)
+     this.generateIndex(newIndexSource)
    }
 
 
