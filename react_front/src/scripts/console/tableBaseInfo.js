@@ -365,18 +365,20 @@ export class EditableTable extends React.Component {
       ).catch(err=>message.error(err.message))
   }
 
+  //设计列: 删除列
   handleDelete = key => {
     const dataSource = [...this.state.dataSource];
     this.setState({ dataSource: dataSource.filter(item => item.key !== key)});
 
   };
 
-  //删除索引
+  //设计索引: 删除索引
   handleDeleteIndex = key => {
     const indexSource = [...this.state.indexSource];
     this.setState({ indexSource: indexSource.filter(item => item.key !== key)});
   };
 
+  //设计列:向上移动
   upRow = position => {
     var index1 = position
     var index2 = position - 1
@@ -387,7 +389,7 @@ export class EditableTable extends React.Component {
     }
   };
 
-
+  //设计列:向下移动
   downRow = position => {
     var index1 = position
     var index2 = position + 1
@@ -398,8 +400,8 @@ export class EditableTable extends React.Component {
     }
   };
 
+  //设计列:在中间插入列
   handleAddNextColumn = (record,position) => {
-
     const { count, dataSource } = this.state;
     const newData = {
       key: record.key + 1,
@@ -423,13 +425,13 @@ export class EditableTable extends React.Component {
         row.key = row.key+1
       }
     })
-    console.log(newDataSource)
     this.setState({
       dataSource: newDataSource,
       count: count + 1,
     });
   };
 
+  //设计列:末尾增加列
   handleAddTailColumn = () => {
     const { count, dataSource } = this.state;
     const newData = {
@@ -450,6 +452,7 @@ export class EditableTable extends React.Component {
     });
   };
 
+  //设计索引: 增加索引列
   handleAddTailIndexColumn = () => {
     const indexSource = [...this.state.indexSource];
     const newData = {
@@ -465,9 +468,9 @@ export class EditableTable extends React.Component {
       index_detail: index_detail,
       indexSource: newIndexSource
     });
-    console.log(newIndexSource)
   };
 
+  //设计索引: 增加索引
   handleAddIndex = () => {
     const { indexCount, indexSource } = this.state;
     const newIndex = {
@@ -499,50 +502,53 @@ export class EditableTable extends React.Component {
     this.setState({ dataSource: newData});
   };
 
-  handleSaveIndex = row => {
-    const newData = [...this.state.indexSource];
-    const index = newData.findIndex(item => row.key === item.key);
-    const item = newData[index];
-    newData.splice(index, 1, {
-      ...item,
-      ...row,
-    });
-    this.setState({ indexSource: newData});
-  };
+//  handleSaveIndex = row => {
+//    const newData = [...this.state.indexSource];
+//    const index = newData.findIndex(item => row.key === item.key);
+//    const item = newData[index];
+//    newData.splice(index, 1, {
+//      ...item,
+//      ...row,
+//    });
+//    this.setState({ indexSource: newData});
+//  };
 
-
+   //设计字段: 更改字段类型
    changeType =(text,record,idx,new_value) =>{
        const newData = [...this.state.dataSource];
        let row = record;
        row.type=new_value;
        this.setState({ dataSource: newData});
    }
+   //设计字段: 更改字段null
    changeNull =(text,record,idx,new_value) =>{
        const newData = [...this.state.dataSource];
        let row = record;
        row.not_null=new_value;
        this.setState({ dataSource: newData});
    }
+   //设计字段: 更改主键
    changePrimaryKey =(text,record,idx,new_value) =>{
        const newData = [...this.state.dataSource];
        let row = record;
        row.primary_key=new_value
        this.setState({ dataSource: newData});
    }
+   //设计字段: 更改列名注释
    changeComment =(text,record,idx,new_value) =>{
        const newData = [...this.state.dataSource];
        let row = record;
        row.comment=new_value
        this.setState({ dataSource: newData});
    }
-
+   //设计字段: 更改类型长度
    changeLength =(text,record,idx,new_value) =>{
        const newData = [...this.state.dataSource];
        let row = record;
        row.length=new_value
        this.setState({ dataSource: newData});
    }
-
+   //设计字段: 更改类型小数点长度
    changePoint =(text,record,idx,new_value) =>{
        const newData = [...this.state.dataSource];
        let row = record;
@@ -550,13 +556,14 @@ export class EditableTable extends React.Component {
        this.setState({ dataSource: newData});
    }
 
+   //设计字段: 更改默认值类型
    changeDefault =(text,record,idx,new_value) =>{
        const newData = [...this.state.dataSource];
        let row = record;
        row.default_value=new_value
        this.setState({ dataSource: newData});
    }
-
+   //设计索引: 更改索引名
    changeIndexName =(text,record,idx,new_value) =>{
        const newData = [...this.state.indexSource];
        let row = record;
@@ -564,13 +571,14 @@ export class EditableTable extends React.Component {
        this.setState({ indexSource: newData});
    }
 
+   //设计索引: 更改索引类型(normal|unique)
    changeIndexType =(text,record,idx,new_value) =>{
        const newData = [...this.state.indexSource];
        let row = record;
        row.index_type=new_value;
        this.setState({ indexSource: newData});
    }
-
+   //设计列: 列一些为属性(自增|无符号|自动更新...)
    changeExtraInfo =(text,record,idx,new_value) =>{
        const newData = [...this.state.dataSource];
        let row = record;
@@ -578,14 +586,15 @@ export class EditableTable extends React.Component {
        this.setState({ dataSource: newData});
    }
 
-   changeIndexInfo =(text,record,idx,new_value) =>{
-       console.log(new_value)
-       const newData = [...this.state.indexSource];
-       let row = record;
-       row.index_column=new_value
-       this.setState({ indexSource: newData});
-   }
 
+//   changeIndexInfo =(text,record,idx,new_value) =>{
+//       const newData = [...this.state.indexSource];
+//       let row = record;
+//       row.index_column=new_value
+//       this.setState({ indexSource: newData});
+//   }
+
+   //设计列: 根据字段类型生成可选属性
    handleExtraInfo =(record) =>{
        switch(record.type) {
            case 'datetime':
@@ -600,11 +609,12 @@ export class EditableTable extends React.Component {
    }
 
 
+   //设计索引: 更新当前正在修改的是哪一个索引
    editIndex =(text,record,idx,new_value) =>{
        this.setState({editIndexModal:true, current_edit_index:idx,index_detail:this.state.indexSource[idx]['index_column_detail']})
    }
 
-   //更改索引列公共方法
+   //设计索引: 更改索引列公共方法
    generateIndex =(newIndexSource) =>{
        newIndexSource[this.state.current_edit_index]['index_column_detail'].sort((a,b)=>{ return a.key-b.key})
        var index_columns = ""  //每次都重新生成
@@ -622,16 +632,15 @@ export class EditableTable extends React.Component {
        this.setState({indexSource:newIndexSource})
    }
 
-   //删除索引列触发
+   //设计索引: 删除索引列
    handleDeleteIndexColumn = (text,record,idx,new_value) => {
      const newIndexSource = [...this.state.indexSource];
-     console.log(newIndexSource)
      newIndexSource[this.state.current_edit_index]['index_column_detail'].splice(idx,1)
      this.generateIndex(newIndexSource)
    }
 
 
-   //索引列选择框触发
+   //设计索引: 索引列选择框触发
    changeIndexColumns=(text,record,idx,new_value) =>{
        const newIndexSource = [...this.state.indexSource];
        if (!newIndexSource[this.state.current_edit_index]['index_column_detail'].includes(record)){
@@ -642,7 +651,7 @@ export class EditableTable extends React.Component {
    }
 
 
-   //索引列选择框触发
+   //设计索引: 索引前缀长度触发
    changeIndexLength=(text,record,idx,new_value) =>{
        const newIndexSource = [...this.state.indexSource];
        if (!newIndexSource[this.state.current_edit_index]['index_column_detail'].includes(record)){
@@ -655,7 +664,7 @@ export class EditableTable extends React.Component {
 
 
 
-
+   //生成建表SQL
    generateSql =() =>{
        if (!this.checkBaseTableInfo()){
            this.setState({sql_preview:""})
@@ -716,33 +725,32 @@ export class EditableTable extends React.Component {
    }
 
 
-   initIndexInfo =() =>{
-       //如果columnIndexSource为空列表，则使用所有列信息、选中列、已有索引信息初始化columnIndexSource
-       //如果columnIndexSource为非空列表，则动态修改
-       var row_list = []
-       var column_name_list = []
-       for (var i=0; i<this.state.indexSource.length;i++){
-           var row = {}
-           row['key'] = i
-           row['column_name'] = this.state.indexSource[i]['column_name']
-           row['length'] = this.state.indexSource[i]['length']
-           row['index_column_detail'] = this.state.indexSource[i]['index_column_detail']
-           column_name_list.push(this.state.dataSource[i]['name'])
-           row_list.push(row)  //如果之前没有则构造信息并追加
-           var keys_map = {}
-           for (var j=0; j<this.state.columnIndexSource.length;j++){
-               var select_keys = []
-               if (i.name === j.column_name){
-                   select_keys.push(j)  //如果之前有则追加
-               }
-               keys_map[j] = select_keys
-           }
-       }
-       console.log(row_list,keys_map)
-       this.setState({columnIndexSource:row_list,row_index_select_keys_map:keys_map,column_name_list:column_name_list})
-   }
+//   initIndexInfo =() =>{
+//       //如果columnIndexSource为空列表，则使用所有列信息、选中列、已有索引信息初始化columnIndexSource
+//       //如果columnIndexSource为非空列表，则动态修改
+//       var row_list = []
+//       var column_name_list = []
+//       for (var i=0; i<this.state.indexSource.length;i++){
+//           var row = {}
+//           row['key'] = i
+//           row['column_name'] = this.state.indexSource[i]['column_name']
+//           row['length'] = this.state.indexSource[i]['length']
+//           row['index_column_detail'] = this.state.indexSource[i]['index_column_detail']
+//           column_name_list.push(this.state.dataSource[i]['name'])
+//           row_list.push(row)  //如果之前没有则构造信息并追加
+//           var keys_map = {}
+//           for (var j=0; j<this.state.columnIndexSource.length;j++){
+//               var select_keys = []
+//               if (i.name === j.column_name){
+//                   select_keys.push(j)  //如果之前有则追加
+//               }
+//               keys_map[j] = select_keys
+//           }
+//       }
+//       this.setState({columnIndexSource:row_list,row_index_select_keys_map:keys_map,column_name_list:column_name_list})
+//   }
 
-   //生成SQL基础校验
+   //生成SQL做一些基础校验
    checkBaseTableInfo = () =>{
        if (this.state.table_name.length===0){
            message.error("请输入表名")
@@ -755,9 +763,8 @@ export class EditableTable extends React.Component {
        return true
    }
    
-   //格式化字段类型
+   //格式化字段
    formatColumnType = (type,length,point,allow_null,default_value,extra_info) =>{
-       console.log(type,length,point,allow_null,default_value,extra_info)
        var COLUMN_TYPE = ""
        var format_extra_info = ""
        switch(type) {
@@ -822,9 +829,7 @@ export class EditableTable extends React.Component {
       if(key==="4"){
         this.generateSql()
       }else if (key==="3"){
-//        this.initIndexInfo()
         this.generateSql()
-        console.log(111)
       }
     }
 
@@ -974,9 +979,7 @@ export class EditableTable extends React.Component {
           onCancel={()=>this.setState({editIndexModal:false})}
           width={800}
         >
-            <Button onClick={this.handleAddTailIndexColumn} type="primary" style={{ marginBottom: 4 }}>
-              Add a Row
-            </Button>
+            <Button onClick={this.handleAddTailIndexColumn} type="primary" style={{ marginBottom: 4 }}> Add a Row </Button>
             <Table
               rowKey={(row ,index) => index}
               size="small"
