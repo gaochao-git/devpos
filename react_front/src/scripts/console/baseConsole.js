@@ -858,12 +858,12 @@ export class BaseConsole extends Component {
         </Fragment>
         <Modal
           visible={this.state.editTableModal}
+          okText='保存信息'
           onOk={()=>console.log(22222)}
           onCancel={()=>this.setState({editTableModal:false})}
           width='90%'
         >
             <EditableTable generateSql={this.getChildSqlPreview}/>
-
         </Modal>
       </div>
     );

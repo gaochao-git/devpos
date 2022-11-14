@@ -975,7 +975,7 @@ export class EditableTable extends React.Component {
         </Tabs>
         <Modal
           visible={this.state.editIndexModal}
-          onOk={()=>console.log(22222)}
+          footer={false}
           onCancel={()=>this.setState({editIndexModal:false})}
           width={800}
         >
