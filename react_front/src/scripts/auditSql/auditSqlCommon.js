@@ -57,10 +57,10 @@ export class AditSqlTable extends React.Component {
                 dataSource={this.props.data}
                 size="small"
                 pagination={{
-                               pageSizeOptions:[10,20,30,40,50,60,70,80,90,100,300,500],
-                               showSizeChanger:true,
-                               showTotal:(count=this.props.data.length)=>{return '共'+count+'条'}
-                           }}
+                    pageSizeOptions:['10','20','30','40','50','60','70','80','90','100','300','500'],
+                    showSizeChanger:true,
+                    showTotal:(count=this.props.data.length)=>{return '共'+count+'条'}
+                }}
                 scroll={this.props.scroll}
                 size="small"
                 rowClassName={(record, index) => {

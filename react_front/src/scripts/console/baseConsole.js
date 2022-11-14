@@ -860,7 +860,7 @@ export class BaseConsole extends Component {
           visible={this.state.editTableModal}
           onOk={()=>console.log(22222)}
           onCancel={()=>this.setState({editTableModal:false})}
-          width={1400}
+          width='90%'
         >
             <EditableTable generateSql={this.getChildSqlPreview}/>
 
