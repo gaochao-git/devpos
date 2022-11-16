@@ -340,7 +340,9 @@ export class EditableTable extends React.Component {
       column_name_list:[],
       selected_row_keys:[],
       row_index_select_keys_map:{},
-      columnIndexSourceCount:0
+      columnIndexSourceCount:0,
+      history_design_data:[],
+      sql_preview:""
     };
   }
 
@@ -364,6 +366,41 @@ export class EditableTable extends React.Component {
           }
       ).catch(err=>message.error(err.message))
   }
+
+  //获取集群实例信息
+  async handleSnapshot() {
+      let params = {
+        table_name: this.state.table_name,
+        data_source: this.state.dataSource,
+        index_source: this.state.indexSource,
+        table_engine: this.state.table_engine,
+        table_charset: this.state.table_charset,
+        table_comment: this.state.table_comment,
+      };
+      await MyAxios.post('/web_console/v1/save_design_table_snap_shot/',params).then(
+          res=>{
+              if( res.data.status === 'ok'){
+                  message.success(res.data.message)
+              } else{
+                  message.error(res.data.message)
+              }
+          }
+      ).catch(err=>message.error(err.message))
+  }
+
+  //获取集群实例信息
+  async handleGetSnapshot() {
+      await MyAxios.post('/web_console/v1/get_design_table_snap_shot/').then(
+          res=>{
+              if( res.data.status === 'ok'){
+                  this.setState({history_design_data:res.data.data})
+              } else{
+                  message.error(res.data.message)
+              }
+          }
+      ).catch(err=>message.error(err.message))
+  }
+
 
   //设计列: 删除列
   handleDelete = key => {
@@ -826,12 +863,30 @@ export class EditableTable extends React.Component {
    }
 
    callbackTabPane = (key) =>{
-      if(key==="4"){
-        this.generateSql()
-      }else if (key==="3"){
-        this.generateSql()
+      switch(key) {
+         case '3': case '4':
+            this.generateSql()
+            break;
+         case '5':
+            this.handleGetSnapshot()
+            break;
+         default:
+            break
       }
-    }
+   }
+
+   //选中保存快照信息
+   editTable = (record,idx) =>{
+     message.success("已选中")
+     this.setState({
+       table_name: record['table_name'],
+       dataSource: JSON.parse(record['data_source']),
+       indexSource: JSON.parse(record['index_source']),
+       table_engine: record['table_engine'],
+       table_charset: record['table_charset'],
+       table_comment: record['table_comment'],
+     })
+   }
 
 
 
@@ -875,6 +930,72 @@ export class EditableTable extends React.Component {
       };
     });
 
+    const history_design_columns = [
+      {
+        title: '表名',
+        dataIndex: 'table_name',
+      },
+      {
+        title: '表注释',
+        dataIndex: 'table_comment',
+      },
+      {
+        title: '表字符集',
+        dataIndex:"table_charset",
+      },
+      {
+        title: '表引擎',
+        dataIndex:"table_engine",
+      },
+      {
+        title: '列信息',
+        dataIndex:"data_source",
+        render:(text, row) => {
+          return (
+            text.length>50 ?
+            <Tooltip
+              placement="topLeft"
+              overlayStyle={{ maxWidth: 500 }}
+              title={text}><span>{text.slice(0,50)}...</span>
+            </Tooltip>
+            :<span>{text}</span>
+          )
+        }
+      },
+      {
+        title: '索引信息',
+        dataIndex:"index_source",
+        render:(text, row) => {
+          return (
+            text.length>50 ?
+            <Tooltip
+              placement="topLeft"
+              overlayStyle={{ maxWidth: 500 }}
+              title={text}><span>{text.slice(0,50)}...</span>
+            </Tooltip>
+            :<span>{text}</span>
+          )
+        }
+      },
+      {
+        title: '创建时间',
+        dataIndex:"create_time",
+      },
+      {
+        title: '更新时间',
+        dataIndex:"update_time",
+      },
+      {
+        title: 'operation',
+        dataIndex: 'operation',
+        render: (text, record,idx) =>
+          <div>
+            <Button onClick={()=>this.editTable(record,idx)}>选中</Button>
+            <Button type="danger" style={{marginLeft:5}} onClick={()=>console.log(idx)}>删除</Button>
+          </div>
+      },
+    ];
+
     return (
       <div>
         <Tabs onChange={this.callbackTabPane} type="card" tabPosition="top">
@@ -884,7 +1005,7 @@ export class EditableTable extends React.Component {
                 *表名称<Input defaultValue={this.state.table_name} placeholder="表名前缀采用't_'" onChange={(e)=>this.setState({table_name: e.target.value})}/>
               </div>
               <div style={{ marginBottom: 4 }}>
-                *表注释<Input onChange={(e)=>this.setState({table_comment: e.target.value})}/>
+                *表注释<Input value={this.state.table_comment} onChange={(e)=>this.setState({table_comment: e.target.value})}/>
               </div>
               <div style={{ marginBottom: 4 }}>
                 *表字符集
@@ -967,9 +1088,21 @@ export class EditableTable extends React.Component {
             <Button onClick={()=>this.checkGenerateSql()} type="primary" style={{ marginTop: 5,marginLeft:10 }}>
               校验SQL
             </Button>
+            <Button onClick={()=>this.handleSnapshot()} type="primary" style={{ marginTop: 5,marginLeft:10  }}>
+              保存当前建表信息
+            </Button>
             <AditSqlTable
                 data={this.state.check_sql_result}
                 pagination={false}
+            />
+          </TabPane>
+          <TabPane tab="我的收藏" key="5">
+            <Table
+              rowKey={(row ,index) => index}
+              size="small"
+              bordered
+              dataSource={this.state.history_design_data}
+              columns={history_design_columns}
             />
           </TabPane>
         </Tabs>

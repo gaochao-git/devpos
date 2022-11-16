@@ -17,5 +17,9 @@ urlpatterns = [
     # 表结构对比
     path('v1/meta_table_compare/', meta_compare_controller.CompareTableController.as_view(),kwargs={"access": RouterAccess.dba}),  # 批量对比
     path('v1/get_source_target_table_meta/', meta_compare_controller.GetSourceTargetTableMetaController.as_view(),kwargs={"access": RouterAccess.dba}),  # 获取源与目标表结构
+
+    # 设计表
     path('v1/check_generate_sql/', web_console_controller.CheckGenerateSqlController.as_view(),kwargs={"access": RouterAccess.all}),
+    path('v1/save_design_table_snap_shot/', web_console_controller.SaveDesignTableSnapShotController.as_view(),kwargs={"access": RouterAccess.all}),  # 保存设计表信息
+    path('v1/get_design_table_snap_shot/', web_console_controller.GetDesignTableSnapShotController.as_view(),kwargs={"access": RouterAccess.all}),  # 获取用户自身设计保存信息
 ]

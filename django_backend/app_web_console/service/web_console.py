@@ -4,6 +4,7 @@
 # @Author  : 高超
 
 import logging
+import pymysql
 from app_web_console.dao import web_console_dao
 from utils.go_inception_ import MyGoInception
 
@@ -77,5 +78,19 @@ def check_generate_sql(generate_sql):
     generate_sql = 'use mysql;' + '\n' + generate_sql
     inception_engine = MyGoInception(ip, port, generate_sql)
     parse_ret = inception_engine.check_sql_go_to_c()
-    print(parse_ret)
     return parse_ret
+
+
+def save_design_table_snap_shot(generate_sql, data_source, index_source, table_engine, table_charset, table_comment):
+    """
+    将设计表信息暂存
+    :param generate_sql: 
+    :param data_source: 
+    :param index_source: 
+    :param table_engine: 
+    :param table_charset: 
+    :param table_comment: 
+    :return: 
+    """
+    ret = web_console_dao.save_design_table_snap_shot_dao(generate_sql, data_source, index_source, table_engine, table_charset, table_comment)
+    return ret

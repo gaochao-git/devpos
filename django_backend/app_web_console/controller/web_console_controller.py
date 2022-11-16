@@ -9,7 +9,7 @@ import logging
 from app_web_console.service import web_console
 from  app_web_console.dao import web_console_dao
 from apps.utils.base_view import BaseView
-from validator import Required, In, validate,Length
+from validator import Required, In, validate,Length, InstanceOf
 from apps.utils.my_validator import validate_ip_port, my_form_validate
 from apps.utils import common
 from django import forms
@@ -184,4 +184,49 @@ class CheckGenerateSqlController(BaseView):
         if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
         generate_sql = request_body.get('generate_sql')
         ret = web_console.check_generate_sql(generate_sql)
+        return self.my_response(ret)
+
+
+class SaveDesignTableSnapShotController(BaseView):
+    def post(self, request):
+        """
+        保留设计表信息
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        print(request_body)
+        rules = {
+            "table_name": [Required, Length(2, 10000)],
+            'data_source': [Required, InstanceOf(list)],
+            'index_source': [Required, InstanceOf(list)],
+            'table_engine': [Required, Length(2, 10000)],
+            'table_charset': [Required, Length(2, 10000)],
+            'table_comment': [Required, Length(2, 10000)],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        table_name = request_body.get('table_name')
+        data_source = request_body.get('data_source')
+        index_source = request_body.get('index_source')
+        table_engine = request_body.get('table_engine')
+        table_charset = request_body.get('table_charset')
+        table_comment = request_body.get('table_comment')
+        use_name = self.request_user_info.get('username')
+        # 这两个数据需要特殊格式处理
+        data_source = json.dumps(data_source, ensure_ascii=False)
+        index_source = json.dumps(index_source, ensure_ascii=False)
+        ret = web_console_dao.save_design_table_snap_shot_dao(table_name, data_source, index_source, table_engine, table_charset, table_comment, use_name)
+        return self.my_response(ret)
+
+
+class GetDesignTableSnapShotController(BaseView):
+    def post(self, request):
+        """
+        获取用户自身设计表信息
+        :param request:
+        :return:
+        """
+        user_name = self.request_user_info.get('username')
+        ret = web_console_dao.get_design_table_snap_shot_dao(user_name)
         return self.my_response(ret)

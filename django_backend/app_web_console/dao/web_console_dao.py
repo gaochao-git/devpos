@@ -4,7 +4,7 @@
 # @Author  : 高超
 
 from apps.utils import db_helper
-import re
+import pymysql
 import json
 import logging
 import sqlparse
@@ -282,3 +282,35 @@ def del_favorite_dao(config_user_name, favorite_name):
             delete from web_console_favorite where user_name='{}' and favorite_name='{}'
         """.format(config_user_name, favorite_name)
     return db_helper.dml(sql)
+
+
+def save_design_table_snap_shot_dao(table_name, data_source, index_source, table_engine, table_charset, table_comment, user_name):
+    """
+    暂存表设计信息
+    :param table_name:
+    :param data_source:
+    :param index_source:
+    :param table_engine:
+    :param table_charset:
+    :param table_comment:
+    :param use_name:
+    :return:
+    """
+    sql = f"""
+        insert into web_console_design_table_info(user_name, table_name,data_source,index_source, table_engine, table_charset, table_comment)
+        values('{user_name}','{table_name}','{data_source}','{index_source}','{table_engine}','{table_charset}','{table_comment}')
+    """
+    return db_helper.dml(sql)
+
+
+def get_design_table_snap_shot_dao(use_name):
+    """
+    获取自身已保存的设计表信息
+    :param use_name:
+    :return:
+    """
+    sql = f"""
+        select table_name, data_source,index_source, table_engine, table_charset, table_comment,create_time,update_time
+        from web_console_design_table_info where user_name='{use_name}' order by create_time desc
+    """
+    return db_helper.find_all(sql)
