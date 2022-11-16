@@ -539,16 +539,6 @@ export class EditableTable extends React.Component {
     this.setState({ dataSource: newData});
   };
 
-//  handleSaveIndex = row => {
-//    const newData = [...this.state.indexSource];
-//    const index = newData.findIndex(item => row.key === item.key);
-//    const item = newData[index];
-//    newData.splice(index, 1, {
-//      ...item,
-//      ...row,
-//    });
-//    this.setState({ indexSource: newData});
-//  };
 
    //设计字段: 更改字段类型
    changeType =(text,record,idx,new_value) =>{
@@ -623,13 +613,6 @@ export class EditableTable extends React.Component {
        this.setState({ dataSource: newData});
    }
 
-
-//   changeIndexInfo =(text,record,idx,new_value) =>{
-//       const newData = [...this.state.indexSource];
-//       let row = record;
-//       row.index_column=new_value
-//       this.setState({ indexSource: newData});
-//   }
 
    //设计列: 根据字段类型生成可选属性
    handleExtraInfo =(record) =>{
@@ -761,31 +744,6 @@ export class EditableTable extends React.Component {
        this.setState({sql_preview:sql,column_name_list:column_name_list})
    }
 
-
-//   initIndexInfo =() =>{
-//       //如果columnIndexSource为空列表，则使用所有列信息、选中列、已有索引信息初始化columnIndexSource
-//       //如果columnIndexSource为非空列表，则动态修改
-//       var row_list = []
-//       var column_name_list = []
-//       for (var i=0; i<this.state.indexSource.length;i++){
-//           var row = {}
-//           row['key'] = i
-//           row['column_name'] = this.state.indexSource[i]['column_name']
-//           row['length'] = this.state.indexSource[i]['length']
-//           row['index_column_detail'] = this.state.indexSource[i]['index_column_detail']
-//           column_name_list.push(this.state.dataSource[i]['name'])
-//           row_list.push(row)  //如果之前没有则构造信息并追加
-//           var keys_map = {}
-//           for (var j=0; j<this.state.columnIndexSource.length;j++){
-//               var select_keys = []
-//               if (i.name === j.column_name){
-//                   select_keys.push(j)  //如果之前有则追加
-//               }
-//               keys_map[j] = select_keys
-//           }
-//       }
-//       this.setState({columnIndexSource:row_list,row_index_select_keys_map:keys_map,column_name_list:column_name_list})
-//   }
 
    //生成SQL做一些基础校验
    checkBaseTableInfo = () =>{
