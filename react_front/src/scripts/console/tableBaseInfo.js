@@ -123,6 +123,10 @@ export class EditableTable extends React.Component {
                       id="type"
                       onChange={(value)=>this.changeType(text,record,idx,value)}
                       value={text}
+                      showSearch
+                      filterOption={(input,option)=>
+                          option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                      }
                   >
                       {DATA_TYPE_LIST.map((type) => <Option key={type} value={type}>{type}</Option>)}
                   </Select>
@@ -350,7 +354,7 @@ export class EditableTable extends React.Component {
     //pass
   }
 
-  //获取集群实例信息
+  //校验SQL语法
   async checkGenerateSql() {
       let params = {
         generate_sql:this.state.sql_preview,
@@ -367,7 +371,7 @@ export class EditableTable extends React.Component {
       ).catch(err=>message.error(err.message))
   }
 
-  //获取集群实例信息
+  //保存设计表信息快照
   async handleSnapshot() {
       let params = {
         table_name: this.state.table_name,
@@ -388,7 +392,7 @@ export class EditableTable extends React.Component {
       ).catch(err=>message.error(err.message))
   }
 
-  //获取集群实例信息
+  //获取历史快照信息
   async handleGetSnapshot() {
       await MyAxios.post('/web_console/v1/get_design_table_snap_shot/').then(
           res=>{
@@ -583,7 +587,7 @@ export class EditableTable extends React.Component {
        this.setState({ dataSource: newData});
    }
 
-   //设计字段: 更改默认值类型
+   //设计字段: 更改默认值
    changeDefault =(text,record,idx,new_value) =>{
        const newData = [...this.state.dataSource];
        let row = record;
@@ -605,7 +609,7 @@ export class EditableTable extends React.Component {
        row.index_type=new_value;
        this.setState({ indexSource: newData});
    }
-   //设计列: 列一些为属性(自增|无符号|自动更新...)
+   //设计列: 列额外属性(自增|无符号|自动更新...)
    changeExtraInfo =(text,record,idx,new_value) =>{
        const newData = [...this.state.dataSource];
        let row = record;
@@ -734,7 +738,7 @@ export class EditableTable extends React.Component {
        //生成主键
        if (primary_keys.length===0){
            message.error("表必须有主键")
-           this.setState({sql_preview:sql})
+           this.setState({sql_preview:""})
            return
        }
        primary_keys = '  PRIMARY KEY' + '(' + primary_keys.join(',') + ')'
@@ -763,7 +767,7 @@ export class EditableTable extends React.Component {
        var COLUMN_TYPE = ""
        var format_extra_info = ""
        switch(type) {
-           case 'tinyint': case 'smallint': case'bigint':
+           case 'tinyint': case 'smallint': case'int': case'bigint':
               if (length===0){
                   COLUMN_TYPE = type
               }else {
@@ -960,7 +964,7 @@ export class EditableTable extends React.Component {
           <TabPane tab="基本信息" key="1">
             <div style={{width:'50%',marginLeft:'25%'}}>
               <div style={{ marginBottom: 4 }}>
-                *表名称<Input defaultValue={this.state.table_name} placeholder="表名前缀采用't_'" onChange={(e)=>this.setState({table_name: e.target.value})}/>
+                *表名称<Input value={this.state.table_name} placeholder="表名前缀采用't_'" onChange={(e)=>this.setState({table_name: e.target.value})}/>
               </div>
               <div style={{ marginBottom: 4 }}>
                 *表注释<Input value={this.state.table_comment} onChange={(e)=>this.setState({table_comment: e.target.value})}/>

@@ -845,10 +845,10 @@ export class BaseConsole extends Component {
           {
           this.state.contextMenuVisiable ?
            <div
-             style={{ ...this.state.contextMenuStyle, position: 'fixed',width:130,height:200,background:'#f1f2f5',zIndex:9999,borderRadius:5}}
+             style={{ ...this.state.contextMenuStyle, position: 'fixed',width:120,height:200,background:'#f1f2f5',zIndex:9999,borderRadius:5,padding:1}}
            >
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"data")}>查看表数据</Button>
-             <Button type="dash" style={{margin:0,padding:0}} onClick={()=>this.setState({contextMenuVisiable:false})}><Icon type="close" /></Button>
+             <Icon style={{background:'#f1f2f5'}} type="close" onClick={()=>this.setState({contextMenuVisiable:false})} />
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"struct")}>查看表结构</Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"status")}>查看表信息</Button>
              <Button type="link" onClick={()=>this.setState({editTableModal:true,contextMenuVisiable:false})}>新建表</Button>

@@ -212,11 +212,11 @@ class SaveDesignTableSnapShotController(BaseView):
         table_engine = request_body.get('table_engine')
         table_charset = request_body.get('table_charset')
         table_comment = request_body.get('table_comment')
-        use_name = self.request_user_info.get('username')
+        user_name = self.request_user_info.get('username')
         # 这两个数据需要特殊格式处理
         data_source = json.dumps(data_source, ensure_ascii=False)
         index_source = json.dumps(index_source, ensure_ascii=False)
-        ret = web_console_dao.save_design_table_snap_shot_dao(table_name, data_source, index_source, table_engine, table_charset, table_comment, use_name)
+        ret = web_console_dao.save_design_table_snap_shot_dao(table_name, data_source, index_source, table_engine, table_charset, table_comment, user_name)
         return self.my_response(ret)
 
 
