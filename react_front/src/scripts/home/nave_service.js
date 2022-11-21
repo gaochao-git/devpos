@@ -53,6 +53,9 @@ class NavService extends Component {
                     <Menu.Item key="metaCompare">
                         <Link to="/service/console/metaCompare">MySQL表结构对比</Link>
                     </Menu.Item>
+                    <Menu.Item key="tableDesign">
+                        <Link to="/service/console/tableDesign">MySQL表结构设计</Link>
+                    </Menu.Item>
                 </SubMenu>
             </Menu>
         )

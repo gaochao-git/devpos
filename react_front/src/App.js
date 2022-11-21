@@ -31,6 +31,7 @@ import UserRole from './scripts/permission/userRole'
 import DatabaseResource from './scripts/permission/database_resource'
 import TaskManage from './scripts/task/taskManage'
 import MetaCompare from './scripts/console/metaCompare'
+import TableDesign from './scripts/console/tableDesign'
 
 
 const { Header, Footer, Sider, Content } = Layout;
@@ -207,6 +208,7 @@ class App extends Component {
                                     <Route exact path="/manage/task/taskManage" component={TaskManage} />
                                     <Route exact path="/manage/permission/publicManage" component={publicManage} />
                                     <Route exact path="/manage/permission/commonUser" component={commonUser} />
+                                    <Route exact path="/service/console/tableDesign" component={TableDesign} />
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>
