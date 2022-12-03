@@ -4,6 +4,9 @@ import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,
 import sqlFormatter from 'sql-formatter';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { BaseTable } from 'ali-react-table'
+import MarkdownIt from 'markdown-it';
+import MdEditor from 'react-markdown-editor-lite';   // 配置 https://github.com/HarryChen0506/react-markdown-editor-lite/blob/HEAD/docs/configure.md
+import 'react-markdown-editor-lite/lib/index.css';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/mode/sql/sql';
 import 'codemirror/addon/hint/show-hint.css';
@@ -27,6 +30,8 @@ const MyIcon = Icon.createFromIconfontCN({
   scriptUrl: '//at.alicdn.com/t/font_8d5l8fzk5b87iudi.js', // 在 iconfont.cn 上生成
 });
 const STORE_TYPE = ['收藏数据源','收藏SQL']
+// Initialize a markdown parser
+const mdParser = new MarkdownIt(/* Markdown-it options */);
 
 
 export class BaseConsole extends Component {
@@ -71,7 +76,8 @@ export class BaseConsole extends Component {
       my_pos:{line:0,ch:0},
       tables_hint:{}, //表名补全
       editTableModal:false,
-      sql_preview:""
+      sql_preview:"",
+      sqlScoreModal:false
     }
   }
 
@@ -559,6 +565,26 @@ export class BaseConsole extends Component {
       ).catch(err=>message.error(err.message))
   }
 
+  //获取SQL质量
+  async getSqlScore() {
+      let params = {
+          des_ip_port:this.state.instance_name,
+          schema_name:this.state.current_schema,
+          sql:this.state.sql,
+      };
+      await MyAxios.post('/web_console/v1/get_sql_score/',params).then(
+          res=>{
+              if( res.data.status === 'ok'){
+                  message.success(res.data.message)
+                  this.setState({sql_score:res.data.data, sqlScoreModal: true})
+                  console.log(res.data.data)
+              } else{
+                  message.error(res.data.message)
+              }
+          }
+      ).catch(err=>message.error(err.message))
+  }
+
   handleChangeStoreType = (e) => {
     if (e==="db_source"){
         this.setState({favorite_detail: this.state.instance_name,favorite_type:e});
@@ -582,10 +608,11 @@ export class BaseConsole extends Component {
     }
   };
 
-//  getChildSqlPreview = (sql) => {
-//      this.setState({sql_preview:sql})
-//  }
 
+  //渲染SQL质量markdown
+  renderHTML = () =>{
+    return mdParser.render(this.state.sql_score);
+  }
 
   render() {
     const favorite_column = [
@@ -721,6 +748,7 @@ export class BaseConsole extends Component {
             <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
             <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>解释</Button>
             <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sql_content:sqlFormatter.format(this.state.sql_content)})}>美化</Button>
+            <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getSqlScore()}>SQL质量</Button>
             <Button type="link"  icon="star" onClick={()=> this.setState({favoriteVisible:true})}></Button>
             <Tooltip
                 placement="bottomRight"
@@ -863,6 +891,14 @@ export class BaseConsole extends Component {
           width='90%'
         >
             <EditableTable/>
+        </Modal>
+        <Modal
+          visible={this.state.sqlScoreModal}
+          onCancel={()=>this.setState({sqlScoreModal:false})}
+          footer={false}
+          width='90%'
+        >
+            <MdEditor value={this.state.sql_score} view={{ menu: false, md: false, html: true }} readOnly={true} shortcuts={true} toolbars={false} style={{ height: '500px' }} renderHTML={text => this.renderHTML()}/>
         </Modal>
       </div>
     );

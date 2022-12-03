@@ -197,7 +197,11 @@ MYSQL_PARSER_ADDRESS = {
     'mysql_parser_user': 'gaochao',
     'mysql_parser_pwd': 'fffjjj',
 }
-
+################# soar配置 ##################
+SOAR_PATH = '/Users/gaochao/gaochao-git/gaochao_repo/devpos/django_backend/utils/cmd_plugin/soar.darwin-amd64'
+SOAR_CONF = '/Users/gaochao/gaochao-git/gaochao_repo/devpos/django_backend/django_backend/soar.yaml'
+SOAR_USER = 'gaochao'
+SOAR_PASS = 'fffjjj'
 ################# 日志配置 ##################
 log_path = os.path.join(BASE_DIR, "logs/")
 if not os.path.exists(log_path):

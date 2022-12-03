@@ -12,6 +12,7 @@ from apps.utils.base_view import BaseView
 from validator import Required, In, validate,Length, InstanceOf
 from apps.utils.my_validator import validate_ip_port, my_form_validate
 from apps.utils import common
+from utils.soar import Soar
 from django import forms
 logger = logging.getLogger('devops')
 
@@ -229,4 +230,33 @@ class GetDesignTableSnapShotController(BaseView):
         """
         user_name = self.request_user_info.get('username')
         ret = web_console_dao.get_design_table_snap_shot_dao(user_name)
+        return self.my_response(ret)
+
+
+class GetSqlScoreController(BaseView):
+    def post(self, request):
+        """
+        获取sql评分
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        # 验证参数方法1
+        rules = {
+            "des_ip_port": [lambda x: common.CheckValidators.check_instance_name(x)['status'] == "ok"],
+            "sql": [Required, Length(2, 10000), ],
+            "schema_name": [Required, Length(2, 64), ],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        des_ip_port = request_body.get('des_ip_port')
+        ip = des_ip_port.split('_')[0]
+        port = des_ip_port.split('_')[1]
+        sql = request_body.get('sql')
+        db_name = request_body.get('schema_name')
+        soar_engine = Soar()
+        out = soar_engine.analyze_sql(ip,port,db_name,sql)
+        print(out)
+        ret = {"status": "ok","message":"ok","data":out}
         return self.my_response(ret)
