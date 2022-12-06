@@ -257,6 +257,5 @@ class GetSqlScoreController(BaseView):
         db_name = request_body.get('schema_name')
         soar_engine = Soar()
         out = soar_engine.analyze_sql(ip,port,db_name,sql)
-        print(out)
         ret = {"status": "ok","message":"ok","data":out}
         return self.my_response(ret)
