@@ -160,7 +160,7 @@ class JksJobConfig extends React.Component {
     this.state = {
       dataSource: [],
       jks_job_config_list:[],
-      TextAreaRows:5,
+      TextAreaRows:12,
       form_create:true,
       count: 1,
       showJobConfigModal:false,
@@ -174,23 +174,6 @@ class JksJobConfig extends React.Component {
 
   componentDidMount() {
     this.getJksJobConfigList()
-  }
-
-  //校验SQL语法
-  async checkGenerateSql() {
-      let params = {
-        generate_sql:this.state.sql_preview,
-      };
-      await MyAxios.post('/web_console/v1/check_generate_sql/',params).then(
-          res=>{
-              if( res.data.status === 'ok'){
-                  this.setState({check_sql_result:res.data.data})
-                  message.success(res.data.message)
-              } else{
-                  message.error(res.data.message)
-              }
-          }
-      ).catch(err=>message.error(err.message))
   }
 
   //onok
