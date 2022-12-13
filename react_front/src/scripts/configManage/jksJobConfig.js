@@ -351,7 +351,15 @@ class JksJobConfig extends React.Component {
           {
             title: 'jks_job_params',
             dataIndex: 'jks_job_params',
-            width:'40%'
+            render: (text) => {
+                return (
+                    text.length>50 ?
+                    <Tooltip placement="topLeft" title={text} overlayStyle={{ maxWidth: 500 }}>
+                        <span>{text.slice(0,50)}...</span>
+                    </Tooltip>
+                        :<span>{text}</span>
+                )
+            }
           },
           {
             title: 'jks_job_comment',

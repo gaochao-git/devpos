@@ -40,8 +40,7 @@ export default class JksCommonJob extends Component  {
     }
     //获取工单信息
     async getJksJobConfigList() {
-        let params = {job_name: "install_mysql"};
-        await MyAxios.post('/jks/v1/get_jks_job_config_list/',params).then(
+        await MyAxios.post('/jks/v1/get_jks_job_config_list/').then(
             res => {res.data.status==="ok" ?
                 this.setState({
                     jks_job_config_list: res.data.data
@@ -85,17 +84,14 @@ export default class JksCommonJob extends Component  {
     //提交任务
     async submitJob() {
         let params = {
-            deploy_type: this.state.deploy_type,
-            deploy_topos: this.state.deploy_topos,
-            mysql_version: this.state.mysql_version,
-            job_name: this.state.job_name,
+            jks_job_name: this.state.jks_job_name,
+            jks_job_params: this.state.jks_job_params,
         };
-        await MyAxios.post('/jks/v1/install_mysql/',params).then(
+        await MyAxios.post('/jks/v1/dispatch_jks_job/',params).then(
             res => {
                 if(res.data.status==="ok") {
                     this.setState({showSubmitVisible:false});
                     message.success("提交任务成功");
-                    this.getAllJobInfo();
                 }else{
                     message.error(res.data.message)
                 }

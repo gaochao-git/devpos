@@ -14,4 +14,5 @@ urlpatterns = [
     path('v1/del_jks_config/', jks_controller.DelJksConfigController.as_view(),kwargs={"access": RouterAccess.dba}), # 修改任务配置
     path('v1/get_jks_job_config_list/', jks_controller.GetJksJobConfigListController.as_view(),kwargs={"access": RouterAccess.dba}), # 获取所有配置任务
     path('v1/get_jks_job_config_detail/', jks_controller.GetJksJobConfigDetailController.as_view(),kwargs={"access": RouterAccess.dba}), # 获取任务详情
+    path('v1/dispatch_jks_job/', jks_controller.DispatchJksJobController.as_view(),kwargs={"access": RouterAccess.dba}), # 获取任务详情
 ]

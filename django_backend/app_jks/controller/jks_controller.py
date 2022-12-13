@@ -10,7 +10,7 @@ from app_jks.service import jks
 from app_jks.dao import jks_dao
 from app_jks.utils.jks_util import job_builds_dict
 import json
-
+from app_jks.utils.jks_util import MyJenkins,job_builds_dict
 
 class JobListController(BaseView):
     def post(self, request):
@@ -208,4 +208,35 @@ class DelJksConfigController(BaseView):
         jks_job_name = self.request_params.get('jks_job_name')
         ret = jks_dao.del_jks_config_dao(jks_job_name)
         return self.my_response(ret)
+
+class DispatchJksJobController(BaseView):
+    def post(self, request):
+        """
+        执行jks任务
+        :param request:
+        :return:
+        """
+        user_name = self.request_user_info.get('username')
+        request_body = self.request_params
+        rules = {
+            "jks_job_name": [Required, Length(2, 100)],
+            "jks_job_params": [Required, InstanceOf(list)],
+        }
+
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        jks_job_name = self.request_params.get('jks_job_name')
+        jks_job_params = self.request_params.get('jks_job_params')
+        # 组装jks格式参数
+        params_dict = {}
+        for i in jks_job_params: params_dict[i['params_name']] = i['params_value']
+        # 调用JKS
+        print(params_dict)
+        jks_engine = MyJenkins()
+        queue_ret = jks_engine.run_job(user_name, request_body, **params_dict)
+        print(queue_ret)
+        if queue_ret['status'] != "ok": return self.my_response(queue_ret)
+        ret = {"status": "ok", "message": "下发任务成功", "data": queue_ret.get('queue_id')}
+        return self.my_response(ret)
+
 

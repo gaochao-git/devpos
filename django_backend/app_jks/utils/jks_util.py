@@ -29,7 +29,8 @@ class MyJenkins(Jenkins):
             return e
 
     def run_job(self, user, request_body, **jks_params):
-        job_name = request_body.get('job_name')
+        job_name = request_body.get('jks_job_name')
+        print(job_name)
         try:
             self.assert_job_exists(job_name)
             queue_id = self.build_job(job_name,parameters=jks_params)
