@@ -32,6 +32,8 @@ import DatabaseResource from './scripts/permission/database_resource'
 import TaskManage from './scripts/task/taskManage'
 import MetaCompare from './scripts/console/metaCompare'
 import TableDesign from './scripts/console/tableDesign'
+import JksJobConfig from './scripts/configManage/jksJobConfig'
+import JksCommonJob from './scripts/jks/jksCommonJob'
 
 
 const { Header, Footer, Sider, Content } = Layout;
@@ -207,8 +209,11 @@ class App extends Component {
                                     <Route exact path="/manage/permission/userRole" component={UserRole} />
                                     <Route exact path="/manage/task/taskManage" component={TaskManage} />
                                     <Route exact path="/manage/permission/publicManage" component={publicManage} />
+                                    <Route exact path="/manage/config/jksJobConfig" component={JksJobConfig} />
                                     <Route exact path="/manage/permission/commonUser" component={commonUser} />
                                     <Route exact path="/service/console/tableDesign" component={TableDesign} />
+                                    <Route exact path="/ops/deploy/jksCommonJob" component={JksCommonJob} />
+
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>

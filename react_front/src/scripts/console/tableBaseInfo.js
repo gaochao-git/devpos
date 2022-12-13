@@ -713,7 +713,7 @@ export class EditableTable extends React.Component {
            var type = field_detail['type']
            var length = Number(field_detail['length'])
            var point = Number(field_detail['point'])
-           var allow_null = field_detail['not_null'] ? 'NOT NULL' : 'NULL'
+           var allow_null = field_detail['not_null'] ? 'NOT NULL' : ''
            var default_value = field_detail['default_value']==='' ? '': "default " + field_detail['default_value']
            var extra_info = field_detail['extra_info']
            var comment = field_detail['comment']==='' ? '': "COMMENT " + '"' + field_detail['comment'] + '"'

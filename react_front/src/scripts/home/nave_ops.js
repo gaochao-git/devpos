@@ -24,6 +24,9 @@ class NavOps extends Component {
                     <Menu.Item key="deployMysqlJks">
                         <Link to="/ops/deploy/deployMysqlJks"><span>部署mysql集群Jks</span></Link>
                     </Menu.Item>
+                    <Menu.Item key="jksCommonJob">
+                        <Link to="/ops/deploy/jksCommonJob"><span>jks任务调度</span></Link>
+                    </Menu.Item>
                 </SubMenu>
             </Menu>
         )

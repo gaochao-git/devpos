@@ -9,6 +9,7 @@ from validator import Required, Not, Truthy, Blank, Range, Equals, In, validate,
 from app_jks.service import jks
 from app_jks.dao import jks_dao
 from app_jks.utils.jks_util import job_builds_dict
+import json
 
 
 class JobListController(BaseView):
@@ -107,3 +108,104 @@ class InstallMysqlController(BaseView):
         user_name = self.request_user_info.get('username')
         install_ret = jks.install_mysql(user_name, request_body)
         return self.my_response(install_ret)
+
+
+
+class AddJksConfigController(BaseView):
+    def post(self, request):
+        """
+        增加jks任务配置
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "jks_job_name": [Required, Length(2, 100)],
+            "jks_job_comment": [Required, Length(2, 10000)],
+            "jks_job_params_kv": [Required, InstanceOf(list)],
+        }
+
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        user_name = self.request_user_info.get('username')
+        jks_job_name = self.request_params.get('jks_job_name')
+        jks_job_comment = self.request_params.get('jks_job_comment')
+        jks_job_params_kv = self.request_params.get('jks_job_params_kv')
+        jks_job_params_kv = json.dumps(jks_job_params_kv, ensure_ascii=False)
+        ret = jks_dao.add_jks_config_dao(user_name, jks_job_name,jks_job_comment,jks_job_params_kv)
+        return self.my_response(ret)
+
+
+class GetJksJobConfigListController(BaseView):
+    def post(self, request):
+        """
+        获取所有任务配置
+        :param request:
+        :return:
+        """
+        ret = jks_dao.get_jks_config_list_dao()
+        return self.my_response(ret)
+
+
+class GetJksJobConfigDetailController(BaseView):
+    def post(self, request):
+        """
+        获取任务详情
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "jks_job_name": [Required, Length(2, 100)],
+        }
+
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        jks_job_name = self.request_params.get('jks_job_name')
+        ret = jks_dao.get_jks_config_detail_dao(jks_job_name)
+        return self.my_response(ret)
+
+
+class ModifyJksConfigController(BaseView):
+    def post(self, request):
+        """
+        修改jks任务配置
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "jks_job_name": [Required, Length(2, 100)],
+            "jks_job_comment": [Required, Length(2, 10000)],
+            "jks_job_params_kv": [Required, InstanceOf(list)],
+        }
+
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        user_name = self.request_user_info.get('username')
+        jks_job_name = self.request_params.get('jks_job_name')
+        jks_job_comment = self.request_params.get('jks_job_comment')
+        jks_job_params_kv = self.request_params.get('jks_job_params_kv')
+        jks_job_params_kv = json.dumps(jks_job_params_kv, ensure_ascii=False)
+        ret = jks_dao.modify_jks_config_dao(user_name, jks_job_name,jks_job_comment,jks_job_params_kv)
+        return self.my_response(ret)
+
+
+class DelJksConfigController(BaseView):
+    def post(self, request):
+        """
+        删除jks任务配置
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "jks_job_name": [Required, Length(2, 100)],
+        }
+
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        jks_job_name = self.request_params.get('jks_job_name')
+        ret = jks_dao.del_jks_config_dao(jks_job_name)
+        return self.my_response(ret)
+

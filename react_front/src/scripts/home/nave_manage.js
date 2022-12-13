@@ -30,6 +30,11 @@ class NavManage extends Component {
                         <Link to="/manage/task/taskManage">Celery任务</Link>
                     </Menu.Item>
                 </SubMenu>
+                <SubMenu key="config" title={<span><Icon type="robot" /><span>配置管理</span></span>}>
+                    <Menu.Item key="jksJobConfig">
+                        <Link to="/manage/config/jksJobConfig">Jks任务配置</Link>
+                    </Menu.Item>
+                </SubMenu>
             </Menu>
         )
     }
