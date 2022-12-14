@@ -119,7 +119,7 @@ export default class JksCommonJob extends Component  {
                                           {record.type==="文本参数" ?
                                               <div style={{marginBottom:30}}>
                                                   {record.params_name}: {record.params_comment}
-                                                  <TextArea rows={record.extra_info} defaultValue={record.params_value} style={{width:'100%'}}  onChange={e => this.modifyParams(record.params_name,e.target.value)}/>
+                                                  <TextArea rows={record.extra_info} key={record.params_value} defaultValue={record.params_value} style={{width:'100%'}}  onChange={e => this.modifyParams(record.params_name,e.target.value)}/>
                                               </div>
                                               :null
                                           }{record.type==="字符串参数" ?
