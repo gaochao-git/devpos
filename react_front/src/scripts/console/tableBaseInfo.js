@@ -628,7 +628,8 @@ export class EditableTable extends React.Component {
               this.setState({extra_info:INT_EXTRA_INFO_LIST})
               break;
            default:
-              break
+              this.setState({extra_info:[]});
+              break;
       }
    }
 
