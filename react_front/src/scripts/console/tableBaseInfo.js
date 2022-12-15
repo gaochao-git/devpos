@@ -14,6 +14,95 @@ const TABLE_ENGINE_LIST = ['InnoDB']
 const TABLE_CHARSET_LIST = ['utf8', 'utf8mb4']
 const EditableContext = React.createContext();
 
+
+//列设计长度部分不需要的直接禁止编辑
+const LENGTH_SWITCH = (column_type) =>{
+    switch(column_type) {
+        case'tinytext':
+        case 'mediumtext':
+        case 'text':
+        case'tinyblob':
+        case 'mediumblob':
+        case 'longblob':
+        case 'tinyint':
+        case 'smallint':
+        case'int':
+        case'bigint':
+            return true;
+           break;
+        default:
+           return false;
+           break;
+    }
+}
+
+//列设计小数点部分不需要的直接禁止编辑
+const POINT_SWITCH = (column_type) =>{
+    switch(column_type) {
+        case'decimal':
+        case 'double':
+        case 'float':
+            return false;
+           break;
+        default:
+           return true;
+           break;
+    }
+}
+
+//列设计默认值部分不需要的直接禁止编辑
+const DEFAULT_SWITCH = (column_type) =>{
+    switch(column_type) {
+        case'tinytext':
+        case 'mediumtext':
+        case 'text':
+        case'tinyblob':
+        case 'mediumblob':
+        case 'longblob':
+            return true;
+           break;
+        default:
+           return false;
+           break;
+    }
+}
+
+
+//列设计NOT NULL部分拦截
+const NOT_NULL_SWITCH = (record) =>{
+    switch(record.type) {
+        case'tinytext':
+        case 'mediumtext':
+        case 'text':
+        case'tinyblob':
+        case 'mediumblob':
+        case 'longblob':
+            return false;
+           break;
+        default:
+           return record.not_null;
+           break;
+    }
+}
+
+//列设计其他部分不需要的直接禁止编辑
+const EXTRA_INFO_SWITCH = (column_type) =>{
+    switch(column_type) {
+        case 'tinyint':
+        case 'smallint':
+        case'int':
+        case'bigint':
+        case 'datetime':
+        case 'timestamp':
+            return false;
+           break;
+        default:
+           return true;
+           break;
+    }
+}
+
+
 const EditableRow = ({ form, index, ...props }) => (
   <EditableContext.Provider value={form}>
     <tr {...props} />
@@ -136,24 +225,24 @@ export class EditableTable extends React.Component {
         title: '长度',
         dataIndex: 'length',
         width: '6%',
-        render: (text, record, idx) => <Input value={record.length} onChange={(e)=>this.changeLength(text,record,idx,e.target.value)}/>
+        render: (text, record, idx) => <Input disabled={LENGTH_SWITCH(record.type)} value={record.length} onChange={(e)=>this.changeLength(text,record,idx,e.target.value)}/>
       },
       {
         title: '小数点',
         dataIndex: 'point',
         width: '6%',
-        render: (text, record, idx) => <Input value={record.point} onChange={(e)=>this.changePoint(text,record,idx,e.target.value)}/>
+        render: (text, record, idx) => <Input disabled={POINT_SWITCH(record.type)} value={record.point} onChange={(e)=>this.changePoint(text,record,idx,e.target.value)}/>
       },
       {
         title: '不是null',
         dataIndex: 'not_null',
-        render: (text, record, idx) => <Checkbox checked={record.not_null} onChange={(e)=>this.changeNull(text,record,idx, e.target.checked)}/>
+        render: (text, record, idx) => <Checkbox defaultChecked={NOT_NULL_SWITCH(record)} checked={record.not_null} onChange={(e)=>this.changeNull(text,record,idx, e.target.checked)}/>
 
       },
       {
         title: '默认值',
         dataIndex: 'default_value',
-        render: (text, record, idx) => <Input value={record.default_value} onChange={(e)=>this.changeDefault(text,record,idx,e.target.value)}/>
+        render: (text, record, idx) => <Input disabled={DEFAULT_SWITCH(record.type)} value={record.default_value} onChange={(e)=>this.changeDefault(text,record,idx,e.target.value)}/>
       },
       {
         title: '其他属性',
@@ -168,6 +257,7 @@ export class EditableTable extends React.Component {
             style={{ width: '100%' }}
             value={text}
             onDropdownVisibleChange={open=>open ?this.handleExtraInfo(record): null}
+            disabled={EXTRA_INFO_SWITCH(record.type)}
           >
             {this.state.extra_info.map((type) => <Option key={type} value={type}>{type}</Option>)}
           </Select>
@@ -298,7 +388,7 @@ export class EditableTable extends React.Component {
           key: 1,
           name: 'id',
           type: 'bigint',
-          length: 20,
+          length: 0,
           point:0,
           not_null:true,
           default_value:'',
