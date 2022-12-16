@@ -8,7 +8,7 @@ const {TabPane} = Tabs
 const { TextArea } = Input
 const DATA_TYPE_LIST = ['tinyint' ,'smallint' ,'int' ,'bigint' ,'float' ,'double' ,'decimal' ,'date' ,'time' ,'year' ,'datetime' ,'timestamp' ,'char' ,'varchar' ,'tinytext' ,'text' ,'mediumtext' ,'longtext' ,'tinyblob' ,'mediumblob' ,'longblob']
 const INDEX_TYPE_LIST = ['normal','unique']
-const INT_EXTRA_INFO_LIST = ['无符号', '自增']
+const INT_EXTRA_INFO_LIST = ['无符号', '自增','填充零']
 const TIME_EXTRA_INFO_LIST = ['自动更新']
 const TABLE_ENGINE_LIST = ['InnoDB']
 const TABLE_CHARSET_LIST = ['utf8', 'utf8mb4']
@@ -884,6 +884,9 @@ export class EditableTable extends React.Component {
               }
               if (extra_info.includes('自增')){
                   format_extra_info = format_extra_info + ' AUTO_INCREMENT '
+              }
+              if (extra_info.includes('填充零')){
+                  format_extra_info = format_extra_info + ' ZEROFILL '
               }
               COLUMN_TYPE = COLUMN_TYPE + ' ' +  format_extra_info + ' ' + allow_null + ' ' + default_value
               break;
