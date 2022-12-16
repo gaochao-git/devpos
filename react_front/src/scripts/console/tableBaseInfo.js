@@ -16,19 +16,26 @@ const EditableContext = React.createContext();
 
 
 //列设计长度部分不需要的直接禁止编辑
-const LENGTH_SWITCH = (column_type) =>{
-    switch(column_type) {
+const LENGTH_SWITCH = (record) =>{
+    console.log(record)
+    switch(record.type) {
         case'tinytext':
         case 'mediumtext':
         case 'text':
         case'tinyblob':
         case 'mediumblob':
         case 'longblob':
+            return true;
+            break;
         case 'tinyint':
         case 'smallint':
         case'int':
         case'bigint':
-            return true;
+           if (record.extra_info.includes('填充零')){
+               return false;
+           }else{
+               return true;
+           }
            break;
         default:
            return false;
@@ -225,7 +232,7 @@ export class EditableTable extends React.Component {
         title: '长度',
         dataIndex: 'length',
         width: '6%',
-        render: (text, record, idx) => <Input disabled={LENGTH_SWITCH(record.type)} value={record.length} onChange={(e)=>this.changeLength(text,record,idx,e.target.value)}/>
+        render: (text, record, idx) => <Input disabled={LENGTH_SWITCH(record)} value={record.length} onChange={(e)=>this.changeLength(text,record,idx,e.target.value)}/>
       },
       {
         title: '小数点',
