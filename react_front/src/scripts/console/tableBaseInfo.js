@@ -236,7 +236,7 @@ export class EditableTable extends React.Component {
       {
         title: '不是null',
         dataIndex: 'not_null',
-        render: (text, record, idx) => <Checkbox defaultChecked={NOT_NULL_SWITCH(record)} checked={record.not_null} onChange={(e)=>this.changeNull(text,record,idx, e.target.checked)}/>
+        render: (text, record, idx) => <Checkbox checked={record.not_null} onChange={(e)=>this.changeNull(text,record,idx, e.target.checked)}/>
 
       },
       {
@@ -297,25 +297,6 @@ export class EditableTable extends React.Component {
 
     this.index_columns = [
       {
-        title: '索引名',
-        dataIndex: 'index_name',
-        width: '20%',
-        render: (text, record, idx) => <Input value={record.index_name} onChange={(e)=>this.changeIndexName(text,record,idx,e.target.value)}/>
-      },
-      {
-        title: '索引列',
-        dataIndex: 'index_column',
-        width: '20%',
-        render: (text, record, idx) => (
-          <div>
-            <Input style={{width:'80%'}} value={record.index_column}/>
-            <Button onClick={()=>this.setState({idx_select_keys:[]},()=>this.editIndex(text, record, idx))}>
-              <Icon type="edit" />
-            </Button>
-          </div>
-        )
-      },
-      {
         title: '索引类型',
         dataIndex: 'index_type',
         width: '20%',
@@ -331,6 +312,25 @@ export class EditableTable extends React.Component {
                       {INDEX_TYPE_LIST.map((type) => <Option key={type} value={type}>{type}</Option>)}
                   </Select>
           )}
+      },
+      {
+        title: '索引名',
+        dataIndex: 'index_name',
+        width: '20%',
+        render: (text, record, idx) => <Input placeholder={record.index_type==="normal"? "idx_列名,多列名简写": "uniq_列名,多列名简写"} value={record.index_name} onChange={(e)=>this.changeIndexName(text,record,idx,e.target.value)}/>
+      },
+      {
+        title: '索引列',
+        dataIndex: 'index_column',
+        width: '20%',
+        render: (text, record, idx) => (
+          <div>
+            <Input  placeholder="选择列自动填充,无需手动编辑" style={{width:'80%'}} value={record.index_column}/>
+            <Button onClick={()=>this.setState({idx_select_keys:[]},()=>this.editIndex(text, record, idx))}>
+              <Icon type="edit" />
+            </Button>
+          </div>
+        )
       },
       {
         title: 'operation',
@@ -639,6 +639,20 @@ export class EditableTable extends React.Component {
        const newData = [...this.state.dataSource];
        let row = record;
        row.type=new_value;
+       //如果是文本类型将字段not null改为false，这个位置不能与更改长度用同样的方法,因为checked改变值不会改变
+       switch(record.type) {
+           case'tinytext':
+           case 'mediumtext':
+           case 'text':
+           case'tinyblob':
+           case 'mediumblob':
+           case 'longblob':
+               row.not_null = false;
+              break;
+           default:
+              row.not_null = true;
+              break;
+       }
        this.setState({ dataSource: newData});
    }
    //设计字段: 更改字段null
