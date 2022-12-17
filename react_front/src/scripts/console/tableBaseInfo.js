@@ -1129,7 +1129,10 @@ export class EditableTable extends React.Component {
               bordered
               dataSource={dataSource}
               columns={columns}
-              pagination={false}
+              pagination={{
+                  defaultPageSize: 100,
+                  showTotal: ((total) => {return `共 ${total} 条`}),
+              }}
             />
           </TabPane>
           <TabPane tab="索引信息" key="3">
