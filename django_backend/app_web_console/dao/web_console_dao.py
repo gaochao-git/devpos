@@ -296,6 +296,7 @@ def save_design_table_snap_shot_dao(table_name, data_source, index_source, table
     :param use_name:
     :return:
     """
+    data_source = pymysql.escape_string(data_source)
     sql = f"""
         insert into web_console_design_table_info(user_name, table_name,data_source,index_source, table_engine, table_charset, table_comment)
         values('{user_name}','{table_name}','{data_source}','{index_source}','{table_engine}','{table_charset}','{table_comment}')
@@ -314,3 +315,103 @@ def get_design_table_snap_shot_dao(use_name):
         from web_console_design_table_info where user_name='{use_name}' order by create_time desc
     """
     return db_helper.find_all(sql)
+
+
+def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
+    """
+    获取目标表表结构信息
+    dataSource = [{"key": 1, "name": "id", "type": "bigint", "length": 20, "point": 0, "not_null": true, "default_value": "", "comment": "主键id", "primary_key": true, "extra_info": ["无符号", "自增"]}]
+    indexSource = [{"key": 1, "index_name": "idx_create_time", "index_column": "create_time", "index_type": "normal", "index_column_detail": [{"key": 1, "column_name": "create_time", "length": 0}]}]
+    :param ip:
+    :param port:
+    :param des_schema_name:
+    :param des_table_name:
+    :return:
+    """
+    sql = f"""
+            select table_name, data_source,index_source, table_engine, table_charset, table_comment,create_time,update_time
+            from web_console_design_table_info limit 1
+        """
+    mock_ret = db_helper.find_all(sql)
+    sql1 = f"""
+        select 
+            ORDINAL_POSITION,
+            COLUMN_NAME,
+            DATA_TYPE,
+            DATETIME_PRECISION,
+            CHARACTER_MAXIMUM_LENGTH,
+            NUMERIC_PRECISION,
+            NUMERIC_SCALE,
+            COLUMN_DEFAULT,
+            IS_NULLABLE,
+            COLUMN_COMMENT,
+            EXTRA
+        from information_schema.COLUMNS 
+        where TABLE_SCHEMA='{des_schema_name}' and TABLE_NAME='{des_table_name}' 
+        order by ORDINAL_POSITION
+    """
+    print(sql1)
+    extra_info_map = {"on update CURRENT_TIMESTAMP": "自动更新", "auto_increment": "自增"}
+
+    # 依据数据库中存的默认值进行一些格式化,便于前端展示
+    def get_default(default_value):
+        print(default_value)
+        if default_value == "": return "''"
+        if default_value is None: return "NULL"
+        return default_value
+    # 获取列名
+    table_columns_ret = db_helper.find_all(sql1)
+    format_data_source = []
+    for i in table_columns_ret['data']:
+        column_obj = {}
+        column_obj['key'] = i.get('ORDINAL_POSITION')
+        column_obj['name'] = i.get('COLUMN_NAME')
+        column_obj['type'] = i.get('DATA_TYPE')
+        column_obj['length'] = i.get('NUMERIC_PRECISION') or i.get('DATETIME_PRECISION') or i.get('CHARACTER_MAXIMUM_LENGTH')
+        column_obj['point'] = i.get('NUMERIC_SCALE')
+        column_obj['default_value'] = get_default(i.get('COLUMN_DEFAULT'))
+        column_obj['not_null'] = False if i.get('IS_NULLABLE') == "YES" else True
+        column_obj['comment'] = i.get('COLUMN_COMMENT')
+        column_obj['primary_key'] = False  # 给一个初始值,后面计算索引进行覆盖
+        column_obj['extra_info'] = [extra_info_map[i.get('EXTRA')]] if i.get('EXTRA') else []
+        format_data_source.append(column_obj)
+    # 获取索引
+    sql2 = f"show index from `{des_schema_name}`.`{des_table_name}`"
+    index_ret = db_helper.find_all(sql2)
+    # 将主键信息填充到列里面
+    for j in index_ret['data']:
+        if j['Key_name'] == 'PRIMARY':
+            for k in format_data_source:
+                if j['Column_name'] == k['name']:
+                    k.update({'primary_key': True})
+    # 组装index_source,不能用set去重复,这个索引名列表需要排序
+    index_name_list = []
+    for m in index_ret['data']:
+        if m['Key_name'] != 'PRIMARY':
+            if m['Key_name'] not in index_name_list: index_name_list.append(m['Key_name'])
+    format_index_source = []
+    pos = 0
+    for n in index_name_list:
+        column_obj = {}
+        pos = pos + 1
+        column_obj['key'] = pos
+        column_obj['index_name'] = n
+        column_names = ""
+        pos1 = 0
+        index_column_detail = []
+        print(index_ret['data'])
+        for m in index_ret['data']:
+            if m.get('Key_name') == n:
+                column_obj['index_type'] = "unique" if m.get('Non_unique') == 0 else "normal"
+                column_names = column_names + m.get('Column_name') + ',' if m.get('Sub_part') is None else column_names +  f"{m.get('Column_name')}({m.get('Sub_part')})" + ','
+                pos1 = pos1 + 1
+                index_column_dict = {"key": pos1}
+                index_column_dict["column_name"] = m.get('Column_name')
+                index_column_dict["length"] = m.get('Sub_part') or 0
+                index_column_detail.append(index_column_dict)
+        column_obj['index_column_detail'] = index_column_detail
+        column_obj['index_column'] = column_names.rstrip(',')
+        format_index_source.append(column_obj)
+    mock_ret['data'][0]['data_source'] = json.dumps(format_data_source)
+    mock_ret['data'][0]['index_source'] = json.dumps(format_index_source)
+    return mock_ret

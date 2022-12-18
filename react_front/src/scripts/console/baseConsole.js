@@ -19,6 +19,7 @@ import MyAxios from "../common/interface"
 import {tableToExcel} from "../common/export_data"
 import { MyResizeTable } from "../common/resizeTable"
 import {EditableTable} from "./tableBaseInfo"
+import {EditableAlterTable} from "./alterTableBaseInfo"
 const {Option} = Select
 const {TabPane} = Tabs
 const { TextArea } = Input
@@ -76,6 +77,7 @@ export class BaseConsole extends Component {
       my_pos:{line:0,ch:0},
       tables_hint:{}, //表名补全
       editTableModal:false,
+      editAlterTableModal:false,
       sql_preview:"",
       sqlScoreModal:false
     }
@@ -246,6 +248,26 @@ export class BaseConsole extends Component {
     }
     this.setState({sql: sql,sql_content:sql_content,DrawerVisible:false,contextMenuVisiable:false},()=>this.getTableData('no'))
   };
+
+
+  //设计表获取目标实例当前表信息
+  async alterDesignTable(table) {
+      let params = {
+        des_ip_port: this.state.instance_name,
+        des_schema_name: this.state.current_schema,
+        des_table_name: table
+      };
+      await MyAxios.post('/web_console/v1/get_target_table_info/',params).then(
+          res=>{
+              if( res.data.status === 'ok'){
+                  this.setState({alter_table_info:res.data.data,DrawerVisible:false,contextMenuVisiable:false,editAlterTableModal:true})
+                  message.success(res.data.message)
+              } else{
+                  message.error(res.data.message)
+              }
+          }
+      ).catch(err=>message.error(err.message))
+  }
 
   onInputRead = async (cm, change, editor) => {
     const tableName = this.state.tables_hint; // 获取库表列表
@@ -880,6 +902,7 @@ export class BaseConsole extends Component {
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"struct")}>查看表结构</Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"status")}>查看表信息</Button>
              <Button type="link" onClick={()=>this.setState({editTableModal:true,contextMenuVisiable:false})}>新建表</Button>
+             <Button type="link" onClick={()=>this.alterDesignTable(this.state.rightClickData.key)}>设计表</Button>
            </div>
            :null
           }
@@ -891,6 +914,14 @@ export class BaseConsole extends Component {
           width='90%'
         >
             <EditableTable/>
+        </Modal>
+        <Modal
+          visible={this.state.editAlterTableModal}
+          onCancel={()=>this.setState({editAlterTableModal:false})}
+          footer={false}
+          width='90%'
+        >
+            <EditableAlterTable  alter_table_info={this.state.alter_table_info}/>
         </Modal>
         <Modal
           visible={this.state.sqlScoreModal}

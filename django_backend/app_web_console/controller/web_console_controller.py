@@ -259,3 +259,29 @@ class GetSqlScoreController(BaseView):
         out = soar_engine.analyze_sql(ip,port,db_name,sql)
         ret = {"status": "ok","message":"ok","data":out}
         return self.my_response(ret)
+
+
+class GetTargetTableInfoController(BaseView):
+    def post(self, request):
+        """
+        获取目标表表结构信息
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        # 验证参数方法1
+        rules = {
+            "des_ip_port": [lambda x: common.CheckValidators.check_instance_name(x)['status'] == "ok"],
+            "des_schema_name": [Required, Length(2, 64), ],
+            "des_table_name": [Required, Length(2, 64), ],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        des_ip_port = request_body.get('des_ip_port').strip()
+        ip = des_ip_port.split('_')[0]
+        port = des_ip_port.split('_')[1]
+        des_schema_name = request_body.get('des_schema_name')
+        des_table_name = request_body.get('des_table_name')
+        ret = web_console_dao.get_target_table_info_dao(ip,port,des_schema_name,des_table_name)
+        return self.my_response(ret)
