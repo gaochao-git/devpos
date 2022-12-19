@@ -352,17 +352,35 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
         where TABLE_SCHEMA='{des_schema_name}' and TABLE_NAME='{des_table_name}' 
         order by ORDINAL_POSITION
     """
-
     # 依据数据库中存的默认值进行一些格式化,便于前端展示
-    def get_default(default_value):
+    def get_default(column_info):
         """
-        空字符串、NULL、无要特殊处理
+        处理默认值,注意default '-1'在前端展示会丢失单引号
+        这些都要做额外处理:NULL，'','1','xxx',表达式
+        最好的方法是将mysql函数都识别出来,这部分布包裹引号,其他都包裹引号
         :param default_value:
         :param name:
         :return:
         """
+        default_func_list = ['CURRENT_TIMESTAMP', 'CURRENT_TIMESTAMP(1)', 'CURRENT_TIMESTAMP(2)', 'CURRENT_TIMESTAMP(3)', 'CURRENT_TIMESTAMP(4)', 'CURRENT_TIMESTAMP(5)', 'CURRENT_TIMESTAMP(6)']
+        default_value = column_info.get('COLUMN_DEFAULT')
+        is_nullable = column_info.get('IS_NULLABLE')
+        # 默认值为''
         if default_value == "": return "''"
-        if default_value is None: return "NULL"
+        # 默认值为NULL
+        if default_value is None:
+            if is_nullable == "NO": return ""  # 如果该字段允许为空
+            return "NULL"
+        # 默认值为'1','-1'
+        if default_value.isdigit(): return f"'{default_value}'"
+        if default_value[0] == '-' and default_value[1:].isdigit(): return f"'{default_value}'"
+        # 断默认值为表达式
+        if default_value in default_func_list: return default_value   # 减少数据库探测
+        default_check_ret = db_helper.find_all(f"select {default_value} as ret_value")
+        if default_check_ret['status'] != "ok": return f"'{default_value}'"  # 肯定不是函数
+        # 默认值为'xxxxx'
+        if default_check_ret['data'][0]['ret_value'] == default_value: return f"'{default_value}'"  # 应该不是函数
+        # 没有考虑到的场景
         return default_value
 
     def get_length(item):
@@ -403,7 +421,7 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
         column_obj['type'] = i.get('DATA_TYPE')
         column_obj['length'] = get_length(i)
         column_obj['point'] = i.get('NUMERIC_SCALE')
-        column_obj['default_value'] = get_default(i.get('COLUMN_DEFAULT'))
+        column_obj['default_value'] = get_default(i)
         column_obj['not_null'] = False if i.get('IS_NULLABLE') == "YES" else True
         column_obj['comment'] = i.get('COLUMN_COMMENT')
         column_obj['primary_key'] = False  # 给一个初始值,后面计算索引进行覆盖
@@ -447,8 +465,26 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
         column_obj['index_column_detail'] = index_column_detail
         column_obj['index_column'] = column_names.rstrip(',')
         format_index_source.append(column_obj)
+    # 获取表属性信息
+    sql3 = f"show create table `{des_schema_name}`.`{des_table_name}`"
+    table_info_ret = db_helper.find_all(sql3)
+    table_info = table_info_ret['data'][0]['Create Table']
+    print(table_info)
+    # table_match_info = re.findall("ENGINE=(InnoDB).* DEFAULT CHARSET=(.*) COMMENT=(.*)",table_info)
+    table_match_info_1 = re.findall("ENGINE=(\S+).*", table_info)
+    table_match_info_2 = re.findall("ENGINE=InnoDB.* DEFAULT CHARSET=(\S+).*", table_info)
+    table_match_info_3 = re.findall("ENGINE=InnoDB.* AUTO_INCREMENT=(\S+).*", table_info)
+    table_match_info_4 = re.findall("ENGINE=InnoDB.* COMMENT=(\S+).*", table_info)
+    print(table_match_info_1,table_match_info_2,table_match_info_3,table_match_info_4)
+    table_engine = table_match_info_1[0]
+    table_charset = table_match_info_2[0]
+    table_auto_increment = table_match_info_3[0] if table_match_info_3 else ""
+    table_comment = table_match_info_4[0] if table_match_info_4 else ""
     mock_ret['data'][0]['data_source'] = json.dumps(format_data_source)
     mock_ret['data'][0]['index_source'] = json.dumps(format_index_source)
     mock_ret['data'][0]['table_name'] = des_table_name
+    mock_ret['data'][0]['table_engine'] = table_engine
+    mock_ret['data'][0]['table_charset'] = table_charset
+    mock_ret['data'][0]['table_comment'] = table_comment[1: len(table_comment)-1] # 去除首位引号
     print(format_index_source)
     return mock_ret

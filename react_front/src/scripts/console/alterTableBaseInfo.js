@@ -790,8 +790,8 @@ export class EditableAlterTable extends React.Component {
        var table_index = ''
        var table_head = 'CREATE TABLE ' + '`' + this.state.table_name + '`'  + ' ('
        var table_engine = ') ENGINE=' + this.state.table_engine
-       var table_charset = ' DEFAULT CHARACTER SET=' + this.state.table_charset
-       var table_comment = this.state.table_comment.length !== 0 ? ' COMMENT ' + "'" + this.state.table_comment + "'" : ""
+       var table_charset = ' DEFAULT CHARSET=' + this.state.table_charset
+       var table_comment = this.state.table_comment.length !== 0 ? ' COMMENT=' + "'" + this.state.table_comment + "'" : ""
        //生成列
        var column_name_list = []
        this.state.dataSource.forEach(field_detail => {
@@ -1077,7 +1077,7 @@ export class EditableAlterTable extends React.Component {
               </div>
               <div style={{ marginBottom: 4 }}>
                 *表字符集
-                <Select defaultValue={this.state.table_charset} style={{width:'100%'}} onChange={(value)=>this.setState({table_charset:value})}>
+                <Select value={this.state.table_charset} style={{width:'100%'}} onChange={(value)=>this.setState({table_charset:value})}>
                     {TABLE_CHARSET_LIST.map((type) => <Option key={type} value={type}>{type}</Option>)}
                 </Select>
               </div>
