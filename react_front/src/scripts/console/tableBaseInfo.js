@@ -889,11 +889,11 @@ export class EditableTable extends React.Component {
               if (extra_info.includes('无符号')){
                   format_extra_info = format_extra_info + ' unsigned '
               }
-              if (extra_info.includes('自增')){
-                  format_extra_info = format_extra_info + ' AUTO_INCREMENT '
-              }
               if (extra_info.includes('填充零')){
                   format_extra_info = format_extra_info + ' ZEROFILL '
+              }
+              if (extra_info.includes('自增')){
+                  format_extra_info = format_extra_info + ' AUTO_INCREMENT '
               }
               COLUMN_TYPE = COLUMN_TYPE + ' ' +  format_extra_info + ' ' + allow_null + ' ' + default_value
               break;

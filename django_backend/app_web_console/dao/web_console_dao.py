@@ -8,6 +8,7 @@ import pymysql
 import json
 import logging
 import sqlparse
+import re
 from app_web_console.utils import data_mask
 from utils.exceptions import BusinessException
 from utils.go_inception_ import MyGoInception
@@ -338,6 +339,7 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
             ORDINAL_POSITION,
             COLUMN_NAME,
             DATA_TYPE,
+            COLUMN_TYPE,
             DATETIME_PRECISION,
             CHARACTER_MAXIMUM_LENGTH,
             NUMERIC_PRECISION,
@@ -351,15 +353,49 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
         order by ORDINAL_POSITION
     """
     print(sql1)
-    extra_info_map = {"on update CURRENT_TIMESTAMP": "自动更新", "auto_increment": "自增"}
+
 
     # 依据数据库中存的默认值进行一些格式化,便于前端展示
     def get_default(default_value):
-        print(default_value)
+        """
+        空字符串、NULL、无要特殊处理
+        :param default_value:
+        :param name:
+        :return:
+        """
         if default_value == "": return "''"
         if default_value is None: return "NULL"
         return default_value
-    # 获取列名
+
+    def get_length(item):
+        """
+        依据数据库中存的长度值进行一些格式化,便于前端展示
+        注意:整型类展示占位宽度,长度无需展示,因为是固定的
+        :param item:
+        :return:
+        """
+        if item.get('DATA_TYPE') in ['datetime', 'time']: return item.get('DATETIME_PRECISION')
+        if item.get('DATA_TYPE') in ['char', 'varchar']: return item.get('CHARACTER_MAXIMUM_LENGTH')
+        if item.get('DATA_TYPE') in ['tinyint', 'smallint', 'int', 'bigint']: return re.findall("\d+", item.get('COLUMN_TYPE'))[0]
+        return item.get('NUMERIC_PRECISION')
+
+    def get_extra_info(columns, column_name):
+        """
+        获取自增、无符号、自动更新属性
+        [extra_info_map[i.get('EXTRA')]] if i.get('EXTRA') else []
+        :param item:
+        :return:
+        """
+        extra_info_map = {"on update CURRENT_TIMESTAMP": "自动更新", "auto_increment": "自增"}
+        extra_info_list = []
+        for col in columns:
+            # 获取每一列额外属性
+            if col.get('COLUMN_NAME') == column_name:
+                if col.get('EXTRA'): extra_info_list.append(extra_info_map[col.get('EXTRA')])
+                # 如果该列有无符号属性,要加进去
+                if re.findall("unsigned", col.get('COLUMN_TYPE')): extra_info_list.append('无符号')
+        return extra_info_list
+    # 获取列名,这里进行基础加工,后面还需要对默认值、主键进行再次加工
     table_columns_ret = db_helper.find_all(sql1)
     format_data_source = []
     for i in table_columns_ret['data']:
@@ -367,23 +403,24 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
         column_obj['key'] = i.get('ORDINAL_POSITION')
         column_obj['name'] = i.get('COLUMN_NAME')
         column_obj['type'] = i.get('DATA_TYPE')
-        column_obj['length'] = i.get('NUMERIC_PRECISION') or i.get('DATETIME_PRECISION') or i.get('CHARACTER_MAXIMUM_LENGTH')
+        column_obj['length'] = get_length(i)
         column_obj['point'] = i.get('NUMERIC_SCALE')
         column_obj['default_value'] = get_default(i.get('COLUMN_DEFAULT'))
         column_obj['not_null'] = False if i.get('IS_NULLABLE') == "YES" else True
         column_obj['comment'] = i.get('COLUMN_COMMENT')
         column_obj['primary_key'] = False  # 给一个初始值,后面计算索引进行覆盖
-        column_obj['extra_info'] = [extra_info_map[i.get('EXTRA')]] if i.get('EXTRA') else []
+        column_obj['extra_info'] = get_extra_info(table_columns_ret['data'], i.get('COLUMN_NAME'))
         format_data_source.append(column_obj)
     # 获取索引
     sql2 = f"show index from `{des_schema_name}`.`{des_table_name}`"
     index_ret = db_helper.find_all(sql2)
-    # 将主键信息填充到列里面
+    # 将主键信息填充到列里面，如果是主键,将主键的NULL去掉
     for j in index_ret['data']:
         if j['Key_name'] == 'PRIMARY':
             for k in format_data_source:
                 if j['Column_name'] == k['name']:
                     k.update({'primary_key': True})
+                    k.update({"default_value": ""})
     # 组装index_source,不能用set去重复,这个索引名列表需要排序
     index_name_list = []
     for m in index_ret['data']:
@@ -399,7 +436,6 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
         column_names = ""
         pos1 = 0
         index_column_detail = []
-        print(index_ret['data'])
         for m in index_ret['data']:
             if m.get('Key_name') == n:
                 column_obj['index_type'] = "unique" if m.get('Non_unique') == 0 else "normal"
