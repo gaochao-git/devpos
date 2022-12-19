@@ -438,7 +438,7 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
         for m in index_ret['data']:
             if m.get('Key_name') == n:
                 column_obj['index_type'] = "unique" if m.get('Non_unique') == 0 else "normal"
-                column_names = column_names + m.get('Column_name') + ',' if m.get('Sub_part') is None else column_names +  f"{m.get('Column_name')}({m.get('Sub_part')})" + ','
+                column_names = f"{column_names}`{m.get('Column_name')}`," if m.get('Sub_part') is None else f"{column_names}`{m.get('Column_name')}`({m.get('Sub_part')}),"
                 pos1 = pos1 + 1
                 index_column_dict = {"key": pos1}
                 index_column_dict["column_name"] = m.get('Column_name')
@@ -450,4 +450,5 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
     mock_ret['data'][0]['data_source'] = json.dumps(format_data_source)
     mock_ret['data'][0]['index_source'] = json.dumps(format_index_source)
     mock_ret['data'][0]['table_name'] = des_table_name
+    print(format_index_source)
     return mock_ret

@@ -757,9 +757,9 @@ export class EditableTable extends React.Component {
            var column_name = newIndexSource[this.state.current_edit_index]['index_column_detail'][i]['column_name']
            var index_prefix_length = newIndexSource[this.state.current_edit_index]['index_column_detail'][i]['length']
            if (Number(index_prefix_length)>0){
-             index_columns = index_columns + column_name + '(' + index_prefix_length + ')' + ','
+             index_columns = index_columns + `\`{column_name}\`({index_prefix_length})` + ','
            }else {
-             index_columns = index_columns + column_name  + ','
+             index_columns = index_columns + "`" + column_name + "`"  + ','
            }
        }
        index_columns = index_columns.slice(0,index_columns.length-1);   //去掉多余逗号
@@ -843,7 +843,7 @@ export class EditableTable extends React.Component {
            if(index_type==='unique' && !index_name.match('^uniq_.*')){
                message.warning(index_name + "为唯一索引类型,请使用uniq_前缀",3)
            }
-           index_info = index_type==='unique'? 'UNIQUE KEY ' + '`' + index_name + '`' + '(' + index_column + ')': 'KEY ' + '`' + index_name + '`' + '(' + index_column + ')'
+           index_info = index_type==='unique'? `UNIQUE KEY \`${index_name}\` (${index_column})`: `KEY \`${index_name}\` (${index_column})`
            table_index = table_index.length>0 ? table_index + ',\n' + '  ' + index_info: '  ' + index_info
        })
        //生成主键
@@ -852,12 +852,22 @@ export class EditableTable extends React.Component {
            this.setState({sql_preview:""})
            return
        }
-       primary_keys = '  PRIMARY KEY' + '(' + primary_keys.join(',') + ')'
+       primary_keys = this.formatPrimaryKey(primary_keys)
        primary_keys = table_index.length>0 ? primary_keys + ',\n' : primary_keys
        //拼接SQL
        sql = table_head + '\n' + table_columns + ',\n' + primary_keys + table_index + '\n' + table_engine + table_charset + table_comment + ';'
        this.setState({sql_preview:sql,column_name_list:column_name_list})
    }
+
+    formatPrimaryKey = (primary_keys) =>{
+        var PRIMARY_KEY = "  PRIMARY KEY"
+        var key_name = ""
+        primary_keys.forEach((item)=>{
+            key_name = key_name + "`" + item + "`" + ","
+        })
+        key_name = key_name.slice(0,key_name.length - 1);  //去除末尾多余逗号
+        return PRIMARY_KEY + ' (' + key_name + ')'
+    }
 
 
    //生成SQL做一些基础校验
