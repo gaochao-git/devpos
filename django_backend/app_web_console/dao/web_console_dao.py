@@ -352,8 +352,6 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
         where TABLE_SCHEMA='{des_schema_name}' and TABLE_NAME='{des_table_name}' 
         order by ORDINAL_POSITION
     """
-    print(sql1)
-
 
     # 依据数据库中存的默认值进行一些格式化,便于前端展示
     def get_default(default_value):
@@ -420,7 +418,8 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
             for k in format_data_source:
                 if j['Column_name'] == k['name']:
                     k.update({'primary_key': True})
-                    k.update({"default_value": ""})
+                    if k.get("default_value") == 'NULL':
+                        k.update({"default_value": ""})
     # 组装index_source,不能用set去重复,这个索引名列表需要排序
     index_name_list = []
     for m in index_ret['data']:
@@ -450,4 +449,5 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
         format_index_source.append(column_obj)
     mock_ret['data'][0]['data_source'] = json.dumps(format_data_source)
     mock_ret['data'][0]['index_source'] = json.dumps(format_index_source)
+    mock_ret['data'][0]['table_name'] = des_table_name
     return mock_ret

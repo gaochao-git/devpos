@@ -17,7 +17,6 @@ const EditableContext = React.createContext();
 
 //列设计长度部分不需要的直接禁止编辑
 const LENGTH_SWITCH = (record) =>{
-    console.log(record)
     switch(record.type) {
         case'tinytext':
         case 'mediumtext':
@@ -810,7 +809,7 @@ export class EditableTable extends React.Component {
        var table_columns = ''
        var primary_keys = []
        var table_index = ''
-       var table_head = 'CREATE TABLE ' + this.state.table_name + '('
+       var table_head = 'CREATE TABLE ' + '`' + this.state.table_name + '`'  + ' ('
        var table_engine = ') ENGINE=' + this.state.table_engine
        var table_charset = ' DEFAULT CHARACTER SET=' + this.state.table_charset
        var table_comment = this.state.table_comment.length !== 0 ? ' COMMENT ' + "'" + this.state.table_comment + "'" : ""
@@ -821,18 +820,18 @@ export class EditableTable extends React.Component {
            var primary_key = field_detail['primary_key'] ? primary_keys.push(field_detail['name']): null
            //列拼接
            var column_info = ""
-           var name = field_detail['name']
+           var name = ' `' + field_detail['name'] + '`'
            var type = field_detail['type']
            var length = Number(field_detail['length'])
            var point = Number(field_detail['point'])
-           var allow_null = field_detail['not_null'] ? 'NOT NULL' : ''
-           var default_value = field_detail['default_value']==='' ? '': "default " + field_detail['default_value']
+           var allow_null = field_detail['not_null'] ? ' NOT NULL' : ''
+           var default_value = field_detail['default_value']==='' ? '': " DEFAULT " + field_detail['default_value']
            var extra_info = field_detail['extra_info']
-           var comment = field_detail['comment']==='' ? '': "COMMENT " + '"' + field_detail['comment'] + '"'
+           var comment = field_detail['comment']==='' ? '': " COMMENT " + "'" + field_detail['comment'] + "'"
            //格式化列属性
            var format_column_type = this.formatColumnType(type,length,point,allow_null,default_value,extra_info)
-           column_info = name + ' ' + format_column_type + ' ' + comment
-           table_columns = table_columns.length>0 ? table_columns + ',\n' + '  ' + column_info: '  ' + column_info
+           column_info = name + ' ' + format_column_type + comment
+           table_columns = table_columns.length>0 ? table_columns + ',\n' + ' ' + column_info: ' ' + column_info
            column_name_list.push(name)
        });
        //生成索引
@@ -844,7 +843,7 @@ export class EditableTable extends React.Component {
            if(index_type==='unique' && !index_name.match('^uniq_.*')){
                message.warning(index_name + "为唯一索引类型,请使用uniq_前缀",3)
            }
-           index_info = index_type==='unique'? 'UNIQUE KEY ' + index_name+  '(' + index_column + ')': 'KEY ' + index_name + '(' + index_column + ')'
+           index_info = index_type==='unique'? 'UNIQUE KEY ' + '`' + index_name + '`' + '(' + index_column + ')': 'KEY ' + '`' + index_name + '`' + '(' + index_column + ')'
            table_index = table_index.length>0 ? table_index + ',\n' + '  ' + index_info: '  ' + index_info
        })
        //生成主键
@@ -873,11 +872,14 @@ export class EditableTable extends React.Component {
        }
        return true
    }
-   
+
    //格式化字段
    formatColumnType = (type,length,point,allow_null,default_value,extra_info) =>{
        var COLUMN_TYPE = ""
-       var format_extra_info = ""
+       var extra_info_unsigned = ""
+       var extra_info_zerofill = ""
+       var extra_info_increment = ""
+       var extra_info_update = ""
        switch(type) {
            case 'tinyint': case 'smallint': case'int': case'bigint':
               if (length===0){
@@ -887,17 +889,17 @@ export class EditableTable extends React.Component {
               }
               //计算额外属性
               if (extra_info.includes('无符号')){
-                  format_extra_info = format_extra_info + ' unsigned '
+                  extra_info_unsigned = ' unsigned'
               }
               if (extra_info.includes('填充零')){
-                  format_extra_info = format_extra_info + ' ZEROFILL '
+                  extra_info_zerofill = ' ZEROFILL'
               }
               if (extra_info.includes('自增')){
-                  format_extra_info = format_extra_info + ' AUTO_INCREMENT '
+                  extra_info_increment = ' AUTO_INCREMENT'
               }
-              COLUMN_TYPE = COLUMN_TYPE + ' ' +  format_extra_info + ' ' + allow_null + ' ' + default_value
+              COLUMN_TYPE = COLUMN_TYPE + extra_info_unsigned + extra_info_zerofill + allow_null + extra_info_increment + default_value
               break;
-           case 'datetime': case 'timestamp':
+           case 'datetime': case 'timestamp': case 'time':
               if (length===0){
                   COLUMN_TYPE = type
               }else if (length > 6|length <0){
@@ -908,12 +910,12 @@ export class EditableTable extends React.Component {
               //计算额外属性
               if (extra_info.includes('自动更新')){
                   if (length===0){
-                      format_extra_info = format_extra_info + ' ON UPDATE CURRENT_TIMESTAMP '
+                      extra_info_update = ' ON UPDATE CURRENT_TIMESTAMP'
                   }else {
-                      format_extra_info = format_extra_info + ' ON UPDATE CURRENT_TIMESTAMP ' + '(' + length + ')'
+                      extra_info_update = ' ON UPDATE CURRENT_TIMESTAMP' + '(' + length + ')'
                   }
               }
-              COLUMN_TYPE = COLUMN_TYPE + ' ' + allow_null + ' ' + default_value + ' ' +  format_extra_info
+              COLUMN_TYPE = COLUMN_TYPE + allow_null + default_value + extra_info_update
               break;
            case 'float': case 'double': case'decimal':
               if (length===0){
@@ -922,7 +924,7 @@ export class EditableTable extends React.Component {
                   message.error(type + "小数长度大于整数长度")
               }else {
                   COLUMN_TYPE = type + '(' + length + ',' + point + ')'
-                  COLUMN_TYPE = COLUMN_TYPE + ' ' + allow_null + ' ' + default_value + ' ' +  format_extra_info
+                  COLUMN_TYPE = COLUMN_TYPE + allow_null + default_value
               }
               break;
            case 'char': case 'varchar':
@@ -930,11 +932,11 @@ export class EditableTable extends React.Component {
                   message.error(type + "长度不允许为0")
               }else {
                   COLUMN_TYPE=type + '(' + length + ')'
-                  COLUMN_TYPE = COLUMN_TYPE + ' ' + allow_null + ' ' + default_value + ' ' +  format_extra_info
+                  COLUMN_TYPE = COLUMN_TYPE + allow_null + default_value
               }
               break;
            default:
-              COLUMN_TYPE = type +  ' ' + allow_null + ' ' + default_value
+              COLUMN_TYPE = type + allow_null + default_value
       }
       return COLUMN_TYPE
    }

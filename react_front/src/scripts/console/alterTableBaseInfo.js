@@ -789,7 +789,7 @@ export class EditableAlterTable extends React.Component {
        var table_columns = ''
        var primary_keys = []
        var table_index = ''
-       var table_head = 'CREATE TABLE ' + this.state.table_name + '('
+       var table_head = 'CREATE TABLE ' + '`' + this.state.table_name + '`'  + ' ('
        var table_engine = ') ENGINE=' + this.state.table_engine
        var table_charset = ' DEFAULT CHARACTER SET=' + this.state.table_charset
        var table_comment = this.state.table_comment.length !== 0 ? ' COMMENT ' + "'" + this.state.table_comment + "'" : ""
@@ -823,7 +823,7 @@ export class EditableAlterTable extends React.Component {
            if(index_type==='unique' && !index_name.match('^uniq_.*')){
                message.warning(index_name + "为唯一索引类型,请使用uniq_前缀",3)
            }
-           index_info = index_type==='unique'? 'UNIQUE KEY ' + index_name+  '(' + index_column + ')': 'KEY ' + index_name + '(' + index_column + ')'
+           index_info = index_type==='unique'? 'UNIQUE KEY ' + '`' + index_name + '`' + '(' + index_column + ')': 'KEY ' + '`' + index_name + '`' + '(' + index_column + ')'
            table_index = table_index.length>0 ? table_index + ',\n' + '  ' + index_info: '  ' + index_info
        })
        //生成主键
@@ -857,6 +857,10 @@ export class EditableAlterTable extends React.Component {
    formatColumnType = (type,length,point,allow_null,default_value,extra_info) =>{
        var COLUMN_TYPE = ""
        var format_extra_info = ""
+       var extra_info_unsigned = ""
+       var extra_info_zerofill = ""
+       var extra_info_increment = ""
+       var extra_info_update = ""
        switch(type) {
            case 'tinyint': case 'smallint': case'int': case'bigint':
               if (length===0){
@@ -866,17 +870,17 @@ export class EditableAlterTable extends React.Component {
               }
               //计算额外属性
               if (extra_info.includes('无符号')){
-                  format_extra_info = format_extra_info + ' unsigned '
+                  extra_info_unsigned = ' unsigned'
               }
               if (extra_info.includes('填充零')){
-                  format_extra_info = format_extra_info + ' ZEROFILL '
+                  extra_info_zerofill = ' ZEROFILL'
               }
               if (extra_info.includes('自增')){
-                  format_extra_info = format_extra_info + ' AUTO_INCREMENT '
+                  extra_info_increment = ' AUTO_INCREMENT'
               }
-              COLUMN_TYPE = COLUMN_TYPE + format_extra_info + allow_null + default_value
+              COLUMN_TYPE = COLUMN_TYPE + extra_info_unsigned + extra_info_zerofill + allow_null + extra_info_increment + default_value
               break;
-           case 'datetime': case 'timestamp':
+           case 'datetime': case 'timestamp': case 'time':
               if (length===0){
                   COLUMN_TYPE = type
               }else if (length > 6|length <0){
@@ -887,12 +891,12 @@ export class EditableAlterTable extends React.Component {
               //计算额外属性
               if (extra_info.includes('自动更新')){
                   if (length===0){
-                      format_extra_info = format_extra_info + ' ON UPDATE CURRENT_TIMESTAMP'
+                      extra_info_update = ' ON UPDATE CURRENT_TIMESTAMP'
                   }else {
-                      format_extra_info = format_extra_info + ' ON UPDATE CURRENT_TIMESTAMP' + '(' + length + ')'
+                      extra_info_update = ' ON UPDATE CURRENT_TIMESTAMP' + '(' + length + ')'
                   }
               }
-              COLUMN_TYPE = COLUMN_TYPE + allow_null + default_value + format_extra_info
+              COLUMN_TYPE = COLUMN_TYPE + allow_null + default_value + extra_info_update
               break;
            case 'float': case 'double': case'decimal':
               if (length===0){
@@ -901,7 +905,7 @@ export class EditableAlterTable extends React.Component {
                   message.error(type + "小数长度大于整数长度")
               }else {
                   COLUMN_TYPE = type + '(' + length + ',' + point + ')'
-                  COLUMN_TYPE = COLUMN_TYPE + allow_null + default_value + ' '
+                  COLUMN_TYPE = COLUMN_TYPE + allow_null + default_value
               }
               break;
            case 'char': case 'varchar':
