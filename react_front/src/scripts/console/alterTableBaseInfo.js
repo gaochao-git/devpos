@@ -206,7 +206,7 @@ export class EditableAlterTable extends React.Component {
         title: '列名',
         dataIndex: 'name',
         width: '10%',
-        editable: true,
+        render: (text, record, idx) => <Input value={record.name} onChange={(e)=>this.changeName(text,record,idx,e.target.value)}/>
       },
       {
         title: '类型',
@@ -447,6 +447,7 @@ export class EditableAlterTable extends React.Component {
       alter_table_info:[],  //修改表结构使用字段，父组件传递来的
       des_ip_port:"",       //目的ip，父组件传递来的
       des_schema_name:"",  //目的库名，父组件传递来的
+      change_column_name_list: [],  //哪些更改列名的字段[{old_name: new_name}]
     };
   }
 
@@ -818,6 +819,17 @@ export class EditableAlterTable extends React.Component {
        this.generateIndex(newIndexSource)
    }
 
+   //设计字段: 列名触发
+   changeName=(text,record,idx,new_value) =>{
+       const newData = [...this.state.dataSource];
+       let row = record;
+       row.name=new_value
+       this.setState({dataSource: newData});
+       //额外处理
+       const column_name_list = [...this.state.column_name_list];
+   }
+
+
 
 
 
@@ -887,7 +899,7 @@ export class EditableAlterTable extends React.Component {
         //forEach return只是退出循环,代码会继续往下走
         for(var i=0;i<source.length;i++){
             if (col_name === source[i]['name']){
-                return true;
+                return source[i];
             }
         }
         return false;
@@ -922,6 +934,11 @@ export class EditableAlterTable extends React.Component {
         var drop_sql = "drop column " + field_name
         return drop_sql
     }
+
+    buildModifySql = (field_name) =>{
+        var modify_sql = "modify column " + field_name
+        return modify_sql
+    }
    //生成该表结构SQL
    generateAlterSql =() =>{
        // 参考https://github.com/zhoukang99/mysqldiff/blob/master/mysqldiff.py
@@ -943,6 +960,27 @@ export class EditableAlterTable extends React.Component {
            var old_col = this.get_field(col['name'],data_source)
            if (old_col === false){
                drop_sql.push(this.buildDropSql(col['name']))
+           }
+       })
+       //获取修改后的列
+       data_source.forEach((col)=>{
+           var old_col = this.get_field(col['name'],old_data_source)
+           console.log(col)
+           console.log(old_col)
+           if (old_col !== false){
+               if (
+                   col['type'] !== old_col['type'] ||
+                   col['length'] !== old_col['length'] ||
+                   col['point'] !== old_col['point'] ||
+                   col['default_value'] !== old_col['default_value'] ||
+                   JSON.stringify(col['extra_info']) !== JSON.stringify(old_col['extra_info']) ||
+                   col['not_null'] !== old_col['not_null'] ||
+                   col['comment'] !== old_col['comment']
+               )
+               {
+                   this.buildModifySql('xxxx')
+                   message.success(col['name'])
+               }
            }
        })
        if (change_sql.length===0 && add_sql.length===0 && drop_sql.length===0 && key_sql.length===0){
