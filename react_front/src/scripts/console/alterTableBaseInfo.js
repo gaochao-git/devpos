@@ -6,7 +6,7 @@ import {AditSqlTable} from '../auditSql/auditSqlCommon'
 const { Option } = Select;
 const {TabPane} = Tabs
 const { TextArea } = Input
-const DATA_TYPE_LIST = ['tinyint' ,'smallint' ,'int' ,'bigint' ,'float' ,'double' ,'decimal' ,'date' ,'time' ,'year' ,'datetime' ,'timestamp' ,'char' ,'varchar' ,'tinytext' ,'text' ,'mediumtext' ,'longtext' ,'tinyblob' ,'mediumblob' ,'longblob']
+const DATA_TYPE_LIST = ['tinyint' ,'smallint' ,'int' ,'bigint' ,'float' ,'double' ,'decimal' ,'date' ,'time' ,'year' ,'datetime' ,'timestamp' ,'char' ,'varchar' ,'tinytext' ,'text' ,'mediumtext' ,'longtext' ,'tinyblob' ,'blob','mediumblob' ,'longblob']
 const INDEX_TYPE_LIST = ['normal','unique']
 const INT_EXTRA_INFO_LIST = ['无符号', '自增','填充零']
 const TIME_EXTRA_INFO_LIST = ['自动更新']
@@ -398,6 +398,7 @@ export class EditableAlterTable extends React.Component {
       table_engine: "",
       table_charset: "",
       table_comment: "",
+      table_auto_increment:"",
       columnIndexSource: [],
       editIndexModal:false,
       column_name_list:[],
@@ -424,6 +425,7 @@ export class EditableAlterTable extends React.Component {
           table_engine:nextProps.alter_table_info[0]['table_engine'],
           table_comment:nextProps.alter_table_info[0]['table_comment'],
           table_charset:nextProps.alter_table_info[0]['table_charset'],
+          table_auto_increment:nextProps.alter_table_info[0]['table_auto_increment'],
        }
     }
     return null;
@@ -792,6 +794,7 @@ export class EditableAlterTable extends React.Component {
        var table_engine = ') ENGINE=' + this.state.table_engine
        var table_charset = ' DEFAULT CHARSET=' + this.state.table_charset
        var table_comment = this.state.table_comment.length !== 0 ? ' COMMENT=' + "'" + this.state.table_comment + "'" : ""
+       var table_auto_increment = this.state.table_auto_increment.length !== 0 ? ' AUTO_INCREMENT=' + this.state.table_auto_increment : ""
        //生成列
        var column_name_list = []
        this.state.dataSource.forEach(field_detail => {
@@ -834,7 +837,7 @@ export class EditableAlterTable extends React.Component {
        primary_keys = this.formatPrimaryKey(primary_keys)
        primary_keys = table_index.length>0 ? primary_keys + ',\n' : primary_keys
        //拼接SQL
-       sql = table_head + '\n' + table_columns + ',\n' + primary_keys + table_index + '\n' + table_engine + table_charset + table_comment + ';'
+       sql = table_head + '\n' + table_columns + ',\n' + primary_keys + table_index + '\n' + table_engine + table_auto_increment + table_charset + table_comment + ';'
        this.setState({sql_preview:sql,column_name_list:column_name_list})
    }
 

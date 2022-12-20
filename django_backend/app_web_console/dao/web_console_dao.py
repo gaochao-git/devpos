@@ -356,20 +356,26 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
     def get_default(column_info):
         """
         处理默认值,注意default '-1'在前端展示会丢失单引号
-        这些都要做额外处理:NULL，'','1','xxx',表达式
+        这些默认值都要做额外处理:NULL，"''",'1','xxx',表达式
+        这些字段类型要做特殊处理
+            text类字段不应该有默认值,mysql该字段默认给的是NULL,需要转为''
+        如果为not null但是无默认值需要额外处理
         最好的方法是将mysql函数都识别出来,这部分布包裹引号,其他都包裹引号
         :param default_value:
         :param name:
         :return:
         """
         default_func_list = ['CURRENT_TIMESTAMP', 'CURRENT_TIMESTAMP(1)', 'CURRENT_TIMESTAMP(2)', 'CURRENT_TIMESTAMP(3)', 'CURRENT_TIMESTAMP(4)', 'CURRENT_TIMESTAMP(5)', 'CURRENT_TIMESTAMP(6)']
+        text_type_list = ['tinytext', 'text', 'mediumtext', 'longtext', 'tinyblob', 'blob', 'mediumblob', 'longblob']
         default_value = column_info.get('COLUMN_DEFAULT')
         is_nullable = column_info.get('IS_NULLABLE')
+        column_type = column_info.get('DATA_TYPE')
         # 默认值为''
         if default_value == "": return "''"
         # 默认值为NULL
         if default_value is None:
-            if is_nullable == "NO": return ""  # 如果该字段允许为空
+            if is_nullable == "NO": return ""             # 字段为not null，但是无默认值，mysql这个字段默认为NULL，需要额外处理
+            if column_type in text_type_list: return ''   # 字段为text字段处理
             return "NULL"
         # 默认值为'1','-1'
         if default_value.isdigit(): return f"'{default_value}'"
@@ -469,13 +475,10 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
     sql3 = f"show create table `{des_schema_name}`.`{des_table_name}`"
     table_info_ret = db_helper.find_all(sql3)
     table_info = table_info_ret['data'][0]['Create Table']
-    print(table_info)
-    # table_match_info = re.findall("ENGINE=(InnoDB).* DEFAULT CHARSET=(.*) COMMENT=(.*)",table_info)
     table_match_info_1 = re.findall("ENGINE=(\S+).*", table_info)
     table_match_info_2 = re.findall("ENGINE=InnoDB.* DEFAULT CHARSET=(\S+).*", table_info)
     table_match_info_3 = re.findall("ENGINE=InnoDB.* AUTO_INCREMENT=(\S+).*", table_info)
     table_match_info_4 = re.findall("ENGINE=InnoDB.* COMMENT=(\S+).*", table_info)
-    print(table_match_info_1,table_match_info_2,table_match_info_3,table_match_info_4)
     table_engine = table_match_info_1[0]
     table_charset = table_match_info_2[0]
     table_auto_increment = table_match_info_3[0] if table_match_info_3 else ""
@@ -486,5 +489,5 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
     mock_ret['data'][0]['table_engine'] = table_engine
     mock_ret['data'][0]['table_charset'] = table_charset
     mock_ret['data'][0]['table_comment'] = table_comment[1: len(table_comment)-1] # 去除首位引号
-    print(format_index_source)
+    mock_ret['data'][0]['table_auto_increment'] = table_auto_increment
     return mock_ret
