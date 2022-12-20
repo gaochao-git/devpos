@@ -6,7 +6,7 @@ import {AditSqlTable} from '../auditSql/auditSqlCommon'
 const { Option } = Select;
 const {TabPane} = Tabs
 const { TextArea } = Input
-const DATA_TYPE_LIST = ['tinyint' ,'smallint' ,'int' ,'bigint' ,'float' ,'double' ,'decimal' ,'date' ,'time' ,'year' ,'datetime' ,'timestamp' ,'char' ,'varchar' ,'tinytext' ,'text' ,'mediumtext' ,'longtext' ,'tinyblob' ,'mediumblob' ,'longblob']
+const DATA_TYPE_LIST = ['tinyint' ,'smallint' ,'int' ,'bigint' ,'float' ,'double' ,'decimal' ,'date' ,'time' ,'year' ,'datetime' ,'timestamp' ,'char' ,'varchar' ,'tinytext' ,'text' ,'mediumtext' ,'longtext' ,'tinyblob' ,'blob','mediumblob' ,'longblob']
 const INDEX_TYPE_LIST = ['normal','unique']
 const INT_EXTRA_INFO_LIST = ['无符号', '自增','填充零']
 const TIME_EXTRA_INFO_LIST = ['自动更新']
@@ -435,6 +435,7 @@ export class EditableTable extends React.Component {
       table_engine: "InnoDB",
       table_charset: "utf8",
       table_comment: "",
+      table_auto_increment:"",
       columnIndexSource: [],
       editIndexModal:false,
       column_name_list:[],
@@ -811,8 +812,9 @@ export class EditableTable extends React.Component {
        var table_index = ''
        var table_head = 'CREATE TABLE ' + '`' + this.state.table_name + '`'  + ' ('
        var table_engine = ') ENGINE=' + this.state.table_engine
-       var table_charset = ' DEFAULT CHARACTER SET=' + this.state.table_charset
-       var table_comment = this.state.table_comment.length !== 0 ? ' COMMENT ' + "'" + this.state.table_comment + "'" : ""
+       var table_charset = ' DEFAULT CHARSET=' + this.state.table_charset
+       var table_comment = this.state.table_comment.length !== 0 ? ' COMMENT=' + "'" + this.state.table_comment + "'" : ""
+       var table_auto_increment = this.state.table_auto_increment.length !== 0 ? ' AUTO_INCREMENT=' + this.state.table_auto_increment : ""
        //生成列
        var column_name_list = []
        this.state.dataSource.forEach(field_detail => {
@@ -855,7 +857,7 @@ export class EditableTable extends React.Component {
        primary_keys = this.formatPrimaryKey(primary_keys)
        primary_keys = table_index.length>0 ? primary_keys + ',\n' : primary_keys
        //拼接SQL
-       sql = table_head + '\n' + table_columns + ',\n' + primary_keys + table_index + '\n' + table_engine + table_charset + table_comment + ';'
+       sql = table_head + '\n' + table_columns + ',\n' + primary_keys + table_index + '\n' + table_engine + table_auto_increment + table_charset + table_comment + ';'
        this.setState({sql_preview:sql,column_name_list:column_name_list})
    }
 
@@ -1098,7 +1100,7 @@ export class EditableTable extends React.Component {
               </div>
               <div style={{ marginBottom: 4 }}>
                 *表字符集
-                <Select defaultValue={this.state.table_charset} style={{width:'100%'}} onChange={(value)=>this.setState({table_charset:value})}>
+                <Select value={this.state.table_charset} style={{width:'100%'}} onChange={(value)=>this.setState({table_charset:value})}>
                     {TABLE_CHARSET_LIST.map((type) => <Option key={type} value={type}>{type}</Option>)}
                 </Select>
               </div>
