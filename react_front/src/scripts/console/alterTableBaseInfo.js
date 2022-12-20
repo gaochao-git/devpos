@@ -389,7 +389,44 @@ export class EditableAlterTable extends React.Component {
     ];
 
     this.state = {
-      dataSource: [],
+      dataSource: [
+        {
+          key: 1,
+          name: 'id',
+          type: 'bigint',
+          length: 0,
+          point:0,
+          not_null:true,
+          default_value:'',
+          comment:'主键id',
+          primary_key:true,
+          extra_info:['无符号','自增']
+        },
+        {
+          key: 2,
+          name: 'create_time',
+          type: 'datetime',
+          length: 0,
+          point:0,
+          not_null:true,
+          default_value: 'CURRENT_TIMESTAMP',
+          comment:'创建时间',
+          primary_key:false,
+          extra_info:[]
+        },
+        {
+          key: 3,
+          name: 'update_time',
+          type: 'datetime',
+          length: 0,
+          point:0,
+          not_null:true,
+          default_value: 'CURRENT_TIMESTAMP',
+          comment:'更新时间',
+          primary_key:false,
+          extra_info:['自动更新']
+        },
+      ],
       indexSource: [],
       count: 3,
       index_count: 2,
