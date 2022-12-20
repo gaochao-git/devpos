@@ -445,6 +445,8 @@ export class EditableTable extends React.Component {
       history_design_data:[],
       sql_preview:"",
       alter_table_info:[],  //修改表结构使用字段，父组件传递来的
+      des_ip_port:"xxxxx",       //目的ip，父组件传递来的
+      des_schema_name:"mysql",  //目的库名，父组件传递来的
     };
   }
 
@@ -456,6 +458,8 @@ export class EditableTable extends React.Component {
   async checkGenerateSql() {
       let params = {
         generate_sql:this.state.sql_preview,
+        des_ip_port:this.state.des_ip_port,
+        des_schema_name:this.state.des_schema_name,
       };
       await MyAxios.post('/web_console/v1/check_generate_sql/',params).then(
           res=>{

@@ -921,7 +921,7 @@ export class BaseConsole extends Component {
           footer={false}
           width='90%'
         >
-            <EditableAlterTable  alter_table_info={this.state.alter_table_info}/>
+            <EditableAlterTable des_ip_port={this.state.instance_name} des_schema_name={this.state.current_schema}  alter_table_info={this.state.alter_table_info}/>
         </Modal>
         <Modal
           visible={this.state.sqlScoreModal}

@@ -180,11 +180,15 @@ class CheckGenerateSqlController(BaseView):
         request_body = self.request_params
         rules = {
             "generate_sql": [Required, Length(2, 10000)],
+            "des_ip_port": [Required, Length(2, 10000)],
+            "des_schema_name": [Required, Length(2, 10000)],
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
         generate_sql = request_body.get('generate_sql')
-        ret = web_console.check_generate_sql(generate_sql)
+        des_ip_port = request_body.get('des_ip_port')
+        des_schema_name = request_body.get('des_schema_name')
+        ret = web_console.check_generate_sql(des_ip_port, des_schema_name, generate_sql)
         return self.my_response(ret)
 
 

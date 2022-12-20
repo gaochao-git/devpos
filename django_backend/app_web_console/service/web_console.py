@@ -67,15 +67,17 @@ def get_column_list(instance_name,schema_name,table_name):
     return web_console_dao.get_column_list_dao(instance_name,schema_name,table_name)
 
 
-def check_generate_sql(generate_sql):
+def check_generate_sql(des_ip_port, des_schema_name, generate_sql):
     """
     调用inception校验语法
+    :param des_ip_port:
+    :param des_schema_name:
     :param generate_sql:
     :return:
     """
     ip = '47.104.2.74'
     port = 3306
-    generate_sql = 'use mysql;' + '\n' + generate_sql
+    generate_sql = f'use {des_schema_name};' + '\n' + generate_sql
     inception_engine = MyGoInception(ip, port, generate_sql)
     parse_ret = inception_engine.check_sql_go_to_c()
     return parse_ret

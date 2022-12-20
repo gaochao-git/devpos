@@ -445,6 +445,8 @@ export class EditableAlterTable extends React.Component {
       history_design_data:[],
       sql_preview:"",
       alter_table_info:[],  //修改表结构使用字段，父组件传递来的
+      des_ip_port:"",       //目的ip，父组件传递来的
+      des_schema_name:"",  //目的库名，父组件传递来的
     };
   }
 
@@ -461,6 +463,8 @@ export class EditableAlterTable extends React.Component {
           table_comment:nextProps.alter_table_info[0]['table_comment'],
           table_charset:nextProps.alter_table_info[0]['table_charset'],
           table_auto_increment:nextProps.alter_table_info[0]['table_auto_increment'],
+          des_ip_port:nextProps.des_ip_port,
+          des_schema_name:nextProps.des_schema_name,
        }
     }
     return null;
@@ -470,6 +474,8 @@ export class EditableAlterTable extends React.Component {
   async checkGenerateSql() {
       let params = {
         generate_sql:this.state.sql_preview,
+        des_ip_port:this.state.des_ip_port,
+        des_schema_name:this.state.des_schema_name,
       };
       await MyAxios.post('/web_console/v1/check_generate_sql/',params).then(
           res=>{
@@ -876,6 +882,83 @@ export class EditableAlterTable extends React.Component {
        this.setState({sql_preview:sql,column_name_list:column_name_list})
    }
 
+
+    get_field = (col_name, source) =>{
+        //forEach return只是退出循环,代码会继续往下走
+        for(var i=0;i<source.length;i++){
+            if (col_name === source[i]['name']){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    buildAddSql = (field_detail) =>{
+        //name: "col_test"
+        //type: "varchar"
+        //length: "50"
+        //point: 0
+        //not_null: true
+        //default_value: ""
+        //extra_info: []
+        //comment: ""
+        //key: 7
+        //primary_key: false
+        var name = ' `' + field_detail['name'] + '`'
+        var type = field_detail['type']
+        var length = Number(field_detail['length'])
+        var point = Number(field_detail['point'])
+        var allow_null = field_detail['not_null'] ? ' NOT NULL' : ''
+        var default_value = field_detail['default_value']==='' ? '': " DEFAULT " + field_detail['default_value']
+        var extra_info = field_detail['extra_info']
+        var format_column_type = this.formatColumnType(type,length,point,allow_null,default_value,extra_info)
+        var comment = field_detail['comment']==='' ? '': " COMMENT " + "'" + field_detail['comment'] + "'"
+        var add_sql = "add column " + name + ' ' + format_column_type + comment
+        return add_sql
+    }
+
+
+    buildDropSql = (field_name) =>{
+        var drop_sql = "drop column " + field_name
+        return drop_sql
+    }
+   //生成该表结构SQL
+   generateAlterSql =() =>{
+       // 参考https://github.com/zhoukang99/mysqldiff/blob/master/mysqldiff.py
+       var old_data_source = JSON.parse(this.state.alter_table_info[0]['data_source'])
+       var data_source = this.state.dataSource
+       var change_sql = []
+       var add_sql = []
+       var drop_sql = []
+       var key_sql = []
+       // 获取增加的列
+       data_source.forEach((col)=>{
+           var old_col = this.get_field(col['name'],old_data_source)
+           if (old_col === false){
+               add_sql.push(this.buildAddSql(col))
+           }
+       })
+       // 获取减少的列
+       old_data_source.forEach((col)=>{
+           var old_col = this.get_field(col['name'],data_source)
+           if (old_col === false){
+               drop_sql.push(this.buildDropSql(col['name']))
+           }
+       })
+       if (change_sql.length===0 && add_sql.length===0 && drop_sql.length===0 && key_sql.length===0){
+           this.setState({sql_preview: ""})
+       }else{
+           var base_sql = "alter table " + this.state.table_name + '\n  '
+           var format_drop_sql = drop_sql.length>0 ? drop_sql.join(',  \n  ') + ',\n  ': ""
+           var format_add_sql = add_sql.length>0 ? add_sql.join(',  \n  ') + ',\n  ': ""
+           var format_change_sql = change_sql.length>0 ? change_sql.join(',  \n') : ""
+           var sql = base_sql + format_drop_sql + format_add_sql  + format_change_sql + ';'
+           sql = sql.substring(0, sql.lastIndexOf(',')) + ';'  //去除最后一个逗号，在拼接结束符号
+           this.setState({sql_preview: sql})
+       }
+       console.log(sql)
+   }
+
     formatPrimaryKey = (primary_keys) =>{
         var PRIMARY_KEY = "  PRIMARY KEY"
         var key_name = ""
@@ -971,7 +1054,7 @@ export class EditableAlterTable extends React.Component {
    callbackTabPane = (key) =>{
       switch(key) {
          case '3': case '4':
-            this.generateSql()
+            this.generateAlterSql()
             break;
          case '5':
             this.handleGetSnapshot()
