@@ -444,13 +444,11 @@ export class EditableAlterTable extends React.Component {
       columnIndexSourceCount:0,
       history_design_data:[],
       sql_preview:"",
-      des_ip_port:"",
-      des_schema_name:"",
-      alter_table_info:[],
+      alter_table_info:[],  //设计表使用字段，父组件传递来的
     };
   }
 
-  //监听父组件变化,获取表信息
+  //设计表使用监听父组件变化,获取表信息,
   static getDerivedStateFromProps(nextProps,prevState) {
     console.log(nextProps.alter_table_info)
     if(nextProps.alter_table_info !== prevState.alter_table_info ){
