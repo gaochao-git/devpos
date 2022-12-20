@@ -444,7 +444,7 @@ export class EditableAlterTable extends React.Component {
       columnIndexSourceCount:0,
       history_design_data:[],
       sql_preview:"",
-      alter_table_info:[],  //设计表使用字段，父组件传递来的
+      alter_table_info:[],  //修改表结构使用字段，父组件传递来的
     };
   }
 

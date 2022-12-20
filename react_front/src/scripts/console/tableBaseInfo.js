@@ -443,7 +443,8 @@ export class EditableTable extends React.Component {
       row_index_select_keys_map:{},
       columnIndexSourceCount:0,
       history_design_data:[],
-      sql_preview:""
+      sql_preview:"",
+      alter_table_info:[],  //修改表结构使用字段，父组件传递来的
     };
   }
 
