@@ -832,7 +832,6 @@ export class EditableAlterTable extends React.Component {
        const newData = [...this.state.dataSource];
        let row = record;
        row.old_name = row.old_name ? row.old_name: record.name   //如果old_name存在后续输入框在变化就不变了,保留原始列名
-       message.success(new_value)
        //判断字段名是否为已经删除的字段
        for (var i=0; i<this.state.delete_col_list.length;i++){
           if (this.state.delete_col_list[i]['name'] === new_value){
@@ -845,6 +844,7 @@ export class EditableAlterTable extends React.Component {
                row.default_value = this.state.delete_col_list[i]['default_value']
                row.comment = this.state.delete_col_list[i]['comment']
                row.extra_info = this.state.delete_col_list[i]['extra_info']
+               row.delete_flag = "delete_and_add"
                this.setState({dataSource: newData});
                return;
            }
@@ -1009,64 +1009,6 @@ export class EditableAlterTable extends React.Component {
         var change_sql = "change column " + old_name + ' ' + name + ' ' + format_column_type + comment
         return change_sql
     }
-   //生成该表结构SQL V1,按照mysqldiff
-   generateAlterSql_V1 =() =>{
-       // 参考https://github.com/zhoukang99/mysqldiff/blob/master/mysqldiff.py
-       var old_data_source = JSON.parse(this.state.alter_table_info[0]['data_source'])
-       var data_source = this.state.dataSource
-       var change_sql = []
-       var add_sql = []
-       var drop_sql = []
-       var key_sql = []
-       // 获取增加的列
-       data_source.forEach((col)=>{
-           var old_col = this.get_field(col['name'],old_data_source)
-           if (old_col === false){
-               add_sql.push(this.buildAddSql(col))
-           }
-       })
-       // 获取减少的列
-       old_data_source.forEach((col)=>{
-           var old_col = this.get_field(col['name'],data_source)
-           if (old_col === false){
-               drop_sql.push(this.buildDropSql(col['name']))
-           }
-       })
-       //获取修改后的列
-       data_source.forEach((col)=>{
-           var old_col = this.get_field(col['name'],old_data_source)
-           console.log(col)
-           console.log(old_col)
-           if (old_col !== false){
-               if (
-                   col['type'] !== old_col['type'] ||
-                   col['length'] !== old_col['length'] ||
-                   col['point'] !== old_col['point'] ||
-                   col['default_value'] !== old_col['default_value'] ||
-                   JSON.stringify(col['extra_info']) !== JSON.stringify(old_col['extra_info']) ||
-                   col['not_null'] !== old_col['not_null'] ||
-                   col['comment'] !== old_col['comment']
-               )
-               {
-                   this.buildModifySql('xxxx')
-                   message.success(col['name'])
-               }
-           }
-       })
-       if (change_sql.length===0 && add_sql.length===0 && drop_sql.length===0 && key_sql.length===0){
-           this.setState({sql_preview: ""})
-       }else{
-           var base_sql = "alter table " + this.state.table_name + '\n  '
-           var format_drop_sql = drop_sql.length>0 ? drop_sql.join(',  \n  ') + ',\n  ': ""
-           var format_add_sql = add_sql.length>0 ? add_sql.join(',  \n  ') + ',\n  ': ""
-           var format_change_sql = change_sql.length>0 ? change_sql.join(',  \n') : ""
-           var sql = base_sql + format_drop_sql + format_add_sql  + format_change_sql + ';'
-           sql = sql.substring(0, sql.lastIndexOf(',')) + ';'  //去除最后一个逗号，在拼接结束符号
-           this.setState({sql_preview: sql})
-       }
-       console.log(sql)
-   }
-   
    
    //生成该表结构SQL，自己设计
    generateAlterSql =() =>{
@@ -1079,7 +1021,7 @@ export class EditableAlterTable extends React.Component {
        var key_sql_list = []
        // 获取增加的列
        data_source.forEach((col)=>{
-           if (col.operate_flag === "new_add_col"){
+           if (col.operate_flag === "new_add_col" && col.delete_flag !== "delete_and_add"){
                add_sql_list.push(this.buildAddSql(col))
            }
        })
@@ -1121,16 +1063,31 @@ export class EditableAlterTable extends React.Component {
        if (change_sql_list.length===0 && modify_sql_list.length===0 && add_sql_list.length===0 && drop_sql_list.length===0 && key_sql_list.length===0){
            this.setState({sql_preview: ""})
        }else{
-           var base_sql = "alter table " + this.state.table_name + '\n  '
-           var format_drop_sql = drop_sql_list.length>0 ? drop_sql_list.join(',  \n  ') + ',\n  ': ""
-           var format_add_sql = add_sql_list.length>0 ? add_sql_list.join(',  \n  ') + ',\n  ': ""
-           var format_modify_sql = modify_sql_list.length>0 ? modify_sql_list.join(',  \n  ') + ',\n  ': ""
-           var format_change_sql = change_sql_list.length>0 ? change_sql_list.join(',  \n') : ""
+
+           var base_sql = "alter table " + this.state.table_name
+
+//           var format_drop_sql = drop_sql_list.length>0 ? drop_sql_list.join(',  \n  ') + ',\n  ': ""
+//           var format_add_sql = add_sql_list.length>0 ? add_sql_list.join(',  \n  ') + ',\n  ': ""
+//           var format_modify_sql = modify_sql_list.length>0 ? modify_sql_list.join(',  \n  ') + ',\n  ': ""
+//           var format_change_sql = change_sql_list.length>0 ? change_sql_list.join(',  \n') : ""
+           var format_drop_sql = this.formatSql(base_sql,drop_sql_list);
+           var format_add_sql = this.formatSql(base_sql,add_sql_list);
+           var format_modify_sql = this.formatSql(base_sql,modify_sql_list);
+           var format_change_sql = this.formatSql(base_sql,change_sql_list);
            var sql = base_sql + format_drop_sql + format_add_sql  + format_modify_sql + format_change_sql
            sql = sql.substring(sql.length-1)===',' ? sql.substring(0,sql.length-1): sql  //去除最后一个逗号
            sql = sql + ';'  // 在拼接结束符号
            this.setState({sql_preview: sql})
        }
+   }
+
+   formatSql = (base_sql, sql_list) =>{
+       var sql = ""
+       sql_list.forEach((item)=>{
+           sql = sql + "\n  " + item + ","
+       })
+       console.log(sql)
+       return sql
    }
 
     formatPrimaryKey = (primary_keys) =>{
