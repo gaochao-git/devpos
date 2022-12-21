@@ -282,18 +282,23 @@ export class EditableAlterTable extends React.Component {
       {
         title: 'operation',
         dataIndex: 'operation',
-        width: '15%',
+        width: '8%',
         render: (text, record,idx) =>
           <div>
-            <Popconfirm title="Sure to delete?" onConfirm={() => this.handleDelete(record.key)}>
+            <Popconfirm
+              title={record.operate_flag ==="new_add_col" ? "Sure to delete?": <p style={{color:"red"}}>"注意!!! 会生成删除列数据的SQL,请谨慎操作"</p>}
+              onConfirm={() => this.handleDelete(record)}
+            >
               <a>Delete</a>
             </Popconfirm>
-            <Button style={{marginLeft:5}} onClick={()=>this.upRow(idx)}>
+            {/*
+              <Button style={{marginLeft:5}} onClick={()=>this.upRow(idx)}>
               <Icon type="arrow-up" />
-            </Button>
-            <Button onClick={()=>this.downRow(idx)}>
-              <Icon type="arrow-down" />
-            </Button>
+              </Button>
+              <Button onClick={()=>this.downRow(idx)}>
+                <Icon type="arrow-down" />
+              </Button>
+            */}
             <Button onClick={()=>this.handleAddNextColumn(record, idx)}>
               <Icon type="plus" />
             </Button>
@@ -447,7 +452,6 @@ export class EditableAlterTable extends React.Component {
       alter_table_info:[],  //修改表结构使用字段，父组件传递来的
       des_ip_port:"",       //目的ip，父组件传递来的
       des_schema_name:"",  //目的库名，父组件传递来的
-      delete_col_list:[],  //哪些列名删除了,删除的列放到这里,新增列如果列名相同直接填充,不允许先删除列在增加列
     };
   }
 
@@ -526,16 +530,11 @@ export class EditableAlterTable extends React.Component {
 
 
   //设计列: 删除列,将删除的列加到删除列表,后续添加列时如果字段名一样直接填充使用
-  handleDelete = key => {
+  handleDelete = record => {
     const dataSource = [...this.state.dataSource];
-    var delete_col_list = [...this.state.delete_col_list];
-    delete_col_list.push(dataSource.filter(item => item.key === key)[0])
     this.setState({
-      dataSource: dataSource.filter(item => item.key !== key),
-      delete_col_list: delete_col_list
+      dataSource: dataSource.filter(item => item.key !== record.key),
     });
-    console.log(delete_col_list)
-    console.log(this.state.delete_col_list)
   };
 
   //设计索引: 删除索引
@@ -581,6 +580,7 @@ export class EditableAlterTable extends React.Component {
       primary_key:false,
       extra_info:[],
       operate_flag: "new_add_col",   //标记这列是新增的
+      operate_position: "after",   //新增列在末尾
     };
     var newDataSource = []
     //更改每行key
@@ -613,6 +613,7 @@ export class EditableAlterTable extends React.Component {
       primary_key:false,
       extra_info:[],
       operate_flag: "new_add_col",   //标记这列是新增的
+      operate_position: "tail",   //新增列在末尾
     };
     this.setState({
       dataSource: [...dataSource, newData],
@@ -832,23 +833,6 @@ export class EditableAlterTable extends React.Component {
        const newData = [...this.state.dataSource];
        let row = record;
        row.old_name = row.old_name ? row.old_name: record.name   //如果old_name存在后续输入框在变化就不变了,保留原始列名
-       //判断字段名是否为已经删除的字段
-       for (var i=0; i<this.state.delete_col_list.length;i++){
-          if (this.state.delete_col_list[i]['name'] === new_value){
-               console.log(this.state.delete_col_list[i])
-               row.name = this.state.delete_col_list[i]['name']
-               row.type = this.state.delete_col_list[i]['type']
-               row.length = this.state.delete_col_list[i]['length']
-               row.point = this.state.delete_col_list[i]['point']
-               row.not_null = this.state.delete_col_list[i]['not_null']
-               row.default_value = this.state.delete_col_list[i]['default_value']
-               row.comment = this.state.delete_col_list[i]['comment']
-               row.extra_info = this.state.delete_col_list[i]['extra_info']
-               row.delete_flag = "delete_and_add"
-               this.setState({dataSource: newData});
-               return;
-           }
-       }
        row.name=new_value
        this.setState({dataSource: newData});
        //额外处理
@@ -934,7 +918,6 @@ export class EditableAlterTable extends React.Component {
     //从动态列源中获取列名(name,old_name)对应的信息是否存在
     get_field_from_data_source = (col_name, source) =>{
         //forEach return只是退出循环,代码会继续往下走
-        //
         for(var i=0;i<source.length;i++){
             if (col_name === source[i]['name'] || col_name === source[i]['old_name']){
                 return source[i];
@@ -943,25 +926,9 @@ export class EditableAlterTable extends React.Component {
         return false;
     }
 
-    buildAddSql = (field_detail) =>{
-        // var name = ' `' + field_detail['name'] + '`'
-        // var type = field_detail['type']
-        // var length = Number(field_detail['length'])
-        // var point = Number(field_detail['point'])
-        // var allow_null = field_detail['not_null'] ? ' NOT NULL' : ''
-        // var default_value = field_detail['default_value']==='' ? '': " DEFAULT " + field_detail['default_value']
-        // var extra_info = field_detail['extra_info']
-        // var comment = field_detail['comment']==='' ? '': " COMMENT " + "'" + field_detail['comment'] + "'"
-        //name: "col_test"
-        //type: "varchar"
-        //length: "50"
-        //point: 0
-        //not_null: true
-        //default_value: ""
-        //extra_info: []
-        //comment: ""
-        //key: 7
-        //primary_key: false
+    buildAddSql = (field_detail,before_column_detail) =>{
+        console.log(field_detail,before_column_detail)
+        var before_column_name = ' `' + before_column_detail['name'] + '`'
         var name = ' `' + field_detail['name'] + '`'
         var type = field_detail['type']
         var length = Number(field_detail['length'])
@@ -972,12 +939,13 @@ export class EditableAlterTable extends React.Component {
         var format_column_type = this.formatColumnType(type,length,point,allow_null,default_value,extra_info)
         var comment = field_detail['comment']==='' ? '': " COMMENT " + "'" + field_detail['comment'] + "'"
         var add_sql = "add column " + name + ' ' + format_column_type + comment
+        add_sql = field_detail.operate_position === "after" ? add_sql + " after " + before_column_name : add_sql
         return add_sql
     }
 
 
     buildDropSql = (field_name) =>{
-        var drop_sql = "drop column " + '`' + field_name + '`'
+        var drop_sql = "drop column " + '`' + field_name + '`' + '/*这列数据会被删除,请确认要删除*/'
         return drop_sql
     }
 
@@ -1009,23 +977,26 @@ export class EditableAlterTable extends React.Component {
         var change_sql = "change column " + old_name + ' ' + name + ' ' + format_column_type + comment
         return change_sql
     }
-   
+
    //生成该表结构SQL，自己设计
    generateAlterSql =() =>{
        var old_data_source = JSON.parse(this.state.alter_table_info[0]['data_source'])
+       var old_table_name = this.state.alter_table_info[0]['table_name']
+       var old_table_comment = this.state.alter_table_info[0]['table_comment']
+       var old_table_charset = this.state.alter_table_info[0]['table_charset']
        var data_source = this.state.dataSource
        var change_sql_list = []
        var modify_sql_list = []
        var add_sql_list = []
        var drop_sql_list = []
        var key_sql_list = []
-       // 获取增加的列
-       data_source.forEach((col)=>{
-           if (col.operate_flag === "new_add_col" && col.delete_flag !== "delete_and_add"){
-               add_sql_list.push(this.buildAddSql(col))
+       // 增加列,不用forEach,需要将上一个列一并传过去
+       for(var col=0;col<data_source.length;col++){
+            if (data_source[col].operate_flag === "new_add_col"){
+               add_sql_list.push(this.buildAddSql(data_source[col],data_source[col-1]))
            }
-       })
-       //获取改名后的列
+        }
+       //改名列
        data_source.forEach((col)=>{
            if (col.operate_flag === "new_add_col"){
                return true //模拟continue
@@ -1035,7 +1006,7 @@ export class EditableAlterTable extends React.Component {
                change_sql_list.push(this.buildChangeSql(col))
            }
        })
-       //获取修改列属性的列
+       //修改属性列
        data_source.forEach((col)=>{
            var old_col = this.get_field(col['name'],old_data_source)  //获取到证明该列是之前就存在的
            if (old_col !== false){
@@ -1053,32 +1024,69 @@ export class EditableAlterTable extends React.Component {
                }
            }
        })
-       // 获取减少的列，通过name和old_name识别，如果这2个都不存在说明这列被删除了
+       // 减少列，通过name和old_name识别，如果这2个都不存在说明这列被删除了
        old_data_source.forEach((col)=>{
            var old_col = this.get_field_from_data_source(col['name'],data_source)
            if (old_col === false){
                drop_sql_list.push(this.buildDropSql(col['name']))
            }
        })
-       if (change_sql_list.length===0 && modify_sql_list.length===0 && add_sql_list.length===0 && drop_sql_list.length===0 && key_sql_list.length===0){
+
+       if (
+           change_sql_list.length===0 &&
+           modify_sql_list.length===0 &&
+           add_sql_list.length===0 &&
+           drop_sql_list.length===0 &&
+           key_sql_list.length===0 &&
+           this.state.table_name === old_table_name &&
+           this.state.table_comment === old_table_comment &&
+           this.state.table_charset === old_table_charset
+       ){
            this.setState({sql_preview: ""})
        }else{
 
-           var base_sql = "alter table " + this.state.table_name
-
-//           var format_drop_sql = drop_sql_list.length>0 ? drop_sql_list.join(',  \n  ') + ',\n  ': ""
-//           var format_add_sql = add_sql_list.length>0 ? add_sql_list.join(',  \n  ') + ',\n  ': ""
-//           var format_modify_sql = modify_sql_list.length>0 ? modify_sql_list.join(',  \n  ') + ',\n  ': ""
-//           var format_change_sql = change_sql_list.length>0 ? change_sql_list.join(',  \n') : ""
+           var base_sql = "alter table " + old_table_name
            var format_drop_sql = this.formatSql(base_sql,drop_sql_list);
            var format_add_sql = this.formatSql(base_sql,add_sql_list);
            var format_modify_sql = this.formatSql(base_sql,modify_sql_list);
            var format_change_sql = this.formatSql(base_sql,change_sql_list);
-           var sql = base_sql + format_drop_sql + format_add_sql  + format_modify_sql + format_change_sql
+           var format_change_sql = this.formatSql(base_sql,change_sql_list);
+           var format_change_table_name_sql = this.formatTableNameSql(old_table_name);
+           var format_change_table_comment_sql = this.formatTableCommentSql(old_table_comment);
+           var format_change_table_charset_sql = this.formatTableCharsetSql(old_table_charset);
+           var sql = base_sql + format_drop_sql + format_add_sql  + format_modify_sql + format_change_sql  + format_change_table_comment_sql + format_change_table_charset_sql + format_change_table_name_sql
            sql = sql.substring(sql.length-1)===',' ? sql.substring(0,sql.length-1): sql  //去除最后一个逗号
            sql = sql + ';'  // 在拼接结束符号
            this.setState({sql_preview: sql})
        }
+   }
+
+   // 生成更改表名SQL
+   formatTableNameSql = (old_table_name) =>{
+       var sql = ""
+       if (this.state.table_name !== old_table_name) {
+           sql = "\n  rename to " + this.state.table_name  + ","
+       }
+       console.log(1111,sql)
+       return sql
+   }
+
+   // 生成更改注释SQL
+   formatTableCommentSql = (old_table_comment) =>{
+       var sql = ""
+       if (this.state.table_comment !== old_table_comment) {
+           sql = "\n  comment '" + this.state.table_comment  + "',"
+       }
+       return sql
+   }
+
+   // 生成更改字符集SQL
+   formatTableCharsetSql = (old_table_charset) =>{
+       var sql = ""
+       if (this.state.table_charset !== old_table_charset) {
+           sql = "\n  convert to character set '" + this.state.table_charset  + "',"
+       }
+       return sql
    }
 
    formatSql = (base_sql, sql_list) =>{
