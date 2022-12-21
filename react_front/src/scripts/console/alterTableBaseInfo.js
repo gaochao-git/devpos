@@ -1012,8 +1012,8 @@ export class EditableAlterTable extends React.Component {
            if (old_col !== false){
                if (
                    col['type'] !== old_col['type'] ||
-                   col['length'] !== old_col['length'] ||
-                   col['point'] !== old_col['point'] ||
+                   Number(col['length']) !== Number(old_col['length']) ||
+                   Number(col['point']) !== Number(old_col['point']) ||
                    col['default_value'] !== old_col['default_value'] ||
                    JSON.stringify(col['extra_info']) !== JSON.stringify(old_col['extra_info']) ||
                    col['not_null'] !== old_col['not_null'] ||
