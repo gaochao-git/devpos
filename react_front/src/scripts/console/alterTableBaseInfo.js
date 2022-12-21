@@ -457,7 +457,6 @@ export class EditableAlterTable extends React.Component {
 
   //设计表使用监听父组件变化,获取表信息,
   static getDerivedStateFromProps(nextProps,prevState) {
-    console.log(nextProps.alter_table_info)
     if(nextProps.alter_table_info !== prevState.alter_table_info ){
        return {
           alter_table_info: nextProps.alter_table_info,
@@ -927,7 +926,6 @@ export class EditableAlterTable extends React.Component {
     }
 
     buildAddSql = (field_detail,before_column_detail) =>{
-        console.log(field_detail,before_column_detail)
         var before_column_name = ' `' + before_column_detail['name'] + '`'
         var name = ' `' + field_detail['name'] + '`'
         var type = field_detail['type']
@@ -981,6 +979,7 @@ export class EditableAlterTable extends React.Component {
    //生成该表结构SQL，自己设计
    generateAlterSql =() =>{
        var old_data_source = JSON.parse(this.state.alter_table_info[0]['data_source'])
+       var old_index_source = JSON.parse(this.state.alter_table_info[0]['index_source'])
        var old_table_name = this.state.alter_table_info[0]['table_name']
        var old_table_comment = this.state.alter_table_info[0]['table_comment']
        var old_table_charset = this.state.alter_table_info[0]['table_charset']
@@ -990,12 +989,14 @@ export class EditableAlterTable extends React.Component {
        var add_sql_list = []
        var drop_sql_list = []
        var key_sql_list = []
+       var new_primary_key_col_list = data_source.filter(item => item.primary_key === true)      // 主键列过滤出来
+       var old_primary_key_col_list = old_data_source.filter(item => item.primary_key === true)  // 主键列过滤出来
        // 增加列,不用forEach,需要将上一个列一并传过去
        for(var col=0;col<data_source.length;col++){
-            if (data_source[col].operate_flag === "new_add_col"){
-               add_sql_list.push(this.buildAddSql(data_source[col],data_source[col-1]))
-           }
-        }
+           if (data_source[col].operate_flag === "new_add_col"){
+              add_sql_list.push(this.buildAddSql(data_source[col],data_source[col-1]))
+          }
+       }
        //改名列
        data_source.forEach((col)=>{
            if (col.operate_flag === "new_add_col"){
@@ -1024,6 +1025,8 @@ export class EditableAlterTable extends React.Component {
                }
            }
        })
+
+
        // 减少列，通过name和old_name识别，如果这2个都不存在说明这列被删除了
        old_data_source.forEach((col)=>{
            var old_col = this.get_field_from_data_source(col['name'],data_source)
@@ -1031,7 +1034,7 @@ export class EditableAlterTable extends React.Component {
                drop_sql_list.push(this.buildDropSql(col['name']))
            }
        })
-
+       //生成Alter SQL
        if (
            change_sql_list.length===0 &&
            modify_sql_list.length===0 &&
@@ -1040,7 +1043,8 @@ export class EditableAlterTable extends React.Component {
            key_sql_list.length===0 &&
            this.state.table_name === old_table_name &&
            this.state.table_comment === old_table_comment &&
-           this.state.table_charset === old_table_charset
+           this.state.table_charset === old_table_charset &&
+           JSON.stringify(new_primary_key_col_list) === JSON.stringify(old_primary_key_col_list)
        ){
            this.setState({sql_preview: ""})
        }else{
@@ -1054,11 +1058,26 @@ export class EditableAlterTable extends React.Component {
            var format_change_table_name_sql = this.formatTableNameSql(old_table_name);
            var format_change_table_comment_sql = this.formatTableCommentSql(old_table_comment);
            var format_change_table_charset_sql = this.formatTableCharsetSql(old_table_charset);
-           var sql = base_sql + format_drop_sql + format_add_sql  + format_modify_sql + format_change_sql  + format_change_table_comment_sql + format_change_table_charset_sql + format_change_table_name_sql
+           var format_primary_key_sql = this.formatAlterTablePrimaryKeySql(data_source, old_data_source);
+           var sql = base_sql + format_drop_sql + format_add_sql  + format_modify_sql + format_change_sql  + format_change_table_comment_sql + format_change_table_charset_sql + format_primary_key_sql + format_change_table_name_sql
            sql = sql.substring(sql.length-1)===',' ? sql.substring(0,sql.length-1): sql  //去除最后一个逗号
            sql = sql + ';'  // 在拼接结束符号
            this.setState({sql_preview: sql})
        }
+   }
+   //修改主键
+   formatAlterTablePrimaryKeySql = (new_primary_key_col_list, old_primary_key_col_list) =>{
+       var sql = "";
+       var pri_col_name_list = []
+       if (JSON.stringify(new_primary_key_col_list) !== JSON.stringify(old_primary_key_col_list)){
+           new_primary_key_col_list.forEach((item)=>{
+               if (item.primary_key){
+                   pri_col_name_list.push(item.name)
+               }
+           })
+           sql = "\n  DROP PRIMARY KEY, ADD PRIMARY KEY (" + pri_col_name_list.join(',') + ")  /*更改主键比较危险,请充分评估*/"
+       }
+       return sql;
    }
 
    // 生成更改表名SQL
@@ -1067,7 +1086,6 @@ export class EditableAlterTable extends React.Component {
        if (this.state.table_name !== old_table_name) {
            sql = "\n  rename to " + this.state.table_name  + ","
        }
-       console.log(1111,sql)
        return sql
    }
 
@@ -1094,7 +1112,6 @@ export class EditableAlterTable extends React.Component {
        sql_list.forEach((item)=>{
            sql = sql + "\n  " + item + ","
        })
-       console.log(sql)
        return sql
    }
 
