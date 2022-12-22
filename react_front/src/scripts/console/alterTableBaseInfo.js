@@ -966,7 +966,7 @@ export class EditableAlterTable extends React.Component {
         if(index_type==='unique' && !index_name.match('^uniq_.*')){
             message.warning(index_name + "为唯一索引类型,请使用uniq_前缀",3)
         }
-        index_info = index_type==='unique'? `UNIQUE KEY \`${index_name}\` (${index_column})`: `KEY \`${index_name}\` (${index_column})`
+        index_info = index_type==='unique'? `UNIQUE KEY \`${index_name}\` (${index_column}) /*先确认表中是否有重复数据,如果有重复数据增加唯一索引会失败*/`: `KEY \`${index_name}\` (${index_column})`
         var add_index_sql = "add " + index_info
         return add_index_sql
     }
