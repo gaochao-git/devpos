@@ -1043,12 +1043,7 @@ export class EditableAlterTable extends React.Component {
               add_sql_list.push(this.buildAddSql(data_source[col],data_source[col-1]))
            }
        }
-//       // 增加索引
-//       index_source.forEach((item)=>{
-//           if (item.operate_flag === "new_add_index"){
-//              add_key_sql_list.push(this.buildAddIndexSql(item))
-//           }
-//       })
+
        // 增加索引
        index_source.forEach((index)=>{
            var find_index = this.get_index(index,old_index_source)
