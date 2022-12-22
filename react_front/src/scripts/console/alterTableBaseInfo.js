@@ -925,6 +925,22 @@ export class EditableAlterTable extends React.Component {
         return false;
     }
 
+    //获取index
+    get_index = (index, source) =>{
+        for(var i=0;i<source.length;i++){
+            console.log(typeof index['index_column_detail'], typeof source[i]['index_column_detail'])
+            if (
+                index['index_type'] === source[i]['index_type'] &&
+                index['index_name'] === source[i]['index_name'] &&
+                index['index_column'] === source[i]['index_column'] &&
+                JSON.stringify(index['index_column_detail']) === JSON.stringify(source[i]['index_column_detail'])
+            ){
+                return source[i];
+            }
+        }
+        return false;
+    }
+
     buildAddSql = (field_detail,before_column_detail) =>{
         var before_column_name = ' `' + before_column_detail['name'] + '`'
         var name = ' `' + field_detail['name'] + '`'
@@ -941,6 +957,26 @@ export class EditableAlterTable extends React.Component {
         return add_sql
     }
 
+
+    buildAddIndexSql = (index_detail) =>{
+        var index_info = ""
+        var index_type = index_detail['index_type']
+        var index_column =index_detail['index_column']
+        var index_name =index_detail['index_name']
+        if(index_type==='unique' && !index_name.match('^uniq_.*')){
+            message.warning(index_name + "为唯一索引类型,请使用uniq_前缀",3)
+        }
+        index_info = index_type==='unique'? `UNIQUE KEY \`${index_name}\` (${index_column})`: `KEY \`${index_name}\` (${index_column})`
+        var add_index_sql = "add " + index_info
+        return add_index_sql
+    }
+
+    buildDropIndexSql = (index_detail) =>{
+        var index_type = index_detail['index_type']
+        var index_name =index_detail['index_name']
+        var drop_index_sql = "drop index " + '`' + index_name + '`' + '/*索引删除会影响查询效率,请确认要删除*/'
+        return drop_index_sql
+    }
 
     buildDropSql = (field_name) =>{
         var drop_sql = "drop column " + '`' + field_name + '`' + '/*这列数据会被删除,请确认要删除*/'
@@ -978,25 +1014,55 @@ export class EditableAlterTable extends React.Component {
 
    //生成该表结构SQL，自己设计
    generateAlterSql =() =>{
+       //增加索引、删除索引、修改索引类型、修改索引列
        var old_data_source = JSON.parse(this.state.alter_table_info[0]['data_source'])
        var old_index_source = JSON.parse(this.state.alter_table_info[0]['index_source'])
        var old_table_name = this.state.alter_table_info[0]['table_name']
        var old_table_comment = this.state.alter_table_info[0]['table_comment']
        var old_table_charset = this.state.alter_table_info[0]['table_charset']
        var data_source = this.state.dataSource
+       var index_source = this.state.indexSource
        var change_sql_list = []
        var modify_sql_list = []
        var add_sql_list = []
        var drop_sql_list = []
-       var key_sql_list = []
+       var add_key_sql_list = []
+       var drop_key_sql_list = []
        var new_primary_key_col_list = data_source.filter(item => item.primary_key === true)      // 主键列过滤出来
        var old_primary_key_col_list = old_data_source.filter(item => item.primary_key === true)  // 主键列过滤出来
+
+
+       //生成列名
+       var column_name_list = []
+       data_source.forEach(field_detail => {
+           column_name_list.push(field_detail.name)
+       });
        // 增加列,不用forEach,需要将上一个列一并传过去
        for(var col=0;col<data_source.length;col++){
            if (data_source[col].operate_flag === "new_add_col"){
               add_sql_list.push(this.buildAddSql(data_source[col],data_source[col-1]))
-          }
+           }
        }
+//       // 增加索引
+//       index_source.forEach((item)=>{
+//           if (item.operate_flag === "new_add_index"){
+//              add_key_sql_list.push(this.buildAddIndexSql(item))
+//           }
+//       })
+       // 增加索引
+       index_source.forEach((index)=>{
+           var find_index = this.get_index(index,old_index_source)
+           if (find_index === false){
+               add_key_sql_list.push(this.buildAddIndexSql(index))
+           }
+       })
+       // 获取减少的索引
+       old_index_source.forEach((index)=>{
+           var find_index = this.get_index(index,index_source)
+           if (find_index === false){
+               drop_key_sql_list.push(this.buildDropIndexSql(index))
+           }
+       })
        //改名列
        data_source.forEach((col)=>{
            if (col.operate_flag === "new_add_col"){
@@ -1040,7 +1106,8 @@ export class EditableAlterTable extends React.Component {
            modify_sql_list.length===0 &&
            add_sql_list.length===0 &&
            drop_sql_list.length===0 &&
-           key_sql_list.length===0 &&
+           add_key_sql_list.length===0 &&
+           drop_key_sql_list.length===0 &&
            this.state.table_name === old_table_name &&
            this.state.table_comment === old_table_comment &&
            this.state.table_charset === old_table_charset &&
@@ -1059,10 +1126,12 @@ export class EditableAlterTable extends React.Component {
            var format_change_table_comment_sql = this.formatTableCommentSql(old_table_comment);
            var format_change_table_charset_sql = this.formatTableCharsetSql(old_table_charset);
            var format_primary_key_sql = this.formatAlterTablePrimaryKeySql(data_source, old_data_source);
-           var sql = base_sql + format_drop_sql + format_add_sql  + format_modify_sql + format_change_sql  + format_change_table_comment_sql + format_change_table_charset_sql + format_primary_key_sql + format_change_table_name_sql
+           var format_add_key_sql = this.formatSql(base_sql,add_key_sql_list)
+           var format_drop_key_sql = this.formatSql(base_sql,drop_key_sql_list)
+           var sql = base_sql + format_drop_sql + format_add_sql  + format_modify_sql + format_change_sql  + format_change_table_comment_sql + format_change_table_charset_sql + format_primary_key_sql + format_add_key_sql + format_drop_key_sql + format_change_table_name_sql
            sql = sql.substring(sql.length-1)===',' ? sql.substring(0,sql.length-1): sql  //去除最后一个逗号
            sql = sql + ';'  // 在拼接结束符号
-           this.setState({sql_preview: sql})
+           this.setState({sql_preview: sql,column_name_list:column_name_list})
        }
    }
    //修改主键
@@ -1138,7 +1207,7 @@ export class EditableAlterTable extends React.Component {
        }
        return true
    }
-   
+
    //格式化字段
    formatColumnType = (type,length,point,allow_null,default_value,extra_info) =>{
        var COLUMN_TYPE = ""
