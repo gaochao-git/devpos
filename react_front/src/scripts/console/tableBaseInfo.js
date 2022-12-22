@@ -763,9 +763,9 @@ export class EditableTable extends React.Component {
            var column_name = newIndexSource[this.state.current_edit_index]['index_column_detail'][i]['column_name']
            var index_prefix_length = newIndexSource[this.state.current_edit_index]['index_column_detail'][i]['length']
            if (Number(index_prefix_length)>0){
-             index_columns = index_columns + `\`{column_name}\`({index_prefix_length})` + ','
+             index_columns = index_columns + column_name + '(' + index_prefix_length + ')' + ','
            }else {
-             index_columns = index_columns + "`" + column_name + "`"  + ','
+             index_columns = index_columns + column_name + ','
            }
        }
        index_columns = index_columns.slice(0,index_columns.length-1);   //去掉多余逗号
