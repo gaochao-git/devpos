@@ -763,9 +763,9 @@ export class EditableTable extends React.Component {
            var column_name = newIndexSource[this.state.current_edit_index]['index_column_detail'][i]['column_name']
            var index_prefix_length = newIndexSource[this.state.current_edit_index]['index_column_detail'][i]['length']
            if (Number(index_prefix_length)>0){
-             index_columns = index_columns + column_name + '(' + index_prefix_length + ')' + ','
+             index_columns = index_columns + '`' + column_name + '`' + '(' + index_prefix_length + ')' + ','
            }else {
-             index_columns = index_columns + column_name + ','
+             index_columns = index_columns + '`' + column_name + '`' + ','
            }
        }
        index_columns = index_columns.slice(0,index_columns.length-1);   //去掉多余逗号
@@ -827,7 +827,7 @@ export class EditableTable extends React.Component {
            var primary_key = field_detail['primary_key'] ? primary_keys.push(field_detail['name']): null
            //列拼接
            var column_info = ""
-           var name = ' `' + field_detail['name'] + '`'
+           var name = field_detail['name']
            var type = field_detail['type']
            var length = Number(field_detail['length'])
            var point = Number(field_detail['point'])
@@ -837,7 +837,7 @@ export class EditableTable extends React.Component {
            var comment = field_detail['comment']==='' ? '': " COMMENT " + "'" + field_detail['comment'] + "'"
            //格式化列属性
            var format_column_type = this.formatColumnType(type,length,point,allow_null,default_value,extra_info)
-           column_info = name + ' ' + format_column_type + comment
+           column_info =  "`" + name +  "`" + ' ' + format_column_type + comment
            table_columns = table_columns.length>0 ? table_columns + ',\n' + ' ' + column_info: ' ' + column_info
            column_name_list.push(name)
        });
