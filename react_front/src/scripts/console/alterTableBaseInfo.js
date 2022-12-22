@@ -452,6 +452,7 @@ export class EditableAlterTable extends React.Component {
       alter_table_info:[],  //修改表结构使用字段，父组件传递来的
       des_ip_port:"",       //目的ip，父组件传递来的
       des_schema_name:"",  //目的库名，父组件传递来的
+      alterSqlType:"merge", //合并多条alter
     };
   }
 
@@ -491,6 +492,34 @@ export class EditableAlterTable extends React.Component {
               }
           }
       ).catch(err=>message.error(err.message))
+  }
+
+  mergeOrSplit = () =>{
+      if (this.state.sql_preview===""){
+          return
+      }
+      var sql_list = this.state.sql_preview.split('\n')
+      sql_list = sql_list.filter(item => item !== "")  //去除''
+      var alter_sql_prefix = this.state.sql_preview.split('\n')[0].split(' ').slice(0,3).join(' ')  //第1行前3个字符串
+      if (this.state.alterSqlType==="merge") {
+          var merge_sql = this.state.merge_sql_view
+          this.setState({sql_preview:merge_sql})
+      }else {
+          //没一行必须有alter开始,没有的追加alter，并删除最后","并加";"
+          var split_sql = ""
+          sql_list.forEach((item)=>{
+              item = item.substring(item.length-1)===',' ? item.substring(0,item.length-1): item
+              item = item.substring(item.length-1)===';' ? item.substring(0,item.length-1): item
+              if (item.match(/^ALTER TABLE/g)){
+                  if (item.split(' ').length>3){
+                      split_sql = split_sql + item + ';\n'
+                  }
+              }else{
+                  split_sql = split_sql + alter_sql_prefix  + item + ';\n'
+              }
+          })
+          this.setState({sql_preview:split_sql})
+      }
   }
 
   //保存设计表信息快照
@@ -839,71 +868,6 @@ export class EditableAlterTable extends React.Component {
    }
 
 
-
-
-
-   //生成建表SQL
-   generateSql =() =>{
-       if (!this.checkBaseTableInfo()){
-           this.setState({sql_preview:""})
-           return
-       }
-       var sql = ''
-       var table_columns = ''
-       var primary_keys = []
-       var table_index = ''
-       var table_head = 'CREATE TABLE ' + '`' + this.state.table_name + '`'  + ' ('
-       var table_engine = ') ENGINE=' + this.state.table_engine
-       var table_charset = ' DEFAULT CHARSET=' + this.state.table_charset
-       var table_comment = this.state.table_comment.length !== 0 ? ' COMMENT=' + "'" + this.state.table_comment + "'" : ""
-       var table_auto_increment = this.state.table_auto_increment.length !== 0 ? ' AUTO_INCREMENT=' + this.state.table_auto_increment : ""
-       //生成列
-       var column_name_list = []
-       this.state.dataSource.forEach(field_detail => {
-           //主键识别
-           var primary_key = field_detail['primary_key'] ? primary_keys.push(field_detail['name']): null
-           //列拼接
-           var column_info = ""
-           var name = field_detail['name']
-           var type = field_detail['type']
-           var length = Number(field_detail['length'])
-           var point = Number(field_detail['point'])
-           var allow_null = field_detail['not_null'] ? ' NOT NULL' : ''
-           var default_value = field_detail['default_value']==='' ? '': " DEFAULT " + field_detail['default_value']
-           var extra_info = field_detail['extra_info']
-           var comment = field_detail['comment']==='' ? '': " COMMENT " + "'" + field_detail['comment'] + "'"
-           //格式化列属性
-           var format_column_type = this.formatColumnType(type,length,point,allow_null,default_value,extra_info)
-           column_info =  "`" + name +  "`" + ' ' + format_column_type + comment
-           table_columns = table_columns.length>0 ? table_columns + ',\n' + ' ' + column_info: ' ' + column_info
-           column_name_list.push(name)
-       });
-       //生成索引
-       this.state.indexSource.forEach(index_detail => {
-           var index_info = ""
-           var index_type = index_detail['index_type']
-           var index_column =index_detail['index_column']
-           var index_name =index_detail['index_name']
-           if(index_type==='unique' && !index_name.match('^uniq_.*')){
-               message.warning(index_name + "为唯一索引类型,请使用uniq_前缀",3)
-           }
-           index_info = index_type==='unique'? `UNIQUE KEY \`${index_name}\` (${index_column})`: `KEY \`${index_name}\` (${index_column})`
-           table_index = table_index.length>0 ? table_index + ',\n' + '  ' + index_info: '  ' + index_info
-       })
-       //生成主键
-       if (primary_keys.length===0){
-           message.error("表必须有主键")
-           this.setState({sql_preview:""})
-           return
-       }
-       primary_keys = this.formatPrimaryKey(primary_keys)
-       primary_keys = table_index.length>0 ? primary_keys + ',\n' : primary_keys
-       //拼接SQL
-       sql = table_head + '\n' + table_columns + ',\n' + primary_keys + table_index + '\n' + table_engine + table_auto_increment + table_charset + table_comment + ';'
-       this.setState({sql_preview:sql,column_name_list:column_name_list})
-   }
-
-
     get_field = (col_name, source) =>{
         //forEach return只是退出循环,代码会继续往下走
         for(var i=0;i<source.length;i++){
@@ -928,7 +892,6 @@ export class EditableAlterTable extends React.Component {
     //获取index
     get_index = (index, source) =>{
         for(var i=0;i<source.length;i++){
-            console.log(typeof index['index_column_detail'], typeof source[i]['index_column_detail'])
             if (
                 index['index_type'] === source[i]['index_type'] &&
                 index['index_name'] === source[i]['index_name'] &&
@@ -943,16 +906,8 @@ export class EditableAlterTable extends React.Component {
 
     buildAddSql = (field_detail,before_column_detail) =>{
         var before_column_name = ' `' + before_column_detail['name'] + '`'
-        var name = ' `' + field_detail['name'] + '`'
-        var type = field_detail['type']
-        var length = Number(field_detail['length'])
-        var point = Number(field_detail['point'])
-        var allow_null = field_detail['not_null'] ? ' NOT NULL' : ''
-        var default_value = field_detail['default_value']==='' ? '': " DEFAULT " + field_detail['default_value']
-        var extra_info = field_detail['extra_info']
-        var format_column_type = this.formatColumnType(type,length,point,allow_null,default_value,extra_info)
-        var comment = field_detail['comment']==='' ? '': " COMMENT " + "'" + field_detail['comment'] + "'"
-        var add_sql = "add column " + name + ' ' + format_column_type + comment
+        var format_column = this.formatColumn(field_detail)
+        var add_sql = "ADD COLUMN " + format_column
         add_sql = field_detail.operate_position === "after" ? add_sql + " after " + before_column_name : add_sql
         return add_sql
     }
@@ -979,40 +934,24 @@ export class EditableAlterTable extends React.Component {
     }
 
     buildDropSql = (field_name) =>{
-        var drop_sql = "drop column " + '`' + field_name + '`' + '/*这列数据会被删除,请确认要删除*/'
+        var drop_sql = "DROP COLUMN " + '`' + field_name + '`' + '/*这列数据会被删除,请确认要删除*/'
         return drop_sql
     }
 
     buildModifySql = (field_detail) =>{
-        var name = ' `' + field_detail['name'] + '`'
-        var type = field_detail['type']
-        var length = Number(field_detail['length'])
-        var point = Number(field_detail['point'])
-        var default_value = field_detail['default_value']==='' ? '': " DEFAULT " + field_detail['default_value']
-        var extra_info = JSON.stringify(field_detail['extra_info'])
-        var allow_null = field_detail['not_null'] ? ' NOT NULL' : ''
-        var comment = field_detail['comment']==='' ? '': " COMMENT " + "'" + field_detail['comment'] + "'"
-        var format_column_type =this.formatColumnType(type,length,point,allow_null,default_value,extra_info)
-        var modify_sql = "modify column " + name + ' ' + format_column_type + comment
+        var format_column =this.formatColumn(field_detail)
+        var modify_sql = "MODIFY COLUMN " + format_column
         return modify_sql
-    }
+    }   
 
     buildChangeSql = (field_detail) =>{
         var old_name = ' `' + field_detail['old_name'] + '`'
-        var name = ' `' + field_detail['name'] + '`'
-        var type = field_detail['type']
-        var length = Number(field_detail['length'])
-        var point = Number(field_detail['point'])
-        var default_value = field_detail['default_value']==='' ? '': " DEFAULT " + field_detail['default_value']
-        var extra_info = JSON.stringify(field_detail['extra_info'])
-        var allow_null = field_detail['not_null'] ? ' NOT NULL' : ''
-        var comment = field_detail['comment']==='' ? '': " COMMENT " + "'" + field_detail['comment'] + "'"
-        var format_column_type =this.formatColumnType(type,length,point,allow_null,default_value,extra_info)
-        var change_sql = "change column " + old_name + ' ' + name + ' ' + format_column_type + comment
+        var format_column =this.formatColumn(field_detail)
+        var change_sql = "CHANGE column " + old_name + format_column
         return change_sql
     }
 
-   //生成该表结构SQL，自己设计
+   //生成改表结构SQL
    generateAlterSql =() =>{
        //增加索引、删除索引、修改索引类型、修改索引列
        var old_data_source = JSON.parse(this.state.alter_table_info[0]['data_source'])
@@ -1086,8 +1025,6 @@ export class EditableAlterTable extends React.Component {
                }
            }
        })
-
-
        // 减少列，通过name和old_name识别，如果这2个都不存在说明这列被删除了
        old_data_source.forEach((col)=>{
            var old_col = this.get_field_from_data_source(col['name'],data_source)
@@ -1110,36 +1047,37 @@ export class EditableAlterTable extends React.Component {
        ){
            this.setState({sql_preview: ""})
        }else{
-
-           var base_sql = "alter table " + old_table_name
-           var format_drop_sql = this.formatSql(base_sql,drop_sql_list);
-           var format_add_sql = this.formatSql(base_sql,add_sql_list);
-           var format_modify_sql = this.formatSql(base_sql,modify_sql_list);
-           var format_change_sql = this.formatSql(base_sql,change_sql_list);
-           var format_change_sql = this.formatSql(base_sql,change_sql_list);
+           var base_sql = "ALTER TABLE " + old_table_name
+           var format_drop_col_sql = this.formatSql(base_sql,drop_sql_list);
+           var format_add_col_sql = this.formatSql(base_sql,add_sql_list);
+           var format_modify_col_sql = this.formatSql(base_sql,modify_sql_list);
+           var format_change_col_sql = this.formatSql(base_sql,change_sql_list);
            var format_change_table_name_sql = this.formatTableNameSql(old_table_name);
            var format_change_table_comment_sql = this.formatTableCommentSql(old_table_comment);
            var format_change_table_charset_sql = this.formatTableCharsetSql(old_table_charset);
-           var format_primary_key_sql = this.formatAlterTablePrimaryKeySql(data_source, old_data_source);
+           var format_primary_key_sql = this.formatAlterTablePrimaryKeySql(new_primary_key_col_list, old_primary_key_col_list);
            var format_add_key_sql = this.formatSql(base_sql,add_key_sql_list)
            var format_drop_key_sql = this.formatSql(base_sql,drop_key_sql_list)
-           var sql = base_sql + format_drop_sql + format_add_sql  + format_modify_sql + format_change_sql  + format_change_table_comment_sql + format_change_table_charset_sql + format_primary_key_sql + format_add_key_sql + format_drop_key_sql + format_change_table_name_sql
+           var sql = base_sql + format_drop_col_sql + format_add_col_sql  + format_modify_col_sql + format_change_col_sql  + format_primary_key_sql + format_add_key_sql + format_drop_key_sql + format_change_table_comment_sql + format_change_table_charset_sql + format_change_table_name_sql
            sql = sql.substring(sql.length-1)===',' ? sql.substring(0,sql.length-1): sql  //去除最后一个逗号
            sql = sql + ';'  // 在拼接结束符号
-           this.setState({sql_preview: sql,column_name_list:column_name_list})
+           this.setState({sql_preview: sql, merge_sql_view:sql, column_name_list:column_name_list})
        }
    }
    //修改主键
    formatAlterTablePrimaryKeySql = (new_primary_key_col_list, old_primary_key_col_list) =>{
        var sql = "";
        var pri_col_name_list = []
+       console.log(new_primary_key_col_list, old_primary_key_col_list)
+       console.log(typeof new_primary_key_col_list, typeof old_primary_key_col_list)
        if (JSON.stringify(new_primary_key_col_list) !== JSON.stringify(old_primary_key_col_list)){
            new_primary_key_col_list.forEach((item)=>{
                if (item.primary_key){
                    pri_col_name_list.push(item.name)
                }
            })
-           sql = "\n  DROP PRIMARY KEY, ADD PRIMARY KEY (" + pri_col_name_list.join(',') + ")  /*更改主键比较危险,请充分评估*/,"
+           sql = "\n  DROP PRIMARY KEY /*更改主键比较危险,请充分评估*/,"
+           sql = sql + "\n  ADD PRIMARY KEY (" + pri_col_name_list.join(',') + ")"
        }
        return sql;
    }
@@ -1204,7 +1142,15 @@ export class EditableAlterTable extends React.Component {
    }
 
    //格式化字段
-   formatColumnType = (type,length,point,allow_null,default_value,extra_info) =>{
+   formatColumn = (field_detail) =>{
+       var name = ' `' + field_detail['name'] + '`'
+       var type = field_detail['type']
+       var length = Number(field_detail['length'])
+       var point = Number(field_detail['point'])
+       var allow_null = field_detail['not_null'] ? ' NOT NULL' : ''
+       var default_value = field_detail['default_value']==='' ? '': " DEFAULT " + field_detail['default_value']
+       var extra_info = field_detail['extra_info']
+       var comment = field_detail['comment']==='' ? '': " COMMENT " + "'" + field_detail['comment'] + "'"
        var COLUMN_TYPE = ""
        var extra_info_unsigned = ""
        var extra_info_zerofill = ""
@@ -1268,7 +1214,7 @@ export class EditableAlterTable extends React.Component {
            default:
               COLUMN_TYPE = type + allow_null + default_value
       }
-      return COLUMN_TYPE
+      return name + ' ' +  COLUMN_TYPE + comment
    }
 
    callbackTabPane = (key) =>{
@@ -1502,6 +1448,12 @@ export class EditableAlterTable extends React.Component {
             </Button>
             <Button onClick={()=>this.handleSnapshot()} type="primary" style={{ marginTop: 5,marginLeft:10  }}>
               保存当前建表信息
+            </Button>
+            <Button onClick={()=>this.setState({alterSqlType: "merge"},()=>this.mergeOrSplit())} type="dash" style={{ marginTop: 5,marginLeft:10  }}>
+              合并DDL
+            </Button>
+            <Button onClick={()=>this.setState({alterSqlType: "split"},()=>this.mergeOrSplit())} type="dash" style={{ marginTop: 5,marginLeft:10  }}>
+              拆分DDL
             </Button>
             <AditSqlTable
                 data={this.state.check_sql_result}
