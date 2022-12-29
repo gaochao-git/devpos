@@ -45,6 +45,13 @@ function LoginOut(){
     window.location.reload()
 }
 
+//sso登出使用
+function LoginOutSSO(){
+    let aa = encodeURIComponent(`${window.location.href}`)
+    let bb = encodeURIComponent(`?next=${aa}`)
+    window.location = `${backendServerApiRoot/sso_logout?next=api/sso_login/${bb}}`
+}
+
 class App extends Component {
     constructor(props) {
         super(props);
