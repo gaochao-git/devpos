@@ -329,11 +329,6 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
     :param des_table_name:
     :return:
     """
-    sql = f"""
-            select table_name, data_source,index_source, table_engine, table_charset, table_comment,create_time,update_time
-            from web_console_design_table_info limit 1
-        """
-    mock_ret = db_helper.find_all(sql)
     sql1 = f"""
         select 
             ORDINAL_POSITION,
@@ -483,11 +478,13 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
     table_charset = table_match_info_2[0]
     table_auto_increment = table_match_info_3[0] if table_match_info_3 else ""
     table_comment = table_match_info_4[0] if table_match_info_4 else ""
-    mock_ret['data'][0]['data_source'] = json.dumps(format_data_source)
-    mock_ret['data'][0]['index_source'] = json.dumps(format_index_source)
-    mock_ret['data'][0]['table_name'] = des_table_name
-    mock_ret['data'][0]['table_engine'] = table_engine
-    mock_ret['data'][0]['table_charset'] = table_charset
-    mock_ret['data'][0]['table_comment'] = table_comment[1: len(table_comment)-1] # 去除首位引号
-    mock_ret['data'][0]['table_auto_increment'] = table_auto_increment
-    return mock_ret
+    table_detail = {
+        'data_source': json.dumps(format_data_source),
+        'index_source': json.dumps(format_index_source),
+        'table_name': des_table_name,
+        'table_engine': table_engine,
+        'table_charset': table_charset,
+        'table_comment': table_comment[1: len(table_comment) - 1],  # 去除首尾引号
+        'table_auto_increment': table_auto_increment
+    }
+    return {"status": "ok", "message": "获取成功", "data": table_detail}

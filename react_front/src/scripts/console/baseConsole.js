@@ -901,8 +901,8 @@ export class BaseConsole extends Component {
              <Icon style={{background:'#f1f2f5'}} type="close" onClick={()=>this.setState({contextMenuVisiable:false})} />
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"struct")}>查看表结构</Button>
              <Button type="link" onClick={()=>this.fastTableInfo(this.state.rightClickData.key,"status")}>查看表信息</Button>
-             <Button type="link" onClick={()=>this.setState({editTableModal:true,contextMenuVisiable:false})}>新建表</Button>
-             <Button type="link" onClick={()=>this.alterDesignTable(this.state.rightClickData.key)}>设计表</Button>
+             <Button type="link" onClick={()=>this.setState({editTableModal:true,contextMenuVisiable:false})}>新建表结构</Button>
+             <Button type="link" onClick={()=>this.alterDesignTable(this.state.rightClickData.key)}>更改表结构</Button>
            </div>
            :null
           }

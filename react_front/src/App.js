@@ -34,6 +34,7 @@ import MetaCompare from './scripts/console/metaCompare'
 import TableDesign from './scripts/console/tableDesign'
 import JksJobConfig from './scripts/configManage/jksJobConfig'
 import JksCommonJob from './scripts/jks/jksCommonJob'
+import { backendServerApiRoot } from "./scripts/common/util";
 
 
 const { Header, Footer, Sider, Content } = Layout;
@@ -41,15 +42,15 @@ const { SubMenu } = Menu;
 
 function LoginOut(){
     console.log("退出登陆");
-    window.localStorage.removeItem("token")
-    window.location.reload()
+    window.localStorage.removeItem("token");
+    window.location.reload();
 }
 
 //sso登出使用
 function LoginOutSSO(){
-    let aa = encodeURIComponent(`${window.location.href}`)
-    let bb = encodeURIComponent(`?next=${aa}`)
-    window.location = `${backendServerApiRoot/sso_logout?next=api/sso_login/${bb}}`
+    let aa = encodeURIComponent(`${window.location.href}`);
+    let bb = encodeURIComponent(`?next=${aa}`);
+    window.location = `${backendServerApiRoot}/sso_logout?next=api/sso_login/${bb}`;
 }
 
 class App extends Component {

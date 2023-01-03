@@ -461,13 +461,13 @@ export class EditableAlterTable extends React.Component {
     if(nextProps.alter_table_info !== prevState.alter_table_info ){
        return {
           alter_table_info: nextProps.alter_table_info,
-          dataSource:JSON.parse(nextProps.alter_table_info[0]['data_source']),
-          indexSource:JSON.parse(nextProps.alter_table_info[0]['index_source']),
-          table_name:nextProps.alter_table_info[0]['table_name'],
-          table_engine:nextProps.alter_table_info[0]['table_engine'],
-          table_comment:nextProps.alter_table_info[0]['table_comment'],
-          table_charset:nextProps.alter_table_info[0]['table_charset'],
-          table_auto_increment:nextProps.alter_table_info[0]['table_auto_increment'],
+          dataSource:JSON.parse(nextProps.alter_table_info['data_source']),
+          indexSource:JSON.parse(nextProps.alter_table_info['index_source']),
+          table_name:nextProps.alter_table_info['table_name'],
+          table_engine:nextProps.alter_table_info['table_engine'],
+          table_comment:nextProps.alter_table_info['table_comment'],
+          table_charset:nextProps.alter_table_info['table_charset'],
+          table_auto_increment:nextProps.alter_table_info['table_auto_increment'],
           des_ip_port:nextProps.des_ip_port,
           des_schema_name:nextProps.des_schema_name,
        }
@@ -954,11 +954,11 @@ export class EditableAlterTable extends React.Component {
    //生成改表结构SQL
    generateAlterSql =() =>{
        //增加索引、删除索引、修改索引类型、修改索引列
-       var old_data_source = JSON.parse(this.state.alter_table_info[0]['data_source'])
-       var old_index_source = JSON.parse(this.state.alter_table_info[0]['index_source'])
-       var old_table_name = this.state.alter_table_info[0]['table_name']
-       var old_table_comment = this.state.alter_table_info[0]['table_comment']
-       var old_table_charset = this.state.alter_table_info[0]['table_charset']
+       var old_data_source = JSON.parse(this.state.alter_table_info['data_source'])
+       var old_index_source = JSON.parse(this.state.alter_table_info['index_source'])
+       var old_table_name = this.state.alter_table_info['table_name']
+       var old_table_comment = this.state.alter_table_info['table_comment']
+       var old_table_charset = this.state.alter_table_info['table_charset']
        var data_source = this.state.dataSource
        var index_source = this.state.indexSource
        var change_sql_list = []
