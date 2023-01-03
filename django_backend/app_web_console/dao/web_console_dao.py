@@ -318,37 +318,203 @@ def get_design_table_snap_shot_dao(use_name):
     return db_helper.find_all(sql)
 
 
-def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
-    """
-    获取目标表表结构信息
-    dataSource = [{"key": 1, "name": "id", "type": "bigint", "length": 20, "point": 0, "not_null": true, "default_value": "", "comment": "主键id", "primary_key": true, "extra_info": ["无符号", "自增"]}]
-    indexSource = [{"key": 1, "index_name": "idx_create_time", "index_column": "create_time", "index_type": "normal", "index_column_detail": [{"key": 1, "column_name": "create_time", "length": 0}]}]
-    :param ip:
-    :param port:
-    :param des_schema_name:
-    :param des_table_name:
-    :return:
-    """
-    sql1 = f"""
-        select 
-            ORDINAL_POSITION,
-            COLUMN_NAME,
-            DATA_TYPE,
-            COLUMN_TYPE,
-            DATETIME_PRECISION,
-            CHARACTER_MAXIMUM_LENGTH,
-            NUMERIC_PRECISION,
-            NUMERIC_SCALE,
-            COLUMN_DEFAULT,
-            IS_NULLABLE,
-            COLUMN_COMMENT,
-            EXTRA
-        from information_schema.COLUMNS 
-        where TABLE_SCHEMA='{des_schema_name}' and TABLE_NAME='{des_table_name}' 
-        order by ORDINAL_POSITION
-    """
+# def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
+#     """
+#     获取目标表表结构信息
+#     dataSource = [{"key": 1, "name": "id", "type": "bigint", "length": 20, "point": 0, "not_null": true, "default_value": "", "comment": "主键id", "primary_key": true, "extra_info": ["无符号", "自增"]}]
+#     indexSource = [{"key": 1, "index_name": "idx_create_time", "index_column": "create_time", "index_type": "normal", "index_column_detail": [{"key": 1, "column_name": "create_time", "length": 0}]}]
+#     :param ip:
+#     :param port:
+#     :param des_schema_name:
+#     :param des_table_name:
+#     :return:
+#     """
+#     # 依据数据库中存的默认值进行一些格式化,便于前端展示
+#     def get_default(column_info):
+#         """
+#         处理默认值,注意default '-1'在前端展示会丢失单引号
+#         这些默认值都要做额外处理:NULL，"''",'1','xxx',表达式
+#         这些字段类型要做特殊处理
+#             text类字段不应该有默认值,mysql该字段默认给的是NULL,需要转为''
+#         如果为not null但是无默认值需要额外处理
+#         最好的方法是将mysql函数都识别出来,这部分布包裹引号,其他都包裹引号
+#         :param default_value:
+#         :param name:
+#         :return:
+#         """
+#         default_func_list = ['CURRENT_TIMESTAMP', 'CURRENT_TIMESTAMP(1)', 'CURRENT_TIMESTAMP(2)', 'CURRENT_TIMESTAMP(3)', 'CURRENT_TIMESTAMP(4)', 'CURRENT_TIMESTAMP(5)', 'CURRENT_TIMESTAMP(6)']
+#         text_type_list = ['tinytext', 'text', 'mediumtext', 'longtext', 'tinyblob', 'blob', 'mediumblob', 'longblob']
+#         default_value = column_info.get('COLUMN_DEFAULT')
+#         is_nullable = column_info.get('IS_NULLABLE')
+#         column_type = column_info.get('DATA_TYPE')
+#         # 默认值为''
+#         if default_value == "": return "''"
+#         # 默认值为NULL
+#         if default_value is None:
+#             if is_nullable == "NO": return ""             # 字段为not null，但是无默认值，mysql这个字段默认为NULL，需要额外处理
+#             if column_type in text_type_list: return ''   # 字段为text字段处理
+#             return "NULL"
+#         # 默认值为'1','-1'
+#         if default_value.isdigit(): return f"'{default_value}'"
+#         if default_value[0] == '-' and default_value[1:].isdigit(): return f"'{default_value}'"
+#         # 断默认值为表达式
+#         if default_value in default_func_list: return default_value   # 减少数据库探测
+#         default_check_ret = db_helper.find_all(f"select {default_value} as ret_value")
+#         if default_check_ret['status'] != "ok": return f"'{default_value}'"  # 肯定不是函数
+#         # 默认值为'xxxxx'
+#         if default_check_ret['data'][0]['ret_value'] == default_value: return f"'{default_value}'"  # 应该不是函数
+#         # 没有考虑到的场景
+#         return default_value
+#
+#     def get_length(item):
+#         """
+#         依据数据库中存的长度值进行一些格式化,便于前端展示
+#         注意:整型类展示占位宽度,长度无需展示,因为是固定的
+#         :param item:
+#         :return:
+#         """
+#         if item.get('DATA_TYPE') in ['datetime', 'time']: return item.get('DATETIME_PRECISION')
+#         if item.get('DATA_TYPE') in ['char', 'varchar']: return item.get('CHARACTER_MAXIMUM_LENGTH')
+#         if item.get('DATA_TYPE') in ['tinyint', 'smallint', 'int', 'bigint']: return re.findall("\d+", item.get('COLUMN_TYPE'))[0]
+#         return item.get('NUMERIC_PRECISION')
+#
+#     def get_extra_info(columns, column_name):
+#         """
+#         获取自增、无符号、自动更新属性
+#         [extra_info_map[i.get('EXTRA')]] if i.get('EXTRA') else []
+#         :param item:
+#         :return:
+#         """
+#         extra_info_map = {"on update CURRENT_TIMESTAMP": "自动更新", "auto_increment": "自增"}
+#         extra_info_list = []
+#         for col in columns:
+#             # 获取每一列额外属性
+#             if col.get('COLUMN_NAME') == column_name:
+#                 if col.get('EXTRA'): extra_info_list.append(extra_info_map[col.get('EXTRA')])
+#                 # 如果该列有无符号属性,要加进去
+#                 if re.findall("unsigned", col.get('COLUMN_TYPE')): extra_info_list.append('无符号')
+#         return extra_info_list
+#     # 获取列信息,这里进行基础加工,后面还需要对默认值、主键进行再次加工
+#     sql_col = f"""
+#         select
+#             ORDINAL_POSITION,
+#             COLUMN_NAME,
+#             DATA_TYPE,
+#             COLUMN_TYPE,
+#             DATETIME_PRECISION,
+#             CHARACTER_MAXIMUM_LENGTH,
+#             NUMERIC_PRECISION,
+#             NUMERIC_SCALE,
+#             COLUMN_DEFAULT,
+#             IS_NULLABLE,
+#             COLUMN_COMMENT,
+#             EXTRA
+#         from information_schema.COLUMNS
+#         where TABLE_SCHEMA='{des_schema_name}' and TABLE_NAME='{des_table_name}'
+#         order by ORDINAL_POSITION
+#     """
+#     table_columns_ret = db_helper.find_all(sql_col)
+#     format_data_source = []
+#     for i in table_columns_ret['data']:
+#         column_obj = {}
+#         column_obj['key'] = i.get('ORDINAL_POSITION')
+#         column_obj['name'] = i.get('COLUMN_NAME')
+#         column_obj['type'] = i.get('DATA_TYPE')
+#         column_obj['length'] = get_length(i)
+#         column_obj['point'] = i.get('NUMERIC_SCALE')
+#         column_obj['default_value'] = get_default(i)
+#         column_obj['not_null'] = False if i.get('IS_NULLABLE') == "YES" else True
+#         column_obj['comment'] = i.get('COLUMN_COMMENT')
+#         column_obj['primary_key'] = False  # 给一个初始值,后面计算索引进行覆盖
+#         column_obj['extra_info'] = get_extra_info(table_columns_ret['data'], i.get('COLUMN_NAME'))
+#         format_data_source.append(column_obj)
+#     # 获取索引
+#     sql_idx = f"show index from `{des_schema_name}`.`{des_table_name}`"
+#     index_ret = db_helper.find_all(sql_idx)
+#     # 将主键信息填充到列里面，如果是主键,将主键的NULL去掉
+#     for j in index_ret['data']:
+#         if j['Key_name'] == 'PRIMARY':
+#             for k in format_data_source:
+#                 if j['Column_name'] == k['name']:
+#                     k.update({'primary_key': True})
+#                     if k.get("default_value") == 'NULL':
+#                         k.update({"default_value": ""})
+#     # 组装index_source,不能用set去重复,这个索引名列表需要排序
+#     index_name_list = []
+#     for m in index_ret['data']:
+#         if m['Key_name'] != 'PRIMARY':
+#             if m['Key_name'] not in index_name_list: index_name_list.append(m['Key_name'])
+#     format_index_source = []
+#     pos = 0
+#     for n in index_name_list:
+#         column_obj = {}
+#         pos = pos + 1
+#         column_obj['key'] = pos
+#         column_obj['index_name'] = n
+#         column_names = ""
+#         pos1 = 0
+#         index_column_detail = []
+#         for m in index_ret['data']:
+#             if m.get('Key_name') == n:
+#                 column_obj['index_type'] = "unique" if m.get('Non_unique') == 0 else "normal"
+#                 column_names = f"{column_names}`{m.get('Column_name')}`," if m.get('Sub_part') is None else f"{column_names}`{m.get('Column_name')}`({m.get('Sub_part')}),"
+#                 pos1 = pos1 + 1
+#                 index_column_dict = {"key": pos1}
+#                 index_column_dict["column_name"] = m.get('Column_name')
+#                 index_column_dict["length"] = m.get('Sub_part') or 0
+#                 index_column_detail.append(index_column_dict)
+#         column_obj['index_column_detail'] = index_column_detail
+#         column_obj['index_column'] = column_names.rstrip(',')
+#         format_index_source.append(column_obj)
+#     # 获取表属性信息
+#     sql_table_attributes = f"show create table `{des_schema_name}`.`{des_table_name}`"
+#     table_info_ret = db_helper.find_all(sql_table_attributes)
+#     table_info = table_info_ret['data'][0]['Create Table']
+#     table_match_info_1 = re.findall("ENGINE=(\S+).*", table_info)
+#     table_match_info_2 = re.findall("ENGINE=InnoDB.* DEFAULT CHARSET=(\S+).*", table_info)
+#     table_match_info_3 = re.findall("ENGINE=InnoDB.* AUTO_INCREMENT=(\S+).*", table_info)
+#     table_match_info_4 = re.findall("ENGINE=InnoDB.* COMMENT=(\S+).*", table_info)
+#     table_engine = table_match_info_1[0]
+#     table_charset = table_match_info_2[0]
+#     table_auto_increment = table_match_info_3[0] if table_match_info_3 else ""
+#     table_comment = table_match_info_4[0] if table_match_info_4 else ""
+#     # 组装数据
+#     table_detail = {
+#         'data_source': json.dumps(format_data_source),
+#         'index_source': json.dumps(format_index_source),
+#         'table_name': des_table_name,
+#         'table_engine': table_engine,
+#         'table_charset': table_charset,
+#         'table_comment': table_comment[1: len(table_comment) - 1],  # 去除首尾引号
+#         'table_auto_increment': table_auto_increment
+#     }
+#     return {"status": "ok", "message": "获取成功", "data": table_detail}
+
+
+class TableInfo:
+    def __init__(self, ip, port, des_schema_name, des_table_name):
+        self.ip = ip
+        self.port = port
+        self.des_schema_name = des_schema_name
+        self.des_table_name = des_table_name
+        self.default_func_list = ['CURRENT_TIMESTAMP', 'CURRENT_TIMESTAMP(1)', 'CURRENT_TIMESTAMP(2)', 'CURRENT_TIMESTAMP(3)', 'CURRENT_TIMESTAMP(4)', 'CURRENT_TIMESTAMP(5)', 'CURRENT_TIMESTAMP(6)']
+        self.text_type_list = ['tinytext', 'text', 'mediumtext', 'longtext', 'tinyblob', 'blob', 'mediumblob', 'longblob']
+        # 获取列信息,这里进行基础加工,后面还需要对默认值、主键进行再次加工
+        self.sql_col = f"""
+                select ORDINAL_POSITION,COLUMN_NAME,DATA_TYPE,COLUMN_TYPE,DATETIME_PRECISION,CHARACTER_MAXIMUM_LENGTH,
+                       NUMERIC_PRECISION,NUMERIC_SCALE,COLUMN_DEFAULT,IS_NULLABLE,COLUMN_COMMENT,EXTRA
+                from information_schema.COLUMNS 
+                where TABLE_SCHEMA='{des_schema_name}' and TABLE_NAME='{des_table_name}' 
+                order by ORDINAL_POSITION
+            """
+        # 获取索引
+        self.sql_idx = f"show index from `{des_schema_name}`.`{des_table_name}`"
+        # 获取表属性信息
+        self.sql_table_attributes = f"show create table `{des_schema_name}`.`{des_table_name}`"
+
+
     # 依据数据库中存的默认值进行一些格式化,便于前端展示
-    def get_default(column_info):
+    def _get_default(self, column_info):
         """
         处理默认值,注意default '-1'在前端展示会丢失单引号
         这些默认值都要做额外处理:NULL，"''",'1','xxx',表达式
@@ -360,8 +526,11 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
         :param name:
         :return:
         """
-        default_func_list = ['CURRENT_TIMESTAMP', 'CURRENT_TIMESTAMP(1)', 'CURRENT_TIMESTAMP(2)', 'CURRENT_TIMESTAMP(3)', 'CURRENT_TIMESTAMP(4)', 'CURRENT_TIMESTAMP(5)', 'CURRENT_TIMESTAMP(6)']
-        text_type_list = ['tinytext', 'text', 'mediumtext', 'longtext', 'tinyblob', 'blob', 'mediumblob', 'longblob']
+        default_func_list = ['CURRENT_TIMESTAMP', 'CURRENT_TIMESTAMP(1)', 'CURRENT_TIMESTAMP(2)',
+                             'CURRENT_TIMESTAMP(3)', 'CURRENT_TIMESTAMP(4)', 'CURRENT_TIMESTAMP(5)',
+                             'CURRENT_TIMESTAMP(6)']
+        text_type_list = ['tinytext', 'text', 'mediumtext', 'longtext', 'tinyblob', 'blob', 'mediumblob',
+                          'longblob']
         default_value = column_info.get('COLUMN_DEFAULT')
         is_nullable = column_info.get('IS_NULLABLE')
         column_type = column_info.get('DATA_TYPE')
@@ -369,14 +538,14 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
         if default_value == "": return "''"
         # 默认值为NULL
         if default_value is None:
-            if is_nullable == "NO": return ""             # 字段为not null，但是无默认值，mysql这个字段默认为NULL，需要额外处理
-            if column_type in text_type_list: return ''   # 字段为text字段处理
+            if is_nullable == "NO": return ""  # 字段为not null，但是无默认值，mysql这个字段默认为NULL，需要额外处理
+            if column_type in text_type_list: return ''  # 字段为text字段处理
             return "NULL"
         # 默认值为'1','-1'
         if default_value.isdigit(): return f"'{default_value}'"
         if default_value[0] == '-' and default_value[1:].isdigit(): return f"'{default_value}'"
         # 断默认值为表达式
-        if default_value in default_func_list: return default_value   # 减少数据库探测
+        if default_value in default_func_list: return default_value  # 减少数据库探测
         default_check_ret = db_helper.find_all(f"select {default_value} as ret_value")
         if default_check_ret['status'] != "ok": return f"'{default_value}'"  # 肯定不是函数
         # 默认值为'xxxxx'
@@ -384,23 +553,29 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
         # 没有考虑到的场景
         return default_value
 
-    def get_length(item):
+
+    def _get_length(self, item):
         """
         依据数据库中存的长度值进行一些格式化,便于前端展示
+        注意:整型类展示占位宽度,长度无需展示,因为是固定的依据数据库中存的长度值进行一些格式化,便于前端展示
         注意:整型类展示占位宽度,长度无需展示,因为是固定的
+        :param self:
         :param item:
         :return:
         """
         if item.get('DATA_TYPE') in ['datetime', 'time']: return item.get('DATETIME_PRECISION')
         if item.get('DATA_TYPE') in ['char', 'varchar']: return item.get('CHARACTER_MAXIMUM_LENGTH')
-        if item.get('DATA_TYPE') in ['tinyint', 'smallint', 'int', 'bigint']: return re.findall("\d+", item.get('COLUMN_TYPE'))[0]
+        if item.get('DATA_TYPE') in ['tinyint', 'smallint', 'int', 'bigint']: return \
+        re.findall("\d+", item.get('COLUMN_TYPE'))[0]
         return item.get('NUMERIC_PRECISION')
 
-    def get_extra_info(columns, column_name):
+    def _get_extra_info(self, columns, column_name):
         """
         获取自增、无符号、自动更新属性
         [extra_info_map[i.get('EXTRA')]] if i.get('EXTRA') else []
-        :param item:
+        :param self:
+        :param columns:
+        :param column_name:
         :return:
         """
         extra_info_map = {"on update CURRENT_TIMESTAMP": "自动更新", "auto_increment": "自增"}
@@ -412,79 +587,99 @@ def get_target_table_info_dao(ip,port,des_schema_name,des_table_name):
                 # 如果该列有无符号属性,要加进去
                 if re.findall("unsigned", col.get('COLUMN_TYPE')): extra_info_list.append('无符号')
         return extra_info_list
-    # 获取列名,这里进行基础加工,后面还需要对默认值、主键进行再次加工
-    table_columns_ret = db_helper.find_all(sql1)
-    format_data_source = []
-    for i in table_columns_ret['data']:
-        column_obj = {}
-        column_obj['key'] = i.get('ORDINAL_POSITION')
-        column_obj['name'] = i.get('COLUMN_NAME')
-        column_obj['type'] = i.get('DATA_TYPE')
-        column_obj['length'] = get_length(i)
-        column_obj['point'] = i.get('NUMERIC_SCALE')
-        column_obj['default_value'] = get_default(i)
-        column_obj['not_null'] = False if i.get('IS_NULLABLE') == "YES" else True
-        column_obj['comment'] = i.get('COLUMN_COMMENT')
-        column_obj['primary_key'] = False  # 给一个初始值,后面计算索引进行覆盖
-        column_obj['extra_info'] = get_extra_info(table_columns_ret['data'], i.get('COLUMN_NAME'))
-        format_data_source.append(column_obj)
-    # 获取索引
-    sql2 = f"show index from `{des_schema_name}`.`{des_table_name}`"
-    index_ret = db_helper.find_all(sql2)
-    # 将主键信息填充到列里面，如果是主键,将主键的NULL去掉
-    for j in index_ret['data']:
-        if j['Key_name'] == 'PRIMARY':
-            for k in format_data_source:
-                if j['Column_name'] == k['name']:
-                    k.update({'primary_key': True})
-                    if k.get("default_value") == 'NULL':
-                        k.update({"default_value": ""})
-    # 组装index_source,不能用set去重复,这个索引名列表需要排序
-    index_name_list = []
-    for m in index_ret['data']:
-        if m['Key_name'] != 'PRIMARY':
-            if m['Key_name'] not in index_name_list: index_name_list.append(m['Key_name'])
-    format_index_source = []
-    pos = 0
-    for n in index_name_list:
-        column_obj = {}
-        pos = pos + 1
-        column_obj['key'] = pos
-        column_obj['index_name'] = n
-        column_names = ""
-        pos1 = 0
-        index_column_detail = []
+
+    def _get_col_detail(self):
+        """
+        dataSource = [{"key": 1, "name": "id", "type": "bigint", "length": 20, "point": 0, "not_null": true, "default_value": "", "comment": "主键id", "primary_key": true, "extra_info": ["无符号", "自增"]}]
+        indexSource = [{"key": 1, "index_name": "idx_create_time", "index_column": "create_time", "index_type": "normal", "index_column_detail": [{"key": 1, "column_name": "create_time", "length": 0}]}]
+        获取列信息,这里进行基础加工,后面还需要对默认值、主键进行再次加工
+        :param self:
+        :return:
+        """
+        table_columns_ret = db_helper.find_all(self.sql_col)
+        format_data_source = []
+        for i in table_columns_ret['data']:
+            column_obj = {}
+            column_obj['key'] = i.get('ORDINAL_POSITION')
+            column_obj['name'] = i.get('COLUMN_NAME')
+            column_obj['type'] = i.get('DATA_TYPE')
+            column_obj['length'] = self._get_length(i)
+            column_obj['point'] = i.get('NUMERIC_SCALE')
+            column_obj['default_value'] = self._get_default(i)
+            column_obj['not_null'] = False if i.get('IS_NULLABLE') == "YES" else True
+            column_obj['comment'] = i.get('COLUMN_COMMENT')
+            column_obj['primary_key'] = False  # 给一个初始值,后面计算索引进行覆盖
+            column_obj['extra_info'] = self._get_extra_info(table_columns_ret['data'], i.get('COLUMN_NAME'))
+            format_data_source.append(column_obj)
+        # 获取索引
+        index_ret = db_helper.find_all(self.sql_idx)
+        # 将主键信息填充到列里面，如果是主键,将主键的NULL去掉
+        for j in index_ret['data']:
+            if j['Key_name'] == 'PRIMARY':
+                for k in format_data_source:
+                    if j['Column_name'] == k['name']:
+                        k.update({'primary_key': True})
+                        if k.get("default_value") == 'NULL':
+                            k.update({"default_value": ""})
+        # 组装index_source,不能用set去重复,这个索引名列表需要排序
+        index_name_list = []
         for m in index_ret['data']:
-            if m.get('Key_name') == n:
-                column_obj['index_type'] = "unique" if m.get('Non_unique') == 0 else "normal"
-                column_names = f"{column_names}`{m.get('Column_name')}`," if m.get('Sub_part') is None else f"{column_names}`{m.get('Column_name')}`({m.get('Sub_part')}),"
-                pos1 = pos1 + 1
-                index_column_dict = {"key": pos1}
-                index_column_dict["column_name"] = m.get('Column_name')
-                index_column_dict["length"] = m.get('Sub_part') or 0
-                index_column_detail.append(index_column_dict)
-        column_obj['index_column_detail'] = index_column_detail
-        column_obj['index_column'] = column_names.rstrip(',')
-        format_index_source.append(column_obj)
-    # 获取表属性信息
-    sql3 = f"show create table `{des_schema_name}`.`{des_table_name}`"
-    table_info_ret = db_helper.find_all(sql3)
-    table_info = table_info_ret['data'][0]['Create Table']
-    table_match_info_1 = re.findall("ENGINE=(\S+).*", table_info)
-    table_match_info_2 = re.findall("ENGINE=InnoDB.* DEFAULT CHARSET=(\S+).*", table_info)
-    table_match_info_3 = re.findall("ENGINE=InnoDB.* AUTO_INCREMENT=(\S+).*", table_info)
-    table_match_info_4 = re.findall("ENGINE=InnoDB.* COMMENT=(\S+).*", table_info)
-    table_engine = table_match_info_1[0]
-    table_charset = table_match_info_2[0]
-    table_auto_increment = table_match_info_3[0] if table_match_info_3 else ""
-    table_comment = table_match_info_4[0] if table_match_info_4 else ""
-    table_detail = {
-        'data_source': json.dumps(format_data_source),
-        'index_source': json.dumps(format_index_source),
-        'table_name': des_table_name,
-        'table_engine': table_engine,
-        'table_charset': table_charset,
-        'table_comment': table_comment[1: len(table_comment) - 1],  # 去除首尾引号
-        'table_auto_increment': table_auto_increment
-    }
-    return {"status": "ok", "message": "获取成功", "data": table_detail}
+            if m['Key_name'] != 'PRIMARY':
+                if m['Key_name'] not in index_name_list: index_name_list.append(m['Key_name'])
+        format_index_source = []
+        pos = 0
+        for n in index_name_list:
+            column_obj = {}
+            pos = pos + 1
+            column_obj['key'] = pos
+            column_obj['index_name'] = n
+            column_names = ""
+            pos1 = 0
+            index_column_detail = []
+            for m in index_ret['data']:
+                if m.get('Key_name') == n:
+                    column_obj['index_type'] = "unique" if m.get('Non_unique') == 0 else "normal"
+                    column_names = f"{column_names}`{m.get('Column_name')}`," if m.get(
+                        'Sub_part') is None else f"{column_names}`{m.get('Column_name')}`({m.get('Sub_part')}),"
+                    pos1 = pos1 + 1
+                    index_column_dict = {"key": pos1}
+                    index_column_dict["column_name"] = m.get('Column_name')
+                    index_column_dict["length"] = m.get('Sub_part') or 0
+                    index_column_detail.append(index_column_dict)
+            column_obj['index_column_detail'] = index_column_detail
+            column_obj['index_column'] = column_names.rstrip(',')
+            format_index_source.append(column_obj)
+        return format_data_source, format_index_source
+
+    def _get_table_att_detail(self):
+        """获取表属性信息"""
+        table_info_ret = db_helper.find_all(self.sql_table_attributes)
+        table_info = table_info_ret['data'][0]['Create Table']
+        table_match_info_1 = re.findall("ENGINE=(\S+).*", table_info)
+        table_match_info_2 = re.findall("ENGINE=InnoDB.* DEFAULT CHARSET=(\S+).*", table_info)
+        table_match_info_3 = re.findall("ENGINE=InnoDB.* AUTO_INCREMENT=(\S+).*", table_info)
+        table_match_info_4 = re.findall("ENGINE=InnoDB.* COMMENT=(\S+).*", table_info)
+        table_engine = table_match_info_1[0]
+        table_charset = table_match_info_2[0]
+        table_comment = table_match_info_4[0] if table_match_info_4 else ""
+        table_auto_increment = table_match_info_3[0] if table_match_info_3 else ""
+        return table_engine, table_charset, table_comment, table_auto_increment
+
+    def get_table_meta(self):
+        try:
+            data_source, index_source = self._get_col_detail()
+            table_engine, table_charset, table_comment, table_auto_increment = self._get_table_att_detail()
+        except Exception as e:
+            logger.exception(e)
+            return {"status": "error", "message": f"获取元数据失败请联系DBA"}
+        # 组装数据
+        table_detail = {
+            'data_source': json.dumps(data_source),
+            'index_source': json.dumps(index_source),
+            'table_name': self.des_table_name,
+            'table_engine': table_engine,
+            'table_charset': table_charset,
+            'table_comment': table_comment[1: len(table_comment) - 1],  # 去除首尾引号
+            'table_auto_increment': table_auto_increment
+        }
+        return {"status": "ok", "message": "获取成功", "data": table_detail}

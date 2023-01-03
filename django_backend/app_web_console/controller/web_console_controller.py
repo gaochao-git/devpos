@@ -287,5 +287,7 @@ class GetTargetTableInfoController(BaseView):
         port = des_ip_port.split('_')[1]
         des_schema_name = request_body.get('des_schema_name')
         des_table_name = request_body.get('des_table_name')
-        ret = web_console_dao.get_target_table_info_dao(ip,port,des_schema_name,des_table_name)
+        # ret = web_console_dao.get_target_table_info_dao(ip, port, des_schema_name, des_table_name)
+        obj = web_console_dao.TableInfo(ip, port, des_schema_name, des_table_name)
+        ret = obj.get_table_meta()
         return self.my_response(ret)
