@@ -32,6 +32,12 @@ export class MyResizeTable extends Component {
     },
   };
 
+  onChange(pagination, filters, sorter) {
+    console.log(9999)
+    console.log('Various parameters', pagination, filters, sorter);
+  }
+
+
   handleResize = index => (e, { size }) => {
     this.setState(({ columns }) => {
       const nextColumns = [...columns];
@@ -52,6 +58,16 @@ export class MyResizeTable extends Component {
       }),
     }));
 
-    return <Table pagination={false} className="rowStyle" scroll={{x:'true',y:320}} size= "small" bordered={true} components={this.components} columns={columns} dataSource={this.props.dataSource} />;
+    return <Table
+            pagination={false}
+            className="rowStyle"
+            scroll={{x:'true',y:320}}
+            size= "small"
+            bordered={true}
+            components={this.components}
+            columns={columns}
+            dataSource={this.props.dataSource}
+            onChange={this.props.onChange}
+            />;
   }
 }

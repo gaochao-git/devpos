@@ -14,26 +14,26 @@ try:
     csock.close()
 except socket.error as e:
     logger.error(str(e))
-pro_host_list = ['47.104.2.74']
+pro_host_list = ['123.249.100.254']
 if ip in pro_host_list:
-    django_database_host = '47.104.2.74'
+    django_database_host = '123.249.100.254'
     django_database_port = 3306
     django_database_user = 'gaochao'
     django_database_pass = py_sm4.dec_sm4('627e679465395e8fd1b3cf68a4c25814')
-    inception_host = '47.104.2.74'
+    inception_host = '123.249.100.254'
     inception_port = 6669
-    inception_backup_host = '47.104.2.74'
+    inception_backup_host = '123.249.100.254'
     inception_backup_port = 3306
     inception_backup_user = 'gaochao'
     inception_backup_pass = py_sm4.dec_sm4('627e679465395e8fd1b3cf68a4c25814')
 else:
-    django_database_host = '47.104.2.74'
+    django_database_host = '123.249.100.254'
     django_database_port = 3306
     django_database_user = 'gaochao'
     django_database_pass = py_sm4.dec_sm4('627e679465395e8fd1b3cf68a4c25814')
-    inception_host = '47.104.2.74'
+    inception_host = '123.249.100.254'
     inception_port = 6669
-    inception_backup_host = '47.104.2.74'
+    inception_backup_host = '123.249.100.254'
     inception_backup_port = 3306
     inception_backup_user = 'gaochao'
     inception_backup_pass = py_sm4.dec_sm4('627e679465395e8fd1b3cf68a4c25814')

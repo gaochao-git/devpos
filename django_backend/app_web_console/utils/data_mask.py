@@ -26,7 +26,7 @@ def data_masking(instance_name, db_name, sql, sql_result):
     :param sql_result:执行SQL对应的结果
     :return:[{'1111x': '1111x', 'concat(user,"xx")': '#########', 'host': '#########', 'authentication_string': 'fffjjj'}]
     """
-    mask_rule_config = ['test[00-32]*\.emp*\.name', '.*\..*\..*']  # 正则减少分库分表场景配置
+    mask_rule_config = ['test[00-32]*\.emp*\.name']  # 正则减少分库分表场景配置
     host, port = instance_name.split('_')[0], instance_name.split('_')[1]
     try:
         # 通过goInception获取select list

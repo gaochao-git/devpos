@@ -105,6 +105,24 @@ export class BaseConsole extends Component {
           return (<span title={text} className="ellipsisText" style={{width: columnWidth }}>{text}</span>);
       }
 
+
+onSorter = (a,b) => {
+  console.log(1111)
+  console.log(a,b)
+  console.log(222)
+  if (!a) {
+    a = "";
+  }
+  if (!b) {
+    b = "";
+  }
+  if ((typeof a) !== "number") {
+    return a.length - b.length;
+  }
+  return a.length - b.length;
+};
+
+
   async getTableData(explain) {
       let params = {
         des_ip_port:this.state.instance_name,
@@ -143,7 +161,11 @@ export class BaseConsole extends Component {
                               if (i<Object.keys(res.data.data[j][j][0]).length){
                                 column_obj['width'] = 160
                               }
+                              column_obj['sorter'] = (a, b) => {this.onSorter(a, b)}
+//                              column_obj['sorter'] = (a, b) => {this.onSorter(a,b,res.data.data[j][j])}
+//                              console.log(typeof [Object.keys(res.data.data[j][j][0])[i]][0])
                               column_arr.push(column_obj)
+//                              console.log(column_obj)
                           }
                           column_arr.push({'title':''})
                       };
@@ -617,6 +639,11 @@ export class BaseConsole extends Component {
     }
   };
 
+  onChange(pagination, filters, sorter) {
+    console.log(9999)
+    console.log('Various parameters', pagination, filters, sorter);
+  }
+
   onFavorite = (favorite_detail) => {
     if (this.state.favorite_type==="db_source"){
         this.setState({instance_name: favorite_detail,input_source_type:true,DrawerVisible:false});
@@ -828,7 +855,7 @@ export class BaseConsole extends Component {
                               this.state.res_format === 'row'
                               ?
                               <div className="components-table-resizable-column">
-                                   <MyResizeTable dataSource={this.state.multi_table_data[index]} columns={this.state.multi_table_column[index]}/>
+                                   <MyResizeTable dataSource={this.state.multi_table_data[index]} columns={this.state.multi_table_column[index]} onChange={this.onChange}/>
                               </div>
                               : <TextArea rows={10} value={this.state.col_format_res_list[index]}/>
 
