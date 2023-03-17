@@ -180,8 +180,8 @@ STATIC_URL = '/static/'
 # }
 
 INCEPTION_ADDRESS = {
-    'inception_host': '47.104.2.74',
-    'inception_port': 6669,
+    'inception_host': '127.0.0.1',
+    'inception_port': 6660,
 }
 
 ################# go_inception配置 ##################
@@ -320,7 +320,7 @@ try:
     csock.close()
 except socket.error as e:
     logger.error(str(e))
-pro_host_list = ['47.104.2.74']
+pro_host_list = ['123.249.100.254']
 if ip in pro_host_list:
     from .pro import *
 else:

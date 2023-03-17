@@ -28,8 +28,8 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERYBEAT_SCHEDULER = 'celery.beat:PersistentScheduler'
 CELERY_REDIRECT_STDOUTS_LEVEL = 'INFO'        #标准输出和标准错误输出的日志级别。可以是DEBUG, INFO, WARNING, ERROR, or CRITICAL,默认为WARNING
 CELERY_TIMEZONE = 'Asia/Shanghai'
-BROKER_URL = 'redis://:fffjjj@47.104.2.74:6379/0'
-CELERY_RESULT_BACKEND = 'redis://:fffjjj@47.104.2.74:6379/1'
+BROKER_URL = 'redis://:fffjjj@123.249.100.254:6379/0'
+CELERY_RESULT_BACKEND = 'redis://:fffjjj@123.249.100.254:6379/1'
 
 # 配置定时任务
 CELERYBEAT_SCHEDULER = {

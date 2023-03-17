@@ -21,7 +21,7 @@ if ip in pro_host_list:
     django_database_user = 'gaochao'
     django_database_pass = py_sm4.dec_sm4('627e679465395e8fd1b3cf68a4c25814')
     inception_host = '123.249.100.254'
-    inception_port = 6669
+    inception_port = 6660
     inception_backup_host = '123.249.100.254'
     inception_backup_port = 3306
     inception_backup_user = 'gaochao'
@@ -31,8 +31,8 @@ else:
     django_database_port = 3306
     django_database_user = 'gaochao'
     django_database_pass = py_sm4.dec_sm4('627e679465395e8fd1b3cf68a4c25814')
-    inception_host = '123.249.100.254'
-    inception_port = 6669
+    inception_host = '127.0.0.1'
+    inception_port = 6660
     inception_backup_host = '123.249.100.254'
     inception_backup_port = 3306
     inception_backup_user = 'gaochao'

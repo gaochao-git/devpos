@@ -200,7 +200,7 @@ nginx -s reload
 ## celery 本地开发
 ```shell
 1.异步调用
-python3.6 manage.py celery worker -c 4 -l info -f ./logs/celery.log -Q async_task --purge -n async_celery
+python manage.py celery worker -E -c 2 -O fair --loglevel=INFO -f logs/celery_async_worker.log -Q async_task --purge
 ```
 ## supervisor托管celery
 ```shell
@@ -254,7 +254,7 @@ stdout_logfile_backups=1
 
 vim /etc/supervisord.d/devops_async.ini
 [program:devops_async]
-command=python3.6 manage.py celery worker -c 4 -O fair -l info -f ./logs/celery_asyunc.log -Q async_task --purge -n async_celery
+command=python manage.py celery worker -E -c 2 -O fair --loglevel=INFO -f logs/celery_async_worker.log -Q async_task --purge
 directory=/data/devops/django_backend
 autostart=false
 autorestart=false
