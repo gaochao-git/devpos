@@ -290,7 +290,7 @@ export default class ExecuteDeployMysql extends Component {
                             />
                         </TabPane>
                         <TabPane tab="jks日志" key="3">
-                            <div dangerouslySetInnerHTML = {{ __html: this.state.stdout_log}}></div>
+                            <div style={{whiteSpace:"pre"}} dangerouslySetInnerHTML = {{ __html: this.state.stdout_log}}></div>
                         </TabPane>
                     </Tabs>
                     <Modal visible={this.state.CheckModalVisible}

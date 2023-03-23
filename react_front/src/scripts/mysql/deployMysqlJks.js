@@ -229,7 +229,7 @@ export default class DeployMysqlJks extends Component  {
                         footer={false}
                         width={1200}
                     >
-                        <div dangerouslySetInnerHTML = {{ __html: this.state.history_job_log}}></div>
+                        <div style={{whiteSpace:"pre"}} dangerouslySetInnerHTML = {{ __html: this.state.history_job_log}}></div>
                     </Modal>
                     <Modal visible={this.state.showJobStopVisible}
                         onCancel={() => this.setState({showJobStopVisible:false})}
