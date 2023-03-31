@@ -1066,18 +1066,17 @@ export class EditableAlterTable extends React.Component {
    }
    //修改主键
    formatAlterTablePrimaryKeySql = (new_primary_key_col_list, old_primary_key_col_list) =>{
-       var sql = "";
-       var pri_col_name_list = []
-       console.log(new_primary_key_col_list, old_primary_key_col_list)
+       //主键列名不一样但是数量一样、主键列数量不一样场景需要删除主键再增加主键
+       console.log(new_primary_key_col_list.length, old_primary_key_col_list.length)
        console.log(typeof new_primary_key_col_list, typeof old_primary_key_col_list)
-       if (JSON.stringify(new_primary_key_col_list) !== JSON.stringify(old_primary_key_col_list)){
-           new_primary_key_col_list.forEach((item)=>{
-               if (item.primary_key){
-                   pri_col_name_list.push(item.name)
-               }
-           })
-           sql = "\n  DROP PRIMARY KEY /*更改主键比较危险,请充分评估*/,"
-           sql = sql + "\n  ADD PRIMARY KEY (" + pri_col_name_list.join(',') + ")"
+       var sql = "";
+       var new_pri_col_name_list = []
+       var old_pri_col_name_list = []
+       new_primary_key_col_list.forEach((item)=>{new_pri_col_name_list.push(item.name)})
+       old_primary_key_col_list.forEach((item)=>{old_pri_col_name_list.push(item.name)})
+       if (JSON.stringify(new_pri_col_name_list) !== JSON.stringify(old_pri_col_name_list)){
+          sql = "\n  DROP PRIMARY KEY /*更改主键比较危险,请充分评估*/,"
+          sql = sql + "\n  ADD PRIMARY KEY (" + new_pri_col_name_list.join(',') + ")"
        }
        return sql;
    }
