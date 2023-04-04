@@ -1359,7 +1359,6 @@ export class EditableTable extends React.Component {
         >
             <Input allowClear style={{width:'30%'}} placeholder="列名匹配" value={this.state.search_col_name} onChange={(e)=>this.setState({search_col_name:e.target.value},()=>this.filterColOrComment()   )}/>
             <Input allowClear style={{width:'30%',marginLeft:5}} placeholder="列名注释匹配" value={this.state.search_col_comment} onChange={(e)=>this.setState({search_col_comment:e.target.value},()=>this.filterColOrComment())}/>
-            <Button style={{marginLeft:10}} onClick={()=>this.getDbCol()}><Icon type="search" /></Button>
             <Table
               rowKey={(row ,index) => index}
               size="small"
