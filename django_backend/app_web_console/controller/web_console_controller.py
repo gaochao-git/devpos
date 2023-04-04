@@ -291,3 +291,25 @@ class GetTargetTableInfoController(BaseView):
         obj = web_console_dao.TableInfo(ip, port, des_schema_name, des_table_name)
         ret = obj.get_table_meta()
         return self.my_response(ret)
+
+
+class GetDbColController(BaseView):
+    def post(self, request):
+        """
+        获取推荐列
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        # 验证参数方法1
+        rules = {
+            "search_col_name": [Required, Length(0, 64), ],
+            "search_col_comment": [Required, Length(0, 64), ],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        col_name = request_body.get('search_col_name')
+        col_comment = request_body.get('search_col_comment')
+        ret = web_console_dao.get_db_col_dao(col_name, col_comment)
+        return self.my_response(ret)

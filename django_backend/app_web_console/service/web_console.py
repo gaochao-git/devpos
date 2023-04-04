@@ -75,7 +75,7 @@ def check_generate_sql(des_ip_port, des_schema_name, generate_sql):
     :param generate_sql:
     :return:
     """
-    ip = '47.104.2.74'
+    ip = '123.249.100.254'
     port = 3306
     generate_sql = f'use {des_schema_name};' + '\n' + generate_sql
     inception_engine = MyGoInception(ip, port, generate_sql)

@@ -297,7 +297,58 @@ export class EditableTable extends React.Component {
             <Button onClick={()=>this.handleAddNextColumn(record, idx)}>
               <Icon type="plus" />
             </Button>
+            <Button onClick={()=>this.handleSearchColumn(record, idx)}>
+              <Icon type="search" />
+            </Button>
           </div>
+      },
+    ];
+
+    this.db_columns = [
+      {
+        title: '列名',
+        dataIndex: 'name',
+        width: '10%',
+        editable: true,
+      },
+      {
+        title: '类型',
+        dataIndex: 'type',
+
+      },
+      {
+        title: '长度',
+        dataIndex: 'length',
+        width: '6%',
+      },
+      {
+        title: '小数点',
+        dataIndex: 'point',
+        width: '6%',
+      },
+      {
+        title: '不是null',
+        dataIndex: 'not_null',
+        render: (text, record, idx) => <Checkbox disabled="true" checked={record.not_null} onChange={(e)=>this.changeNull(text,record,idx, e.target.checked)}/>
+      },
+      {
+        title: '默认值',
+        dataIndex: 'default_value',
+      },
+      {
+        title: '其他属性',
+        dataIndex: 'extra',
+        width: '30%',
+      },
+      {
+        title: '注释',
+        dataIndex: 'comment',
+      },
+      {
+        title: 'operation',
+        dataIndex: 'operation',
+        render: (text, record,idx) =>
+            <Button onClick={()=>this.handleSelectColumn(record)}>选中</Button>
       },
     ];
 
@@ -447,11 +498,36 @@ export class EditableTable extends React.Component {
       alter_table_info:[],  //修改表结构使用字段，父组件传递来的
       des_ip_port:"xxxxx",       //目的ip，父组件传递来的
       des_schema_name:"mysql",  //目的库名，父组件传递来的
+      searchColModal:false,
+      search_col_name:"",
+      search_col_comment:"",
+      edit_table_index:"",
+      db_col_list:[],
+      temp_db_col_list:[]
+
     };
   }
 
   componentDidMount() {
-    //pass
+    this.getDbCol()
+  }
+
+  //校验SQL语法
+  async getDbCol() {
+      let params = {
+        search_col_name:this.state.search_col_name,
+        search_col_comment:this.state.search_col_comment,
+      };
+      await MyAxios.post('/web_console/v1/get_db_col/',params).then(
+          res=>{
+              if( res.data.status === 'ok'){
+                  this.setState({db_col_list:res.data.data,temp_db_col_list:res.data.data})
+                  message.success(res.data.message)
+              } else{
+                  message.error(res.data.message)
+              }
+          }
+      ).catch(err=>message.error(err.message))
   }
 
   //校验SQL语法
@@ -572,6 +648,11 @@ export class EditableTable extends React.Component {
       dataSource: newDataSource,
       count: count + 1,
     });
+  };
+
+  //设计列:智能匹配选择列
+  handleSearchColumn = (record,position) => {
+    this.setState({searchColModal:true,edit_table_index:record.key-1})
   };
 
   //设计列:末尾增加列
@@ -802,6 +883,29 @@ export class EditableTable extends React.Component {
        this.generateIndex(newIndexSource)
    }
 
+   handleSelectColumn=(record)=>{
+       var new_data_source = []
+       for (var i=0;i<this.state.dataSource.length;i++){
+           if (i !== this.state.edit_table_index){
+            new_data_source.push(this.state.dataSource[i])
+           }else{
+               var newRow = {
+                   key: this.state.dataSource[i]['key'],
+                   name: record['name'],
+                   not_null: record['not_null'],
+                   length: record['length'],
+                   point: record['point'],
+                   type: record['type'],
+                   default_value: record['default_value'],
+                   comment: record['comment'],
+                   extra_info: record['extra']
+               };
+
+               new_data_source.push(newRow)
+           }
+       }
+       this.setState({ dataSource: new_data_source, searchColModal:false});
+   }
 
 
 
@@ -969,6 +1073,31 @@ export class EditableTable extends React.Component {
          default:
             break
       }
+   }
+
+   filterColOrComment = () =>{
+      var newArr = []
+      if (this.state.search_col_name==="" && this.state.search_col_comment===""){
+          newArr = this.state.db_col_list
+      }else{
+          this.state.db_col_list.filter(record=>{
+              if (this.state.search_col_name!=="" && this.state.search_col_comment===""){
+                  console.log(1)
+                  if (record.name.indexOf(this.state.search_col_name) !=-1){
+                         newArr.push(record)
+                  }
+              }else if (this.state.search_col_name==="" && this.state.search_col_comment!==""){
+                  if (record.comment.indexOf(this.state.search_col_comment) !=-1){
+                     newArr.push(record)
+                  }
+              }else if (this.state.search_col_name!=="" && this.state.search_col_comment!==""){
+                  if (record.comment.indexOf(this.state.search_col_comment) !=-1 && record.name.indexOf(this.state.search_col_name) !=-1){
+                     newArr.push(record)
+                  }
+              }
+          })
+      }
+      this.setState({temp_db_col_list:newArr})
    }
 
    //选中保存快照信息
@@ -1219,6 +1348,25 @@ export class EditableTable extends React.Component {
               bordered
               dataSource={this.state.index_detail}
               columns={this.select_index_columns}
+              pagination={false}
+            />
+        </Modal>
+        <Modal
+          visible={this.state.searchColModal}
+          footer={false}
+          onCancel={()=>this.setState({searchColModal:false})}
+          width={1200}
+        >
+            <Input allowClear style={{width:'30%'}} placeholder="列名匹配" value={this.state.search_col_name} onChange={(e)=>this.setState({search_col_name:e.target.value},()=>this.filterColOrComment()   )}/>
+            <Input allowClear style={{width:'30%',marginLeft:5}} placeholder="列名注释匹配" value={this.state.search_col_comment} onChange={(e)=>this.setState({search_col_comment:e.target.value},()=>this.filterColOrComment())}/>
+            <Button style={{marginLeft:10}} onClick={()=>this.getDbCol()}><Icon type="search" /></Button>
+            <Table
+              rowKey={(row ,index) => index}
+              size="small"
+              components={components}
+              bordered
+              dataSource={this.state.temp_db_col_list}
+              columns={this.db_columns}
               pagination={false}
             />
         </Modal>

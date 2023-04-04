@@ -186,7 +186,7 @@ INCEPTION_ADDRESS = {
 
 ################# go_inception配置 ##################
 GO_INCEPTION_ADDRESS = {
-    'go_inception_host': '47.104.2.74',
+    'go_inception_host': '123.249.100.254',
     'go_inception_port': 4000,
 }
 

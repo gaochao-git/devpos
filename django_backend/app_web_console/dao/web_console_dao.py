@@ -565,8 +565,7 @@ class TableInfo:
         """
         if item.get('DATA_TYPE') in ['datetime', 'time']: return item.get('DATETIME_PRECISION')
         if item.get('DATA_TYPE') in ['char', 'varchar']: return item.get('CHARACTER_MAXIMUM_LENGTH')
-        if item.get('DATA_TYPE') in ['tinyint', 'smallint', 'int', 'bigint']: return \
-        re.findall("\d+", item.get('COLUMN_TYPE'))[0]
+        if item.get('DATA_TYPE') in ['tinyint', 'smallint', 'int', 'bigint']: return re.findall("\d+", item.get('COLUMN_TYPE'))[0]
         return item.get('NUMERIC_PRECISION')
 
     def _get_extra_info(self, columns, column_name):
@@ -683,3 +682,84 @@ class TableInfo:
             'table_auto_increment': table_auto_increment
         }
         return {"status": "ok", "message": "获取成功", "data": table_detail}
+
+def get_col_length(db_col_info):
+    """
+    依据数据库中存的长度值进行一些格式化,便于前端展示
+    注意:整型类展示占位宽度,长度无需展示,因为是固定的依据数据库中存的长度值进行一些格式化,便于前端展示
+    注意:整型类展示占位宽度,长度无需展示,因为是固定的
+    :param v:
+    :return:
+    """
+    if db_col_info.get('DATA_TYPE') in ['datetime', 'time']: return db_col_info.get('DATETIME_PRECISION')
+    if db_col_info.get('DATA_TYPE') in ['char', 'varchar']: return db_col_info.get('CHARACTER_MAXIMUM_LENGTH')
+    if db_col_info.get('DATA_TYPE') in ['tinyint', 'smallint', 'int', 'bigint']: return re.findall("\d+", db_col_info.get('COLUMN_TYPE'))[0]
+    return db_col_info.get('NUMERIC_PRECISION')
+
+
+def get_col_point(db_col_info):
+    """
+    整型类格式化为空
+    :param v:
+    :return:
+    """
+    if db_col_info.get('DATA_TYPE') in ['tinyint', 'smallint', 'int', 'bigint']: return ""
+    return db_col_info.get('NUMERIC_SCALE')
+
+
+def get_extra_info(db_col_info):
+    """
+    获取自增、无符号、自动更新属性
+    [extra_info_map[i.get('EXTRA')]] if i.get('EXTRA') else []
+    :param self:
+    :param columns:
+    :param column_name:
+    :return:
+    """
+    extra_info_map = {"on update CURRENT_TIMESTAMP": "自动更新", "auto_increment": "自增"}
+    if db_col_info.get('EXTRA'): return extra_info_map[db_col_info.get('EXTRA')]
+    if re.findall("unsigned", db_col_info.get('COLUMN_TYPE')): return '无符号'
+    return []
+
+
+def get_db_col_dao(col_name, col_comment):
+    """
+    获取推荐列
+    :param col_name:
+    :param col_comment:
+    :return:
+    """
+    sql = f"""
+        select 
+            column_name as COLUMN_NAME,
+            column_default,
+            is_nullable,
+            data_type as DATA_TYPE,
+            character_maxmum_length as CHARACTER_MAXIMUM_LENGTH,
+            numeric_precision as NUMERIC_PRECISION,
+            numeric_scale as NUMERIC_SCALE,
+            datetime_precision as DATETIME_PRECISION,
+            column_type as COLUMN_TYPE,
+            extra as EXTRA,
+            column_comment
+        from db_columns
+        where column_name like '%{col_name}%' and column_comment like '%{col_comment}%'
+    """
+    print(sql)
+    ret = db_helper.find_all(sql)
+    assert ret['status'] == 'ok'
+    data = []
+    for row in ret['data']:
+        format_row = {
+            "name": row.get('COLUMN_NAME'),
+            "default_value": row.get('column_default'),
+            "not_null": False if row.get('IS_NULLABLE') == "YES" else True,
+            "type": row.get('DATA_TYPE'),
+            "length": get_col_length(row),
+            "point":get_col_point(row),
+            "comment": row.get('column_comment'),
+            "extra": get_extra_info(row)
+        }
+        data.append(format_row)
+    format_ret = {"status": "ok", "message":"ok", "data":data}
+    return format_ret
