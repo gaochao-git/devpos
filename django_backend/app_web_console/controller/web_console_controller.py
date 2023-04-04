@@ -303,13 +303,12 @@ class GetDbColController(BaseView):
         request_body = self.request_params
         # 验证参数方法1
         rules = {
-            "search_col_name": [Required, Length(0, 64), ],
-            "search_col_comment": [Required, Length(0, 64), ],
+            "search_col_content": [Required, Length(0, 64), ],
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid:
             return self.my_response({"status": "error", "message": str(valid_ret.errors)})
-        col_name = request_body.get('search_col_name')
-        col_comment = request_body.get('search_col_comment')
-        ret = web_console_dao.get_db_col_dao(col_name, col_comment)
+        search_col_content = request_body.get('search_col_content')
+        obj = web_console_dao.GetRecommandDbCol(search_col_content)
+        ret = obj.get_db_col_dao()
         return self.my_response(ret)

@@ -513,61 +513,6 @@ class TableInfo:
         self.sql_table_attributes = f"show create table `{des_schema_name}`.`{des_table_name}`"
 
 
-    # 依据数据库中存的默认值进行一些格式化,便于前端展示
-    def _get_default(self, column_info):
-        """
-        处理默认值,注意default '-1'在前端展示会丢失单引号
-        这些默认值都要做额外处理:NULL，"''",'1','xxx',表达式
-        这些字段类型要做特殊处理
-            text类字段不应该有默认值,mysql该字段默认给的是NULL,需要转为''
-        如果为not null但是无默认值需要额外处理
-        最好的方法是将mysql函数都识别出来,这部分布包裹引号,其他都包裹引号
-        :param default_value:
-        :param name:
-        :return:
-        """
-        default_func_list = ['CURRENT_TIMESTAMP', 'CURRENT_TIMESTAMP(1)', 'CURRENT_TIMESTAMP(2)',
-                             'CURRENT_TIMESTAMP(3)', 'CURRENT_TIMESTAMP(4)', 'CURRENT_TIMESTAMP(5)',
-                             'CURRENT_TIMESTAMP(6)']
-        text_type_list = ['tinytext', 'text', 'mediumtext', 'longtext', 'tinyblob', 'blob', 'mediumblob',
-                          'longblob']
-        default_value = column_info.get('COLUMN_DEFAULT')
-        is_nullable = column_info.get('IS_NULLABLE')
-        column_type = column_info.get('DATA_TYPE')
-        # 默认值为''
-        if default_value == "": return "''"
-        # 默认值为NULL
-        if default_value is None:
-            if is_nullable == "NO": return ""  # 字段为not null，但是无默认值，mysql这个字段默认为NULL，需要额外处理
-            if column_type in text_type_list: return ''  # 字段为text字段处理
-            return "NULL"
-        # 默认值为'1','-1'
-        if default_value.isdigit(): return f"'{default_value}'"
-        if default_value[0] == '-' and default_value[1:].isdigit(): return f"'{default_value}'"
-        # 断默认值为表达式
-        if default_value in default_func_list: return default_value  # 减少数据库探测
-        default_check_ret = db_helper.find_all(f"select {default_value} as ret_value")
-        if default_check_ret['status'] != "ok": return f"'{default_value}'"  # 肯定不是函数
-        # 默认值为'xxxxx'
-        if default_check_ret['data'][0]['ret_value'] == default_value: return f"'{default_value}'"  # 应该不是函数
-        # 没有考虑到的场景
-        return default_value
-
-
-    def _get_length(self, item):
-        """
-        依据数据库中存的长度值进行一些格式化,便于前端展示
-        注意:整型类展示占位宽度,长度无需展示,因为是固定的依据数据库中存的长度值进行一些格式化,便于前端展示
-        注意:整型类展示占位宽度,长度无需展示,因为是固定的
-        :param self:
-        :param item:
-        :return:
-        """
-        if item.get('DATA_TYPE') in ['datetime', 'time']: return item.get('DATETIME_PRECISION')
-        if item.get('DATA_TYPE') in ['char', 'varchar']: return item.get('CHARACTER_MAXIMUM_LENGTH')
-        if item.get('DATA_TYPE') in ['tinyint', 'smallint', 'int', 'bigint']: return re.findall("\d+", item.get('COLUMN_TYPE'))[0]
-        return item.get('NUMERIC_PRECISION')
-
     def _get_extra_info(self, columns, column_name):
         """
         获取自增、无符号、自动更新属性
@@ -602,9 +547,9 @@ class TableInfo:
             column_obj['key'] = i.get('ORDINAL_POSITION')
             column_obj['name'] = i.get('COLUMN_NAME')
             column_obj['type'] = i.get('DATA_TYPE')
-            column_obj['length'] = self._get_length(i)
+            column_obj['length'] = common_get_col_length(i)
             column_obj['point'] = i.get('NUMERIC_SCALE')
-            column_obj['default_value'] = self._get_default(i)
+            column_obj['default_value'] = common_get_default(i)
             column_obj['not_null'] = False if i.get('IS_NULLABLE') == "YES" else True
             column_obj['comment'] = i.get('COLUMN_COMMENT')
             column_obj['primary_key'] = False  # 给一个初始值,后面计算索引进行覆盖
@@ -683,12 +628,52 @@ class TableInfo:
         }
         return {"status": "ok", "message": "获取成功", "data": table_detail}
 
-def get_col_length(db_col_info):
+
+def common_get_default(column_info):
+    """
+    处理默认值,注意default '-1'在前端展示会丢失单引号
+    这些默认值都要做额外处理:NULL，"''",'1','xxx',表达式
+    这些字段类型要做特殊处理
+        text类字段不应该有默认值,mysql该字段默认给的是NULL,需要转为''
+    如果为not null但是无默认值需要额外处理
+    最好的方法是将mysql函数都识别出来,这部分布包裹引号,其他都包裹引号
+    :param default_value:
+    :param name:
+    :return:
+    """
+    default_func_list = ['CURRENT_TIMESTAMP', 'CURRENT_TIMESTAMP(1)', 'CURRENT_TIMESTAMP(2)',
+                         'CURRENT_TIMESTAMP(3)', 'CURRENT_TIMESTAMP(4)', 'CURRENT_TIMESTAMP(5)',
+                         'CURRENT_TIMESTAMP(6)']
+    text_type_list = ['tinytext', 'text', 'mediumtext', 'longtext', 'tinyblob', 'blob', 'mediumblob',
+                      'longblob']
+    default_value = column_info.get('COLUMN_DEFAULT')
+    is_nullable = column_info.get('IS_NULLABLE')
+    column_type = column_info.get('DATA_TYPE')
+    # 默认值为''
+    if default_value == "": return "''"
+    # 默认值为NULL
+    if default_value is None:
+        if is_nullable == "NO": return ""  # 字段为not null，但是无默认值，mysql这个字段默认为NULL，需要额外处理
+        if column_type in text_type_list: return ''  # 字段为text字段处理
+        return "NULL"
+    # 默认值为'1','-1'
+    if default_value.isdigit(): return f"'{default_value}'"
+    if default_value[0] == '-' and default_value[1:].isdigit(): return f"'{default_value}'"
+    # 断默认值为表达式
+    if default_value in default_func_list: return default_value  # 减少数据库探测
+    default_check_ret = db_helper.find_all(f"select {default_value} as ret_value")
+    if default_check_ret['status'] != "ok": return f"'{default_value}'"  # 肯定不是函数
+    # 默认值为'xxxxx'
+    if default_check_ret['data'][0]['ret_value'] == default_value: return f"'{default_value}'"  # 应该不是函数
+    # 没有考虑到的场景
+    return default_value
+
+def common_get_col_length(db_col_info):
     """
     依据数据库中存的长度值进行一些格式化,便于前端展示
     注意:整型类展示占位宽度,长度无需展示,因为是固定的依据数据库中存的长度值进行一些格式化,便于前端展示
     注意:整型类展示占位宽度,长度无需展示,因为是固定的
-    :param v:
+    :param db_col_info:
     :return:
     """
     if db_col_info.get('DATA_TYPE') in ['datetime', 'time']: return db_col_info.get('DATETIME_PRECISION')
@@ -696,70 +681,55 @@ def get_col_length(db_col_info):
     if db_col_info.get('DATA_TYPE') in ['tinyint', 'smallint', 'int', 'bigint']: return re.findall("\d+", db_col_info.get('COLUMN_TYPE'))[0]
     return db_col_info.get('NUMERIC_PRECISION')
 
+class GetRecommandDbCol:
+    def __init__(self, search_col_content):
+        self.sql = f"""
+            select 
+                column_name as COLUMN_NAME,
+                column_default as COLUMN_DEFAULT,
+                is_nullable as IS_NULLABLE,
+                data_type as DATA_TYPE,
+                character_maxmum_length as CHARACTER_MAXIMUM_LENGTH,
+                numeric_precision as NUMERIC_PRECISION,
+                numeric_scale as NUMERIC_SCALE,
+                datetime_precision as DATETIME_PRECISION,
+                column_type as COLUMN_TYPE,
+                extra as EXTRA,
+                column_comment
+            from db_columns
+            where column_name like '%{search_col_content}%' and column_comment like '%{search_col_content}%'
+        """
 
-def get_col_point(db_col_info):
-    """
-    整型类格式化为空
-    :param v:
-    :return:
-    """
-    if db_col_info.get('DATA_TYPE') in ['tinyint', 'smallint', 'int', 'bigint']: return ""
-    return db_col_info.get('NUMERIC_SCALE')
+    def _get_extra_info(self, db_col_info):
+        """
+        获取自增、无符号、自动更新属性
+        :param db_col_info:
+        :return:
+        """
+        extra_info_map = {"on update CURRENT_TIMESTAMP": "自动更新", "auto_increment": "自增"}
+        if db_col_info.get('EXTRA'): return extra_info_map[db_col_info.get('EXTRA')]
+        if re.findall("unsigned", db_col_info.get('COLUMN_TYPE')): return '无符号'
+        return []
 
-
-def get_extra_info(db_col_info):
-    """
-    获取自增、无符号、自动更新属性
-    [extra_info_map[i.get('EXTRA')]] if i.get('EXTRA') else []
-    :param self:
-    :param columns:
-    :param column_name:
-    :return:
-    """
-    extra_info_map = {"on update CURRENT_TIMESTAMP": "自动更新", "auto_increment": "自增"}
-    if db_col_info.get('EXTRA'): return extra_info_map[db_col_info.get('EXTRA')]
-    if re.findall("unsigned", db_col_info.get('COLUMN_TYPE')): return '无符号'
-    return []
-
-
-def get_db_col_dao(col_name, col_comment):
-    """
-    获取推荐列
-    :param col_name:
-    :param col_comment:
-    :return:
-    """
-    sql = f"""
-        select 
-            column_name as COLUMN_NAME,
-            column_default,
-            is_nullable,
-            data_type as DATA_TYPE,
-            character_maxmum_length as CHARACTER_MAXIMUM_LENGTH,
-            numeric_precision as NUMERIC_PRECISION,
-            numeric_scale as NUMERIC_SCALE,
-            datetime_precision as DATETIME_PRECISION,
-            column_type as COLUMN_TYPE,
-            extra as EXTRA,
-            column_comment
-        from db_columns
-        where column_name like '%{col_name}%' and column_comment like '%{col_comment}%'
-    """
-    print(sql)
-    ret = db_helper.find_all(sql)
-    assert ret['status'] == 'ok'
-    data = []
-    for row in ret['data']:
-        format_row = {
-            "name": row.get('COLUMN_NAME'),
-            "default_value": row.get('column_default'),
-            "not_null": False if row.get('IS_NULLABLE') == "YES" else True,
-            "type": row.get('DATA_TYPE'),
-            "length": get_col_length(row),
-            "point":get_col_point(row),
-            "comment": row.get('column_comment'),
-            "extra": get_extra_info(row)
-        }
-        data.append(format_row)
-    format_ret = {"status": "ok", "message":"ok", "data":data}
-    return format_ret
+    def get_db_col_dao(self):
+        """
+        获取推荐列
+        :return:
+        """
+        ret = db_helper.find_all(self.sql)
+        assert ret['status'] == 'ok'
+        data = []
+        for row in ret['data']:
+            format_row = {
+                "name": row.get('COLUMN_NAME'),
+                "default_value": common_get_default(row),
+                "not_null": False if row.get('IS_NULLABLE') == "YES" else True,
+                "type": row.get('DATA_TYPE'),
+                "length": common_get_col_length(row),
+                "point":row.get('NUMERIC_SCALE'),
+                "comment": row.get('column_comment'),
+                "extra": self._get_extra_info(row)
+            }
+            data.append(format_row)
+        format_ret = {"status": "ok", "message":"ok", "data":data}
+        return format_ret

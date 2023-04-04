@@ -309,7 +309,6 @@ export class EditableTable extends React.Component {
         title: '列名',
         dataIndex: 'name',
         width: '10%',
-        editable: true,
       },
       {
         title: '类型',
@@ -329,7 +328,7 @@ export class EditableTable extends React.Component {
       {
         title: '不是null',
         dataIndex: 'not_null',
-        render: (text, record, idx) => <Checkbox disabled="true" checked={record.not_null} onChange={(e)=>this.changeNull(text,record,idx, e.target.checked)}/>
+        render: (text, record, idx) => <Checkbox disabled="true" checked={record.not_null}/>
       },
       {
         title: '默认值',
@@ -499,8 +498,7 @@ export class EditableTable extends React.Component {
       des_ip_port:"xxxxx",       //目的ip，父组件传递来的
       des_schema_name:"mysql",  //目的库名，父组件传递来的
       searchColModal:false,
-      search_col_name:"",
-      search_col_comment:"",
+      search_col_content:"",
       edit_table_index:"",
       db_col_list:[],
       temp_db_col_list:[]
@@ -512,11 +510,10 @@ export class EditableTable extends React.Component {
     this.getDbCol()
   }
 
-  //校验SQL语法
+  //获取推荐列
   async getDbCol() {
       let params = {
-        search_col_name:this.state.search_col_name,
-        search_col_comment:this.state.search_col_comment,
+        search_col_content:this.state.search_col_content,
       };
       await MyAxios.post('/web_console/v1/get_db_col/',params).then(
           res=>{
@@ -1077,21 +1074,12 @@ export class EditableTable extends React.Component {
 
    filterColOrComment = () =>{
       var newArr = []
-      if (this.state.search_col_name==="" && this.state.search_col_comment===""){
+      if (this.state.search_col_content===""){
           newArr = this.state.db_col_list
       }else{
           this.state.db_col_list.filter(record=>{
-              if (this.state.search_col_name!=="" && this.state.search_col_comment===""){
-                  console.log(1)
-                  if (record.name.indexOf(this.state.search_col_name) !=-1){
-                         newArr.push(record)
-                  }
-              }else if (this.state.search_col_name==="" && this.state.search_col_comment!==""){
-                  if (record.comment.indexOf(this.state.search_col_comment) !=-1){
-                     newArr.push(record)
-                  }
-              }else if (this.state.search_col_name!=="" && this.state.search_col_comment!==""){
-                  if (record.comment.indexOf(this.state.search_col_comment) !=-1 && record.name.indexOf(this.state.search_col_name) !=-1){
+              if (this.state.search_col_content!==""){
+                  if (record.comment.indexOf(this.state.search_col_content) !=-1 || record.name.indexOf(this.state.search_col_content) !=-1){
                      newArr.push(record)
                   }
               }
@@ -1357,8 +1345,7 @@ export class EditableTable extends React.Component {
           onCancel={()=>this.setState({searchColModal:false})}
           width={1200}
         >
-            <Input allowClear style={{width:'30%'}} placeholder="列名匹配" value={this.state.search_col_name} onChange={(e)=>this.setState({search_col_name:e.target.value},()=>this.filterColOrComment()   )}/>
-            <Input allowClear style={{width:'30%',marginLeft:5}} placeholder="列名注释匹配" value={this.state.search_col_comment} onChange={(e)=>this.setState({search_col_comment:e.target.value},()=>this.filterColOrComment())}/>
+            <Input allowClear style={{width:'30%'}} placeholder="列名匹配" value={this.state.search_col_content} onChange={(e)=>this.setState({search_col_content:e.target.value},()=>this.filterColOrComment()   )}/>
             <Table
               rowKey={(row ,index) => index}
               size="small"
