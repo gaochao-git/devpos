@@ -484,28 +484,29 @@ export class EditableAlterTable extends React.Component {
       count: 3,
       index_count: 2,
       extra_info: [],
-      table_name:"t_",
+      table_name: "t_",
       table_engine: "InnoDB",
       table_charset: "utf8",
       table_comment: "",
-      table_auto_increment:"",
+      table_auto_increment: "",
       columnIndexSource: [],
-      editIndexModal:false,
-      column_name_list:[],
-      selected_row_keys:[],
-      row_index_select_keys_map:{},
-      columnIndexSourceCount:0,
-      history_design_data:[],
-      sql_preview:"",
-      alter_table_info:[],  //修改表结构使用字段，父组件传递来的
-      des_ip_port:"",       //目的ip，父组件传递来的
-      des_schema_name:"",  //目的库名，父组件传递来的
-      alterSqlType:"merge", //合并多条alter
-      searchColModal:false,
-      search_col_content:"",
-      edit_table_index:"",
-      db_col_list:[],
-      temp_db_col_list:[]
+      editIndexModal: false,
+      column_name_list: [],
+      selected_row_keys: [],
+      row_index_select_keys_map: {},
+      columnIndexSourceCount: 0,
+      history_design_data: [],
+      sql_preview: "",
+      alter_table_info: [],  //修改表结构使用字段，父组件传递来的
+      des_ip_port: "",       //目的ip，父组件传递来的
+      des_schema_name: "",  //目的库名，父组件传递来的
+      alterSqlType: "merge", //合并多条alter
+      searchColModal: false,
+      search_col_content: "",
+      edit_table_index: "",
+      db_col_list: [],
+      temp_db_col_list: [],
+      tabs_active_key: '1'
     };
   }
 
@@ -544,6 +545,7 @@ export class EditableAlterTable extends React.Component {
           table_auto_increment:nextProps.alter_table_info['table_auto_increment'],
           des_ip_port:nextProps.des_ip_port,
           des_schema_name:nextProps.des_schema_name,
+          tabs_active_key: '1'
        }
     }
     return null;
@@ -1060,12 +1062,6 @@ export class EditableAlterTable extends React.Component {
        var new_primary_key_col_list = data_source.filter(item => item.primary_key === true)      // 主键列过滤出来
        var old_primary_key_col_list = old_data_source.filter(item => item.primary_key === true)  // 主键列过滤出来
 
-
-       //生成列名
-       var column_name_list = []
-       data_source.forEach(field_detail => {
-           column_name_list.push(field_detail.name)
-       });
        // 增加列,不用forEach,需要将上一个列一并传过去
        for(var col=0;col<data_source.length;col++){
            if (data_source[col].operate_flag === "new_add_col"){
@@ -1151,8 +1147,14 @@ export class EditableAlterTable extends React.Component {
            var sql = base_sql + format_drop_col_sql + format_add_col_sql  + format_modify_col_sql + format_change_col_sql  + format_primary_key_sql + format_add_key_sql + format_drop_key_sql + format_change_table_comment_sql + format_change_table_charset_sql + format_change_table_name_sql
            sql = sql.substring(sql.length-1)===',' ? sql.substring(0,sql.length-1): sql  //去除最后一个逗号
            sql = sql + ';'  // 在拼接结束符号
-           this.setState({sql_preview: sql, merge_sql_view:sql, column_name_list:column_name_list})
+           this.setState({sql_preview: sql, merge_sql_view:sql})
        }
+       //生成列名，用于索引编辑
+       var column_name_list = []
+       data_source.forEach(field_detail => {
+           column_name_list.push(field_detail.name)
+       });
+       this.setState({column_name_list:column_name_list})
    }
    //修改主键
    formatAlterTablePrimaryKeySql = (new_primary_key_col_list, old_primary_key_col_list) =>{
@@ -1460,7 +1462,7 @@ export class EditableAlterTable extends React.Component {
 
     return (
       <div>
-        <Tabs onChange={this.callbackTabPane} type="card" tabPosition="top">
+        <Tabs onChange={this.callbackTabPane} type="card" tabPosition="top" activeKey={this.state.tabs_active_key}>
           <TabPane tab="基本信息" key="1">
             <div style={{width:'50%',marginLeft:'25%'}}>
               <div style={{ marginBottom: 4 }}>
