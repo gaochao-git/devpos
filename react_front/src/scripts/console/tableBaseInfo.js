@@ -735,20 +735,6 @@ export class EditableTable extends React.Component {
        const newData = [...this.state.dataSource];
        let row = record;
        row.type=new_value;
-       //如果是文本类型将字段not null改为false，这个位置不能与更改长度用同样的方法,因为checked改变值不会改变
-       switch(record.type) {
-           case'tinytext':
-           case 'mediumtext':
-           case 'text':
-           case'tinyblob':
-           case 'mediumblob':
-           case 'longblob':
-               row.not_null = false;
-              break;
-           default:
-              row.not_null = true;
-              break;
-       }
        this.setState({ dataSource: newData});
    }
    //设计字段: 更改字段null
