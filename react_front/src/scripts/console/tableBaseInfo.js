@@ -19,9 +19,11 @@ const EditableContext = React.createContext();
 const LENGTH_SWITCH = (record) =>{
     switch(record.type) {
         case'tinytext':
-        case 'mediumtext':
         case 'text':
+        case 'mediumtext':
+        case 'longtext':
         case'tinyblob':
+        case'blob':
         case 'mediumblob':
         case 'longblob':
             return true;
@@ -60,12 +62,14 @@ const POINT_SWITCH = (column_type) =>{
 const DEFAULT_SWITCH = (column_type) =>{
     switch(column_type) {
         case'tinytext':
-        case 'mediumtext':
         case 'text':
+        case 'mediumtext':
+        case 'longtext':
         case'tinyblob':
+        case'blob':
         case 'mediumblob':
         case 'longblob':
-            return true;
+           return true;
            break;
         default:
            return false;
@@ -78,9 +82,11 @@ const DEFAULT_SWITCH = (column_type) =>{
 const NOT_NULL_SWITCH = (record) =>{
     switch(record.type) {
         case'tinytext':
-        case 'mediumtext':
         case 'text':
+        case 'mediumtext':
+        case 'longtext':
         case'tinyblob':
+        case'blob':
         case 'mediumblob':
         case 'longblob':
             return false;

@@ -19,9 +19,11 @@ const EditableContext = React.createContext();
 const LENGTH_SWITCH = (record) =>{
     switch(record.type) {
         case'tinytext':
-        case 'mediumtext':
         case 'text':
+        case 'mediumtext':
+        case 'longtext':
         case'tinyblob':
+        case'blob':
         case 'mediumblob':
         case 'longblob':
             return true;
@@ -60,9 +62,11 @@ const POINT_SWITCH = (column_type) =>{
 const DEFAULT_SWITCH = (column_type) =>{
     switch(column_type) {
         case'tinytext':
-        case 'mediumtext':
         case 'text':
+        case 'mediumtext':
+        case 'longtext':
         case'tinyblob':
+        case'blob':
         case 'mediumblob':
         case 'longblob':
             return true;
@@ -78,9 +82,11 @@ const DEFAULT_SWITCH = (column_type) =>{
 const NOT_NULL_SWITCH = (record) =>{
     switch(record.type) {
         case'tinytext':
-        case 'mediumtext':
         case 'text':
+        case 'mediumtext':
+        case 'longtext':
         case'tinyblob':
+        case'blob':
         case 'mediumblob':
         case 'longblob':
             return false;
@@ -291,18 +297,60 @@ export class EditableAlterTable extends React.Component {
             >
               <a>Delete</a>
             </Popconfirm>
-            {/*
-              <Button style={{marginLeft:5}} onClick={()=>this.upRow(idx)}>
-              <Icon type="arrow-up" />
-              </Button>
-              <Button onClick={()=>this.downRow(idx)}>
-                <Icon type="arrow-down" />
-              </Button>
-            */}
             <Button onClick={()=>this.handleAddNextColumn(record, idx)}>
               <Icon type="plus" />
             </Button>
+            <Button onClick={()=>this.handleSearchColumn(record, idx)}>
+              <Icon type="search" />
+            </Button>
           </div>
+      },
+    ];
+
+    this.db_columns = [
+      {
+        title: '列名',
+        dataIndex: 'name',
+        width: '10%',
+      },
+      {
+        title: '类型',
+        dataIndex: 'type',
+
+      },
+      {
+        title: '长度',
+        dataIndex: 'length',
+        width: '6%',
+      },
+      {
+        title: '小数点',
+        dataIndex: 'point',
+        width: '6%',
+      },
+      {
+        title: '不是null',
+        dataIndex: 'not_null',
+        render: (text, record, idx) => <Checkbox disabled="true" checked={record.not_null}/>
+      },
+      {
+        title: '默认值',
+        dataIndex: 'default_value',
+      },
+      {
+        title: '其他属性',
+        dataIndex: 'extra',
+        width: '30%',
+      },
+      {
+        title: '注释',
+        dataIndex: 'comment',
+      },
+      {
+        title: 'operation',
+        dataIndex: 'operation',
+        render: (text, record,idx) =>
+            <Button onClick={()=>this.handleSelectColumn(record)}>选中</Button>
       },
     ];
 
@@ -453,7 +501,33 @@ export class EditableAlterTable extends React.Component {
       des_ip_port:"",       //目的ip，父组件传递来的
       des_schema_name:"",  //目的库名，父组件传递来的
       alterSqlType:"merge", //合并多条alter
+      searchColModal:false,
+      search_col_content:"",
+      edit_table_index:"",
+      db_col_list:[],
+      temp_db_col_list:[]
     };
+  }
+
+  componentDidMount() {
+    this.getDbCol()
+  }
+
+  //获取推荐列
+  async getDbCol() {
+      let params = {
+        search_col_content:this.state.search_col_content,
+      };
+      await MyAxios.post('/web_console/v1/get_db_col/',params).then(
+          res=>{
+              if( res.data.status === 'ok'){
+                  this.setState({db_col_list:res.data.data,temp_db_col_list:res.data.data})
+                  message.success(res.data.message)
+              } else{
+                  message.error(res.data.message)
+              }
+          }
+      ).catch(err=>message.error(err.message))
   }
 
   //设计表使用监听父组件变化,获取表信息,
@@ -624,6 +698,10 @@ export class EditableAlterTable extends React.Component {
       dataSource: newDataSource,
       count: count + 1,
     });
+  };
+  //设计列:智能匹配选择列
+  handleSearchColumn = (record,position) => {
+    this.setState({searchColModal:true,edit_table_index:record.key-1})
   };
 
   //设计列:末尾增加列
@@ -951,6 +1029,32 @@ export class EditableAlterTable extends React.Component {
         return change_sql
     }
 
+    handleSelectColumn=(record)=>{
+       var new_data_source = []
+       for (var i=0;i<this.state.dataSource.length;i++){
+           if (i !== this.state.edit_table_index){
+            new_data_source.push(this.state.dataSource[i])
+           }else{
+               var newRow = {
+                   key: this.state.dataSource[i]['key'],
+                   name: record['name'],
+                   not_null: record['not_null'],
+                   length: record['length'],
+                   point: record['point'],
+                   type: record['type'],
+                   default_value: record['default_value'],
+                   comment: record['comment'],
+                   extra_info: record['extra'],
+                   operate_flag: 'new_add_col',
+                   operate_position: 'after',
+               };
+
+               new_data_source.push(newRow)
+           }
+       }
+       this.setState({ dataSource: new_data_source, searchColModal:false});
+   }
+
    //生成改表结构SQL
    generateAlterSql =() =>{
        //增加索引、删除索引、修改索引类型、修改索引列
@@ -1156,7 +1260,10 @@ export class EditableAlterTable extends React.Component {
        var extra_info_increment = ""
        var extra_info_update = ""
        switch(type) {
-           case 'tinyint': case 'smallint': case'int': case'bigint':
+           case 'tinyint':
+           case 'smallint':
+           case'int':
+           case'bigint':
               if (length===0){
                   COLUMN_TYPE = type
               }else {
@@ -1174,7 +1281,9 @@ export class EditableAlterTable extends React.Component {
               }
               COLUMN_TYPE = COLUMN_TYPE + extra_info_unsigned + extra_info_zerofill + allow_null + extra_info_increment + default_value
               break;
-           case 'datetime': case 'timestamp': case 'time':
+           case 'datetime':
+           case 'timestamp':
+           case 'time':
               if (length===0){
                   COLUMN_TYPE = type
               }else if (length > 6|length <0){
@@ -1192,7 +1301,9 @@ export class EditableAlterTable extends React.Component {
               }
               COLUMN_TYPE = COLUMN_TYPE + allow_null + default_value + extra_info_update
               break;
-           case 'float': case 'double': case'decimal':
+           case 'float':
+           case 'double':
+           case'decimal':
               if (length===0){
                   message.error(type + "长度不允许为0")
               }else if (point > length){
@@ -1202,7 +1313,8 @@ export class EditableAlterTable extends React.Component {
                   COLUMN_TYPE = COLUMN_TYPE + allow_null + default_value
               }
               break;
-           case 'char': case 'varchar':
+           case 'char':
+           case 'varchar':
               if (length===0){
                   message.error(type + "长度不允许为0")
               }else {
@@ -1210,6 +1322,16 @@ export class EditableAlterTable extends React.Component {
                   COLUMN_TYPE = COLUMN_TYPE + allow_null + default_value
               }
               break;
+           case'tinytext':
+           case 'text':
+           case 'mediumtext':
+           case 'longtext':
+           case'tinyblob':
+           case'blob':
+           case 'mediumblob':
+           case 'longblob':
+               COLUMN_TYPE = type + allow_null
+               break;
            default:
               COLUMN_TYPE = type + allow_null + default_value
       }
@@ -1483,6 +1605,23 @@ export class EditableAlterTable extends React.Component {
               bordered
               dataSource={this.state.index_detail}
               columns={this.select_index_columns}
+              pagination={false}
+            />
+        </Modal>
+        <Modal
+          visible={this.state.searchColModal}
+          footer={false}
+          onCancel={()=>this.setState({searchColModal:false})}
+          width={1200}
+        >
+            <Input allowClear style={{width:'30%'}} placeholder="列名匹配" value={this.state.search_col_content} onChange={(e)=>this.setState({search_col_content:e.target.value},()=>this.filterColOrComment()   )}/>
+            <Table
+              rowKey={(row ,index) => index}
+              size="small"
+              components={components}
+              bordered
+              dataSource={this.state.temp_db_col_list}
+              columns={this.db_columns}
               pagination={false}
             />
         </Modal>
