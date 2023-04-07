@@ -1250,10 +1250,10 @@ export class EditableAlterTable extends React.Component {
            case 'smallint':
            case'int':
            case'bigint':
-              if (length===0){
-                  COLUMN_TYPE = type
-              }else {
+              if (extra_info.includes('填充零')){
                   COLUMN_TYPE=type + '(' + length + ')'
+              }else {
+                  COLUMN_TYPE = type
               }
               //计算额外属性
               if (extra_info.includes('无符号')){
