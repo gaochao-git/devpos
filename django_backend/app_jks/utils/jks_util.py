@@ -33,7 +33,7 @@ class MyJenkins(Jenkins):
         print(job_name)
         try:
             self.assert_job_exists(job_name)
-            queue_id = self.build_job(job_name,parameters=jks_params)
+            queue_id = self.build_job(job_name,parameters=jks_params) if len(jks_params) > 0 else self.build_job(job_name)
             ret = {"status":"ok","message":"任务下发成功","data":{"queue_id":queue_id}}
             self._job_write_db(user, queue_id, job_name, request_body)
             return ret
