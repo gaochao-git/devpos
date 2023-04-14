@@ -54,6 +54,7 @@ CAS_SERVER_URL = 'http://sso-xxxx.xxx.com'
 CAS_VERSION = '3'
 CAS_APPLY_ATTRIBUTES = True  # 获取用户详细信息
 CAS_CHECK_NEXT = lambda _: True  # 解决Non-local url is forbidden异常
+CAS_VERIFY_SSL_CERTIFICATE: False # 忽略ssl证书合法性验证(可以支持自签证书)
 AUTHENTICATION_BACKENDS = (
   'django.contrib.auth.backends.ModelBackend',
   'django_cas_ng.backends.CASBackend',
