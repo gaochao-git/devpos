@@ -79,7 +79,8 @@ export class BaseConsole extends Component {
       editTableModal:false,
       editAlterTableModal:false,
       sql_preview:"",
-      sqlScoreModal:false
+      sqlScoreModal:false,
+      table_list: [],
     }
   }
 
@@ -536,7 +537,7 @@ onSorter = (a,b) => {
                     table_dir['icon'] = <Icon type="table"/>
                     table_dir_arr.push(table_dir)
                   }
-                  this.setState({source_slider_info:table_dir_arr,collapsed:false,tables_hint:table_hint_obj});
+                  this.setState({source_slider_info:table_dir_arr,collapsed:false,tables_hint:table_hint_obj,table_list:res.data.data})
               } else{
                   message.error(res.data.message)
               }
@@ -706,6 +707,7 @@ onSorter = (a,b) => {
                     <Resizable style={{overflow:'scroll',display:'block'}} defaultSize={{width:320, height:'400'}} minWidth='140'>
                         <Search size="small" placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
                         <Tree
+                           key={JSON.stringify(this.state.table_list)}
                            showIcon
                            loadData={this.onLoadData}
                            onSelect={this.onSelect}
