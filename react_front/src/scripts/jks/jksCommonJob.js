@@ -66,7 +66,7 @@ export default class JksCommonJob extends Component  {
             res => {
                 if(res.data.status==="ok") {
                     //选项参数第一个值为默认值,不仅仅在页面需要展示,也需要在提交任务时将参数赋值
-                    let jks_job_params: JSON.parse(res.data.data[0]['jks_job_params'].replace(/\n/g,"\\n").replace(/\r/g,"\\r"))
+                    let jks_job_params  = JSON.parse(res.data.data[0]['jks_job_params'].replace(/\n/g,"\\n").replace(/\r/g,"\\r"))
                     let format_jks_job_params_list = []
                     jks_job_params.forEach((item)=>{
                         let format_jks_job_params_dict = {}
@@ -110,7 +110,11 @@ export default class JksCommonJob extends Component  {
                     <Row gutter={24}>
                         <Col span={8}>
                             选择任务
-                            <Select defaultValue={record.params_value.split('\n')[0]} style={{width:'100%',marginBottom:30}} onChange={e => this.setState({jks_job_name:e},()=>this.getJksJobConfigDetail())}>
+                            <Select
+                                value={this.state.job_name}
+                                style={{width:'100%',marginBottom:"30px"}}
+                                onChange={e => this.setState({jks_job_name:e},()=>this.getJksJobConfigDetail())}
+                            >
                                 {this.state.jks_job_config_list.map((record) => <Option key={record.jks_job_name} value={record.jks_job_name}>{record.jks_job_name}</Option>)}
                             </Select>
                             任务描述

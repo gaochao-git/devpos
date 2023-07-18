@@ -195,17 +195,17 @@ export default class DatabaseResource extends Component  {
     this.setState({ checkedKeys:name_arr });
   };
 
-  renderTreeNodes = data =>
-    data.map(item => {
-      if (item.children) {
-        return (
-          <TreeNode title={item.title} key={item.key} dataRef={item}>
-            {this.renderTreeNodes(item.children)}
-          </TreeNode>
-        );
-      }
-      return <TreeNode key={item.key} {...item} />;
-    });
+      renderTreeNodes = data =>
+        data.map(item => {
+          if (item.children) {
+            return (
+              <TreeNode title={item.title} key={item.key} dataRef={item}>
+                {this.renderTreeNodes(item.children)}
+              </TreeNode>
+            );
+          }
+          return <TreeNode key={item.key} {...item} />;
+        });
 
     render() {
         const { targetKeys, selectedKeys, disabled } = this.state;
