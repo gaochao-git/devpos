@@ -67,6 +67,7 @@ def web_console_sensitive_data_detect(data):
     for obj in data:
         for k, v in obj.items():
             detect_data = str(v)
+            # print(len(detect_data), detect_data, desensitize_name(detect_data))
             if validate_id_number(detect_data): print({"status": "error", "message": f"匹配到身份证号敏感数据:{k}: {v}"})
             if validate_phone_number(detect_data): print({"status": "error", "message": f"匹配到电话号敏感数据:{k}: {v}"})
             if validate_bank_number(detect_data): print({"status": "error", "message": f"匹配到银行卡号敏感数据:{k}: {v}"})
@@ -112,3 +113,39 @@ def validate_bank_number(str_info):
         logger.exception(f"手机号校验失败{str(e)}")
         return False
 
+
+def desensitize_name(data):
+    """
+    脱敏人名
+    2 张飞 *飞
+    8 乌日更达赖琪琪格 乌日****更达赖琪琪格
+    :param data:
+    :return:
+    """
+    data = data.strip()
+    if 1 <= len(data) <= 3:
+        return '*' + data[1:]
+    elif 4 <= len(data) <= 6:
+        return '*' * 2 + data[2:]
+    elif len(data) > 6:
+        return data[:2] + '*' * 4 + data[2:]
+    else:
+        return data
+
+
+def desensitize_mobile_phone(data):
+    """
+    脱敏手机：18853503922 ----> 188****3922
+    :param data:
+    :return:
+    """
+    return data[:3] + '*' * 4 + data[7:]
+
+
+def desensitize_landline_telephone(data):
+    """
+    脱敏座机：0535-5531209 ---> 0535-55***09
+    :param data:
+    :return:
+    """
+    return data[:-5] + "*" * 3 + data[-2:]
