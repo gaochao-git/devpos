@@ -109,9 +109,6 @@ export class BaseConsole extends Component {
 
 
 onSorter = (a,b) => {
-  console.log(1111)
-  console.log(a,b)
-  console.log(222)
   if (!a) {
     a = "";
   }
@@ -148,6 +145,8 @@ onSorter = (a,b) => {
                   let table_data_list = []
                   let table_label_list = []
                   let query_time_list = []
+                  let mask_time_list = []
+                  let sens_time_list = []
                   let col_format_res_list = []
                   // sql1=select user from mysql.user limit 1;  sql2=select host from mysql.user limit 1;
                   // res.data.data = [{"0": [{"user": "gaochao"}]}, {"1": [{"host": "%"}]}]
@@ -175,6 +174,8 @@ onSorter = (a,b) => {
                       table_data_list.push(res.data.data[j][j])
                       table_label_list.push(label)
                       query_time_list.push(res.data.query_time[j][j])
+                      mask_time_list.push(res.data.mask_time[j][j])
+                      sens_time_list.push(res.data.sens_time[j][j])
                       // 列式展示
                       let col_format_res = ""
                       for (var row_index=0;row_index<res.data.data[j][j].length;row_index++){
@@ -191,6 +192,8 @@ onSorter = (a,b) => {
                       multi_table_data: table_data_list,
                       multi_table_column: table_column_list,
                       multi_query_time: query_time_list,
+                      multi_mask_time: mask_time_list,
+                      multi_sens_time: sens_time_list,
                       col_format_res_list:col_format_res_list,
                       get_data:true,
                       global_loading:false,
@@ -850,12 +853,13 @@ onSorter = (a,b) => {
                onBlur={cm=>this.onBlur(cm)}
                onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
             />
-            <Tabs defaultActiveKey='1' tabPosition="bottom" size="small" style={{ margin:1}}>
+            <Tabs defaultActiveKey='1' tabPosition="top" size="small" style={{ margin:1}}>
               {
                   this.state.multi_label.map((item,index)=>{
                   return(
-                      <TabPane tab={item} key={index}>
 
+                      <TabPane tab={item} key={index}>
+                          共{this.state.multi_table_data[index].length}条,  查询耗时:{this.state.multi_query_time[index]} ms, 脱敏耗时:{this.state.multi_mask_time[index]} ms, 敏感数据探测耗时: {this.state.multi_sens_time[index]} ms
                           {
                               this.state.res_format === 'row'
                               ?
@@ -865,8 +869,6 @@ onSorter = (a,b) => {
                               : <TextArea rows={10} value={this.state.col_format_res_list[index]}/>
 
                           }
-
-                        共{this.state.multi_table_data[index].length}条,  耗时:{this.state.multi_query_time[index]} ms
                           <Button
                               style={{marginLeft: '10px'}}
                               onClick={tableToExcel.bind(this, this.state.multi_table_data[index], this.state.multi_table_column[index], 'query_result')}

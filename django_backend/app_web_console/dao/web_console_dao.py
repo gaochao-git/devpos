@@ -9,6 +9,7 @@ import json
 import logging
 import sqlparse
 import re
+from datetime import datetime
 from app_web_console.utils import data_mask, senstive_data
 from utils.exceptions import BusinessException
 from utils.go_inception_ import MyGoInception
@@ -29,6 +30,8 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
     port = des_ip_port.split('_')[1]
     ret_list = []
     query_time_list = []
+    mask_time_list = []
+    sens_data_time_list = []
     sql_list = sqlparse.split(sql)
     while '' in sql_list:sql_list.remove('')
     if len(sql_list) > 10: return {"status": "error", "message": "最多10条"}
@@ -41,19 +44,36 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
         rewrite_item_sql = process_audit_sql(ip, port, item_sql, schema_name)
         # 组装数据
         k_v_data = {}
-        k_v_time = {}
+        k_v_query_time = {}
+        k_v_mask_time = {}
+        k_v_sens_data_time = {}
         ret = db_helper.target_source_find_all(ip, port, rewrite_item_sql, db=schema_name)
         if ret['status'] != 'ok': return ret
         # 直接在原始数据进行脱敏,脱敏成功则脱敏,否则放行
+        mask_start_time = datetime.now()
         data_mask.data_masking(des_ip_port, schema_name, item_sql, ret['data'])
+        mask_use_time_ms = (mask_start_time - datetime.now()).microseconds / 1000
         # 敏感数据识别
+        sens_start_time = datetime.now()
         senstive_data.web_console_sensitive_data_detect(ret['data'])
+        sens_use_time_ms = (sens_start_time - datetime.now()).microseconds / 1000
         k_v_data[j] = ret['data']
-        k_v_time[j] = ret['execute_time']
+        k_v_query_time[j] = ret['execute_time']
+        k_v_mask_time[j] = mask_use_time_ms
+        k_v_sens_data_time[j] = sens_use_time_ms
         j = j + 1
         ret_list.append(k_v_data)
-        query_time_list.append(k_v_time)
-    return {"status":"ok","message": "所有SQL正常执行完成","data":ret_list, "query_time": query_time_list}
+        query_time_list.append(k_v_query_time)
+        mask_time_list.append(k_v_mask_time)
+        sens_data_time_list.append(k_v_sens_data_time)
+    return {
+        "status":"ok",
+        "message": "所有SQL正常执行完成",
+        "data":ret_list,
+        "query_time": query_time_list,
+        "mask_time": mask_time_list,
+        "sens_time": sens_data_time_list
+    }
 
 
 def process_audit_sql(ip, port, item_sql, schema_name):
