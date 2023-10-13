@@ -59,13 +59,6 @@ function LoginOutSSO(){
 class App extends Component {
     constructor(props) {
         super(props);
-        let waterText = ""
-        try {
-            waterText = JSON.parse(localStorage.getItem('userinfo')).username + ", " + moment().format('YYYY-MM-DD')
-        }catch (error) {
-            console.log(error.message)
-            waterText = ""
-        }
         this.state = {
             login_user_name:"",
             login_user_role:"",
@@ -73,14 +66,11 @@ class App extends Component {
             current_time:"",
             week_day:"",
             collapsed:false,
-            waterText: waterText
+            waterText: ""
         }
     }
     componentDidMount() {
-        console.log(window.localStorage.getItem('token'))
-        if (window.localStorage.getItem('token')){
-          this.getUserInfo();
-        };
+        this.getUserInfo();
         this.routerChange();
     }
 
@@ -107,7 +97,8 @@ class App extends Component {
                         login_name:res.data.data[0]['name'],
                         login_user_name:res.data.data[0]['username'],
                         login_user_role:res.data.data[0]['user_role'],
-                        login_user_email:res.data.data[0]['email']
+                        login_user_email:res.data.data[0]['email'],
+                        waterText: res.data.data[0]['name'] + ", " + moment().format('YYYY-MM-DD')
                     });
                     window.localStorage.setItem("userinfo", JSON.stringify(res.data.data[0]))
                 }else
@@ -198,7 +189,7 @@ class App extends Component {
                                     {this.state.current_nav === "管理"? <NavManage/>:null}
                                 </Sider>
                                 <Content style={{background: '#fff',minHeight: 280}}>
-                                    <WaterMark content={this.state.waterText} rotate={16} globalAlpha={0.2}>
+                                    {this.state.waterText.length!==0 && <WaterMark content={this.state.waterText} rotate={16} globalAlpha={0.2}>
                                         <Route exact path="/" component={() => {return <HomeDbaInfo/>}}/>
                                         <Route exact path="/home" component={Login} />
                                         <Route exact path="/homeDbaInfo" component={HomeDbaInfo} />
@@ -224,7 +215,7 @@ class App extends Component {
                                         <Route exact path="/manage/permission/commonUser" component={commonUser} />
                                         <Route exact path="/service/console/tableDesign" component={TableDesign} />
                                         <Route exact path="/ops/deploy/jksCommonJob" component={JksCommonJob} />
-                                    </WaterMark>
+                                    </WaterMark>}
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>
