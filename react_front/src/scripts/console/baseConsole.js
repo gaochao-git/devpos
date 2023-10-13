@@ -81,6 +81,7 @@ export class BaseConsole extends Component {
       sql_preview:"",
       sqlScoreModal:false,
       table_list: [],
+      table_col_hint_data: {"table_name":["id","name","age"]},
     }
   }
 
@@ -295,13 +296,14 @@ onSorter = (a,b) => {
   onInputRead = async (cm, change, editor) => {
     const tableName = this.state.tables_hint; // 获取库表列表
     const { text } = change;
-    const ignore_chars = ['.', ',',' ',';'];     //这些字符不提示
+    const ignore_chars = [',',' ',';'];     //这些字符不提示
     const ignore = ignore_chars.includes(text[0]);
     if (change.origin==="paste" || ignore){
         return
     } else {
+      const hintData = this.state.table_col_hint_data;
       cm.setOption('hintOptions', {
-        tables: tableName,
+        tables: hintData,
         completeSingle: false
       });
     }
@@ -510,34 +512,35 @@ onSorter = (a,b) => {
               if( res.data.status === 'ok'){
                   var table_dir_arr = []
                   var table_hint_obj = {}
-                  for (var i=0;i<res.data.data.length;i++){
+                  var table_info_list = res.data.data['table_info_list']
+                  for (var i=0;i<table_info_list.length;i++){
                     let table_dir = {}
-                    table_hint_obj[res.data.data[i]['TABLE_NAME']] = []
+                    table_hint_obj[table_info_list[i]['TABLE_NAME']] = []
                     table_dir['title'] = <Tooltip
                                              placement="rightBottom"
                                              overlayStyle={{ maxWidth: 350 }}
                                              title={
                                                  <span>
-                                                     TABLE_COMMENT: {res.data.data[i]['TABLE_COMMENT']}
-                                                     <br/>ENGINE: {res.data.data[i]['ENGINE']}
-                                                     <br/>CREATE_TIME: {res.data.data[i]['CREATE_TIME']}
-                                                     <br/>AUTO_INCREMENT: {res.data.data[i]['AUTO_INCREMENT']}
-                                                     <br/>DATA_LENGTH: {res.data.data[i]['DATA_LENGTH']} bytes
-                                                     <br/>DATA_FREE: {res.data.data[i]['DATA_FREE']} bytes
-                                                     <br/>INDEX_LENGTH: {res.data.data[i]['INDEX_LENGTH']} bytes
-                                                     <br/>TABLE_ROWS: {res.data.data[i]['TABLE_ROWS']}
+                                                     TABLE_COMMENT: {table_info_list[i]['TABLE_COMMENT']}
+                                                     <br/>ENGINE: {table_info_list[i]['ENGINE']}
+                                                     <br/>CREATE_TIME: {table_info_list[i]['CREATE_TIME']}
+                                                     <br/>AUTO_INCREMENT: {table_info_list[i]['AUTO_INCREMENT']}
+                                                     <br/>DATA_LENGTH: {table_info_list[i]['DATA_LENGTH']} bytes
+                                                     <br/>DATA_FREE: {table_info_list[i]['DATA_FREE']} bytes
+                                                     <br/>INDEX_LENGTH: {table_info_list[i]['INDEX_LENGTH']} bytes
+                                                     <br/>TABLE_ROWS: {table_info_list[i]['TABLE_ROWS']}
                                                  </span>
                                              }
                                          >
                                              <span style={{ color: 'gray' }}>
-                                                 {res.data.data[i]['TABLE_NAME']}
+                                                 {table_info_list[i]['TABLE_NAME']}
                                              </span>
                                          </Tooltip>
-                    table_dir['key'] = res.data.data[i]['TABLE_NAME']
+                    table_dir['key'] = table_info_list[i]['TABLE_NAME']
                     table_dir['icon'] = <Icon type="table"/>
                     table_dir_arr.push(table_dir)
                   }
-                  this.setState({source_slider_info:table_dir_arr,collapsed:false,tables_hint:table_hint_obj,table_list:res.data.data})
+                  this.setState({source_slider_info:table_dir_arr,collapsed:false,table_col_hint_data:res.data.data['hint_data'],table_list:res.data.data})
               } else{
                   message.error(res.data.message)
               }
@@ -707,7 +710,7 @@ onSorter = (a,b) => {
                     <Resizable style={{overflow:'scroll',display:'block'}} defaultSize={{width:320, height:'400'}} minWidth='140'>
                         <Search size="small" placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
                         <Tree
-                           key={JSON.stringify(this.state.table_list)}
+                           key={JSON.stringify(this.state.table_col_hint_data)}
                            showIcon
                            loadData={this.onLoadData}
                            onSelect={this.onSelect}

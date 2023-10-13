@@ -5,8 +5,8 @@ DBA自动化管理平台
 # 二、相关组件
 ```text
 WEB服务器：nginx + uwsgi
-后端：python3 + django +celery + MySQL + Redis
-前端：nodejs + react + ant
+后端：python3.6.3 + django2.1.1 +celery3.1.26 + MySQL5.7 + Redis4.0.9
+前端：nodejs12.14.0 + react16.12.0 + ant3.26.6
 SQL审核工具: inception
 ```
 # 三、项目开发指南
