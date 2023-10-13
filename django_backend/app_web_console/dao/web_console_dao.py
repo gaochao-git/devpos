@@ -46,6 +46,7 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
         if ret['status'] != 'ok': return ret
         # 直接在原始数据进行脱敏,脱敏成功则脱敏,否则放行
         data_mask.data_masking(des_ip_port, schema_name, item_sql, ret['data'])
+        # 敏感数据识别
         senstive_data.web_console_sensitive_data_detect(ret['data'])
         k_v_data[j] = ret['data']
         k_v_time[j] = ret['execute_time']
