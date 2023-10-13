@@ -1,6 +1,8 @@
 import React,{Component} from 'react';
 import axios from 'axios'
+import moment from 'moment';
 import {Layout, Menu, Icon, Button, Tooltip,message} from "antd";
+import WaterMark from 'watermark-component-for-react';
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import MyAxios from "./scripts/common/interface"
@@ -48,6 +50,7 @@ function LoginOut(){
 
 //sso登出使用
 function LoginOutSSO(){
+    window.localStorage.removeItem("userinfo");
     let aa = encodeURIComponent(`${window.location.href}`);
     let bb = encodeURIComponent(`?next=${aa}`);
     window.location = `${backendServerApiRoot}/sso_logout?next=api/sso_login/${bb}`;
@@ -56,13 +59,21 @@ function LoginOutSSO(){
 class App extends Component {
     constructor(props) {
         super(props);
+        let waterText = ""
+        try {
+            waterText = JSON.parse(localStorage.getItem('userinfo')).username + ", " + moment().format('YYYY-MM-DD')
+        }catch (error) {
+            console.log(error.message)
+            waterText = ""
+        }
         this.state = {
             login_user_name:"",
             login_user_role:"",
             current_nav:"",
             current_time:"",
             week_day:"",
-            collapsed:false
+            collapsed:false,
+            waterText: waterText
         }
     }
     componentDidMount() {
@@ -97,10 +108,12 @@ class App extends Component {
                         login_user_name:res.data.data[0]['username'],
                         login_user_role:res.data.data[0]['user_role'],
                         login_user_email:res.data.data[0]['email']
-                    },)
+                    });
+                    window.localStorage.setItem("userinfo", JSON.stringify(res.data.data[0]))
                 }else
                 {
-                   message.error(res.data.message)
+                   message.error(res.data.message);
+                   window.localStorage.removeItem("userinfo");
                 }
             }
         ).catch(err => {message.error(err.message)})
@@ -184,44 +197,34 @@ class App extends Component {
                                     {this.state.current_nav === "运维"? <NavOps/>:null}
                                     {this.state.current_nav === "管理"? <NavManage/>:null}
                                 </Sider>
-                                <Content
-                                    style={{
-                                      background: '#fff',
-                                      minHeight: 280,
-                                    }}
-                                >
-                                    <Route exact path="/" component={() => {
-                                        if (this.state.is_dba) {
-                                            return <HomeDbaInfo/>
-                                        } else {
-                                            return <HomeDbaInfo/>
-                                        }
-                                    }}/>
-                                    <Route exact path="/home" component={Login} />
-                                    <Route exact path="/homeDbaInfo" component={HomeDbaInfo} />
-                                    <Route exact path="/service/server/Server" component={Server} />
-                                    <Route exact path="/service/mysql/mysqlCluster" component={mysqlCluster} />
-                                    <Route exact path="/service/mysql/mysqlInstance" component={mysqlInstance} />
-                                    <Route exact path="/service/worksheet/auditSqlIndex" component={AuditSqlIndex} />
-                                    <Route exact path="/service/worksheet/viewApplySqlByUuid/:submit_sql_uuid" component={ExecuteSql} />
-                                    <Route exact path="/service/worksheet/privilegesApply" component={privilegesApply} />
-                                    <Route exact path="/service/worksheet/viewPrivilegeInfoByUuid/:order_uuid" component={OrderInformation} />
-                                    <Route exact path="/service/console/mysqlConsoleNew" component={MysqlConsoleNew} />
-                                    <Route exact path="/service/console/metaCompare" component={MetaCompare} />
-                                    <Route exact path="/service/console/mysqlConsole" component={mysqlConsole} />
-                                    <Route exact path="/ops/deploy/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
-                                    <Route exact path="/service/deploy/rds" component={Rds} />
-                                    <Route exact path="/manage/permission/databaseResource" component={DatabaseResource} />
-                                    <Route exact path="/ops/deploy/deployMysql" component={DeployMysql} />
-                                    <Route exact path="/ops/deploy/deployMysqljks" component={DeployMysqlJks} />
-                                    <Route exact path="/manage/permission/userRole" component={UserRole} />
-                                    <Route exact path="/manage/task/taskManage" component={TaskManage} />
-                                    <Route exact path="/manage/permission/publicManage" component={publicManage} />
-                                    <Route exact path="/manage/config/jksJobConfig" component={JksJobConfig} />
-                                    <Route exact path="/manage/permission/commonUser" component={commonUser} />
-                                    <Route exact path="/service/console/tableDesign" component={TableDesign} />
-                                    <Route exact path="/ops/deploy/jksCommonJob" component={JksCommonJob} />
-
+                                <Content style={{background: '#fff',minHeight: 280}}>
+                                    <WaterMark content={this.state.waterText} rotate={16} globalAlpha={0.2}>
+                                        <Route exact path="/" component={() => {return <HomeDbaInfo/>}}/>
+                                        <Route exact path="/home" component={Login} />
+                                        <Route exact path="/homeDbaInfo" component={HomeDbaInfo} />
+                                        <Route exact path="/service/server/Server" component={Server} />
+                                        <Route exact path="/service/mysql/mysqlCluster" component={mysqlCluster} />
+                                        <Route exact path="/service/mysql/mysqlInstance" component={mysqlInstance} />
+                                        <Route exact path="/service/worksheet/auditSqlIndex" component={AuditSqlIndex} />
+                                        <Route exact path="/service/worksheet/viewApplySqlByUuid/:submit_sql_uuid" component={ExecuteSql} />
+                                        <Route exact path="/service/worksheet/privilegesApply" component={privilegesApply} />
+                                        <Route exact path="/service/worksheet/viewPrivilegeInfoByUuid/:order_uuid" component={OrderInformation} />
+                                        <Route exact path="/service/console/mysqlConsoleNew" component={MysqlConsoleNew} />
+                                        <Route exact path="/service/console/metaCompare" component={MetaCompare} />
+                                        <Route exact path="/service/console/mysqlConsole" component={mysqlConsole} />
+                                        <Route exact path="/ops/deploy/viewDeployMysqlByUuid/:submit_uuid" component={ExecuteDeployMysql} />
+                                        <Route exact path="/service/deploy/rds" component={Rds} />
+                                        <Route exact path="/manage/permission/databaseResource" component={DatabaseResource} />
+                                        <Route exact path="/ops/deploy/deployMysql" component={DeployMysql} />
+                                        <Route exact path="/ops/deploy/deployMysqljks" component={DeployMysqlJks} />
+                                        <Route exact path="/manage/permission/userRole" component={UserRole} />
+                                        <Route exact path="/manage/task/taskManage" component={TaskManage} />
+                                        <Route exact path="/manage/permission/publicManage" component={publicManage} />
+                                        <Route exact path="/manage/config/jksJobConfig" component={JksJobConfig} />
+                                        <Route exact path="/manage/permission/commonUser" component={commonUser} />
+                                        <Route exact path="/service/console/tableDesign" component={TableDesign} />
+                                        <Route exact path="/ops/deploy/jksCommonJob" component={JksCommonJob} />
+                                    </WaterMark>
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>
