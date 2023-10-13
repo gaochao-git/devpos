@@ -9,7 +9,7 @@ import json
 import logging
 import sqlparse
 import re
-from app_web_console.utils import data_mask
+from app_web_console.utils import data_mask, senstive_data
 from utils.exceptions import BusinessException
 from utils.go_inception_ import MyGoInception
 from app_web_console.utils.mysql_parser import MyParser
@@ -46,6 +46,7 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
         if ret['status'] != 'ok': return ret
         # 直接在原始数据进行脱敏,脱敏成功则脱敏,否则放行
         data_mask.data_masking(des_ip_port, schema_name, item_sql, ret['data'])
+        senstive_data.web_console_sensitive_data_detect(ret['data'])
         k_v_data[j] = ret['data']
         k_v_time[j] = ret['execute_time']
         j = j + 1
