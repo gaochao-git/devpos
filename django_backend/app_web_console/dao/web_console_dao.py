@@ -87,9 +87,9 @@ def web_console_sensitive_data_detect(data):
     for obj in data:
         for k, v in obj.items():
             detect_data = str(v)
-            if validate_id_number(detect_data): print({"status": "error", "message": f"匹配到身份证号敏感数据:{k}: {v}"})
-            if validate_mobile_phone_number(detect_data): print({"status": "error", "message": f"匹配到电话号敏感数据:{k}: {v}"})
-            if validate_bank_number(detect_data): print({"status": "error", "message": f"匹配到银行卡号敏感数据:{k}: {v}"})
+            if validate_cn_id_number(detect_data): print({"status": "error", "message": f"匹配到身份证号敏感数据:{k}: {v}"})
+            if validate_cn_mobile_phone_number(detect_data): print({"status": "error", "message": f"匹配到电话号敏感数据:{k}: {v}"})
+            if validate_cn_bank_number(detect_data): print({"status": "error", "message": f"匹配到银行卡号敏感数据:{k}: {v}"})
 
 def process_audit_sql(ip, port, item_sql, schema_name):
     """
