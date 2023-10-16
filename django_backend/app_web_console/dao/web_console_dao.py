@@ -10,7 +10,8 @@ import logging
 import sqlparse
 import re
 from datetime import datetime
-from app_web_console.utils import data_mask, senstive_data
+from app_web_console.utils import data_mask
+from app_web_console.utils.senstive_data import validate_cn_id_number,validate_cn_bank_number,validate_cn_mobile_phone_number
 from utils.exceptions import BusinessException
 from utils.go_inception_ import MyGoInception
 from app_web_console.utils.mysql_parser import MyParser
@@ -55,7 +56,7 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
         mask_use_time_ms = (mask_start_time - datetime.now()).microseconds / 1000
         # 敏感数据识别
         sens_start_time = datetime.now()
-        senstive_data.web_console_sensitive_data_detect(ret['data'])
+        web_console_sensitive_data_detect(ret['data'])
         sens_use_time_ms = (sens_start_time - datetime.now()).microseconds / 1000
         k_v_data[j] = ret['data']
         k_v_query_time[j] = ret['execute_time']
@@ -75,6 +76,20 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
         "sens_time": sens_data_time_list
     }
 
+
+def web_console_sensitive_data_detect(data):
+    """
+    敏感数据识别
+    自定义规则的敏感数据识别
+    :param data:
+    :return:
+    """
+    for obj in data:
+        for k, v in obj.items():
+            detect_data = str(v)
+            if validate_id_number(detect_data): print({"status": "error", "message": f"匹配到身份证号敏感数据:{k}: {v}"})
+            if validate_mobile_phone_number(detect_data): print({"status": "error", "message": f"匹配到电话号敏感数据:{k}: {v}"})
+            if validate_bank_number(detect_data): print({"status": "error", "message": f"匹配到银行卡号敏感数据:{k}: {v}"})
 
 def process_audit_sql(ip, port, item_sql, schema_name):
     """

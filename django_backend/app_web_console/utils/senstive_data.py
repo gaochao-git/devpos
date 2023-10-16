@@ -57,45 +57,31 @@ logger = logging.getLogger("devops")
 """
 
 
-def web_console_sensitive_data_detect(data):
-    """
-    银行卡敏感四要素中的银行卡号、身份证好、电话号码识别
-    自定义规则的敏感数据识别
-    :param data:
-    :return:
-    """
-    for obj in data:
-        for k, v in obj.items():
-            detect_data = str(v)
-            # print(len(detect_data), detect_data, desensitize_name(detect_data))
-            if validate_id_number(detect_data): print({"status": "error", "message": f"匹配到身份证号敏感数据:{k}: {v}"})
-            if validate_phone_number(detect_data): print({"status": "error", "message": f"匹配到电话号敏感数据:{k}: {v}"})
-            if validate_bank_number(detect_data): print({"status": "error", "message": f"匹配到银行卡号敏感数据:{k}: {v}"})
-
-
-def validate_id_number(str_info):
+def validate_cn_id_number(str_info):
     """
     验证身份证号码是否合法
     """
     return validator.is_valid(str_info)
 
 
-def validate_phone_number(str_info):
+def validate_cn_mobile_phone_number(str_info):
     """
-    校验是否为手机号
+    校验是否为手机号:18853539870国内格式、+8618853539870国际格式
     :param str_info:
     :return:
     """
     obj = Phone()
+    str_info = str_info.lstrip('+86')
     try:
         info = obj.find(str_info)  # 手机号详情
+        print(info)
         return True
     except Exception as e:
         logger.exception(f"手机号校验失败{str(e)}")
         return False
 
 
-def validate_bank_number(str_info):
+def validate_cn_bank_number(str_info):
     """
     校验是否为银行卡号
     采用luhn/mod10算法,可能会误判
@@ -114,9 +100,9 @@ def validate_bank_number(str_info):
         return False
 
 
-def desensitize_name(data):
+def desensitize_name_by_mask(data):
     """
-    脱敏人名
+    掩码屏蔽脱敏人名
     2 张飞 *飞
     8 乌日更达赖琪琪格 乌日****更达赖琪琪格
     :param data:
@@ -133,19 +119,40 @@ def desensitize_name(data):
         return data
 
 
-def desensitize_mobile_phone(data):
+def desensitize_cn_mobile_phone_by_mask(data):
     """
-    脱敏手机：18853503922 ----> 188****3922
+    掩码屏蔽脱敏手机：18853503922 ----> 188****3922,+8618853503922 ----> +86188****3922
     :param data:
     :return:
     """
-    return data[:3] + '*' * 4 + data[7:]
+    if data.startswith("+86"):
+        return data[:6] + '*' * 4 + data[7:]
+    else:
+        return data[:3] + '*' * 4 + data[7:]
 
 
-def desensitize_landline_telephone(data):
+def desensitize_cn_telephone_by_mask(data):
     """
-    脱敏座机：0535-5531209 ---> 0535-55***09
+    掩码屏蔽脱敏座机：0535-5531209 ---> 0535-55***09
     :param data:
     :return:
     """
     return data[:-5] + "*" * 3 + data[-2:]
+
+
+def desensitize_cn_id_by_mask(data):
+    """
+    掩码屏蔽脱敏身份证号：保留前3为和后3位，其他替换为*
+    :param data:
+    :return:
+    """
+    return data[:3] + '*'*(len(data)-6) + data[-3:]
+
+
+def desensitize_cn_bank_number_by_mask(data):
+    """
+    掩码屏蔽银行卡号：保留前3为和后4位，其他替换为*
+    :param data:
+    :return:
+    """
+    return data[:3] + '*'*(len(data)-7) + data[-4:]
