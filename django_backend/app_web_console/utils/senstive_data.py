@@ -74,7 +74,6 @@ def validate_cn_mobile_phone_number(str_info):
     str_info = str_info.lstrip('+86')
     try:
         info = obj.find(str_info)  # 手机号详情
-        print(info)
         return True
     except Exception as e:
         logger.exception(f"手机号校验失败{str(e)}")
