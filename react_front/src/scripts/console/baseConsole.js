@@ -87,11 +87,24 @@ export class BaseConsole extends Component {
 
   componentDidMount() {
     this.getClusterName();
+    document.addEventListener('keydown', this.handleKeyDown);
   }
 
     exportBuInfoToExcel = () => {
         tableToExcel({})
     }
+
+  componentWillUnmount() {
+    document.removeEventListener('keydown', this.handleKeyDown);
+  }
+
+  handleKeyDown = (event) => {
+    console.log(event,event.ctrlKey,event.key)
+    //避免通过全选拷贝数据,windows可以,mac如果采用command+a无法控制，另外Codemirror不受这个控制
+    if (event.ctrlKey && event.key === 'a') {
+      event.preventDefault();
+    }
+  };
 
   onCursorActivity = (cm) => {
     if (cm.getSelection()) {
