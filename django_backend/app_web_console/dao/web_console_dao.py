@@ -39,15 +39,10 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
     if explain not in['yes', 'no']: return {"status": "error", "message": "explain参数不合法"}
     if explain == 'yes': sql_list = ['explain ' + i for i in sql_list]
     # 处理SQL
-    j = 0
+    sql_index = 0
     for item_sql in sql_list:
         # SQL规则处理
         rewrite_item_sql = process_audit_sql(ip, port, item_sql, schema_name)
-        # 组装数据
-        k_v_data = {}
-        k_v_query_time = {}
-        k_v_mask_time = {}
-        k_v_sens_data_time = {}
         ret = db_helper.target_source_find_all(ip, port, rewrite_item_sql, db=schema_name)
         if ret['status'] != 'ok': return ret
         # 直接在原始数据进行脱敏,脱敏成功则脱敏,否则放行
@@ -58,23 +53,16 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
         sens_start_time = datetime.now()
         web_console_sensitive_data_detect(ret['data'])
         sens_use_time_ms = (sens_start_time - datetime.now()).microseconds / 1000
-        k_v_data[j] = ret['data']
-        k_v_query_time[j] = ret['execute_time']
-        k_v_mask_time[j] = mask_use_time_ms
-        k_v_sens_data_time[j] = sens_use_time_ms
-        j = j + 1
-        ret_list.append(k_v_data)
-        query_time_list.append(k_v_query_time)
-        mask_time_list.append(k_v_mask_time)
-        sens_data_time_list.append(k_v_sens_data_time)
-    return {
-        "status":"ok",
-        "message": "所有SQL正常执行完成",
-        "data":ret_list,
-        "query_time": query_time_list,
-        "mask_time": mask_time_list,
-        "sens_time": sens_data_time_list
-    }
+        # 组装结果集
+        ret_item = {
+            "query_data": ret['data'],
+            "query_time":  ret['execute_time'],
+            "mask_time": mask_use_time_ms,
+            "sens_time": sens_use_time_ms,
+        }
+        ret_list.append(ret_item)
+        sql_index = sql_index + 1
+    return {"status": "ok", "message": "所有SQL正常执行完成", "data": ret_list,}
 
 
 def web_console_sensitive_data_detect(data):

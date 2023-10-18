@@ -52,9 +52,7 @@ export class BaseConsole extends Component {
       get_data:false,
       query_time:"",
       multi_label:[],
-      multi_table_data:[],
       multi_table_column:[],
-      multi_query_time:[],
       source_slider_info:[],
       global_loading:false,
       table_column_list:[],
@@ -65,6 +63,7 @@ export class BaseConsole extends Component {
       favorite_list:[],
       db_info:"",
       collapsed:true,
+      multi_st_ret:[],
 
       store_info_name:"",    //收藏名称
       store_info_detail:"",  //收藏信息
@@ -144,9 +143,7 @@ onSorter = (a,b) => {
       };
       this.setState({
           multi_label: [],
-          multi_table_data: [],
           multi_table_column: [],
-          multi_query_time: [],
           col_format_res_list:[],
           get_data:false,
           global_loading:true,
@@ -155,46 +152,35 @@ onSorter = (a,b) => {
           res => {
               if (res.data.status === "ok"){
                   let table_column_list = []
-                  let table_data_list = []
                   let table_label_list = []
-                  let query_time_list = []
-                  let mask_time_list = []
-                  let sens_time_list = []
                   let col_format_res_list = []
-                  // sql1=select user from mysql.user limit 1;  sql2=select host from mysql.user limit 1;
-                  // res.data.data = [{"0": [{"user": "gaochao"}]}, {"1": [{"host": "%"}]}]
+                  //res.data.data为多条SQL对应的结果集，res.data.data[0]为第一条结果集,res.data.data[0].query_data为返回数据,,res.data.data[0].query_time为查询耗时
                   for (var j=0; j<res.data.data.length;j++){
                       let column_arr = []
                       let label = '结果' + (j+1)
-                      if (res.data.data[j][j].length >0){
-                          for (var i=0; i<Object.keys(res.data.data[j][j][0]).length;i++){
+                      let st_query_data = res.data.data[j].query_data
+                      if (st_query_data.length >0){
+                          for (var i=0; i<Object.keys(st_query_data[0]).length;i++){
                               let column_obj = {};
-                              column_obj['title'] = [Object.keys(res.data.data[j][j][0])[i]]
-                              column_obj['dataIndex'] = [Object.keys(res.data.data[j][j][0])[i]]
+                              column_obj['title'] = [Object.keys(st_query_data[0])[i]]
+                              column_obj['dataIndex'] = [Object.keys(st_query_data[0])[i]]
                               column_obj['render'] = (text, record, index) => {return this.handleColumnWidth(text,record,index);}
-                              if (i<Object.keys(res.data.data[j][j][0]).length){
+                              if (i<Object.keys(st_query_data[0]).length){
                                 column_obj['width'] = 160
                               }
                               column_obj['sorter'] = (a, b) => {this.onSorter(a, b)}
-//                              column_obj['sorter'] = (a, b) => {this.onSorter(a,b,res.data.data[j][j])}
-//                              console.log(typeof [Object.keys(res.data.data[j][j][0])[i]][0])
                               column_arr.push(column_obj)
-//                              console.log(column_obj)
                           }
                           column_arr.push({'title':''})
                       };
                       table_column_list.push(column_arr)
-                      table_data_list.push(res.data.data[j][j])
                       table_label_list.push(label)
-                      query_time_list.push(res.data.query_time[j][j])
-                      mask_time_list.push(res.data.mask_time[j][j])
-                      sens_time_list.push(res.data.sens_time[j][j])
                       // 列式展示
                       let col_format_res = ""
-                      for (var row_index=0;row_index<res.data.data[j][j].length;row_index++){
+                      for (var row_index=0;row_index<st_query_data.length;row_index++){
                           col_format_res = col_format_res + "\n**************** " + (row_index+1) + ". row ****************"
-                          for (var col_name_k in res.data.data[j][j][row_index]){
-                            var item_res = col_name_k + ": " + res.data.data[j][j][row_index][col_name_k]
+                          for (var col_name_k in st_query_data[row_index]){
+                            var item_res = col_name_k + ": " + st_query_data[row_index][col_name_k]
                             col_format_res = col_format_res + '\n' + item_res
                           }
                       }
@@ -202,12 +188,9 @@ onSorter = (a,b) => {
                   }
                   this.setState({
                       multi_label: table_label_list,
-                      multi_table_data: table_data_list,
                       multi_table_column: table_column_list,
-                      multi_query_time: query_time_list,
-                      multi_mask_time: mask_time_list,
-                      multi_sens_time: sens_time_list,
                       col_format_res_list:col_format_res_list,
+                      multi_st_ret: res.data.data,
                       get_data:true,
                       global_loading:false,
                   });
@@ -872,19 +855,19 @@ onSorter = (a,b) => {
                   return(
 
                       <TabPane tab={item} key={index}>
-                          共{this.state.multi_table_data[index].length}条,  查询耗时:{this.state.multi_query_time[index]} ms, 脱敏耗时:{this.state.multi_mask_time[index]} ms, 敏感数据探测耗时: {this.state.multi_sens_time[index]} ms
+                          共{this.state.multi_st_ret[index].query_data.length}条,  查询耗时:{this.state.multi_st_ret[index].query_time} ms, 脱敏耗时:{this.state.multi_st_ret[index].mask_time} ms, 敏感数据探测耗时: {this.state.multi_st_ret[index].sens_time} ms
                           {
                               this.state.res_format === 'row'
                               ?
                               <div className="components-table-resizable-column">
-                                   <MyResizeTable dataSource={this.state.multi_table_data[index]} columns={this.state.multi_table_column[index]} onChange={this.onChange}/>
+                                   <MyResizeTable dataSource={this.state.multi_st_ret[index].query_data} columns={this.state.multi_table_column[index]} onChange={this.onChange}/>
                               </div>
                               : <TextArea rows={10} value={this.state.col_format_res_list[index]}/>
 
                           }
                           <Button
                               style={{marginLeft: '10px'}}
-                              onClick={tableToExcel.bind(this, this.state.multi_table_data[index], this.state.multi_table_column[index], 'query_result')}
+                              onClick={tableToExcel.bind(this, this.state.multi_st_ret[index].query_data, this.state.multi_table_column[index], 'query_result')}
                           >
                               导出
                           </Button>
