@@ -20,6 +20,7 @@ import {tableToExcel} from "../common/export_data"
 import { MyResizeTable } from "../common/resizeTable"
 import {EditableTable} from "./tableBaseInfo"
 import {EditableAlterTable} from "./alterTableBaseInfo"
+import decrypt_aes_cbc from "../common/enc_dec"
 const {Option} = Select
 const {TabPane} = Tabs
 const { TextArea } = Input
@@ -154,11 +155,13 @@ onSorter = (a,b) => {
                   let table_column_list = []
                   let table_label_list = []
                   let col_format_res_list = []
+                  const decrypt_data_str = decrypt_aes_cbc(res.data.data)
+                  const decrypt_data = JSON.parse(decrypt_data_str)
                   //res.data.data为多条SQL对应的结果集，res.data.data[0]为第一条结果集,res.data.data[0].query_data为返回数据,,res.data.data[0].query_time为查询耗时
-                  for (var j=0; j<res.data.data.length;j++){
+                  for (var j=0; j<decrypt_data.length;j++){
                       let column_arr = []
                       let label = '结果' + (j+1)
-                      let st_query_data = res.data.data[j].query_data
+                      let st_query_data = decrypt_data[j].query_data
                       if (st_query_data.length >0){
                           for (var i=0; i<Object.keys(st_query_data[0]).length;i++){
                               let column_obj = {};
@@ -190,7 +193,7 @@ onSorter = (a,b) => {
                       multi_label: table_label_list,
                       multi_table_column: table_column_list,
                       col_format_res_list:col_format_res_list,
-                      multi_st_ret: res.data.data,
+                      multi_st_ret: decrypt_data,
                       get_data:true,
                       global_loading:false,
                   });

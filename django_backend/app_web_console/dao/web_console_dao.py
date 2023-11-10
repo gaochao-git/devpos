@@ -15,6 +15,7 @@ from app_web_console.utils.senstive_data import validate_cn_id_number,validate_c
 from utils.exceptions import BusinessException
 from utils.go_inception_ import MyGoInception
 from app_web_console.utils.mysql_parser import MyParser
+from utils import enc_dec
 
 logger = logging.getLogger('devops')
 
@@ -62,7 +63,9 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
         }
         ret_list.append(ret_item)
         sql_index = sql_index + 1
-    return {"status": "ok", "message": "所有SQL正常执行完成", "data": ret_list,}
+    str_ret_list = str(json.dumps(ret_list, default=str))
+    enc_str_ret_list = enc_dec.encrypt_aes_cbc(str_ret_list)
+    return {"status": "ok", "message": "所有SQL正常执行完成", "data": enc_str_ret_list,}
 
 
 def web_console_sensitive_data_detect(data):
