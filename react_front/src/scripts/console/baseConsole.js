@@ -81,7 +81,8 @@ export class BaseConsole extends Component {
       sql_preview:"",
       sqlScoreModal:false,
       table_list: [],
-      table_col_hint_data: {"table_name":["id","name","age"]},
+      table_col_hint_data: {"table_name":["id","name","age"],"id":[],"name":[],"create_time":[],"update_time":[]},
+      custom_table_col_hint_data: {"id":[],"name":[],"create_time":[],"update_time":[]},
     }
   }
 
@@ -305,7 +306,7 @@ onSorter = (a,b) => {
     } else {
       const hintData = this.state.table_col_hint_data;
       cm.setOption('hintOptions', {
-        tables: hintData,
+        tables: {...hintData, ...this.state.custom_table_col_hint_data},
         completeSingle: false
       });
     }
