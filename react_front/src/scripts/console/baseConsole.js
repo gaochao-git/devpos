@@ -543,7 +543,13 @@ onSorter = (a,b) => {
                     table_dir['icon'] = <Icon type="table"/>
                     table_dir_arr.push(table_dir)
                   }
-                  this.setState({source_slider_info:table_dir_arr,collapsed:false,table_col_hint_data:res.data.data['hint_data'],table_list:res.data.data})
+                  this.setState({
+                    source_slider_info:table_dir_arr,
+                    collapsed:false,
+                    table_col_hint_data:res.data.data['hint_data'],
+                    table_list:res.data.data,
+                    custom_table_col_hint_data:res.data.data['hint_col'],
+                  })
               } else{
                   message.error(res.data.message)
               }

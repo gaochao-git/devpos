@@ -212,21 +212,21 @@ def get_table_list_dao(instance_name,schema_name,table_name):
     """
     tables_ret = db_helper.find_all(sql)
     assert tables_ret['status'] == "ok"
+    sql_col = f"""
+        select TABLE_NAME, group_concat(COLUMN_NAME) as COLUMN_NAME
+        from information_schema.columns
+        where TABLE_SCHEMA = '{schema_name}'
+        group by TABLE_NAME
+    """
+    cols_ret = db_helper.target_source_find_all(ip, port, sql_col)
+    assert cols_ret['status'] == "ok"
     hint_data = {}
-    if len(tables_ret['data']) > 0:
-        table_tuple = ""
-        for table in tables_ret['data']: table_tuple = table_tuple + "'" + table['TABLE_NAME'] + "',"
-        table_tuple = table_tuple.strip(',')
-        sql_col = f"""
-            select TABLE_NAME, group_concat(COLUMN_NAME) as COLUMN_NAME
-            from information_schema.columns
-            where TABLE_SCHEMA = '{schema_name}' and TABLE_NAME in ({table_tuple})
-            group by TABLE_NAME
-        """
-        cols_ret = db_helper.target_source_find_all(ip,port,sql_col)
-        assert cols_ret['status'] == "ok"
-        hint_data = {row['TABLE_NAME']: row['COLUMN_NAME'].split(',') for row in cols_ret['data']}
-    return {"status": "ok", "message": "ok","data": {"table_info_list": tables_ret['data'], "hint_data": hint_data}}
+    hint_col_list = []
+    for row in cols_ret['data']:
+        hint_data[row['TABLE_NAME']] = row['COLUMN_NAME'].split(',')
+        hint_col_list.extend(row['COLUMN_NAME'].split(','))
+    hint_col_dict = {col_name: [] for col_name in list(set(hint_col_list))}
+    return {"status": "ok", "message": "ok","data": {"table_info_list": tables_ret['data'], "hint_data": hint_data, "hint_col": hint_col_dict}}
 
 
 def get_column_list_dao(instance_name,schema_name,table_name):
