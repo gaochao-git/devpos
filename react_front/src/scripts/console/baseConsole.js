@@ -744,7 +744,7 @@ onSorter = (a,b) => {
                       defaultSize={{width:320, height:'400'}}
                       minWidth='140'
                     >
-                        <Search size="small" placeholder="Search......" onSearch={(value)=>this.handleSearch(value)}/>
+                        <Search size="small" placeholder="Search......" onSearch={(value)=>this.handleSearch(value)} allowClear/>
                         <Tree
                            key={JSON.stringify(this.state.table_col_hint_data)}
                            showIcon
