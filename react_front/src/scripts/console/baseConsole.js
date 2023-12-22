@@ -55,6 +55,7 @@ export class BaseConsole extends Component {
       multi_label:[],
       multi_table_column:[],
       source_slider_info:[],
+      match_source_slider_info:[],
       global_loading:false,
       table_column_list:[],
       res_format:'row',
@@ -80,7 +81,6 @@ export class BaseConsole extends Component {
       editAlterTableModal:false,
       sql_preview:"",
       sqlScoreModal:false,
-      table_list: [],
       table_col_hint_data: {"table_name":["id","name","age"],"id":[],"name":[],"create_time":[],"update_time":[]},
       custom_table_col_hint_data: {"id":[],"name":[],"create_time":[],"update_time":[]},
       start_index: 0,
@@ -549,9 +549,9 @@ onSorter = (a,b) => {
                   }
                   this.setState({
                     source_slider_info:table_dir_arr,
+                    match_source_slider_info:table_dir_arr,
                     collapsed:false,
                     table_col_hint_data:res.data.data['hint_data'],
-                    table_list:res.data.data['table_info_list'],
                     custom_table_col_hint_data:res.data.data['hint_col'],
                   })
               } else{
@@ -681,6 +681,18 @@ onSorter = (a,b) => {
     this.setState({start_index: start_index, end_index: end_index})
   };
 
+  handleSearch = (value) => {
+    if (this.state.table_search!==""){
+      const filteredList = this.state.source_slider_info.filter(item => {
+        return item.key.includes(value);
+      });
+      this.setState({match_source_slider_info: filteredList });
+    }else{
+      this.setState({match_source_slider_info: this.state.source_slider_info });
+    }
+
+  };
+
 
   //渲染SQL质量markdown
   renderHTML = () =>{
@@ -732,7 +744,7 @@ onSorter = (a,b) => {
                       defaultSize={{width:320, height:'400'}}
                       minWidth='140'
                     >
-                        <Search size="small" placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
+                        <Search size="small" placeholder="Search......" onSearch={(value)=>this.handleSearch(value)}/>
                         <Tree
                            key={JSON.stringify(this.state.table_col_hint_data)}
                            showIcon
@@ -741,13 +753,13 @@ onSorter = (a,b) => {
                            onExpand={this.onExpand}
                            onRightClick={this.rightClickTree}
                         >
-                          {this.renderTreeNodes(this.state.source_slider_info.slice(this.state.start_index, this.state.end_index))}
+                          {this.renderTreeNodes(this.state.match_source_slider_info.slice(this.state.start_index, this.state.end_index))}
                         </Tree>
                     </Resizable>
                     <Pagination
                       showTotal={((total) => {return `${total} 条`})}
                       size="small"
-                      total={this.state.table_list.length}
+                      total={this.state.match_source_slider_info.length}
                       pageSize={this.state.default_page_size}
                       onChange={(current, all)=>this.onPageChange(current, all)}
                     />
