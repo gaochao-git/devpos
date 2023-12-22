@@ -1,6 +1,6 @@
 import React,{Component,Fragment} from 'react';
 import axios from 'axios'
-import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin,Switch,Modal,Tooltip,Drawer,List, Typography,Divider        } from "antd";
+import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin,Switch,Modal,Tooltip,Drawer,List, Typography,Divider,Pagination} from "antd";
 import sqlFormatter from 'sql-formatter';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { BaseTable } from 'ali-react-table'
@@ -83,6 +83,10 @@ export class BaseConsole extends Component {
       table_list: [],
       table_col_hint_data: {"table_name":["id","name","age"],"id":[],"name":[],"create_time":[],"update_time":[]},
       custom_table_col_hint_data: {"id":[],"name":[],"create_time":[],"update_time":[]},
+      start_index: 0,
+      end_index: 500,
+      current_page: 0,
+      default_page_size:500
     }
   }
 
@@ -547,7 +551,7 @@ onSorter = (a,b) => {
                     source_slider_info:table_dir_arr,
                     collapsed:false,
                     table_col_hint_data:res.data.data['hint_data'],
-                    table_list:res.data.data,
+                    table_list:res.data.data['table_info_list'],
                     custom_table_col_hint_data:res.data.data['hint_col'],
                   })
               } else{
@@ -670,6 +674,13 @@ onSorter = (a,b) => {
     }
   };
 
+  onPageChange = (page_no, all) => {
+    console.log(page_no,all)
+    let start_index = this.state.default_page_size * (page_no - 1)
+    let end_index = start_index + this.state.default_page_size
+    this.setState({start_index: start_index, end_index: end_index})
+  };
+
 
   //渲染SQL质量markdown
   renderHTML = () =>{
@@ -716,7 +727,11 @@ onSorter = (a,b) => {
               >
                 {!this.state.collapsed ?
                   <div>
-                    <Resizable style={{overflow:'scroll',display:'block'}} defaultSize={{width:320, height:'400'}} minWidth='140'>
+                    <Resizable
+                      style={{overflow:'scroll',display:'block'}}
+                      defaultSize={{width:320, height:'400'}}
+                      minWidth='140'
+                    >
                         <Search size="small" placeholder="Search(显示100条)" onChange={(e)=>this.setState({table_search:e.target.value})} onSearch={(value)=>this.getTable()}/>
                         <Tree
                            key={JSON.stringify(this.state.table_col_hint_data)}
@@ -726,9 +741,16 @@ onSorter = (a,b) => {
                            onExpand={this.onExpand}
                            onRightClick={this.rightClickTree}
                         >
-                          {this.renderTreeNodes(this.state.source_slider_info)}
+                          {this.renderTreeNodes(this.state.source_slider_info.slice(this.state.start_index, this.state.end_index))}
                         </Tree>
                     </Resizable>
+                    <Pagination
+                      showTotal={((total) => {return `${total} 条`})}
+                      size="small"
+                      total={this.state.table_list.length}
+                      pageSize={this.state.default_page_size}
+                      onChange={(current, all)=>this.onPageChange(current, all)}
+                    />
                     <List
                        header={<span>连接信息</span>}
                        size="small"
@@ -737,6 +759,7 @@ onSorter = (a,b) => {
                        renderItem={item => <p style={{marginLeft:10,marginBottom: 2}}>{item}</p>}
                        style={{borderRadius:0}}
                     />
+
                   </div>
                 :null
                   }

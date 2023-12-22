@@ -208,7 +208,7 @@ def get_table_list_dao(instance_name,schema_name,table_name):
             INDEX_LENGTH,
             TABLE_ROWS
         from information_schema.TABLES
-        where TABLE_SCHEMA='{schema_name}' and TABLE_NAME like '%{table_name}%' limit 100
+        where TABLE_SCHEMA='{schema_name}' and TABLE_NAME like '%{table_name}%'
     """
     tables_ret = db_helper.find_all(sql)
     assert tables_ret['status'] == "ok"
