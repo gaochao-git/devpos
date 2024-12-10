@@ -10,3 +10,4 @@ venv
 /django_backend/celerybeat.pid
 /django_backend/celerybeat-schedule.db
 **/upload/
+.idea/
