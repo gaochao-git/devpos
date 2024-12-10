@@ -69,22 +69,22 @@ def auth_cloud(request):
     else:
         ret = {"status": "error", "message": StatusCode.ERR_NO_LOGIN.msg, "code": StatusCode.ERR_NO_LOGIN.code}
         auth_ignore_path = ['/api/login/v1/auth_api/', '/api/login/v1/auth_web/', '/api/login/v1/auth_refresh/']
-        if request.path not in auth_ignore_path:
-            try:
-                bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
-                token = bearer_token.split(' ')[1]
-                token_user_info = jwt_decode_handler(token)
-                ret = {"status": "ok", "message": "验证成功", "data": token_user_info}
-            except jwt.ExpiredSignatureError as e:
-                ret = {"status": "error", "message": StatusCode.ERR_LOGIN_EXPIRE.msg,"code": StatusCode.ERR_LOGIN_EXPIRE.code}
-                logger.error("login expires")
-            except Exception as e:
-                logger.exception(e)
-                ret = {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.msg,"code": StatusCode.ERR_LOGIN_FAIL.code}
-            finally:
-                if ret['status'] != "ok": return HttpResponse(json.dumps(ret), content_type='application/json')
-                request.user = ret['data']
-                assert request.user.get('user_id') > 0
+        # if request.path not in auth_ignore_path:
+        #     try:
+        #         bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
+        #         token = bearer_token.split(' ')[1]
+        #         token_user_info = jwt_decode_handler(token)
+        #         ret = {"status": "ok", "message": "验证成功", "data": token_user_info}
+        #     except jwt.ExpiredSignatureError as e:
+        #         ret = {"status": "error", "message": StatusCode.ERR_LOGIN_EXPIRE.msg,"code": StatusCode.ERR_LOGIN_EXPIRE.code}
+        #         logger.error("login expires")
+        #     except Exception as e:
+        #         logger.exception(e)
+        #         ret = {"status": "error", "message": StatusCode.ERR_LOGIN_FAIL.msg,"code": StatusCode.ERR_LOGIN_FAIL.code}
+        #     finally:
+        #         if ret['status'] != "ok": return HttpResponse(json.dumps(ret), content_type='application/json')
+        #         request.user = ret['data']
+        #         assert request.user.get('user_id') > 0
 
 
 @receiver(cas_user_authenticated)

@@ -35,7 +35,7 @@ class NavManage extends Component {
                         <Link to="/manage/config/jksJobConfig">Jks任务配置</Link>
                     </Menu.Item>
                     <Menu.Item key="faultTreeConfig">
-                        <Link to="/manage/config/faultTreeConfig">Jks任务配置</Link>
+                        <Link to="/manage/config/faultTreeConfig">故障分析树配置</Link>
                     </Menu.Item>
                 </SubMenu>
             </Menu>

@@ -15,10 +15,10 @@ import {
   Switch,
   Dropdown,
   Typography, Radio, Menu, Drawer, Row, Col,
-  Icon
+  Icon  // 从 antd 直接导入 Icon
 } from 'antd';
 import './index.css';
-import MyAxios from "../../api/interceptors";
+import MyAxios from "../common/interface"
 import ReactDiffViewer from 'react-diff-viewer';
 
 const { Option } = Select;
@@ -27,7 +27,7 @@ const { Title } = Typography;
 const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, ref) => {
   // 状态初始化
   const [treeData, setTreeData] = useState(() => {
-    const rootData = initialValues?.ft_content || {
+    const rootData = initialValues && initialValues.ft_content || {
       name: 'Root',
       description: '',
       node_status: 'info',
@@ -52,15 +52,15 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isEditLeafNode, setIsEditLeafNode] = useState(false);
   const [newNodeRules, setNewNodeRules] = useState([]);
-  const [ftName, setFtName] = useState(initialValues?.ft_name || '');
-  const [ftDesc, setFtDesc] = useState(initialValues?.ft_desc || '');
-  const [ftStatus, setFtStatus] = useState(initialValues?.ft_status || 'draft');
+  const [ftName, setFtName] = useState(initialValues && initialValues.ft_name || '');
+  const [ftDesc, setFtDesc] = useState(initialValues && initialValues.ft_desc || '');
+  const [ftStatus, setFtStatus] = useState(initialValues && initialValues.ft_status || 'draft');
 
   // 添加状态记录初始值，用于比较是否有变更
   const [initialState] = useState({
-    ftName: initialValues?.ft_name || '',
-    ftDesc: initialValues?.ft_desc || '',
-    ftStatus: initialValues?.ft_status || 'draft'
+    ftName: initialValues && initialValues.ft_name || '',
+    ftDesc: initialValues && initialValues.ft_desc || '',
+    ftStatus: initialValues && initialValues.ft_status || 'draft'
   });
 
   // 检查是否有未保存的更改
@@ -128,7 +128,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
       children: node.children ? node.children.map(cleanNodeData) : []
     };
 
-    // 如果有数据��集相关的属性，则保留
+    // 如果有数据采集相关的属性，则保留
     if (node.data_source) {
       cleanedNode.data_source = node.data_source;
     }
@@ -220,7 +220,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
     if (!selectedNode) return;
 
     // 获取新节点的完整路径key
-    const parentPath = selectedNode.key;  // 直接使用父节点的完整路径key
+    const parentPath = selectedNode.key;  // 直接使用父节点的完路径key
     const newNodeKey = `${parentPath}->${values.name}`;  // 添加新节点名称到路径
 
     const newNode = {
@@ -367,7 +367,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
   // 获取阈值输入框的 placeholder
   const getThresholdPlaceholder = (type, condition) => {
     if (type === 'numeric') {
-      return '请输���数值';
+      return '请输入数值';
     }
     // 字符串类型的不同条件对应不同提示
     switch (condition) {
@@ -689,7 +689,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
         setHistoryLoading(true);
         try {
             const res = await MyAxios.post('/fault_tree/v1/get_history_list/', {
-                ft_id: initialValues?.ft_id
+                ft_id: initialValues && initialValues.ft_id
             });
             if (res.data.status === 'ok') {
                 setHistoryList(res.data.data);
@@ -815,7 +815,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
           )}
 
           {selectedNode.rules && (
-            <Form.Item label="规配置">
+            <Form.Item label="规则配置">
               <Table
                 columns={isEditing ? editableRuleColumns : readOnlyRuleColumns}
                 dataSource={selectedNode.rules}
@@ -842,14 +842,14 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
         </Form>
 
         <div style={{ textAlign: 'center', marginTop: 24 }}>
-          <Space>
+          <div style={{ display: 'flex', gap: '8px' }}>
             <Button type="primary" onClick={handleSave}>
               保存
             </Button>
             <Button onClick={handleCancel}>
               取消
             </Button>
-          </Space>
+          </div>
         </div>
       </>
     ) : (
@@ -1117,7 +1117,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
       isLeaf: node.isLeaf
     };
 
-    // 如果有数据采集相关的属性，则保留
+    // ���果有数据采集相关的属性，则保留
     if (node.data_source) {
       cleanNode.data_source = node.data_source;
     }
@@ -1214,7 +1214,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
     onFormChange && onFormChange();
   };
 
-  // 添��对比框显示状态
+  // 添加对比框显示状态
   const [isDiffModalVisible, setIsDiffModalVisible] = useState(false);
   const [diffContent, setDiffContent] = useState({ old: null, new: null });
 
@@ -1267,10 +1267,12 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
       });
 
       if (res.data.status === 'ok') {
-        message.success('更新成功');
+        message.success('更���成功');
         setIsDiffModalVisible(false);  // 关闭对比弹窗
         setIsEditModalVisible(false);  // 关闭编辑弹窗
-        onSave && onSave();
+        if (onSave) {
+          onSave();
+        }
       } else {
         message.error(res.data.message || '更新失败');
       }
@@ -1370,7 +1372,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
       }
     } catch (error) {
       console.error('View diff error:', error);
-      message.error('获取版本差异失');
+      message.error('获取版本差异失败');
     }
   };
 
@@ -1401,7 +1403,9 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
       if (res.data.status === 'ok') {
         message.success('回滚成功');
         setHistoryVisible(false);
-        onSave?.();
+        if (onSave) {
+          onSave();
+        }
       } else {
         message.error(res.data.message || '回滚失败');
       }
@@ -1432,14 +1436,14 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
       title: '操作',
       key: 'action',
       render: (_, record) => (
-        <Space size="middle">
+        <div style={{ display: 'flex', gap: '8px' }}>
           <Button type="link" onClick={() => handleViewDiff(record.history_id)}>
             查看差异
           </Button>
           <Button type="link" onClick={() => handleDeleteHistory(record.history_id)}>
             删除
           </Button>
-        </Space>
+        </div>
       ),
     },
   ];
@@ -1449,22 +1453,14 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
       <Card
         title="故障树配置"
         extra={
-          <Space size="middle" align="center">
-            {initialValues?.ft_id && hasChanges() && (
-              <Button
-                type="primary"
-                onClick={handleUpdateClick}
-                icon="save"
-              >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {initialValues && initialValues.ft_id && hasChanges() && (
+              <Button type="primary" onClick={handleUpdateClick} icon="save">
                 更新
               </Button>
             )}
-            {!initialValues?.ft_id && (
-              <Button
-                type="primary"
-                onClick={handleSaveCreate}
-                icon="save"
-              >
+            {!initialValues || !initialValues.ft_id && (
+              <Button type="primary" onClick={handleSaveCreate} icon="save">
                 保存
               </Button>
             )}
@@ -1497,13 +1493,10 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
               <Option value="draft">草稿</Option>
               <Option value="active">启用</Option>
             </Select>
-            <Button
-              icon="history"
-              onClick={() => {
-                fetchHistoryList();
-                setHistoryVisible(true);
-              }}
-            >
+            <Button icon="history" onClick={() => {
+              fetchHistoryList();
+              setHistoryVisible(true);
+            }}>
               历史
             </Button>
             <Upload
@@ -1511,17 +1504,12 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
               showUploadList={false}
               accept=".json"
             >
-              <Button icon="import">
-                导入配置
-              </Button>
+              <Button icon="import">导入配置</Button>
             </Upload>
-            <Button
-              icon="export"
-              onClick={handleExport}
-            >
+            <Button icon="export" onClick={handleExport}>
               导出配置
             </Button>
-          </Space>
+          </div>
         }
       >
         <div style={{ display: 'flex', height: 'calc(100vh - 180px)' }}>
@@ -1551,7 +1539,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
               <>
                 <Card
                   size="small"
-                  title="节点基础信��"
+                  title="节点基础信息"
                   style={{ marginBottom: 16 }}
                 >
                   <div className="info-item">
@@ -1771,7 +1759,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
           )}
 
           <Form.Item wrapperCol={{ offset: 4, span: 19 }}>
-            <Space>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <Button type="primary" htmlType="submit">
                 确定
               </Button>
@@ -1783,7 +1771,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
               }}>
                 取消
               </Button>
-            </Space>
+            </div>
           </Form.Item>
         </Form>
       </Modal>
@@ -1886,7 +1874,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
                 <Input placeholder="请输入指标名称" />
               </Form.Item>
 
-              <Form.Item label="规配置">
+              <Form.Item label="规则配置">
                 <Table
                   columns={editableRuleColumns}
                   dataSource={selectedNode.rules || []}
@@ -1909,14 +1897,14 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
           )}
 
           <Form.Item wrapperCol={{ offset: 6, span: 18 }}>
-            <Space>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <Button type="primary" htmlType="submit">
                 保存
               </Button>
               <Button onClick={handleCancel}>
                 取消
               </Button>
-            </Space>
+            </div>
           </Form.Item>
         </Form>
       </Modal>
@@ -1924,17 +1912,19 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
       {/* 对比确认框 */}
       <Modal
         title="更新确认"
-        open={isDiffModalVisible}
+        visible={isDiffModalVisible}
         onCancel={() => setIsDiffModalVisible(false)}
         width={1200}
-        footer={[
-          <Button key="cancel" onClick={() => setIsDiffModalVisible(false)}>
-            取消
-          </Button>,
-          <Button key="submit" type="primary" onClick={handleConfirmUpdate}>
-            确认更新
-          </Button>
-        ]}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <Button key="cancel" onClick={() => setIsDiffModalVisible(false)}>
+              取消
+            </Button>
+            <Button key="submit" type="primary" onClick={handleConfirmUpdate}>
+              确认更新
+            </Button>
+          </div>
+        }
       >
         <div style={{ maxHeight: '60vh', overflow: 'auto' }}>
           <ReactDiffViewer
@@ -1964,7 +1954,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
         title="历史版本"
         placement="right"
         width={600}
-        open={historyVisible}
+        visible={historyVisible}
         onClose={() => setHistoryVisible(false)}
       >
         <Table
@@ -1985,7 +1975,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
         title="版本对比"
         placement="right"
         width={1000}
-        open={diffVisible}
+        visible={diffVisible}
         onClose={() => setDiffVisible(false)}
         extra={
           <Button
@@ -1993,8 +1983,8 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
             onClick={() => {
               Modal.confirm({
                 title: '确认回滚',
-                content: `确定要回滚到版本 ${selectedHistory?.version_num} 吗？`,
-                onOk: () => handleRollback(selectedHistory?.history_id)
+                content: `确定要回滚到版本 ${selectedHistory && selectedHistory.version_num || ''} 吗？`,
+                onOk: () => handleRollback(selectedHistory && selectedHistory.history_id)
               });
             }}
           >
@@ -2004,8 +1994,8 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
       >
         <div style={{ marginBottom: 16 }}>
           <Row>
-            <Col span={12}>历史版本 ({selectedHistory?.version_num})</Col>
-            <Col span={12}>当前版本 ({initialValues?.version_num})</Col>
+            <Col span={12}>历史版本 ({selectedHistory && selectedHistory.version_num || ''}</Col>
+            <Col span={12}>当前版本 ({initialValues && initialValues.version_num || ''}</Col>
           </Row>
         </div>
         <ReactDiffViewer

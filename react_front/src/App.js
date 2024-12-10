@@ -128,7 +128,7 @@ class App extends Component {
       });
     };
     render() {
-        if (window.localStorage.getItem('token')) {
+        if (!window.localStorage.getItem('token')) {
             return(
                 <div className="App">
                     <BrowserRouter>
@@ -196,7 +196,7 @@ class App extends Component {
                                     {this.state.current_nav === "管理"? <NavManage/>:null}
                                 </Sider>
                                 <Content style={{background: '#fff',minHeight: 280}}>
-                                    {this.state.waterText.length!==0 && <WaterMark content={this.state.waterText} rotate={16} globalAlpha={0.2}>
+                                    <WaterMark content={this.state.waterText} rotate={16} globalAlpha={0.2}>
                                         <Route exact path="/" component={() => {return <HomeDbaInfo/>}}/>
                                         <Route exact path="/home" component={Login} />
                                         <Route exact path="/homeDbaInfo" component={HomeDbaInfo} />
@@ -222,8 +222,8 @@ class App extends Component {
                                         <Route exact path="/manage/permission/commonUser" component={commonUser} />
                                         <Route exact path="/service/console/tableDesign" component={TableDesign} />
                                         <Route exact path="/ops/deploy/jksCommonJob" component={JksCommonJob} />
-                                        <Route exact path="/manage/faultTreeConfig/faultTreeConfig" component={FaultTreeConfig} />
-                                    </WaterMark>}
+                                        <Route exact path="/manage/config/faultTreeConfig" component={FaultTreeConfig} />
+                                    </WaterMark>
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>

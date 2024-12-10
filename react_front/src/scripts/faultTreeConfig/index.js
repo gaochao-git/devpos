@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Layout, Card, Button, Table, Space, Modal, message, Icon } from 'antd';
-import MyAxios from "../../api/interceptors";
+import { Layout, Card, Button, Table, Modal, message, Icon } from 'antd';
+import MyAxios from "../common/interface"
 import ConfigEditor from './ConfigEditor';
 import './index.css';
 
@@ -180,7 +180,7 @@ const FaultTreeConfig = () => {
         title: '操作',
         key: 'action',
         render: (_, record) => (
-            <Space>
+            <div>
                 <Button type="link" onClick={() => handleEdit(record)}>
                     编辑
                 </Button>
@@ -200,7 +200,7 @@ const FaultTreeConfig = () => {
                 >
                     删除
                 </Button>
-            </Space>
+            </div>
         ),
     },
     ];
@@ -209,7 +209,7 @@ const FaultTreeConfig = () => {
         <Layout>
             <Content style={{ padding: '24px' }}>
                 <Card>
-                    <Space direction="vertical" style={{ width: '100%' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
                         <Button
                             type="primary"
                             icon="plus"
@@ -232,7 +232,7 @@ const FaultTreeConfig = () => {
                                 showTotal: (total) => `共 ${total} 条`,
                             }}
                         />
-                    </Space>
+                    </div>
                 </Card>
 
                 <Modal
