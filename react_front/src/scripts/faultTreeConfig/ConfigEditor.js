@@ -14,16 +14,9 @@ import {
   Upload,
   Switch,
   Dropdown,
-  Typography, Radio, Menu, Drawer, Row, Col
+  Typography, Radio, Menu, Drawer, Row, Col,
+  Icon
 } from 'antd';
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  ImportOutlined,
-  ExportOutlined,
-  HistoryOutlined,
-  UploadOutlined, DownloadOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, SaveOutlined, ExpandOutlined
-} from '@ant-design/icons';
 import './index.css';
 import MyAxios from "../../api/interceptors";
 import ReactDiffViewer from 'react-diff-viewer';
@@ -135,7 +128,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
       children: node.children ? node.children.map(cleanNodeData) : []
     };
 
-    // 如果有数据采集相关的属性，则保留
+    // 如果有数据��集相关的属性，则保留
     if (node.data_source) {
       cleanedNode.data_source = node.data_source;
     }
@@ -374,7 +367,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
   // 获取阈值输入框的 placeholder
   const getThresholdPlaceholder = (type, condition) => {
     if (type === 'numeric') {
-      return '请输入数值';
+      return '请输���数值';
     }
     // 字符串类型的不同条件对应不同提示
     switch (condition) {
@@ -839,7 +832,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
               <Button
                 type="dashed"
                 style={{ width: '100%', marginTop: 16 }}
-                icon={<PlusOutlined />}
+                icon="plus"
                 onClick={handleAddRule}
               >
                 添加规则
@@ -917,25 +910,25 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
     {
       key: 'add',
       label: '添加子节点',
-      icon: <PlusOutlined />,
+      icon: <Icon type="plus" />,
       onClick: () => handleAddButtonClick()
     },
     {
       key: 'edit',
       label: '编辑节点',
-      icon: <EditOutlined />,
+      icon: <Icon type="edit" />,
       onClick: () => handleEdit()
     },
     {
       key: 'expandAll',  // 新增展开所有子点选项
       label: '展开所有子节点',
-      icon: <ExpandOutlined />,
+      icon: <Icon type="expand" />,
       onClick: () => handleExpandAll(selectedNode)
     },
     {
       key: 'delete',
       label: '删除节点',
-      icon: <DeleteOutlined />,
+      icon: <Icon type="delete" />,
       danger: true,
       onClick: () => {
         if (selectedNode.name === 'Root') {
@@ -1221,7 +1214,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
     onFormChange && onFormChange();
   };
 
-  // 添加对比框显示状态
+  // 添��对比框显示状态
   const [isDiffModalVisible, setIsDiffModalVisible] = useState(false);
   const [diffContent, setDiffContent] = useState({ old: null, new: null });
 
@@ -1377,7 +1370,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
       }
     } catch (error) {
       console.error('View diff error:', error);
-      message.error('获取版本差异失���');
+      message.error('获取版本差异失');
     }
   };
 
@@ -1461,7 +1454,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
               <Button
                 type="primary"
                 onClick={handleUpdateClick}
-                icon={<SaveOutlined />}
+                icon="save"
               >
                 更新
               </Button>
@@ -1470,7 +1463,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
               <Button
                 type="primary"
                 onClick={handleSaveCreate}
-                icon={<SaveOutlined />}
+                icon="save"
               >
                 保存
               </Button>
@@ -1505,25 +1498,25 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
               <Option value="active">启用</Option>
             </Select>
             <Button
-              icon={<HistoryOutlined />}
+              icon="history"
               onClick={() => {
                 fetchHistoryList();
                 setHistoryVisible(true);
               }}
-           >
+            >
               历史
-           </Button>
+            </Button>
             <Upload
               beforeUpload={handleImport}
               showUploadList={false}
               accept=".json"
             >
-              <Button icon={<ImportOutlined />}>
-                导配置
+              <Button icon="import">
+                导入配置
               </Button>
             </Upload>
             <Button
-              icon={<ExportOutlined />}
+              icon="export"
               onClick={handleExport}
             >
               导出配置
@@ -1558,7 +1551,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
               <>
                 <Card
                   size="small"
-                  title="节点基础信息"
+                  title="节点基础信��"
                   style={{ marginBottom: 16 }}
                 >
                   <div className="info-item">
@@ -1757,7 +1750,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
                 <Button
                   type="dashed"
                   style={{ width: '100%', marginTop: 16 }}
-                  icon={<PlusOutlined />}
+                  icon="plus"
                   onClick={() => {
                     const newRule = {
                       metric_name: '',
@@ -1906,7 +1899,7 @@ const FaultTreeConfigNew = forwardRef(({ initialValues, onSave, onFormChange }, 
                 <Button
                   type="dashed"
                   style={{ width: '100%', marginTop: 16 }}
-                  icon={<PlusOutlined />}
+                  icon="plus"
                   onClick={handleAddRule}
                 >
                   添加规则
