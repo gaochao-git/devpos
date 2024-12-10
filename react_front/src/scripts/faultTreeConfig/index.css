@@ -1,0 +1,298 @@
+.fault-tree-config {
+    .ant-card {
+      margin-bottom: 24px;
+    }
+  
+    .rules-table {
+      .ant-table-small {
+        border: 1px solid #f0f0f0;
+        border-radius: 2px;
+      }
+    }
+  }
+
+.fault-tree-config-new .node-info .info-item {
+  margin-bottom: 12px;
+  line-height: 22px;
+  display: flex;
+}
+
+.fault-tree-config-new .node-info .info-item:last-child {
+  margin-bottom: 0;
+}
+
+.fault-tree-config-new .node-info .info-item .label {
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 500;
+  min-width: 90px;
+  margin-right: 8px;
+}
+
+.fault-tree-config-new .node-info .info-item .value {
+  color: rgba(0, 0, 0, 0.65);
+  flex: 1;
+}
+
+.fault-tree-config-new .node-info .ant-table-small {
+  border: 1px solid #f0f0f0;
+}
+
+.fault-tree-config-new .node-info .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 500;
+  padding: 8px 12px;
+}
+
+.fault-tree-config-new .node-info .ant-table-tbody > tr > td {
+  padding: 8px 12px;
+}
+
+.fault-tree-config-new .node-info .ant-card-small .ant-card-head {
+  border-bottom: 1px solid #f0f0f0;
+  min-height: 40px;
+}
+
+.fault-tree-config-new .node-info .ant-card-small .ant-card-head-title {
+  padding: 8px 0;
+}
+
+.fault-tree-config-new .node-info .editable-table .ant-form-item {
+  margin-bottom: 0;
+}
+
+.fault-tree-config-new .node-info .editable-table .ant-select {
+  width: 100%;
+}
+
+.fault-tree-config-new .node-info .editable-table .ant-input {
+  width: 100%;
+}
+
+.fault-tree-config-new .node-info .editable-table td {
+  padding: 4px 8px !important;
+}
+
+.fault-tree-config-new .node-info .editable-table .ant-form-item-control {
+  line-height: 1;
+}
+
+.fault-tree-config-new .node-info .ant-form-item-label {
+  font-weight: 500;
+}
+
+.fault-tree-config-new .node-info .ant-input::placeholder {
+  color: rgba(0, 0, 0, 0.25);
+}
+
+.fault-tree-config-new .node-info .ant-select-selection-placeholder {
+  color: rgba(0, 0, 0, 0.25);
+}
+
+.fault-tree-config-new {
+  height: 100%;
+}
+
+.fault-tree-config-new .tree-container {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  border-right: 1px solid #f0f0f0;
+  padding-right: 24px;
+}
+
+.fault-tree-config-new .tree-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding-right: 8px;
+  margin-right: -8px; /* 防止滚动条占用空间 */
+  max-height: calc(100vh - 240px); /* 减去其他元素的高度 */
+}
+
+/* 自定义滚动条样式 */
+.fault-tree-config-new .tree-scroll-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.fault-tree-config-new .tree-scroll-container::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.fault-tree-config-new .tree-scroll-container::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+.fault-tree-config-new .tree-buttons {
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 16px;
+}
+
+/* 右侧内容区域滚动条 */
+.fault-tree-config-new .node-info::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.fault-tree-config-new .node-info::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.fault-tree-config-new .node-info::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 3px;
+}
+
+/* 确保树节点文本不会被截断 */
+.fault-tree-config-new .ant-tree-node-content-wrapper {
+  white-space: nowrap;
+}
+
+/* 树节点悬停效果 */
+.fault-tree-config-new .ant-tree-node-content-wrapper:hover {
+  background-color: #f5f5f5;
+}
+
+/* 选中节点样式 */
+.fault-tree-config-new .ant-tree-node-selected {
+  background-color: #e6f7ff !important;
+}
+
+.fault-tree-config-new .ant-modal-body .ant-form-item-extra {
+  font-size: 12px;
+  color: #666;
+}
+
+.fault-tree-config-new .ant-input-suffix {
+  color: #999;
+}
+
+.fault-tree-config-new .ant-form-item-label > label {
+  font-weight: 500;
+}
+
+/* 添加表格滚动条的样式 */
+.ant-table-wrapper {
+  overflow-x: auto;
+}
+
+/* 美化滚动条样式（可选） */
+.ant-table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.ant-table-wrapper::-webkit-scrollbar-thumb {
+  background-color: #d9d9d9;
+  border-radius: 4px;
+}
+
+.ant-table-wrapper::-webkit-scrollbar-track {
+  background-color: #f0f0f0;
+}
+
+/* 右键菜单样式 */
+.ant-dropdown-menu {
+  padding: 4px 0;
+}
+
+.ant-dropdown-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin: 0;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.ant-dropdown-menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.ant-dropdown-menu-item .anticon {
+  margin-right: 8px;
+  font-size: 14px;
+}
+
+.ant-dropdown-menu-item-danger {
+  color: #ff4d4f;
+}
+
+.ant-dropdown-menu-item-danger:hover {
+  background-color: #fff1f0;
+}
+
+.ant-dropdown-menu-item .anticon-expand {
+  color: #1890ff;
+}
+
+.ant-dropdown-menu-item .anticon-edit {
+  color: #52c41a;
+}
+
+.ant-dropdown-menu-item .anticon-plus {
+  color: #1890ff;
+}
+
+/* 树获得焦点时的样式 */
+.ant-tree:focus {
+  outline: none;
+}
+
+.ant-tree:focus-visible {
+  outline: 2px solid #1890ff;
+  outline-offset: 1px;
+}
+
+/* 基本信息卡片样式 */
+.fault-tree-config-editor .basic-info-card {
+  background: #fff;
+  border-radius: 4px;
+}
+
+.fault-tree-config-editor .basic-info-card .ant-form-item {
+  margin-bottom: 0;
+}
+
+.fault-tree-config-editor .basic-info-card .ant-card-body {
+  padding: 16px 24px;
+}
+
+.fault-tree-config-editor .basic-info-card .ant-input {
+  border-radius: 4px;
+}
+
+.fault-tree-config-editor .basic-info-card .ant-input-textarea {
+  border-radius: 4px;
+}
+
+/* 内容布局样式 */
+.fault-tree-config-editor .content-container {
+  display: flex;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.basic-info-section {
+  background: #fff;
+  padding: 24px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.basic-info-section .ant-form-item {
+  margin-bottom: 0;
+}
+
+.basic-info-section .ant-radio-group {
+  width: 100%;
+}
+
+.basic-info-section .ant-radio-button-wrapper {
+  width: 50%;
+  text-align: center;
+}

@@ -37,6 +37,7 @@ import TableDesign from './scripts/console/tableDesign'
 import JksJobConfig from './scripts/configManage/jksJobConfig'
 import JksCommonJob from './scripts/jks/jksCommonJob'
 import { backendServerApiRoot } from "./scripts/common/util";
+import FaultTreeConfig from  "./scripts/faultTreeConfig/index"
 
 
 const { Header, Footer, Sider, Content } = Layout;
@@ -221,6 +222,7 @@ class App extends Component {
                                         <Route exact path="/manage/permission/commonUser" component={commonUser} />
                                         <Route exact path="/service/console/tableDesign" component={TableDesign} />
                                         <Route exact path="/ops/deploy/jksCommonJob" component={JksCommonJob} />
+                                        <Route exact path="/manage/faultTreeConfig/faultTreeConfig" component={FaultTreeConfig} />
                                     </WaterMark>}
                                 </Content>
                             </Layout>
