@@ -70,7 +70,7 @@ class App extends Component {
         }
     }
     componentDidMount() {
-        this.getUserInfo();
+        // this.getUserInfo();
         this.routerChange();
     }
 
@@ -88,8 +88,9 @@ class App extends Component {
 
     //根据token获取登陆信息
     async getUserInfo() {
+        console.log(1111,window.localStorage.getItem('token'))
         let headers = {"global_loading":false}
-        await MyAxios.post('/login/v1/get_login_user_info/',{headers}).then(
+        await MyAxios.post('/login/v1/get_login_user_info111s/',{headers}).then(
             res => {
                 if(res.data.status==="ok")
                 {
@@ -103,11 +104,16 @@ class App extends Component {
                     window.localStorage.setItem("userinfo", JSON.stringify(res.data.data[0]))
                 }else
                 {
-                   message.error(res.data.message);
-                   window.localStorage.removeItem("userinfo");
+                    message.error(res.data.message);
+                    window.localStorage.removeItem("token");
+                    window.location.href = '/home';
                 }
             }
-        ).catch(err => {message.error(err.message)})
+        ).catch(err => {
+            message.error(err.message);
+            window.localStorage.removeItem("token");
+            window.location.href = '/home';
+        })
     }
 
     //更改服务、运维、管理标签
@@ -223,17 +229,17 @@ class App extends Component {
                     </BrowserRouter>
                 </div>
             )
-        }else{
+        } else {
             return (
                 <div className="App">
-                <BrowserRouter>
-                    <Layout className="layout">
-                        <Content style={{ margin: '0 auto',padding:'300px 300px' }}>
-                            <Login></Login>
-                        </Content>
-                        <Footer style={{ textAlign: 'center'}}>Devpos Design ©2020 Created By Me</Footer>
-                    </Layout>,
-                </BrowserRouter>
+                    <BrowserRouter>
+                        <Layout className="layout">
+                            <Content style={{ margin: '0 auto',padding:'300px 300px' }}>
+                                <Login></Login>
+                            </Content>
+                            <Footer style={{ textAlign: 'center'}}>Devpos Design ©2020 Created By Me</Footer>
+                        </Layout>
+                    </BrowserRouter>
                 </div>
             )
         }
