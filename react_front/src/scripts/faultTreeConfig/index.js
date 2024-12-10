@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Layout, Card, Button, Table, Space, Modal, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Layout, Card, Button, Table, Space, Modal, message, Icon } from 'antd';
 import MyAxios from "../../api/interceptors";
 import ConfigEditor from './ConfigEditor';
 import './index.css';
@@ -213,7 +212,7 @@ const FaultTreeConfig = () => {
                     <Space direction="vertical" style={{ width: '100%' }}>
                         <Button
                             type="primary"
-                            icon={<PlusOutlined />}
+                            icon="plus"
                             onClick={() => {
                                 setCurrentRecord(null);
                                 setVisible(true);
@@ -226,7 +225,7 @@ const FaultTreeConfig = () => {
                             columns={columns}
                             dataSource={data}
                             loading={loading}
-                            rowKey="ft_id"  // 修改为ft_id
+                            rowKey="ft_id"
                             pagination={{
                                 showSizeChanger: true,
                                 showQuickJumper: true,
@@ -238,7 +237,7 @@ const FaultTreeConfig = () => {
 
                 <Modal
                     title={currentRecord ? '编辑场景' : '新建场景'}
-                    open={visible}
+                    visible={visible}
                     onCancel={() => {
                         // 获取当前表单数据
                         const currentFormData = {
