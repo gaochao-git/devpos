@@ -55,6 +55,8 @@ urlpatterns = [
     path('api/v1/service/ticket/get_ansible_api_log/', deploy_mysql_controller.get_ansible_api_log_controller), # 获取部署日志
     path('api/v1/pass_submit_deploy_mysql/', deploy_mysql_controller.pass_submit_deploy_mysql_controller),  # 审核部署mysql工单
     path('api/v1/service/ticket/get_work_flow_by_uuid/', deploy_mysql_controller.get_work_flow_by_uuid_controller),  # 获取工单流转记录
+    # 故障分析
+    path("api/fault_tree/", include("app_fault_tree.urls")),
     ]
 
 

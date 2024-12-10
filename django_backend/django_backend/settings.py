@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'app_db_dcl',
     'app_web_console',
     'django_cas_ng',
+    'app_fault_tree',
 ]
 
 # ============================= 认证类型 ===================================
@@ -187,7 +188,7 @@ INCEPTION_ADDRESS = {
 
 ################# go_inception配置 ##################
 GO_INCEPTION_ADDRESS = {
-    'go_inception_host': '123.249.100.254',
+    'go_inception_host': '47.95.3.120',
     'go_inception_port': 4000,
 }
 
@@ -321,7 +322,7 @@ try:
     csock.close()
 except socket.error as e:
     logger.error(str(e))
-pro_host_list = ['123.249.100.254']
+pro_host_list = ['47.95.3.120']
 if ip in pro_host_list:
     from .pro import *
 else:

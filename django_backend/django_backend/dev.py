@@ -40,8 +40,8 @@ CELERY_ENABLE_UTC = False
 USE_TZ = False
 CELERY_SEND_TASK_SENT_EVENT = True
 CELERY_TASK_TRACK_STARTED = True
-BROKER_URL = 'redis://:fffjjj@123.249.100.254:6379/0'
-# CELERY_RESULT_BACKEND = 'redis://:fffjjj@123.249.100.254:6379/1' # 任务结果存入redis
+BROKER_URL = 'redis://:fffjjj@47.95.3.120:6379/0'
+# CELERY_RESULT_BACKEND = 'redis://:fffjjj@47.95.3.120:6379/1' # 任务结果存入redis
 CELERY_RESULT_BACKEND = 'djcelery.backends.database.DatabaseBackend'  # 任务结果存到数据库celery_taskmeta表中,TiDB不支持该类型
 CELERYBEAT_SCHEDULER = "djcelery.schedulers.DatabaseScheduler"  #  djcelery调度器,定时任务存到django后台数据库中,django后台动态管理
 # 定时任务,配置文件方式管理（定时任务支持配置文件与数据库两种管理方式）
