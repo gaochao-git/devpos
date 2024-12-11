@@ -12,9 +12,10 @@ import {
   Menu,
   Icon,
   Empty,
+  Upload,
 } from 'antd';
 import './index.css';
-
+import MyAxios from "../common/interface"
 const { Option } = Select;
 
 class FaultTreeConfigNew extends React.Component {
@@ -333,40 +334,131 @@ class FaultTreeConfigNew extends React.Component {
     );
   }
 
-  handleSave = () => {
-    this.props.form.validateFields((err, values) => {
-      if (err) return;
+  handleSave = async () => {
+    if (!this.state.ftName?.trim()) {
+        message.error('请输入场景名称');
+        return;
+    }
 
-      const updateNodeInTree = (treeData) => {
-        if (treeData.key === this.state.selectedNode.key) {
-          return {
-            ...treeData,
-            ...values
-          };
+    try {
+        const submitData = {
+            ft_name: this.state.ftName,
+            ft_desc: this.state.ftDesc,
+            ft_status: this.state.ftStatus,
+            ft_content: JSON.stringify(this.state.treeData)
+        };
+
+        const res = await MyAxios.post('/fault_tree/v1/create_config/', submitData);
+        
+        if (res.data.status === 'ok') {
+            message.success('保存成功');
+            this.props.onSave && this.props.onSave(res.data.data);
+        } else {
+            message.error(res.data.message || '保存失败');
         }
+        console.log(submitData);
+    } catch (error) {
+        console.error('保存故障树配置失败:', error);
+        message.error('保存失败，请稍后重试');
+    }
+};
 
-        if (treeData.children) {
-          return {
-            ...treeData,
-            children: treeData.children.map(child => updateNodeInTree(child))
-          };
-        }
+handleUpdateClick = async () => {
+    if (!this.state.ftName?.trim()) {
+        message.error('请输入场景名称');
+        return;
+    }
 
-        return treeData;
-      };
+    try {
+        const submitData = {
+            ft_id: this.props.initialValues.ft_id,
+            ft_name: this.state.ftName,
+            ft_desc: this.state.ftDesc,
+            ft_status: this.state.ftStatus,
+            ft_content: JSON.stringify(this.state.treeData)
+        };
 
-      this.setState(prevState => ({
-        treeData: updateNodeInTree(prevState.treeData)
-      }), () => {
-        message.success('保存成功');
-      });
-    });
-  };
+        // const res = await MyAxios.post('/fault_tree/v1/update_config/', submitData);
+        
+        // if (res.data.status === 'ok') {
+        //     message.success('更新成功');
+        //     this.props.onSave && this.props.onSave(res.data.data);
+        // } else {
+        //     message.error(res.data.message || '更新失败');
+        // }
+        console.log(submitData);
+    } catch (error) {
+        console.error('更新故障树配置失败:', error);
+        message.error('更新失败，请稍后重试');
+    }
+};
 
   render() {
     return (
       <div className="fault-tree-config-new">
-        <Card title="故障树配置">
+        <Card 
+          title="故障树配置"
+          extra={
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Button
+                type="primary"
+                onClick={this.props.initialValues?.ft_id ? this.handleUpdateClick : this.handleSave}
+                icon={<Icon type="save" />}
+              >
+                {this.props.initialValues?.ft_id ? '更新' : '保存'}
+              </Button>
+              <Input
+                placeholder="场景名称"
+                value={this.state.ftName}
+                onChange={e => {
+                  this.setState({ ftName: e.target.value });
+                }}
+                style={{ width: 200 }}
+              />
+              <Input
+                placeholder="场景描述"
+                value={this.state.ftDesc}
+                onChange={e => {
+                  this.setState({ ftDesc: e.target.value });
+                }}
+                style={{ width: 300 }}
+              />
+              <Select
+                value={this.state.ftStatus}
+                onChange={value => {
+                  this.setState({ ftStatus: value });
+                }}
+                style={{ width: 100 }}
+              >
+                <Option value="draft">草稿</Option>
+                <Option value="active">启用</Option>
+              </Select>
+              <Button
+                icon={<Icon type="history" />}
+                onClick={() => {
+                  message.info('历史版本功能开发中');
+                }}
+              >
+                历史
+              </Button>
+              <Upload
+                beforeUpload={this.handleImport}
+                showUploadList={false}
+                accept=".json"
+              >
+                <Button icon={<Icon type="upload" />}>
+                  导入配置
+                </Button>
+              </Upload>
+              <Button
+                icon={<Icon type="download" />}
+                onClick={this.handleExport}
+              >
+                导出配置
+              </Button>
+            </div>
+          }
+        >
           <div style={{ display: 'flex', height: 'calc(100vh - 180px)' }}>
             <div className="tree-container" style={{ flex: '0 0 300px', borderRight: '1px solid #e8e8e8', padding: '10px', position: 'relative' }}>
               <Tree
