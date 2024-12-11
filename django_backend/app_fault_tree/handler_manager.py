@@ -64,13 +64,14 @@ class HandleZabbixMetrics:
             '4': 'str',  # Text
         }
         result = get_zabbix_metrics(
-            host_ip=instance_info['ip'],
+            host_ip='127.0.0.1',
             metric_name=metric_name,
             match_type='filter',  # 使用精确匹配
             time_from=time_from,
             time_till=time_till,
             limit=100000
         )
+        print(11111, result)
         if result['status'] == 'error':
             return None
 
