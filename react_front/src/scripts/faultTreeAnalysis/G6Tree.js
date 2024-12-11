@@ -66,7 +66,7 @@ const FaultTree = ({ data }) => {
   // 添加居中方法
   const handleFitView = () => {
     if (graphRef.current) {
-      graphRef.current.fitView();
+      graphRef.current.fitView([100, 260, 100, 100]);
     }
   };
 
@@ -531,8 +531,7 @@ const FaultTree = ({ data }) => {
       // 直接使用转换好的数据
       graphRef.current.data(data);
       graphRef.current.render();
-
-      graphRef.current.fitView();
+      graphRef.current.fitView([100, 260, 100, 100]);
     }
 
     return () => {
