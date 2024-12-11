@@ -55,7 +55,72 @@ const FaultTree = ({ data }) => {
   // 修改原有的 useEffect，添加数据准备和组件挂载检查
   useEffect(() => {
     if (!isDataReady || !data || !mountedRef.current || !ref.current) return;
+
+    // 配置 G6
+    const graph = new G6.Graph({
+      container: ref.current,
+      width: ref.current.scrollWidth,
+      height: ref.current.scrollHeight,
+      modes: {
+        default: [
+          'drag-canvas',
+          'zoom-canvas',
+          'drag-node',
+          {
+            type: 'scroll-canvas',
+            direction: 'both',  // 支持both, horizontal, vertical
+            zoomKey: 'ctrl',
+          }
+        ],
+      },
+      fitView: true,
+      fitViewPadding: [20, 40, 20, 40],
+      animate: true,
+      defaultNode: {
+        type: 'custom-node',
+      },
+      defaultEdge: {
+        type: 'cubic-horizontal',
+        style: {
+          stroke: '#A3B1BF',
+          lineWidth: 2,
+          endArrow: true,
+        },
+      },
+      // 限制画布的缩放范围
+      minZoom: 0.2,
+      maxZoom: 2,
+      // 防止节点超出画布
+      limitInGraph: true,
+      // 设置画布的平移范围
+      translate: {
+        minX: -1000,
+        maxX: 1000,
+        minY: -1000,
+        maxY: 1000
+      },
+    });
+
+    graphRef.current = graph;
+    graph.data(data);
+    graph.render();
+
+    // 监听窗口大小变化
+    const handleResize = () => {
+      if (graphRef.current) {
+        graphRef.current.changeSize(
+          ref.current.scrollWidth,
+          ref.current.scrollHeight
+        );
+        graphRef.current.fitView();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    // 清理函数
     return () => {
+      window.removeEventListener('resize', handleResize);
       if (graphRef.current) {
         graphRef.current.destroy();
         graphRef.current = null;
@@ -619,7 +684,7 @@ const FaultTree = ({ data }) => {
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div style={{
         position: 'absolute',
         right: 20,
@@ -639,9 +704,11 @@ const FaultTree = ({ data }) => {
         ref={ref}
         style={{
           width: '100%',
-          height: '800px',
+          height: 'calc(100vh - 280px)', // 调整高度以适应父容器
+          overflow: 'hidden', // 防止内容溢出
           border: '1px solid #ccc',
-          margin: 'auto'
+          borderRadius: '4px',
+          position: 'relative'
         }}
       />
       <Drawer
