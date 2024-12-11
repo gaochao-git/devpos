@@ -5,7 +5,7 @@ import {Table, Input, Badge, Tabs, Card, Col, Row, Button,message,Modal} from "a
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
-import FaultTreeIndex from '../faultTreeConfig/index';
+import FaultTreeIndex from '../faultTreeAnalysis/index';
 const { Search } = Input;
 const { TabPane } = Tabs;
 const Column = Table.Column;
