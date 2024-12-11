@@ -136,12 +136,36 @@ class ConfigTreeComponent extends React.Component {
         return this.state.treeData;
     };
 
+    findNodeByName = (name, node = this.state.treeData) => {
+        if (node.name === name) {
+            return node;
+        }
+        
+        if (node.children) {
+            for (const child of node.children) {
+                const found = this.findNodeByName(name, child);
+                if (found) {
+                    return found;
+                }
+            }
+        }
+        
+        return null;
+    };
+
     handleAddNode = (values) => {
         if (!this.state.selectedNode) {
             message.error('请先选择一个节点');
             return;
         }
 
+        const existingNode = this.findNodeByName(values.name);
+        if (existingNode) {
+            message.error('节点名称已存在，请使用其他名称');
+            return;
+        }
+
+        const parentKey = this.state.selectedNode.key;
         const newNodeKey = `${parentKey}->${values.name}`;
         const newNode = {
             key: newNodeKey,
@@ -540,7 +564,18 @@ class ConfigTreeComponent extends React.Component {
                     <Form layout="vertical">
                         <Form.Item label="节点名称">
                             {this.props.form.getFieldDecorator('name', {
-                                rules: [{ required: true, message: '请输入节点名称' }]
+                                rules: [
+                                    { required: true, message: '请输入节点名称' },
+                                    { 
+                                        validator: (_, value, callback) => {
+                                            if (value && this.findNodeByName(value)) {
+                                                callback('节点名称已存在');
+                                            } else {
+                                                callback();
+                                            }
+                                        }
+                                    }
+                                ]
                             })(
                                 <Input placeholder="请输入节点名称" />
                             )}
