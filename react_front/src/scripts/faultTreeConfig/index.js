@@ -26,7 +26,7 @@ const FaultTreeConfig = () => {
             }
         } catch (err) {
             console.error('Fetch config list error:', err);
-            message.error('获取配置列���失败，请稍后重试');
+            message.error('获取配置列表失败，请稍后重试');
         } finally {
             setLoading(false);
         }
@@ -146,17 +146,20 @@ const FaultTreeConfig = () => {
             title: '场景名称',
             dataIndex: 'ft_name',
             key: 'ft_name',
+            width: 200,
         },
         {
             title: '描述',
             dataIndex: 'ft_desc',
             key: 'ft_desc',
-            ellipsis: true,  // 添加省略号
+            width: 300,
+            ellipsis: true,
         },
         {
             title: '状态',
             dataIndex: 'ft_status',
             key: 'ft_status',
+            width: 100,
             render: (ft_status) => (
                 <span>{ft_status === 'active' ? '已启用' : '草稿'}</span>
             ),
@@ -165,44 +168,49 @@ const FaultTreeConfig = () => {
             title: '版本号',
             dataIndex: 'version_num',
             key: 'version_num',
+            width: 100,
         },
         {
             title: '创建时间',
             dataIndex: 'create_time',
-            key: 'update_time',
+            key: 'create_time',
+            width: 180,
         },
         {
             title: '更新时间',
             dataIndex: 'update_time',
             key: 'update_time',
+            width: 180,
         },
         {
-        title: '操作',
-        key: 'action',
-        render: (_, record) => (
-            <div>
-                <Button type="link" onClick={() => handleEdit(record)}>
-                    编辑
-                </Button>
-                <Button type="link" onClick={() => handleCopy(record)}>
-                    复制
-                </Button>
-                <Button
-                    type="link"
-                    danger
-                    onClick={() => {
-                        Modal.confirm({
-                            title: '确认删除',
-                            content: `确定要删��场景 "${record.ft_name}" 吗？`,
-                            onOk: () => handleDelete(record),
-                        });
-                    }}
-                >
-                    删除
-                </Button>
-            </div>
-        ),
-    },
+            title: '操作',
+            key: 'action',
+            fixed: 'right',
+            width: 300,
+            render: (_, record) => (
+                <div>
+                    <Button type="link" onClick={() => handleEdit(record)}>
+                        编辑
+                    </Button>
+                    <Button type="link" onClick={() => handleCopy(record)}>
+                        复制
+                    </Button>
+                    <Button
+                        type="link"
+                        danger
+                        onClick={() => {
+                            Modal.confirm({
+                                title: '确认删除',
+                                content: `确定要删除场景 "${record.ft_name}" 吗？`,
+                                onOk: () => handleDelete(record),
+                            });
+                        }}
+                    >
+                        删除
+                    </Button>
+                </div>
+            ),
+        },
     ];
 
     return (
@@ -231,6 +239,7 @@ const FaultTreeConfig = () => {
                                 showQuickJumper: true,
                                 showTotal: (total) => `共 ${total} 条`,
                             }}
+                            scroll={{ x: true }}
                         />
                     </div>
                 </Card>
