@@ -641,7 +641,8 @@ const FaultTree = ({ data }) => {
           width: '100%',
           height: '800px',
           border: '1px solid #ccc',
-          margin: 'auto'
+          margin: 'auto',
+          overflow: 'hidden'
         }}
       />
       <Drawer
