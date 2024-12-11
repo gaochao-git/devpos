@@ -1,7 +1,8 @@
 import React from 'react';
-import { Card, Button, Input, Select, message, Upload, Icon, Modal, Table } from 'antd';
+import { Card, Button, Input, Select, message, Upload, Icon, Modal, Table, Drawer, Space, Row, Col } from 'antd';
 import ConfigTree from './ConfigTree';
 import MyAxios from "../common/interface"
+import ReactDiffViewer from 'react-diff-viewer';
 
 const { Option } = Select;
 
@@ -13,6 +14,12 @@ class ConfigEditor extends React.Component {
             ftName: this.props.initialValues?.ft_name || '',
             ftDesc: this.props.initialValues?.ft_desc || '',
             ftStatus: this.props.initialValues?.ft_status || 'draft',
+            historyVisible: false,
+            historyList: [],
+            historyLoading: false,
+            diffVisible: false,
+            diffData: { old: null, new: null },
+            selectedHistory: null
         };
     }
 
@@ -49,7 +56,9 @@ class ConfigEditor extends React.Component {
             
             if (res.data.status === 'ok') {
                 message.success(isEdit ? '修改成功' : '保存成功');
-                this.props.onSave && this.props.onSave(res.data.data);
+                if (this.props.onSave) {
+                    this.props.onSave();
+                }
             } else {
                 message.error(res.data.message || '保存失败');
             }
@@ -197,7 +206,7 @@ class ConfigEditor extends React.Component {
             if (res.data.status === 'ok') {
                 message.success('恢复成功');
                 if (this.props.onSave) {
-                    this.props.onSave(res.data.data);
+                    this.props.onSave();
                 }
             } else {
                 message.error(res.data.message || '恢复失败');
@@ -208,70 +217,287 @@ class ConfigEditor extends React.Component {
         }
     };
 
-    render() {
-        return (
-            <Card 
-                title="故障树配置"
-                extra={
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <Input
-                            placeholder="场景名称"
-                            value={this.state.ftName}
-                            onChange={e => this.setState({ ftName: e.target.value })}
-                            style={{ width: 200, marginRight: 8 }}
-                        />
-                        <Input
-                            placeholder="场景描述"
-                            value={this.state.ftDesc}
-                            onChange={e => this.setState({ ftDesc: e.target.value })}
-                            style={{ width: 300, marginRight: 8 }}
-                        />
-                        <Select
-                            value={this.state.ftStatus}
-                            onChange={value => this.setState({ ftStatus: value })}
-                            style={{ width: 100 }}
-                        >
-                            <Option value="draft">草稿</Option>
-                            <Option value="active">启用</Option>
-                        </Select>
-                        <Button type="primary" onClick={this.handleSave}>保存</Button>
-                        <div style={{ marginLeft: 16 }}>
-                            <Button.Group>
-                                <Button
-                                    onClick={this.handleHistory}
-                                    title="历史记录"
-                                >
-                                    <Icon type="history" />
-                                </Button>
-                                <Button
-                                    onClick={() => this.fileInput.click()}
-                                    title="导入"
-                                >
-                                    <Icon type="upload" />
-                                    <input
-                                        type="file"
-                                        accept=".json"
-                                        style={{ display: 'none' }}
-                                        onChange={this.handleFileChange}
-                                        ref={input => this.fileInput = input}
-                                    />
-                                </Button>
-                                <Button
-                                    onClick={this.handleExport}
-                                    title="导出"
-                                >
-                                    <Icon type="download" />
-                                </Button>
-                            </Button.Group>
-                        </div>
-                    </div>
+    // 添加对比功能
+    handleViewDiff = async (historyId) => {
+        try {
+            const historyRes = await MyAxios.post('/fault_tree/v1/get_history_detail/', {
+                history_id: historyId
+            });
+
+            if (historyRes.data.status === "ok") {
+                const historyData = historyRes.data.data;
+                this.setState({ selectedHistory: historyData });
+
+                const historyContent = typeof historyData.ft_content === 'string'
+                    ? historyData.ft_content
+                    : JSON.stringify(historyData.ft_content);
+
+                const currentContent = typeof this.props.initialValues.ft_content === 'string'
+                    ? this.props.initialValues.ft_content
+                    : JSON.stringify(this.props.initialValues.ft_content);
+
+                try {
+                    const formattedHistoryContent = JSON.stringify(
+                        JSON.parse(historyContent),
+                        null,
+                        2
+                    );
+                    const formattedCurrentContent = JSON.stringify(
+                        JSON.parse(currentContent),
+                        null,
+                        2
+                    );
+
+                    this.setState({
+                        diffData: {
+                            old: formattedHistoryContent,
+                            new: formattedCurrentContent
+                        },
+                        diffVisible: true
+                    });
+                } catch (jsonError) {
+                    console.error('JSON parse error:', jsonError);
+                    message.error('解析配置内容失败');
                 }
-            >
-                <ConfigTree 
-                    ref={this.configTreeRef}
-                    initialValues={this.props.initialValues}
-                />
-            </Card>
+            } else {
+                message.error(historyRes.data.message || '获取历史版本失败');
+            }
+        } catch (error) {
+            console.error('View diff error:', error);
+            message.error('获取版本差异失败');
+        }
+    };
+
+    // 获取历史版本列表
+    fetchHistoryList = async () => {
+        if (!this.props.initialValues?.ft_id) return;
+        this.setState({ historyLoading: true });
+        try {
+            const res = await MyAxios.post('/fault_tree/v1/get_history_list/', {
+                ft_id: this.props.initialValues.ft_id
+            });
+            if (res.data.status === 'ok') {
+                this.setState({ historyList: res.data.data });
+            } else {
+                message.error(res.data.message || '获取历史版本失败');
+            }
+        } catch (error) {
+            console.error('Fetch history error:', error);
+            message.error('获取历史版本失败');
+        } finally {
+            this.setState({ historyLoading: false });
+        }
+    };
+
+    // 回滚到历史版本
+    handleRollback = async (historyId) => {
+        try {
+            const res = await MyAxios.post('/fault_tree/v1/rollback_config/', {
+                history_id: historyId
+            });
+            if (res.data.status === 'ok') {
+                message.success('回滚成功');
+                this.setState({ historyVisible: false });
+                if (this.props.onSave) {
+                    this.props.onSave();
+                }
+            } else {
+                message.error(res.data.message || '回滚失败');
+            }
+        } catch (error) {
+            console.error('Rollback error:', error);
+            message.error('回滚失败');
+        }
+    };
+
+    // 删除历史版本
+    handleDeleteHistory = async (historyId) => {
+        try {
+            const res = await MyAxios.post('/fault_tree/v1/delete_history/', {
+                history_id: historyId
+            });
+            if (res.data.status === 'ok') {
+                message.success('删除成功');
+                this.fetchHistoryList();
+            } else {
+                message.error(res.data.message || '删除失败');
+            }
+        } catch (error) {
+            console.error('Delete history error:', error);
+            message.error('删除失败');
+        }
+    };
+
+    render() {
+        const historyColumns = [
+            {
+                title: '版本号',
+                dataIndex: 'version_num',
+                key: 'version_num',
+            },
+            {
+                title: '创建时间',
+                dataIndex: 'create_time',
+                key: 'create_time',
+            },
+            {
+                title: '创建人',
+                dataIndex: 'create_by',
+                key: 'create_by',
+            },
+            {
+                title: '操作',
+                key: 'action',
+                render: (_, record) => (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <Button
+                            type="link"
+                            icon={<Icon type="diff" />}
+                            onClick={() => this.handleViewDiff(record.history_id)}
+                        >
+                            对比
+                        </Button>
+                        <Button
+                            type="link"
+                            danger
+                            onClick={() => {
+                                Modal.confirm({
+                                    title: '确认删除',
+                                    content: `确定要删除版本 ${record.version_num} 吗？`,
+                                    onOk: () => this.handleDeleteHistory(record.history_id)
+                                });
+                            }}
+                            disabled={this.state.historyList.length <= 1}
+                        >
+                            删除
+                        </Button>
+                    </div>
+                ),
+            },
+        ];
+
+        return (
+            <div>
+                <Card 
+                    title="故障树配置"
+                    extra={
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <Input
+                                placeholder="场景名称"
+                                value={this.state.ftName}
+                                onChange={e => this.setState({ ftName: e.target.value })}
+                                style={{ width: 200, marginRight: 8 }}
+                            />
+                            <Input
+                                placeholder="场景描述"
+                                value={this.state.ftDesc}
+                                onChange={e => this.setState({ ftDesc: e.target.value })}
+                                style={{ width: 300, marginRight: 8 }}
+                            />
+                            <Select
+                                value={this.state.ftStatus}
+                                onChange={value => this.setState({ ftStatus: value })}
+                                style={{ width: 100 }}
+                            >
+                                <Option value="draft">草稿</Option>
+                                <Option value="active">启用</Option>
+                            </Select>
+                            <Button type="primary" onClick={this.handleSave}>保存</Button>
+                            <div style={{ marginLeft: 16 }}>
+                                <Button.Group>
+                                    <Button
+                                        icon={<Icon type="history" />}
+                                        onClick={() => {
+                                            this.fetchHistoryList();
+                                            this.setState({ historyVisible: true });
+                                        }}
+                                        title="历史记录"
+                                    />
+                                    <Button
+                                        onClick={() => this.fileInput.click()}
+                                        title="导入"
+                                    >
+                                        <Icon type="upload" />
+                                        <input
+                                            type="file"
+                                            accept=".json"
+                                            style={{ display: 'none' }}
+                                            onChange={this.handleFileChange}
+                                            ref={input => this.fileInput = input}
+                                        />
+                                    </Button>
+                                    <Button
+                                        onClick={this.handleExport}
+                                        title="导出"
+                                    >
+                                        <Icon type="download" />
+                                    </Button>
+                                </Button.Group>
+                            </div>
+                        </div>
+                    }
+                >
+                    <ConfigTree 
+                        ref={this.configTreeRef}
+                        initialValues={this.props.initialValues}
+                    />
+                </Card>
+                <Drawer
+                    title="历史版本"
+                    placement="right"
+                    width={600}
+                    visible={this.state.historyVisible}
+                    onClose={() => this.setState({ historyVisible: false })}
+                >
+                    <Table
+                        columns={historyColumns}
+                        dataSource={this.state.historyList}
+                        loading={this.state.historyLoading}
+                        rowKey="history_id"
+                        pagination={{
+                            showSizeChanger: true,
+                            showQuickJumper: true,
+                            showTotal: (total) => `共 ${total} 条`,
+                        }}
+                    />
+                </Drawer>
+                <Drawer
+                    title="版本对比"
+                    placement="right"
+                    width={1000}
+                    visible={this.state.diffVisible}
+                    onClose={() => this.setState({ diffVisible: false })}
+                    extra={
+                        <Button
+                            type="primary"
+                            onClick={() => {
+                                Modal.confirm({
+                                    title: '确认回滚',
+                                    content: `确定要回滚到版本 ${this.state.selectedHistory?.version_num} 吗？`,
+                                    onOk: () => this.handleRollback(this.state.selectedHistory?.history_id)
+                                });
+                            }}
+                        >
+                            回滚到此版本
+                        </Button>
+                    }
+                >
+                    <div style={{ marginBottom: 16 }}>
+                        <Row>
+                            <Col span={12}>历史版本 ({this.state.selectedHistory?.version_num})</Col>
+                            <Col span={12}>当前版本 ({this.props.initialValues?.version_num})</Col>
+                        </Row>
+                    </div>
+                    <ReactDiffViewer
+                        oldValue={this.state.diffData.old}
+                        newValue={this.state.diffData.new}
+                        splitView={true}
+                        disableWordDiff={false}
+                        hideLineNumbers={false}
+                        showDiffOnly={false}
+                    />
+                </Drawer>
+            </div>
         );
     }
 }
