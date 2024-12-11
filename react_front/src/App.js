@@ -89,9 +89,8 @@ class App extends Component {
 
     //根据token获取登陆信息
     async getUserInfo() {
-        console.log(1111,window.localStorage.getItem('token'))
         let headers = {"global_loading":false}
-        await MyAxios.post('/login/v1/get_login_user_info111s/',{headers}).then(
+        await MyAxios.post('/login/v1/get_login_user_info/',{headers}).then(
             res => {
                 if(res.data.status==="ok")
                 {
@@ -105,16 +104,11 @@ class App extends Component {
                     window.localStorage.setItem("userinfo", JSON.stringify(res.data.data[0]))
                 }else
                 {
-                    message.error(res.data.message);
-                    window.localStorage.removeItem("token");
-                    window.location.href = '/home';
+                   message.error(res.data.message);
+                   window.localStorage.removeItem("userinfo");
                 }
             }
-        ).catch(err => {
-            message.error(err.message);
-            window.localStorage.removeItem("token");
-            window.location.href = '/home';
-        })
+        ).catch(err => {message.error(err.message)})
     }
 
     //更改服务、运维、管理标签
@@ -196,7 +190,7 @@ class App extends Component {
                                     {this.state.current_nav === "管理"? <NavManage/>:null}
                                 </Sider>
                                 <Content style={{background: '#fff',minHeight: 280}}>
-                                    <WaterMark content={this.state.waterText} rotate={16} globalAlpha={0.2}>
+                                    {this.state.waterText.length!==0 && <WaterMark content={this.state.waterText} rotate={16} globalAlpha={0.2}>
                                         <Route exact path="/" component={() => {return <HomeDbaInfo/>}}/>
                                         <Route exact path="/home" component={Login} />
                                         <Route exact path="/homeDbaInfo" component={HomeDbaInfo} />
@@ -223,7 +217,7 @@ class App extends Component {
                                         <Route exact path="/service/console/tableDesign" component={TableDesign} />
                                         <Route exact path="/ops/deploy/jksCommonJob" component={JksCommonJob} />
                                         <Route exact path="/manage/config/faultTreeConfig" component={FaultTreeConfig} />
-                                    </WaterMark>
+                                    </WaterMark>}
                                 </Content>
                             </Layout>
                             <Footer style={{ textAlign: 'center' }}>Devpos Design ©2020 Created By Me</Footer>
@@ -231,17 +225,17 @@ class App extends Component {
                     </BrowserRouter>
                 </div>
             )
-        } else {
+        }else{
             return (
                 <div className="App">
-                    <BrowserRouter>
-                        <Layout className="layout">
-                            <Content style={{ margin: '0 auto',padding:'300px 300px' }}>
-                                <Login></Login>
-                            </Content>
-                            <Footer style={{ textAlign: 'center'}}>Devpos Design ©2020 Created By Me</Footer>
-                        </Layout>
-                    </BrowserRouter>
+                <BrowserRouter>
+                    <Layout className="layout">
+                        <Content style={{ margin: '0 auto',padding:'300px 300px' }}>
+                            <Login></Login>
+                        </Content>
+                        <Footer style={{ textAlign: 'center'}}>Devpos Design ©2020 Created By Me</Footer>
+                    </Layout>,
+                </BrowserRouter>
                 </div>
             )
         }
