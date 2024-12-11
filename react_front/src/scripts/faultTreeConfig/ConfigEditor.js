@@ -33,7 +33,8 @@ class FaultTreeConfigNew extends React.Component {
     },
     ftName: this.props.initialValues?.ft_name || '',
     ftDesc: this.props.initialValues?.ft_desc || '',
-    ftStatus: this.props.initialValues?.ft_status || 'draft'
+    ftStatus: this.props.initialValues?.ft_status || 'draft',
+    rightClickNodeTreeItem: null,
   };
 
   handleAddNode = (values) => {
@@ -146,12 +147,14 @@ class FaultTreeConfigNew extends React.Component {
   };
 
   onRightClick = ({ event, node }) => {
-    event.preventDefault();
-    this.setState({ selectedNode: node });
-    this.props.form.setFieldsValue({
-      name: node.name,
-      description: node.description,
-      node_status: node.node_status || 'info'
+    const { pageX, pageY } = event;
+    this.setState({
+      rightClickNodeTreeItem: {
+        pageX,
+        pageY,
+        node
+      },
+      selectedNode: node
     });
   };
 
@@ -286,6 +289,67 @@ class FaultTreeConfigNew extends React.Component {
     };
   };
 
+  renderRightClickMenu() {
+    const { rightClickNodeTreeItem } = this.state;
+    if (!rightClickNodeTreeItem) {
+      return null;
+    }
+
+    const menuStyle = {
+      position: 'absolute',
+      left: rightClickNodeTreeItem.pageX + 'px',
+      top: rightClickNodeTreeItem.pageY + 'px',
+      background: '#fff',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+      padding: '4px 0',
+      borderRadius: '4px',
+      zIndex: 1000
+    };
+
+    return (
+      <div
+        style={menuStyle}
+        onMouseLeave={() => this.setState({ rightClickNodeTreeItem: null })}
+      >
+        <div
+          style={{
+            padding: '4px 12px',
+            cursor: 'pointer',
+            hover: { background: '#f5f5f5' }
+          }}
+          onClick={() => {
+            this.setState({
+              isAddNodeModalVisible: true,
+              rightClickNodeTreeItem: null
+            });
+          }}
+        >
+          <Icon type="plus" style={{ marginRight: '8px' }} />
+          新增节点
+        </div>
+        <div
+          style={{
+            padding: '4px 12px',
+            cursor: 'pointer',
+            hover: { background: '#f5f5f5' }
+          }}
+          onClick={() => {
+            const { node } = rightClickNodeTreeItem;
+            this.props.form.setFieldsValue({
+              name: node.name,
+              description: node.description,
+              node_status: node.node_status || 'info'
+            });
+            this.setState({ rightClickNodeTreeItem: null });
+          }}
+        >
+          <Icon type="edit" style={{ marginRight: '8px' }} />
+          编辑节点
+        </div>
+      </div>
+    );
+  }
+
   render() {
     const { form } = this.props;
     const { getFieldDecorator } = form;
@@ -293,7 +357,7 @@ class FaultTreeConfigNew extends React.Component {
     const processedTreeData = this.processTreeData(this.state.treeData);
 
     return (
-      <div className="fault-tree-config-new">
+      <div className="fault-tree-config-new" onClick={() => this.setState({ rightClickNodeTreeItem: null })}>
         <Card
           title="故障树配置"
           extra={
@@ -322,16 +386,18 @@ class FaultTreeConfigNew extends React.Component {
           }
         >
           <div style={{ display: 'flex', height: 'calc(100vh - 180px)' }}>
-            <div className="tree-container" style={{ flex: '0 0 300px', borderRight: '1px solid #e8e8e8', padding: '10px' }}>
+            <div className="tree-container" style={{ flex: '0 0 300px', borderRight: '1px solid #e8e8e8', padding: '10px', position: 'relative' }}>
               <Tree
                 treeData={[processedTreeData]}
                 onSelect={this.onSelect}
+                onRightClick={this.onRightClick}
                 showLine
                 showIcon
                 expandedKeys={this.state.expandedKeys}
                 onExpand={(keys) => this.setState({ expandedKeys: keys })}
                 selectedKeys={this.state.selectedNode ? [this.state.selectedNode.key] : []}
               />
+              {this.renderRightClickMenu()}
             </div>
             <div className="editor-container" style={{ flex: 1, padding: '20px' }}>
               {this.renderNodeEditor()}
@@ -370,7 +436,7 @@ class FaultTreeConfigNew extends React.Component {
 
             <Form.Item label="节点描述">
               {getFieldDecorator('description')(
-                <Input.TextArea placeholder="请输���节点描述" />
+                <Input.TextArea placeholder="请输入节点描述" />
               )}
             </Form.Item>
 
@@ -426,6 +492,15 @@ const styles = `
   
   .node-actions .anticon:hover {
     color: #40a9ff;
+  }
+  
+  .right-click-menu-item {
+    padding: 4px 12px;
+    cursor: pointer;
+  }
+  
+  .right-click-menu-item:hover {
+    background: #f5f5f5;
   }
 `;
 
