@@ -283,54 +283,10 @@ class FaultTreeConfigNew extends React.Component {
     );
   }
 
-  renderActionButtons = (nodeData) => {
-    return (
-      <span className="node-actions">
-        <Icon
-          type="plus-circle"
-          style={{ marginRight: '8px' }}
-          onClick={(e) => {
-            e && e.stopPropagation();
-            this.handleAddClick(nodeData);
-          }}
-        />
-        <Icon
-          type="edit"
-          onClick={(e) => {
-            e && e.stopPropagation();
-            this.handleEditClick(nodeData);
-          }}
-        />
-      </span>
-    );
-  };
-
   renderTreeNodeTitle = (nodeData) => {
-    const node = {
-      ...nodeData,
-      children: nodeData.children || []
-    };
-
     return (
       <span className="tree-node-content">
-        <span className="node-title">{node.name}</span>
-        <span className="node-actions">
-          <Icon
-            type="plus-circle"
-            style={{ marginRight: '8px' }}
-            onClick={(e) => {
-              e.stopPropagation();
-              this.handleAddClick(node);
-            }}
-          />
-          <Icon
-            type="edit"
-            onClick={(e) => {
-              e.stopPropagation();
-              this.handleEditClick(node);
-            }}
-          />
-        </span>
+        <span className="node-title">{nodeData.name}</span>
       </span>
     );
   };
@@ -576,32 +532,13 @@ const styles = `
   .tree-node-content {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding-right: 8px;
+    padding: 0 4px;
   }
   
   .node-title {
     flex: 1;
   }
   
-  .node-actions {
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-  
-  .tree-node-content:hover .node-actions {
-    opacity: 1;
-  }
-  
-  .node-actions .anticon {
-    cursor: pointer;
-    color: #1890ff;
-  }
-  
-  .node-actions .anticon:hover {
-    color: #40a9ff;
-  }
-
   .right-click-menu-item {
     padding: 5px 12px;
     cursor: pointer;
