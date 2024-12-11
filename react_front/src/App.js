@@ -71,7 +71,7 @@ class App extends Component {
         }
     }
     componentDidMount() {
-        // this.getUserInfo();
+        this.getUserInfo();
         this.routerChange();
     }
 
@@ -128,7 +128,7 @@ class App extends Component {
       });
     };
     render() {
-        if (!window.localStorage.getItem('token')) {
+        if (window.localStorage.getItem('token')) {
             return(
                 <div className="App">
                     <BrowserRouter>

@@ -21,8 +21,13 @@ class Login extends Component  {
     // 登陆验证
     async login(username, password) {
         MyAxios.post('/login/v1/auth_web/', {username, password}).then(function(res){
-            window.localStorage.setItem('token', res.data.token)
-            window.location.reload()
+            if (res.data.token){
+                window.localStorage.setItem('token', res.data.token)
+                window.location.reload()
+            }else {
+                message.error("未获取到token")
+            }
+
         }).catch(function (error) {
             message.error("登陆失败")
             console.log(error)
