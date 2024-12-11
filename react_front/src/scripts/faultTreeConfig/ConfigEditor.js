@@ -84,7 +84,10 @@ class ConfigEditor extends React.Component {
         }
     };
 
-    handleImport = (file) => {
+    handleImport = (info) => {
+        const file = info.file;
+        if (!file) return;
+
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
@@ -105,7 +108,6 @@ class ConfigEditor extends React.Component {
             }
         };
         reader.readAsText(file);
-        return false;
     };
 
     handleHistory = async () => {
@@ -219,15 +221,9 @@ class ConfigEditor extends React.Component {
                         >
                             历史记录
                         </Button>
-                        <Upload
-                            accept=".json"
-                            showUploadList={false}
-                            beforeUpload={this.handleImport}
-                        >
-                            <Button icon={<Icon type="import" />}>
-                                导入
-                            </Button>
-                        </Upload>
+                        <Upload accept=".json" showUploadList={false} beforeUpload={this.handleImport}>
+                             <Button size="small">导入</Button>
+                         </Upload>
                         <Button
                             onClick={this.handleExport}
                             icon={<Icon type="export" />}
