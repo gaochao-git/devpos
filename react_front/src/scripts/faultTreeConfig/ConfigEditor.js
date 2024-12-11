@@ -406,13 +406,14 @@ class ConfigEditor extends React.Component {
                             <div style={{ marginLeft: 16 }}>
                                 <Button.Group>
                                     <Button
-                                        icon={<Icon type="history" />}
                                         onClick={() => {
                                             this.fetchHistoryList();
                                             this.setState({ historyVisible: true });
                                         }}
                                         title="历史记录"
-                                    />
+                                    >
+                                        <Icon type="history" />
+                                    </Button>
                                     <Button
                                         onClick={() => this.fileInput.click()}
                                         title="导入"
