@@ -1,24 +1,25 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { Tree, Form, Modal, message, Card, Input, Select, Switch, Button, Table, Empty, Icon } from 'antd';
 import './index.css';
 
 const { Option } = Select;
 const { TreeNode } = Tree;
 
-class ConfigTree extends React.Component {
+class ConfigTreeComponent extends React.Component {
     state = {
         isAddNodeModalVisible: false,
         isEditModalVisible: false,
         selectedNode: null,
         expandedKeys: ['Root'],
         treeData: {
+            ...this.props.initialValues?.ft_content || {
+                name: 'Root',
+                description: '',
+                node_status: 'info',
+                children: []
+            },
             key: 'Root',
-            name: 'Root',
-            title: 'Root',
-            description: '',
-            node_status: 'info',
-            children: this.props.initialValues?.ft_content ? 
-                JSON.parse(this.props.initialValues.ft_content).children : []
+            title: this.props.initialValues?.ft_content?.name || 'Root'
         },
         rightClickNodeTreeItem: null,
         isMetricNode: false,
@@ -780,4 +781,9 @@ const styleSheet = document.createElement('style');
 styleSheet.innerText = styles;
 document.head.appendChild(styleSheet);
 
-export default Form.create()(ConfigTree);
+const ConfigTree = forwardRef((props, ref) => {
+    const FormWrappedComponent = Form.create()(ConfigTreeComponent);
+    return <FormWrappedComponent {...props} wrappedComponentRef={ref} />;
+});
+
+export default ConfigTree;
