@@ -528,18 +528,19 @@ class ConfigTreeComponent extends React.Component {
         return processedNode;
     };
 
-    componentDidMount() {
-        const nodeNames = new Set();
-        const checkDuplicateNames = (node) => {
-            if (nodeNames.has(node.name)) {
-                message.error(`检测到重复的节点名称: ${node.name}`);
+    checkInitData = (node = this.state.treeData) => {
+        const nodeKeys = new Set();
+        
+        const traverse = (currentNode) => {
+            if (nodeKeys.has(currentNode.key)) {
+                message.error(`检测到重复的节点key: ${currentNode.key}`);
                 return false;
             }
-            nodeNames.add(node.name);
+            nodeKeys.add(currentNode.key);
             
-            if (node.children) {
-                for (const child of node.children) {
-                    if (!checkDuplicateNames(child)) {
+            if (currentNode.children) {
+                for (const child of currentNode.children) {
+                    if (!traverse(child)) {
                         return false;
                     }
                 }
@@ -547,9 +548,13 @@ class ConfigTreeComponent extends React.Component {
             return true;
         };
 
-        const isValid = checkDuplicateNames(this.state.treeData);
+        return traverse(node);
+    };
+
+    componentDidMount() {
+        const isValid = this.checkInitData();
         if (!isValid) {
-            message.error('初始化故障树结构存在重复节点名称，请检查并修正');
+            message.error('初始化故障树结构存在重复节点key，请检查并修正');
         }
     }
 
@@ -603,7 +608,7 @@ class ConfigTreeComponent extends React.Component {
                                     { 
                                         validator: (_, value, callback) => {
                                             if (value && this.findNodeByKey(value)) {
-                                                callback('节点名���已存在');
+                                                callback('节点名称已存在');
                                             } else {
                                                 callback();
                                             }
@@ -775,7 +780,7 @@ class ConfigTreeComponent extends React.Component {
 
                                 <Form.Item label="指标名称">
                                     {this.props.form.getFieldDecorator('metric_name', {
-                                        rules: [{ required: true, message: '请输入���标名称' }]
+                                        rules: [{ required: true, message: '请输入指标名称' }]
                                     })(
                                         <Input placeholder="请输入指标名称" />
                                     )}
