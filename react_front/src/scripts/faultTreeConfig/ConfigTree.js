@@ -136,14 +136,14 @@ class ConfigTreeComponent extends React.Component {
         return this.state.treeData;
     };
 
-    findNodeByName = (name, node = this.state.treeData) => {
-        if (node.name === name) {
+    findNodeByKey = (key, node = this.state.treeData) => {
+        if (node.key === key) {
             return node;
         }
         
         if (node.children) {
             for (const child of node.children) {
-                const found = this.findNodeByName(name, child);
+                const found = this.findNodeByKey(key, child);
                 if (found) {
                     return found;
                 }
@@ -159,14 +159,15 @@ class ConfigTreeComponent extends React.Component {
             return;
         }
 
-        const existingNode = this.findNodeByName(values.name);
+        const parentKey = this.state.selectedNode.key;
+        const newNodeKey = `${parentKey}->${values.name}`;
+
+        const existingNode = this.findNodeByKey(newNodeKey);
         if (existingNode) {
-            message.error('节点名称已存在，请使用其他名称');
+            message.error(`节点名称已存在，与节点 "${existingNode.key}" 冲突，请使用其他名称`);
             return;
         }
 
-        const parentKey = this.state.selectedNode.key;
-        const newNodeKey = `${parentKey}->${values.name}`;
         const newNode = {
             key: newNodeKey,
             name: values.name,
@@ -214,6 +215,14 @@ class ConfigTreeComponent extends React.Component {
 
     handleEditNode = (values) => {
         if (!this.state.selectedNode) return;
+
+        const newNodeKey = `${this.state.selectedNode.key.split('->').slice(0, -1).join('->')}->${values.name}`;
+
+        const existingNode = this.findNodeByKey(newNodeKey);
+        if (existingNode && existingNode.key !== this.state.selectedNode.key) {
+            message.error(`节点名称已存在，与节点 "${existingNode.key}" 冲突，请使用其他名称`);
+            return;
+        }
 
         const updateNodeInTree = (node) => {
             if (node.key === this.state.selectedNode.key) {
@@ -519,6 +528,31 @@ class ConfigTreeComponent extends React.Component {
         return processedNode;
     };
 
+    componentDidMount() {
+        const nodeNames = new Set();
+        const checkDuplicateNames = (node) => {
+            if (nodeNames.has(node.name)) {
+                message.error(`检测到重复的节点名称: ${node.name}`);
+                return false;
+            }
+            nodeNames.add(node.name);
+            
+            if (node.children) {
+                for (const child of node.children) {
+                    if (!checkDuplicateNames(child)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+
+        const isValid = checkDuplicateNames(this.state.treeData);
+        if (!isValid) {
+            message.error('初始化故障树结构存在重复节点名称，请检查并修正');
+        }
+    }
+
     render() {
         return (
             <div style={{ display: 'flex', height: 'calc(100vh - 180px)' }}>
@@ -568,8 +602,8 @@ class ConfigTreeComponent extends React.Component {
                                     { required: true, message: '请输入节点名称' },
                                     { 
                                         validator: (_, value, callback) => {
-                                            if (value && this.findNodeByName(value)) {
-                                                callback('节点名称已存在');
+                                            if (value && this.findNodeByKey(value)) {
+                                                callback('节点名���已存在');
                                             } else {
                                                 callback();
                                             }
@@ -741,7 +775,7 @@ class ConfigTreeComponent extends React.Component {
 
                                 <Form.Item label="指标名称">
                                     {this.props.form.getFieldDecorator('metric_name', {
-                                        rules: [{ required: true, message: '请输入指标名称' }]
+                                        rules: [{ required: true, message: '请输入���标名称' }]
                                     })(
                                         <Input placeholder="请输入指标名称" />
                                     )}
