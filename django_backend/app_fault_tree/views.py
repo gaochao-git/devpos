@@ -78,14 +78,14 @@ class UpdateFaultTreeConfig(BaseView):
                     version_num=instance.version_num,
                     create_time=datetime.now(),
                     update_time=datetime.now(),
-                    create_by=self.request_user_info.get('user_name'),
-                    update_by=self.request_user_info.get('user_name')
+                    create_by='xxxx',
+                    update_by='xxx'
                 )
 
                 serializer = FaultTreeConfigUpdateSerializer(instance, data=self.request_params, partial=True)
                 if serializer.is_valid():
                     serializer.save(
-                        update_by=self.request_user_info.get('user_name'),
+                        update_by='xxxx',
                         update_time=datetime.now()
                     )
                     return self.my_response({
@@ -183,7 +183,7 @@ class ActivateFaultTreeConfig(BaseView):
             ft_id = self.request_params.get('ft_id')
             instance = FaultTreeConfig.objects.get(ft_id=ft_id)
             instance.ft_status = 'active'
-            instance.update_by = self.request_user_info.get('user_name')
+            instance.update_by = 'xxx'
             instance.save()
             serializer = FaultTreeConfigSerializer(instance)
             return self.my_response({
@@ -255,7 +255,7 @@ class RollbackFaultTreeConfig(BaseView):
                 # 更新主表
                 config.ft_content = history.ft_content
                 config.version_num = history.version_num
-                config.update_by = self.request_user_info.get('user_name')
+                config.update_by = 'xxx'
                 config.save(update_fields=['ft_content', 'version_num', 'update_by', 'update_time'])
 
                 return self.my_response({

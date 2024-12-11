@@ -378,15 +378,22 @@ handleUpdateClick = async () => {
             ft_content: JSON.stringify(this.state.treeData)
         };
 
-        // const res = await MyAxios.post('/fault_tree/v1/update_config/', submitData);
+        console.log('Updating with data:', submitData);
+
+        const res = await MyAxios.post('/fault_tree/v1/update_config/', submitData);
         
-        // if (res.data.status === 'ok') {
-        //     message.success('更新成功');
-        //     this.props.onSave && this.props.onSave(res.data.data);
-        // } else {
-        //     message.error(res.data.message || '更新失败');
-        // }
-        console.log(submitData);
+        if (res.data.status === 'ok') {
+            message.success('更新成功');
+            this.props.onSave && this.props.onSave(res.data.data);
+            this.setState({
+                initialFtName: this.state.ftName,
+                initialFtDesc: this.state.ftDesc,
+                initialFtStatus: this.state.ftStatus,
+                initialTreeData: this.state.treeData
+            });
+        } else {
+            message.error(res.data.message || '更新失败');
+        }
     } catch (error) {
         console.error('更新故障树配置失败:', error);
         message.error('更新失败，请稍后重试');
@@ -402,7 +409,7 @@ handleUpdateClick = async () => {
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Button
                 type="primary"
-                onClick={this.props.initialValues?.ft_id ? this.handleUpdateClick : this.handleSave}
+                onClick={this.handleUpdateClick}
                 icon={<Icon type="save" />}
               >
                 {this.props.initialValues?.ft_id ? '更新' : '保存'}
@@ -547,7 +554,7 @@ handleUpdateClick = async () => {
             </Form.Item>
             <Form.Item label="节点描述">
               {this.props.form.getFieldDecorator('description')(
-                <Input.TextArea placeholder="请输入节点描述" />
+                <Input.TextArea placeholder="请输入��点描述" />
               )}
             </Form.Item>
             <Form.Item label="节点状态">
