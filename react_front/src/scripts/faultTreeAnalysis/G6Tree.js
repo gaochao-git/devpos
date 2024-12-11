@@ -1,11 +1,10 @@
 // src/FaultTree.js
 import React, { useEffect, useRef, useState } from 'react';
 import G6 from '@antv/g6';
-import { message, Drawer, DatePicker, Space, Spin, Button, Input } from 'antd';
+import { message, Drawer, DatePicker, Button, Input, Icon, Spin } from 'antd';
 import ReactECharts from 'echarts-for-react';
 import moment from 'moment';
-import { CompressOutlined } from '@ant-design/icons';
-import MyAxios from "../../api/interceptors";
+import MyAxios from "../common/interface"
 
 const { RangePicker } = DatePicker;
 const { TextArea, Search } = Input;
@@ -621,24 +620,21 @@ const FaultTree = ({ data }) => {
 
   return (
     <div style={{ position: 'relative' }}>
-      <Space 
-        style={{
-          position: 'absolute',
-          right: 20,
-          top: 20,
-          zIndex: 10,
-        }}
-      >
+      <div style={{
+        position: 'absolute',
+        right: 20,
+        top: 20,
+        zIndex: 10,
+      }}>
         <Button
           type="primary"
-          icon={<CompressOutlined />}
           onClick={handleFitView}
           title="居中显示"
           style={{ opacity: 0.8 }}
         >
-          居中
+          <Icon type="fullscreen" /> 居中
         </Button>
-      </Space>
+      </div>
       <div
         ref={ref}
         style={{
@@ -658,7 +654,7 @@ const FaultTree = ({ data }) => {
       >
         {selectedNode && (
           <div>
-            <Space direction="vertical" style={{ width: '100%', marginBottom: 16 }}>
+            <div style={{ width: '100%', marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h4>节点：{selectedNode.id}</h4>
                 <RangePicker
@@ -696,21 +692,23 @@ const FaultTree = ({ data }) => {
                           style={{ width: 200 }}
                         />
                         {searchResults.length > 0 && (
-                          <Space>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span>{`${currentResultIndex + 1}/${searchResults.length}`}</span>
                             <Button.Group>
                               <Button 
-                                icon="↑" 
                                 onClick={handlePrevResult}
                                 disabled={searchResults.length === 0 || currentResultIndex === 0}
-                              />
+                              >
+                                <Icon type="up" />
+                              </Button>
                               <Button 
-                                icon="↓" 
                                 onClick={handleNextResult}
                                 disabled={searchResults.length === 0 || currentResultIndex === searchResults.length - 1}
-                              />
+                              >
+                                <Icon type="down" />
+                              </Button>
                             </Button.Group>
-                          </Space>
+                          </div>
                         )}
                       </div>
                       <TextArea
@@ -733,7 +731,7 @@ const FaultTree = ({ data }) => {
                   )}
                 </div>
               </Spin>
-            </Space>
+            </div>
           </div>
         )}
       </Drawer>

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Layout, Card, Space, message, Button, Select, DatePicker, Radio, Modal } from 'antd';
-import { ReloadOutlined, SearchOutlined, ExperimentOutlined, ExpandOutlined, WarningOutlined } from '@ant-design/icons';
+import { Layout, Card, message, Button, Select, DatePicker, Radio, Modal, Icon } from 'antd';
 import moment from 'moment';
-import MyAxios from "../../api/interceptors";
+import MyAxios from "../common/interface"
 import './index.css';
 import G6Tree from "./G6Tree";
 
@@ -12,7 +11,7 @@ const { RangePicker } = DatePicker;
 
 // 添加分析结果弹窗组件
 const AnalysisModal = ({ visible, content, treeData, onClose }) => {
-  console.log('Raw content:', content); // 打印完整的原始数据
+  console.log('Raw content:', content);
 
   // 修改 getSeverityInfo 的计算逻辑，根据所有指标的最高等级来确定
   const calculateMaxSeverity = (nodes) => {
@@ -350,7 +349,7 @@ const AnalysisModal = ({ visible, content, treeData, onClose }) => {
   );
 };
 
-// 可以抽取一个通用的统计框组件
+// 可以���取一个通用的统计框组件
 const StatBox = ({ title, stats }) => (
   <div style={{
     background: 'rgba(255,255,255,0.1)',
@@ -540,7 +539,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
         }
     };
 
-    // 新增：刷新按钮点击处理
+    // 新增���刷新按钮点击处理
     const handleRefreshClick = () => {
         // 使用当前的 timeMode 重新计算时间范围
         if (timeMode !== 'realtime') {
@@ -637,37 +636,18 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
     };
 
     return (
-        <Layout style={{ background: '#f0f5ff' }}>  {/* 更改整体背景色 */}
+        <Layout className="fault-tree-analysis">
             <Content style={{ padding: '24px' }}>
-                <Card
-                    bordered={false}
-                    style={{
-                        borderRadius: '16px',
-                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
-                    }}
-                >
-                    {/* 顶部控制区域 */}
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '16px 24px',
-                        background: 'linear-gradient(135deg, #f0f5ff 0%, #e6f0ff 100%)',
-                        borderRadius: '12px',
-                        marginBottom: '24px'
-                    }}>
-                        {/* 左侧基础信息 */}
-                        <Space size="large">
-                            {/* 故障诊断分析标题部分 */}
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '16px'
-                            }}>
-                                <span role="img" aria-label="analysis" style={{ fontSize: '24px' }}>
+                <Card bordered={false}>
+                    {/* 顶部工具栏 */}
+                    <div style={{ marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            {/* 左侧分析按钮组 */}
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', marginRight: '24px' }}>
                                     <Button
                                         type="primary"
-                                        icon={<ExperimentOutlined />}
+                                        icon="experiment"
                                         onClick={handleRootCauseAnalysis}
                                         loading={isAnalyzing}
                                         disabled={!treeData}
@@ -676,190 +656,111 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                             width: '40px',
                                             borderRadius: '8px',
                                             background: '#1d4ed8',
-                                            boxShadow: '0 2px 8px rgba(29, 78, 216, 0.2)'
                                         }}
                                     />
-                                </span>
-                                <div>
-                                    <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' }}>
-                                        故障诊断分析
+                                    <div style={{ marginLeft: '16px' }}>
+                                        <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' }}>
+                                            故障诊断分析
+                                        </div>
+                                        <div style={{ color: '#666' }}>
+                                            实时监控 · 智能分析 · 快速定位
+                                        </div>
                                     </div>
-                                    <div style={{ color: '#666' }}>
-                                        实时监控 · 智能分析 · 快速定位
+                                </div>
+
+                                {/* 场景选择和按钮组 */}
+                                <div style={{ marginRight: '48px' }}>
+                                    <Select
+                                        value={selectedCase}
+                                        onChange={handleCaseSelect}
+                                        style={{ width: '248px', marginBottom: '12px' }}
+                                        size="large"
+                                        placeholder="选择故障场景"
+                                    >
+                                        <Option value="数据库无法连接">数据库无法连接</Option>
+                                        <Option value="数据库无法写入">数据库无法写入</Option>
+                                        <Option value="数据库响应升高">数据库响应升高</Option>
+                                    </Select>
+                                    
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <Button
+                                            type="primary"
+                                            icon="fullscreen"
+                                            onClick={handleExpandAll}
+                                            disabled={!treeData}
+                                            size="large"
+                                            style={{ width: '120px' }}
+                                        >
+                                            全局视图
+                                        </Button>
+                                        <Button
+                                            type="danger"
+                                            icon="warning"
+                                            onClick={handleExpandError}
+                                            disabled={!treeData}
+                                            size="large"
+                                            style={{ width: '120px' }}
+                                        >
+                                            异常链路
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* 第一个分隔线 - 与标题的间距较小 */}
-                            <div style={{
-                                height: '40px',
-                                width: '1px',
-                                background: '#e5e7eb',
-                                margin: '0 24px'  // 较小的间距
-                            }} />
-
-                            {/* 场景选择和按钮组 */}
-                            <Space direction="vertical" size={12}>
-                                {/* 场景选择 */}
-                                <Select
-                                    value={selectedCase}
-                                    onChange={handleCaseSelect}
-                                    style={{ 
-                                        width: '248px',
-                                        borderRadius: '6px',
-                                        background: 'white'
-                                    }}
-                                    size="large"
-                                    placeholder="选择故障场景"
-                                >
-                                    <Option value="数据库无法连接">数据库无法连接</Option>
-                                    <Option value="数据库无法写入">数据库无法写入</Option>
-                                    <Option value="数据库响应升高">数据库响应升高</Option>
-                                </Select>
-                                
-                                {/* 按钮组 */}
-                                <Space>
-                                    <Button
-                                        type="primary"
-                                        icon={<ExpandOutlined />}
-                                        onClick={handleExpandAll}
-                                        disabled={!treeData}
-                                        size="large"
-                                        style={{
-                                            width: '120px',  // 固定宽度
-                                            borderRadius: '8px',
-                                            background: '#1d4ed8',
-                                            boxShadow: '0 2px 8px rgba(29, 78, 216, 0.2)'
-                                        }}
-                                    >
-                                        全局视图
-                                    </Button>
-                                    <Button
-                                        type="primary"
-                                        danger
-                                        icon={<WarningOutlined />}
-                                        onClick={handleExpandError}
-                                        disabled={!treeData}
-                                        size="large"
-                                        style={{
-                                            width: '120px',  // 固定宽度
-                                            borderRadius: '8px',
-                                            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.2)'
-                                        }}
-                                    >
-                                        异常链路
-                                    </Button>
-                                </Space>
-                            </Space>
-
-                            {/* 第二个分隔线 - 与时间选择器的间距较大 */}
-                            <div style={{
-                                height: '40px',
-                                width: '1px',
-                                background: '#e5e7eb',
-                                margin: '0 48px'  // 较大的间距
-                            }} />
-                        </Space>
-
-                        {/* 右侧时间选择器 */}
-                        <div style={{
-                            background: 'white',
-                            padding: '12px 16px',  // 减小内边距
-                            borderRadius: '12px',
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-                        }}>
-                            <Space direction="vertical" size={8}>
-                                {/* 快捷时间按钮组 - 第一排 */}
-                                <Radio.Group
-                                    value={timeMode}
-                                    onChange={(e) => handleQuickRangeChange(e.target.value)}
-                                    buttonStyle="solid"
-                                    size="middle"
-                                    style={{ marginBottom: '4px' }}
-                                >
-                                    <Radio.Button 
-                                        value="realtime" 
-                                        style={{ borderRadius: '6px 0 0 6px' }}
-                                    >
-                                        实时
-                                    </Radio.Button>
-                                    <Radio.Button value="1min">1分钟</Radio.Button>
-                                    <Radio.Button value="5min">5分钟</Radio.Button>
-                                    <Radio.Button value="15min">15分钟</Radio.Button>
-                                    <Radio.Button value="30min">30分钟</Radio.Button>
-                                    <Radio.Button 
-                                        value="1h"
-                                        style={{ borderRadius: '0 6px 6px 0' }}
-                                    >
-                                        1小时
-                                    </Radio.Button>
-                                </Radio.Group>
-
-                                {/* 快捷时间按钮组 - 第二排 */}
-                                <div style={{ display: 'flex', marginBottom: '8px' }}>
+                            {/* 右侧时间选择器 */}
+                            <div style={{ background: 'white', padding: '12px 16px', borderRadius: '12px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     <Radio.Group
                                         value={timeMode}
                                         onChange={(e) => handleQuickRangeChange(e.target.value)}
                                         buttonStyle="solid"
-                                        size="middle"
+                                        size="default"
                                     >
-                                        <Radio.Button 
-                                            value="3h"
-                                            style={{ borderRadius: '6px 0 0 6px' }}
-                                        >
-                                            3小时
-                                        </Radio.Button>
-                                        <Radio.Button value="6h">6小时</Radio.Button>
-                                        <Radio.Button value="12h">12小时</Radio.Button>
-                                        <Radio.Button value="24h">24小时</Radio.Button>
-                                        <Radio.Button value="2d">2天</Radio.Button>
+                                        <Radio.Button value="realtime">实时</Radio.Button>
+                                        <Radio.Button value="1min">1分钟</Radio.Button>
+                                        <Radio.Button value="5min">5分钟</Radio.Button>
+                                        <Radio.Button value="15min">15分钟</Radio.Button>
+                                        <Radio.Button value="30min">30分钟</Radio.Button>
+                                        <Radio.Button value="1h">1小时</Radio.Button>
                                     </Radio.Group>
-                                    {/* 刷新按钮 - 视觉上一致但独立处理点击事件 */}
-                                    <button
-                                        onClick={handleRefreshClick}
-                                        className="ant-radio-button-wrapper"  // 使用 antd 的按钮样式
-                                        style={{
-                                            marginLeft: '-1px',  // 消除边框重叠
-                                            borderRadius: '0 6px 6px 0',
-                                            padding: '0 15px',
-                                            height: '32px',  // 与其他按钮同高
-                                            border: '1px solid #d9d9d9',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}
-                                    >
-                                        <ReloadOutlined /> 刷新
-                                    </button>
-                                </div>
 
-                                {/* 时间选择器和搜索按钮 */}
-                                <Space size={8}>
-                                    <RangePicker
-                                        showTime
-                                        value={timeRange}
-                                        onChange={handleCustomRangeChange}
-                                        style={{ 
-                                            width: '360px',
-                                            borderRadius: '6px'
-                                        }}
-                                        size="middle"
-                                    />
-                                    <Button
-                                        type="primary"
-                                        icon={<SearchOutlined />}
-                                        onClick={handleRefresh}
-                                        size="middle"
-                                        style={{
-                                            borderRadius: '6px',
-                                            background: '#1d4ed8'
-                                        }}
-                                    >
-                                        搜索
-                                    </Button>
-                                </Space>
-                            </Space>
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        <Radio.Group
+                                            value={timeMode}
+                                            onChange={(e) => handleQuickRangeChange(e.target.value)}
+                                            buttonStyle="solid"
+                                            size="default"
+                                        >
+                                            <Radio.Button value="3h">3小时</Radio.Button>
+                                            <Radio.Button value="6h">6小时</Radio.Button>
+                                            <Radio.Button value="12h">12小时</Radio.Button>
+                                            <Radio.Button value="24h">24小时</Radio.Button>
+                                            <Radio.Button value="2d">2天</Radio.Button>
+                                        </Radio.Group>
+                                        <Button
+                                            onClick={handleRefreshClick}
+                                            style={{ marginLeft: '8px' }}
+                                        >
+                                            <Icon type="reload" /> 刷新
+                                        </Button>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        <RangePicker
+                                            showTime
+                                            value={timeRange}
+                                            onChange={handleCustomRangeChange}
+                                            style={{ width: '360px', marginRight: '8px' }}
+                                        />
+                                        <Button
+                                            type="primary"
+                                            onClick={handleRefresh}
+                                        >
+                                            <Icon type="search" /> 搜索
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -869,11 +770,8 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                         borderRadius: '12px',
                         padding: '24px',
                         minHeight: 'calc(100vh - 280px)',
-                        boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.05)'
                     }}>
-                        {
-                            treeData && <G6Tree data={treeData} />
-                        }
+                        {treeData && <G6Tree data={treeData} />}
                     </div>
                 </Card>
 
