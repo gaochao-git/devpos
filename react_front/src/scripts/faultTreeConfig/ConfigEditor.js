@@ -13,9 +13,12 @@ import {
   Icon,
   Empty,
   Upload,
+  Table,
+  Switch,
 } from 'antd';
 import './index.css';
 import MyAxios from "../common/interface"
+import { PlusOutlined } from '@ant-design/icons';
 const { Option } = Select;
 
 class FaultTreeConfigNew extends React.Component {
@@ -37,6 +40,8 @@ class FaultTreeConfigNew extends React.Component {
     ftDesc: this.props.initialValues?.ft_desc || '',
     ftStatus: this.props.initialValues?.ft_status || 'draft',
     rightClickNodeTreeItem: null,
+    isMetricNode: false,
+    rules: [],
   };
 
   handleAddNode = (values) => {
@@ -500,6 +505,8 @@ handleUpdateClick = async () => {
             this.setState({ isAddNodeModalVisible: false });
             this.props.form.resetFields();
           }}
+          width={1200}
+          style={{ top: 20 }}
         >
           <Form layout="vertical">
             <Form.Item label="节点名称">
@@ -525,6 +532,67 @@ handleUpdateClick = async () => {
                 </Select>
               )}
             </Form.Item>
+            <Form.Item label="是否为指标节点">
+                {this.props.form.getFieldDecorator('isMetricNode', {
+                    valuePropName: 'checked',
+                    initialValue: false
+                })(
+                    <Switch 
+                        onChange={(checked) => {
+                            this.setState({ isMetricNode: checked });
+                            if (!checked) {
+                                this.props.form.setFieldsValue({
+                                    data_source_type: undefined,
+                                    data_source: undefined,
+                                    metric_name: undefined
+                                });
+                            }
+                        }}
+                    />
+                )}
+            </Form.Item>
+
+            {this.state.isMetricNode && (
+                <>
+                    <Form.Item label="数据源">
+                        {this.props.form.getFieldDecorator('data_source', {
+                            rules: [{ required: true, message: '请选择数据源' }]
+                        })(
+                            <Select placeholder="请选择数据源">
+                                <Option value="HandleZabbixMetrics">Zabbix</Option>
+                                <Option value="HandleElasticSearchMetrics">Elasticsearch</Option>
+                                <Option value="HandleCustomFunction">自定义函数</Option>
+                                <Option value="HandleInternalFunction">内部函数</Option>
+                            </Select>
+                        )}
+                    </Form.Item>
+
+                    <Form.Item label="指标名称">
+                        {this.props.form.getFieldDecorator('metric_name', {
+                            rules: [{ required: true, message: '请输入指标名称' }]
+                        })(
+                            <Input placeholder="请输入指标名称" />
+                        )}
+                    </Form.Item>
+
+                    <Form.Item label="规则配置">
+                        <Table
+                            columns={this.ruleColumns}
+                            dataSource={this.state.rules}
+                            pagination={false}
+                            size="small"
+                        />
+                        <Button
+                            type="dashed"
+                            style={{ width: '100%', marginTop: 16 }}
+                            icon={<Icon type="plus" />}
+                            onClick={this.handleAddRule}
+                        >
+                            添加规则
+                        </Button>
+                    </Form.Item>
+                </>
+            )}
           </Form>
         </Modal>
 
@@ -543,30 +611,122 @@ handleUpdateClick = async () => {
             this.setState({ isEditModalVisible: false });
             this.props.form.resetFields();
           }}
+          width={1200}
+          style={{ top: 20 }}
         >
-          <Form layout="vertical">
-            <Form.Item label="节点名称">
-              {this.props.form.getFieldDecorator('name', {
-                rules: [{ required: true, message: '请输入节点名称' }]
-              })(
-                <Input placeholder="请输入节点名称" />
-              )}
+          <Form
+            form={this.props.form}
+            onFinish={this.handleSave}
+            labelCol={{ span: 3 }}
+            wrapperCol={{ span: 20 }}
+          >
+            <Form.Item
+              name="name"
+              label="节点名称"
+              rules={[{ required: true, message: '请输入节点名称' }]}
+            >
+              <Input placeholder="请输入节点名称" />
             </Form.Item>
-            <Form.Item label="节点描述">
-              {this.props.form.getFieldDecorator('description')(
-                <Input.TextArea placeholder="请输入节点描述" />
-              )}
+
+            <Form.Item
+              name="description"
+              label="节点描述"
+            >
+              <Input.TextArea placeholder="请输入节点描述" />
             </Form.Item>
-            <Form.Item label="节点状态">
-              {this.props.form.getFieldDecorator('node_status', {
-                initialValue: 'info'
-              })(
-                <Select>
-                  <Option value="info">info</Option>
-                  <Option value="warning">warning</Option>
-                  <Option value="error">error</Option>
-                </Select>
-              )}
+
+            <Form.Item
+              name="node_status"
+              label="节点状态"
+              rules={[{ required: true, message: '请选择节点状态' }]}
+            >
+              <Select placeholder="请选择节点状态">
+                <Option value="info">info</Option>
+                <Option value="warning">warning</Option>
+                <Option value="error">error</Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="isMetricNode"
+              label="是否为指标节点"
+              valuePropName="checked"
+            >
+              <Switch 
+                onChange={(checked) => {
+                  this.setState({ isMetricNode: checked });
+                  if (!checked) {
+                    this.props.form.setFieldsValue({
+                      data_source_type: undefined,
+                      data_source: undefined,
+                      metric_name: undefined
+                    });
+                  }
+                }}
+              />
+            </Form.Item>
+
+            {this.state.isMetricNode && (
+              <>
+                <Form.Item
+                  name="data_source"
+                  label="数据源"
+                  rules={[{ required: true, message: '请选择数据源' }]}
+                >
+                  <Select placeholder="请选择数据源">
+                    <Option value="HandleZabbixMetrics">Zabbix</Option>
+                    <Option value="HandleElasticSearchMetrics">Elasticsearch</Option>
+                    <Option value="HandleCustomFunction">自定义函数</Option>
+                    <Option value="HandleInternalFunction">内部函数</Option>
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  name="metric_name"
+                  label="指标名称"
+                  rules={[{ required: true, message: '请输入指标名称' }]}
+                >
+                  <Input placeholder="请输入指标名称" />
+                </Form.Item>
+
+                <Form.Item label="规则配置">
+                  <Table
+                    columns={this.ruleColumns}
+                    dataSource={this.state.rules}
+                    pagination={false}
+                    size="small"
+                    bordered
+                    rowKey={(record, index) => index}
+                    scroll={{ x: 1300 }}
+                  />
+                  <Button
+                    type="dashed"
+                    style={{ width: '100%', marginTop: 16 }}
+                    icon={<Icon type="plus" />}
+                    onClick={this.handleAddRule}
+                  >
+                    添加规则
+                  </Button>
+                </Form.Item>
+              </>
+            )}
+
+            <Form.Item wrapperCol={{ offset: 3, span: 20 }}>
+                <div style={{ textAlign: 'right' }}>
+                    <Button 
+                        type="primary" 
+                        htmlType="submit"
+                        style={{ marginRight: 8 }}
+                    >
+                        保存
+                    </Button>
+                    <Button onClick={() => {
+                      this.setState({ isEditModalVisible: false });
+                      this.props.form.resetFields();
+                    }}>
+                        取消
+                    </Button>
+                </div>
             </Form.Item>
           </Form>
         </Modal>
