@@ -554,7 +554,7 @@ handleUpdateClick = async () => {
             </Form.Item>
             <Form.Item label="节点描述">
               {this.props.form.getFieldDecorator('description')(
-                <Input.TextArea placeholder="请输入��点描述" />
+                <Input.TextArea placeholder="请输入节点描述" />
               )}
             </Form.Item>
             <Form.Item label="节点状态">
