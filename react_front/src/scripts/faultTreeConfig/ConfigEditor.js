@@ -38,17 +38,12 @@ class FaultTreeConfigNew extends React.Component {
   };
 
   handleAddNode = (values) => {
-    console.log('handleAddNode - Starting with values:', values);
-    console.log('handleAddNode - Current selected node:', this.state.selectedNode);
-
     if (!this.state.selectedNode) {
       message.error('请先选择一个节点');
       return;
     }
 
     const parentKey = this.state.selectedNode.key;
-    console.log('handleAddNode - Parent key:', parentKey);
-
     const timestamp = new Date().getTime();
     const newNodeKey = `${parentKey}->${values.name}_${timestamp}`;
 
@@ -63,7 +58,6 @@ class FaultTreeConfigNew extends React.Component {
 
     const updateNodeInTree = (treeData) => {
       if (treeData.key === parentKey) {
-        console.log('Found parent node:', treeData);
         return {
           ...treeData,
           children: [...(treeData.children || []), newNode]
@@ -84,20 +78,12 @@ class FaultTreeConfigNew extends React.Component {
       return treeData;
     };
 
-    this.setState(prevState => {
-      const newTreeData = JSON.parse(JSON.stringify(prevState.treeData));
-      const updatedTreeData = updateNodeInTree(newTreeData);
-      
-      console.log('Tree before update:', newTreeData);
-      console.log('Tree after update:', updatedTreeData);
-      
-      return {
-        treeData: updatedTreeData,
-        expandedKeys: [...new Set([...prevState.expandedKeys, parentKey, newNodeKey])],
-        isAddNodeModalVisible: false,
-        rightClickNodeTreeItem: null
-      };
-    }, () => {
+    this.setState(prevState => ({
+      treeData: updateNodeInTree(prevState.treeData),
+      expandedKeys: [...new Set([...prevState.expandedKeys, parentKey, newNodeKey])],
+      isAddNodeModalVisible: false,
+      rightClickNodeTreeItem: null
+    }), () => {
       this.props.form.resetFields();
       message.success('节点添加成功');
     });
@@ -165,7 +151,6 @@ class FaultTreeConfigNew extends React.Component {
       children: node.children || []
     };
     
-    console.log('Selected node:', selectedNode);
     this.setState({ selectedNode });
   };
 
@@ -173,11 +158,7 @@ class FaultTreeConfigNew extends React.Component {
     event.preventDefault();
     event.stopPropagation();
     
-    console.log('Right click - Original node:', node);
-    
     const fullNode = this.findNodeInTree(node.props.eventKey, this.state.treeData);
-    console.log('Right click - Full node data:', fullNode);
-    
     const offset = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - offset.left;
     const y = event.clientY - offset.top;
@@ -189,14 +170,10 @@ class FaultTreeConfigNew extends React.Component {
         y,
         node: fullNode
       }
-    }, () => {
-      console.log('Right click - State after update:', this.state.selectedNode);
     });
   };
 
   findNodeInTree = (targetKey, treeData) => {
-    console.log('Finding node with key:', targetKey, 'in tree:', treeData);
-    
     if (targetKey === treeData.key) {
       return treeData;
     }
@@ -359,13 +336,11 @@ class FaultTreeConfigNew extends React.Component {
   };
 
   handleAddClick = (nodeData) => {
-    console.log('handleAddClick - Selected node:', nodeData);
     this.setState({
       selectedNode: nodeData,
       isAddNodeModalVisible: true,
       rightClickNodeTreeItem: null
     }, () => {
-      console.log('State after handleAddClick:', this.state.selectedNode);
       this.props.form.resetFields();
     });
   };
@@ -408,8 +383,6 @@ class FaultTreeConfigNew extends React.Component {
       return null;
     }
 
-    console.log('Rendering right click menu for node:', rightClickNodeTreeItem.node);
-
     const menuStyle = {
       position: 'absolute',
       left: (rightClickNodeTreeItem.x + 10) + 'px',
@@ -434,16 +407,11 @@ class FaultTreeConfigNew extends React.Component {
           className="right-click-menu-item"
           onClick={async (e) => {
             e.stopPropagation();
-            const currentNode = rightClickNodeTreeItem.node;
-            console.log('Right click menu - Current node:', currentNode);
-            
             await new Promise(resolve => {
               this.setState({
-                selectedNode: currentNode
+                selectedNode: rightClickNodeTreeItem.node
               }, resolve);
             });
-            
-            console.log('Right click menu - Selected node after state update:', this.state.selectedNode);
             
             this.setState({
               isAddNodeModalVisible: true,
@@ -476,9 +444,6 @@ class FaultTreeConfigNew extends React.Component {
     const treeDataCopy = JSON.parse(JSON.stringify(this.state.treeData));
     const processedTreeData = this.processTreeData(treeDataCopy);
     
-    console.log('Current tree data:', this.state.treeData);
-    console.log('Processed tree data:', processedTreeData);
-
     return (
       <div 
         className="fault-tree-config-new" 
@@ -592,7 +557,6 @@ class FaultTreeConfigNew extends React.Component {
                 onClick={() => {
                   this.props.form.validateFields((err, values) => {
                     if (!err) {
-                      console.log('Form values:', values);
                       this.handleAddNode(values);
                     }
                   });
