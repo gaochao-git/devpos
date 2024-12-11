@@ -21,16 +21,25 @@ class CreateFaultTreeConfig(BaseView):
     """创建故障树配置"""
     def post(self, request):
         try:
-            serializer = FaultTreeConfigCreateSerializer(data=self.request_params)
+            # 获取最大的 ft_id 并加1
+            last_config = FaultTreeConfig.objects.order_by('-ft_id').first()
+            new_ft_id = (last_config.ft_id + 1) if last_config else 1
+            
+            # 将 ft_id 添加到请求数据中
+            request_data = self.request_params.copy()
+            request_data['ft_id'] = new_ft_id
+            
+            serializer = FaultTreeConfigCreateSerializer(data=request_data)
             if serializer.is_valid():
                 # 添加当前时间和用户信息
                 serializer.save(
-                    create_by=self.request_user_info.get('user_name'),
-                    update_by=self.request_user_info.get('user_name'),
+                    ft_id=new_ft_id,  # 使用自增的 ft_id
+                    create_by='xx',
+                    update_by='xx',
                     create_time=datetime.now(),
                     update_time=datetime.now()
                 )
-                return self.response({
+                return self.my_response({
                     "status": "ok",
                     "message": "创建成功",
                     "data": serializer.data
@@ -79,19 +88,19 @@ class UpdateFaultTreeConfig(BaseView):
                         update_by=self.request_user_info.get('user_name'),
                         update_time=datetime.now()
                     )
-                    return self.response({
+                    return self.my_response({
                         "status": "ok",
                         "message": "更新成功",
                         "data": serializer.data
                     })
-                return self.response({
+                return self.my_response({
                     "status": "error",
                     "message": "参数错误",
                     "data": serializer.errors
                 })
         except Exception as e:
             logger.exception(f"更新故障树配置失败: {str(e)}")
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": f"更新失败：{str(e)}"
             })
@@ -105,12 +114,12 @@ class DeleteFaultTreeConfig(BaseView):
             ft_id = self.request_params.get('ft_id')
             instance = FaultTreeConfig.objects.get(ft_id=ft_id)
             instance.delete()
-            return self.response({
+            return self.my_response({
                 "status": "ok",
                 "message": "删除成功"
             })
         except FaultTreeConfig.DoesNotExist:
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": "配置不存在"
             })
@@ -132,16 +141,15 @@ class GetFaultTreeConfigList(BaseView):
             keyword = self.request_params.get('keyword')
             if keyword:
                 queryset = queryset.filter(ft_name__icontains=keyword)
-
             serializer = FaultTreeConfigListSerializer(queryset, many=True)
-            return self.response({
+            return self.my_response({
                 "status": "ok",
                 "message": "获取成功",
                 "data": serializer.data
             })
         except Exception as e:
             logger.exception(f"获取故障树配置列表失败: {str(e)}")
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": f"获取列表失败：{str(e)}"
             })
@@ -155,13 +163,13 @@ class GetFaultTreeConfigDetail(BaseView):
             ft_id = self.request_params.get('ft_id')
             instance = FaultTreeConfig.objects.get(ft_id=ft_id)
             serializer = FaultTreeConfigSerializer(instance)
-            return self.response({
+            return self.my_response({
                 "status": "ok",
                 "message": "获取成功",
                 "data": serializer.data
             })
         except FaultTreeConfig.DoesNotExist:
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": "配置不存在"
             })
@@ -178,13 +186,13 @@ class ActivateFaultTreeConfig(BaseView):
             instance.update_by = self.request_user_info.get('user_name')
             instance.save()
             serializer = FaultTreeConfigSerializer(instance)
-            return self.response({
+            return self.my_response({
                 "status": "ok",
                 "message": "激活成功",
                 "data": serializer.data
             })
         except FaultTreeConfig.DoesNotExist:
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": "配置不存在"
             })
@@ -195,21 +203,21 @@ class GetFaultTreeHistoryList(BaseView):
         try:
             ft_id = self.request_params.get('ft_id')
             if not ft_id:
-                return self.response({
+                return self.my_response({
                     "status": "error",
                     "message": "参数错误"
                 })
 
             queryset = FaultTreeConfigHistory.objects.filter(ft_id=ft_id).order_by('-create_time')
             serializer = FaultTreeHistoryListSerializer(queryset, many=True)
-            return self.response({
+            return self.my_response({
                 "status": "ok",
                 "message": "获取成功",
                 "data": serializer.data
             })
         except Exception as e:
             logger.exception(f"获取历史版本列表失败: {str(e)}")
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": f"获取列表失败：{str(e)}"
             })
@@ -221,13 +229,13 @@ class GetFaultTreeHistoryDetail(BaseView):
             history_id = self.request_params.get('history_id')
             instance = FaultTreeConfigHistory.objects.get(history_id=history_id)
             serializer = FaultTreeHistorySerializer(instance)
-            return self.response({
+            return self.my_response({
                 "status": "ok",
                 "message": "获取成功",
                 "data": serializer.data
             })
         except FaultTreeConfigHistory.DoesNotExist:
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": "历史版本不存在"
             })
@@ -250,23 +258,23 @@ class RollbackFaultTreeConfig(BaseView):
                 config.update_by = self.request_user_info.get('user_name')
                 config.save(update_fields=['ft_content', 'version_num', 'update_by', 'update_time'])
 
-                return self.response({
+                return self.my_response({
                     "status": "ok",
                     "message": "回滚成功"
                 })
         except FaultTreeConfigHistory.DoesNotExist:
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": "历史版本不存在"
             })
         except FaultTreeConfig.DoesNotExist:
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": "配置不存在"
             })
         except Exception as e:
             logger.exception(f"回滚配置失败: {str(e)}")
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": f"回滚失败：{str(e)}"
             })
@@ -279,7 +287,7 @@ class DeleteFaultTreeHistory(BaseView):
         try:
             history_id = self.request_params.get('history_id')
             if not history_id:
-                return self.response({
+                return self.my_response({
                     "status": "error",
                     "message": "history_id不能为空"
                 })
@@ -293,7 +301,7 @@ class DeleteFaultTreeHistory(BaseView):
 
             # 如果只有一个版本，不允许删除
             if history_count <= 1:
-                return self.response({
+                return self.my_response({
                     "status": "error",
                     "message": "至少需要保留一个历史版本，无法删除"
                 })
@@ -301,19 +309,19 @@ class DeleteFaultTreeHistory(BaseView):
             # 执行删除
             history.delete()
 
-            return self.response({
+            return self.my_response({
                 "status": "ok",
                 "message": "删除成功"
             })
 
         except FaultTreeConfigHistory.DoesNotExist:
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": "历史版本不存在"
             })
         except Exception as e:
             logger.exception(f"删除历史版本失败: {str(e)}")
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": f"删除失败：{str(e)}"
             })
@@ -333,7 +341,7 @@ class GetFaultTreeData(BaseView):
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid:
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": str(valid_ret.errors),
                 "code": status.HTTP_400_BAD_REQUEST
@@ -354,7 +362,7 @@ class GetFaultTreeData(BaseView):
             ).order_by('-version_num').first()
 
             if not fault_tree:
-                return self.response({
+                return self.my_response({
                     "status": "error",
                     "message": f"未找到场景 '{fault_case}' 的故障树配置",
                     "code": status.HTTP_404_NOT_FOUND
@@ -366,14 +374,14 @@ class GetFaultTreeData(BaseView):
             processor = FaultTreeProcessor()
             processed_data = processor.process_tree(tree_data, cluster_name, time_from, time_till)
 
-            return self.response({
+            return self.my_response({
                 "status": "ok",
                 "message": "success",
                 "data": processed_data
             })
 
         except Exception as e:
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": f"获取故障树数据失败: {str(e)}",
                 "code": status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -388,12 +396,12 @@ class GetMetricHistory(BaseView):
         request_body = self.request_params
         rules = {
             "node_info": [],  # 节点信息
-            "time_from": [],  # 开始时间,���式如 2023-12-01 00:00:00,非必填
+            "time_from": [],  # 开始时间,格式如 2023-12-01 00:00:00,非必填
             "time_till": [],  # 结束时间,格式如 2023-12-01 00:00:05,非必填
             "get_type": [],  # 类型，日志或者数据
         }
         valid_ret = validate(rules, request_body)
-        if not valid_ret.valid: return self.response({"status": "error","message": str(valid_ret.errors),"code": status.HTTP_400_BAD_REQUEST})
+        if not valid_ret.valid: return self.my_response({"status": "error","message": str(valid_ret.errors),"code": status.HTTP_400_BAD_REQUEST})
         # 转换为时间戳
         time_from = int(datetime.strptime(request_body.get('time_from'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_from') else None
         time_till = int(datetime.strptime(request_body.get('time_till'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_till') else None
@@ -409,9 +417,9 @@ class GetMetricHistory(BaseView):
             if not handler: raise ValueError(f"Unsupported data source: {handler_name}")
             # 执行处理函数获取对应的监控值
             result = handler(instance_info, metric_name, time_from, time_till)
-            return self.response({"status": "ok","message": "success","data": result})
+            return self.my_response({"status": "ok","message": "success","data": result})
         except Exception as e:
-            return self.response({"status": "error","message": f"获取故障树数据失败: {str(e)}","code": status.HTTP_500_INTERNAL_SERVER_ERROR})
+            return self.my_response({"status": "error","message": f"获取故障树数据失败: {str(e)}","code": status.HTTP_500_INTERNAL_SERVER_ERROR})
 
 class AnalyzeRootCause(BaseView):
     """分析故障根因"""
@@ -419,13 +427,13 @@ class AnalyzeRootCause(BaseView):
         # 验证请求参数
         request_body = self.request_params
         rules = {
-            "cluster_name": [Length(2, 64)],  # 集群���
+            "cluster_name": [Length(2, 64)],  # 集群
             "fault_case": [Length(2, 120)],  # 场景名
             "tree_data": [Required],  # 完整的树数据
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid:
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": str(valid_ret.errors),
                 "code": status.HTTP_400_BAD_REQUEST
@@ -461,7 +469,7 @@ class AnalyzeRootCause(BaseView):
             # 模拟大模型响应
             analysis_result = f"模拟大模型分析结果：\n{prompt}"
 
-            return self.response({
+            return self.my_response({
                 "status": "ok",
                 "message": "success",
                 "data": analysis_result
@@ -469,7 +477,7 @@ class AnalyzeRootCause(BaseView):
 
         except Exception as e:
             logger.exception(f"分析故障根因失败: {str(e)}")
-            return self.response({
+            return self.my_response({
                 "status": "error",
                 "message": f"分析失败: {str(e)}",
                 "code": status.HTTP_500_INTERNAL_SERVER_ERROR

@@ -163,8 +163,8 @@ def my_response(data, content_type='application/json'):
 class BaseView(APIView):
     def __init__(self):
         self.request_path = None
-        self.request_method = None      # GET|GPST
-        self.request_params = None
+        self.request_method = None    # GET|GPST
+        self.request_params = {}
         self.request_user_info = None
         self.request_from = None  # web|api
 
@@ -173,7 +173,7 @@ class BaseView(APIView):
         self.request_path = request.path
         if self.request_method == 'GET':
             self.request_params = request.GET.dict()
-        elif self.request_method == 'POST':
+        elif self.request_method == 'POST' and str(request.body, encoding="utf-8") !="":
             self.request_params = json.loads(request.body.decode("utf-8"))
         return super(BaseView, self).dispatch(request, *args, **kwargs)
 
