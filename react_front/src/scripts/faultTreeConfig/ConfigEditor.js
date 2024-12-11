@@ -213,52 +213,18 @@ class ConfigEditor extends React.Component {
             <Card 
                 title="故障树配置"
                 extra={
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <Button
-                            type="primary"
-                            onClick={this.handleSave}
-                            icon={<Icon type="save" />}
-                        >
-                            保存
-                        </Button>
-                        <Button
-                            onClick={this.handleHistory}
-                            icon={<Icon type="history" />}
-                        >
-                            历史记录
-                        </Button>
-                        <label style={{ margin: 0 }}>
-                            <Button 
-                                icon={<Icon type="import" />}
-                                onClick={() => this.fileInput.click()}
-                            >
-                                导入
-                            </Button>
-                            <input
-                                type="file"
-                                accept=".json"
-                                style={{ display: 'none' }}
-                                onChange={this.handleFileChange}
-                                ref={input => this.fileInput = input}
-                            />
-                        </label>
-                        <Button
-                            onClick={this.handleExport}
-                            icon={<Icon type="export" />}
-                        >
-                            导出
-                        </Button>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
                         <Input
                             placeholder="场景名称"
                             value={this.state.ftName}
                             onChange={e => this.setState({ ftName: e.target.value })}
-                            style={{ width: 200 }}
+                            style={{ width: 200, marginRight: 8 }}
                         />
                         <Input
                             placeholder="场景描述"
                             value={this.state.ftDesc}
                             onChange={e => this.setState({ ftDesc: e.target.value })}
-                            style={{ width: 300 }}
+                            style={{ width: 300, marginRight: 8 }}
                         />
                         <Select
                             value={this.state.ftStatus}
@@ -268,6 +234,36 @@ class ConfigEditor extends React.Component {
                             <Option value="draft">草稿</Option>
                             <Option value="active">启用</Option>
                         </Select>
+                        <Button type="primary" onClick={this.handleSave}>保存</Button>
+                        <div style={{ marginLeft: 16 }}>
+                            <Button.Group>
+                                <Button
+                                    onClick={this.handleHistory}
+                                    title="历史记录"
+                                >
+                                    <Icon type="history" />
+                                </Button>
+                                <Button
+                                    onClick={() => this.fileInput.click()}
+                                    title="导入"
+                                >
+                                    <Icon type="upload" />
+                                    <input
+                                        type="file"
+                                        accept=".json"
+                                        style={{ display: 'none' }}
+                                        onChange={this.handleFileChange}
+                                        ref={input => this.fileInput = input}
+                                    />
+                                </Button>
+                                <Button
+                                    onClick={this.handleExport}
+                                    title="导出"
+                                >
+                                    <Icon type="download" />
+                                </Button>
+                            </Button.Group>
+                        </div>
                     </div>
                 }
             >
