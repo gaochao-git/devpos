@@ -210,43 +210,12 @@ class FaultTreeConfigNew extends React.Component {
 
     return (
       <div>
-        <h3 style={{ marginBottom: '16px' }}>编辑节点</h3>
-        <Form layout="vertical">
-          <Form.Item label="节点名称">
-            {this.props.form.getFieldDecorator('name', {
-              initialValue: selectedNode.name,
-              rules: [{ required: true, message: '请输入节点名称' }]
-            })(
-              <Input placeholder="请输入节点名称" />
-            )}
-          </Form.Item>
-
-          <Form.Item label="节点描述">
-            {this.props.form.getFieldDecorator('description', {
-              initialValue: selectedNode.description
-            })(
-              <Input.TextArea placeholder="请输入节点描述" />
-            )}
-          </Form.Item>
-
-          <Form.Item label="节点状态">
-            {this.props.form.getFieldDecorator('node_status', {
-              initialValue: selectedNode.node_status || 'info'
-            })(
-              <Select>
-                <Option value="info">info</Option>
-                <Option value="warning">warning</Option>
-                <Option value="error">error</Option>
-              </Select>
-            )}
-          </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" onClick={this.handleSave}>
-              保存
-            </Button>
-          </Form.Item>
-        </Form>
+        <h3 style={{ marginBottom: '16px' }}>节点详情</h3>
+        <div>
+          <p><strong>节点名称：</strong> {selectedNode.name}</p>
+          <p><strong>节点描述：</strong> {selectedNode.description || '无'}</p>
+          <p><strong>节点状态：</strong> {selectedNode.node_status || 'info'}</p>
+        </div>
       </div>
     );
   }
@@ -330,16 +299,10 @@ class FaultTreeConfigNew extends React.Component {
       >
         <div 
           className="right-click-menu-item"
-          onClick={async (e) => {
-            e.stopPropagation();
-            await new Promise(resolve => {
-              this.setState({
-                selectedNode: rightClickNodeTreeItem.node
-              }, resolve);
-            });
-            
+          onClick={() => {
             this.setState({
               isAddNodeModalVisible: true,
+              selectedNode: rightClickNodeTreeItem.node,
               rightClickNodeTreeItem: null
             });
             this.props.form.resetFields();
@@ -347,6 +310,24 @@ class FaultTreeConfigNew extends React.Component {
         >
           <Icon type="plus-circle" style={{ marginRight: '8px' }} />
           新增子节点
+        </div>
+        <div 
+          className="right-click-menu-item"
+          onClick={() => {
+            this.setState({
+              isEditModalVisible: true,
+              selectedNode: rightClickNodeTreeItem.node,
+              rightClickNodeTreeItem: null
+            });
+            this.props.form.setFieldsValue({
+              name: rightClickNodeTreeItem.node.name,
+              description: rightClickNodeTreeItem.node.description,
+              node_status: rightClickNodeTreeItem.node.node_status || 'info'
+            });
+          }}
+        >
+          <Icon type="edit" style={{ marginRight: '8px' }} />
+          编辑节点
         </div>
       </div>
     );
@@ -407,21 +388,21 @@ class FaultTreeConfigNew extends React.Component {
         </Card>
 
         <Modal
-          title="添加子节点"
+          title="新增子节点"
           visible={this.state.isAddNodeModalVisible}
-          onCancel={() => {
-            this.setState({ 
-              isAddNodeModalVisible: false,
-              rightClickNodeTreeItem: null 
+          onOk={() => {
+            this.props.form.validateFields((err, values) => {
+              if (!err) {
+                this.handleAddNode(values);
+              }
             });
+          }}
+          onCancel={() => {
+            this.setState({ isAddNodeModalVisible: false });
             this.props.form.resetFields();
           }}
-          footer={null}
         >
-          <Form
-            labelCol={{ span: 6 }}
-            wrapperCol={{ span: 18 }}
-          >
+          <Form layout="vertical">
             <Form.Item label="节点名称">
               {this.props.form.getFieldDecorator('name', {
                 rules: [{ required: true, message: '请输入节点名称' }]
@@ -429,13 +410,11 @@ class FaultTreeConfigNew extends React.Component {
                 <Input placeholder="请输入节点名称" />
               )}
             </Form.Item>
-
             <Form.Item label="节点描述">
               {this.props.form.getFieldDecorator('description')(
                 <Input.TextArea placeholder="请输入节点描述" />
               )}
             </Form.Item>
-
             <Form.Item label="节点状态">
               {this.props.form.getFieldDecorator('node_status', {
                 initialValue: 'info'
@@ -447,20 +426,48 @@ class FaultTreeConfigNew extends React.Component {
                 </Select>
               )}
             </Form.Item>
+          </Form>
+        </Modal>
 
-            <Form.Item wrapperCol={{ offset: 6, span: 18 }}>
-              <Button 
-                type="primary" 
-                onClick={() => {
-                  this.props.form.validateFields((err, values) => {
-                    if (!err) {
-                      this.handleAddNode(values);
-                    }
-                  });
-                }}
-              >
-                确定
-              </Button>
+        <Modal
+          title="编辑节点"
+          visible={this.state.isEditModalVisible}
+          onOk={() => {
+            this.props.form.validateFields((err, values) => {
+              if (!err) {
+                this.handleEditNode(values);
+                this.setState({ isEditModalVisible: false });
+              }
+            });
+          }}
+          onCancel={() => {
+            this.setState({ isEditModalVisible: false });
+            this.props.form.resetFields();
+          }}
+        >
+          <Form layout="vertical">
+            <Form.Item label="节点名称">
+              {this.props.form.getFieldDecorator('name', {
+                rules: [{ required: true, message: '请输入节点名称' }]
+              })(
+                <Input placeholder="请输入节点名称" />
+              )}
+            </Form.Item>
+            <Form.Item label="节点描述">
+              {this.props.form.getFieldDecorator('description')(
+                <Input.TextArea placeholder="请输入节点描述" />
+              )}
+            </Form.Item>
+            <Form.Item label="节点状态">
+              {this.props.form.getFieldDecorator('node_status', {
+                initialValue: 'info'
+              })(
+                <Select>
+                  <Option value="info">info</Option>
+                  <Option value="warning">warning</Option>
+                  <Option value="error">error</Option>
+                </Select>
+              )}
             </Form.Item>
           </Form>
         </Modal>
