@@ -9,6 +9,8 @@ import {
   Modal,
   message,
   Dropdown,
+  Menu,
+  Icon,
 } from 'antd';
 import './index.css';
 
@@ -243,34 +245,52 @@ class FaultTreeConfigNew extends React.Component {
     );
   }
 
+  renderTreeNodeTitle = (nodeData) => {
+    return (
+      <span className="tree-node-content">
+        <span className="node-title">{nodeData.name}</span>
+        <span className="node-actions" style={{ marginLeft: '8px' }}>
+          <Icon
+            type="plus-circle"
+            style={{ marginRight: '8px' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              this.setState({
+                selectedNode: nodeData,
+                isAddNodeModalVisible: true
+              });
+            }}
+          />
+          <Icon
+            type="edit"
+            onClick={(e) => {
+              e.stopPropagation();
+              this.setState({ selectedNode: nodeData });
+              this.props.form.setFieldsValue({
+                name: nodeData.name,
+                description: nodeData.description,
+                node_status: nodeData.node_status || 'info'
+              });
+            }}
+          />
+        </span>
+      </span>
+    );
+  };
+
+  processTreeData = (node) => {
+    return {
+      ...node,
+      title: this.renderTreeNodeTitle(node),
+      children: node.children ? node.children.map(child => this.processTreeData(child)) : []
+    };
+  };
+
   render() {
     const { form } = this.props;
     const { getFieldDecorator } = form;
 
-    const menuItems = [
-      {
-        key: 'add',
-        label: '添加子节点',
-        onClick: () => {
-          if (!this.state.selectedNode) {
-            message.warning('请先选择一个节点');
-            return;
-          }
-          this.setState({ isAddNodeModalVisible: true });
-        }
-      },
-      {
-        key: 'edit',
-        label: '编辑节点',
-        onClick: () => {
-          if (!this.state.selectedNode) {
-            message.warning('请先选择一个节点');
-            return;
-          }
-          this.onSelect([], { node: this.state.selectedNode });
-        }
-      }
-    ];
+    const processedTreeData = this.processTreeData(this.state.treeData);
 
     return (
       <div className="fault-tree-config-new">
@@ -303,18 +323,15 @@ class FaultTreeConfigNew extends React.Component {
         >
           <div style={{ display: 'flex', height: 'calc(100vh - 180px)' }}>
             <div className="tree-container" style={{ flex: '0 0 300px', borderRight: '1px solid #e8e8e8', padding: '10px' }}>
-              <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
-                <Tree
-                  treeData={[this.state.treeData]}
-                  onSelect={this.onSelect}
-                  onRightClick={this.onRightClick}
-                  showLine
-                  showIcon
-                  expandedKeys={this.state.expandedKeys}
-                  onExpand={(keys) => this.setState({ expandedKeys: keys })}
-                  selectedKeys={this.state.selectedNode ? [this.state.selectedNode.key] : []}
-                />
-              </Dropdown>
+              <Tree
+                treeData={[processedTreeData]}
+                onSelect={this.onSelect}
+                showLine
+                showIcon
+                expandedKeys={this.state.expandedKeys}
+                onExpand={(keys) => this.setState({ expandedKeys: keys })}
+                selectedKeys={this.state.selectedNode ? [this.state.selectedNode.key] : []}
+              />
             </div>
             <div className="editor-container" style={{ flex: 1, padding: '20px' }}>
               {this.renderNodeEditor()}
@@ -353,7 +370,7 @@ class FaultTreeConfigNew extends React.Component {
 
             <Form.Item label="节点描述">
               {getFieldDecorator('description')(
-                <Input.TextArea placeholder="请输入节点描述" />
+                <Input.TextArea placeholder="请输���节点描述" />
               )}
             </Form.Item>
 
@@ -380,5 +397,40 @@ class FaultTreeConfigNew extends React.Component {
     );
   }
 }
+
+const styles = `
+  .tree-node-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 8px;
+  }
+  
+  .node-title {
+    flex: 1;
+  }
+  
+  .node-actions {
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  .tree-node-content:hover .node-actions {
+    opacity: 1;
+  }
+  
+  .node-actions .anticon {
+    cursor: pointer;
+    color: #1890ff;
+  }
+  
+  .node-actions .anticon:hover {
+    color: #40a9ff;
+  }
+`;
+
+const styleSheet = document.createElement('style');
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);
 
 export default Form.create()(FaultTreeConfigNew);
