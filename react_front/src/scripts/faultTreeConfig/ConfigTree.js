@@ -665,10 +665,9 @@ class ConfigTreeComponent extends React.Component {
                                         rules: [{ required: true, message: '请选择数据源' }]
                                     })(
                                         <Select placeholder="请选择数据源">
-                                            <Option value="zabbix">Zabbix</Option>
-                                            <Option value="elasticsearch">Elasticsearch</Option>
-                                            <Option value="custom_function">自定义函数</Option>
-                                            <Option value="internal_function">内部函数</Option>
+                                            <Option value="HandleZabbixMetrics">HandleZabbixMetrics</Option>
+                                            <Option value="HandleElasticSearchMetrics">HandleElasticSearchMetrics</Option>
+                                            <Option value="HandleCustomFunction">HandleCustomFunction</Option>
                                         </Select>
                                     )}
                                 </Form.Item>
@@ -773,10 +772,9 @@ class ConfigTreeComponent extends React.Component {
                                         rules: [{ required: true, message: '请选择数据源' }]
                                     })(
                                         <Select placeholder="请选择数据源">
-                                            <Option value="zabbix">Zabbix</Option>
-                                            <Option value="elasticsearch">Elasticsearch</Option>
-                                            <Option value="custom_function">自定义函数</Option>
-                                            <Option value="internal_function">内部函数</Option>
+                                            <Option value="HandleZabbixMetrics">HandleZabbixMetrics</Option>
+                                            <Option value="HandleElasticSearchMetrics">HandleElasticSearchMetrics</Option>
+                                            <Option value="HandleCustomFunction">HandleCustomFunction</Option>
                                         </Select>
                                     )}
                                 </Form.Item>
