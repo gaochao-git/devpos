@@ -5,6 +5,7 @@ import {Table, Input, Badge, Tabs, Card, Col, Row, Button,message,Modal} from "a
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
+import FaultTreeIndex from '../faultTreeConfig/index';
 const { Search } = Input;
 const { TabPane } = Tabs;
 const Column = Table.Column;
@@ -19,6 +20,10 @@ export default class mysqlCluster extends Component  {
             cluster_instance_info:[],
             MysqlInstanceVisible:false,
             current_cluster:"",
+            faultAnalysisNewVisible: false,
+            modalNewReady: false,
+            currentCluster: null,
+            faultTreeKey: 0,
         }
     }
 
@@ -62,6 +67,15 @@ export default class mysqlCluster extends Component  {
                 message.error(res.data.message)}
         ).catch(err => {message.error(err.message)})
     }
+
+    handleOpenFaultAnalysis = (record) => {
+        this.setState({
+            faultAnalysisNewVisible: true,
+            currentCluster: record,
+            modalNewReady: true,
+            faultTreeKey: this.state.faultTreeKey + 1
+        });
+    };
 
     render() {
         let {cluster_instance_info} = this.state;
@@ -113,6 +127,21 @@ export default class mysqlCluster extends Component  {
             title: 'dev',
             dataIndex: 'dev',
           },
+          {
+            title: '操作',
+            key: 'action',
+            render: (_, record) => (
+                <span>
+                    <Button 
+                        type="primary"
+                        size="small"
+                        onClick={() => this.handleOpenFaultAnalysis(record)}
+                    >
+                        故障分析
+                    </Button>
+                </span>
+            ),
+        }
         ];
 
         const mysql_cluster_instance_columns = [
@@ -648,6 +677,27 @@ export default class mysqlCluster extends Component  {
                       pagination={false}
                       size="small"
                   />
+              </Modal>
+              <Modal
+                  title="故障分析"
+                  visible={this.state.faultAnalysisNewVisible}
+                  onCancel={() => {
+                      this.setState({
+                          faultAnalysisNewVisible: false,
+                          modalNewReady: false
+                      });
+                  }}
+                  width={1200}
+                  style={{ top: 20 }}
+                  footer={null}
+                  destroyOnClose={true}
+              >
+                  {this.state.modalNewReady && (
+                      <FaultTreeIndex
+                          cluster_name={this.state.currentCluster?.cluster_name}
+                          key={`fault-tree-new-${this.state.faultTreeKey}`}
+                      />
+                  )}
               </Modal>
             </div>
         )
