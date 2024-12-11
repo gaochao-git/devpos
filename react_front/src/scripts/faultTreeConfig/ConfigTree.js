@@ -178,10 +178,7 @@ class ConfigTreeComponent extends React.Component {
         };
 
         if (values.isMetricNode) {
-            newNode.data_source = {
-                source: values.data_source,
-                config: {}
-            };
+            newNode.data_source = { source: values.data_source };
             newNode.metric_name = values.metric_name;
             newNode.rules = this.state.rules;
         }
@@ -238,10 +235,7 @@ class ConfigTreeComponent extends React.Component {
                 };
 
                 if (values.isMetricNode) {
-                    updatedNode.data_source = {
-                        source: values.data_source,
-                        config: {}
-                    };
+                    updatedNode.data_source = { source: values.data_source };
                     updatedNode.metric_name = values.metric_name;
                     updatedNode.rules = this.state.rules;
                 } else {
@@ -478,7 +472,7 @@ class ConfigTreeComponent extends React.Component {
                             description: node.description,
                             node_status: node.node_status || 'info',
                             isMetricNode: !!node.data_source,
-                            data_source: node.data_source,
+                            data_source: node.data_source ? node.data_source.source : undefined,
                             metric_name: node.metric_name
                         });
                         this.setState({
@@ -775,7 +769,7 @@ class ConfigTreeComponent extends React.Component {
                                         <Select placeholder="请选择数据源">
                                             <Option value="zabbix">Zabbix</Option>
                                             <Option value="elasticsearch">Elasticsearch</Option>
-                                            <Option value="custom_function">自定义函数</Option>
+                                            <Option value="custom_function">自定义函��</Option>
                                             <Option value="internal_function">内部函数</Option>
                                         </Select>
                                     )}
