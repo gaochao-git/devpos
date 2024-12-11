@@ -55,72 +55,7 @@ const FaultTree = ({ data }) => {
   // 修改原有的 useEffect，添加数据准备和组件挂载检查
   useEffect(() => {
     if (!isDataReady || !data || !mountedRef.current || !ref.current) return;
-
-    // 配置 G6
-    const graph = new G6.Graph({
-      container: ref.current,
-      width: ref.current.scrollWidth,
-      height: ref.current.scrollHeight,
-      modes: {
-        default: [
-          'drag-canvas',
-          'zoom-canvas',
-          'drag-node',
-          {
-            type: 'scroll-canvas',
-            direction: 'both',  // 支持both, horizontal, vertical
-            zoomKey: 'ctrl',
-          }
-        ],
-      },
-      fitView: true,
-      fitViewPadding: [20, 40, 20, 40],
-      animate: true,
-      defaultNode: {
-        type: 'custom-node',
-      },
-      defaultEdge: {
-        type: 'cubic-horizontal',
-        style: {
-          stroke: '#A3B1BF',
-          lineWidth: 2,
-          endArrow: true,
-        },
-      },
-      // 限制画布的缩放范围
-      minZoom: 0.2,
-      maxZoom: 2,
-      // 防止节点超出画布
-      limitInGraph: true,
-      // 设置画布的平移范围
-      translate: {
-        minX: -1000,
-        maxX: 1000,
-        minY: -1000,
-        maxY: 1000
-      },
-    });
-
-    graphRef.current = graph;
-    graph.data(data);
-    graph.render();
-
-    // 监听窗口大小变化
-    const handleResize = () => {
-      if (graphRef.current) {
-        graphRef.current.changeSize(
-          ref.current.scrollWidth,
-          ref.current.scrollHeight
-        );
-        graphRef.current.fitView();
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // 清理函数
     return () => {
-      window.removeEventListener('resize', handleResize);
       if (graphRef.current) {
         graphRef.current.destroy();
         graphRef.current = null;
@@ -140,7 +75,7 @@ const FaultTree = ({ data }) => {
   const handleGetHistoryData = async (nodeInfo, startTime, endTime) => {
     setLoading(true);
     setChartData([]);
-    
+
     try {
       const params = {
         "time_from": moment(startTime).format('YYYY-MM-DD HH:mm:ss'),
@@ -154,12 +89,12 @@ const FaultTree = ({ data }) => {
         const dataPoints = res.data.data;
         // 获取第一个数据点的单位（如果存在）
         const metric_units = dataPoints.length > 0 ? dataPoints[0].metric_units : '';
-        
+
         const transformedData = dataPoints.map(item => [
           moment(item.metric_time).valueOf(),
           Number(item.metric_value)
         ]);
-        
+
         setChartData({
           unit: metric_units,
           data: transformedData
@@ -299,13 +234,13 @@ const FaultTree = ({ data }) => {
       // 使用你原有的完整节点注册代码
       G6.registerNode('custom-node', {
         draw(cfg, group) {
-          const { 
-            name, 
-            node_status, 
+          const {
+            name,
+            node_status,
             instance_info,
             metric_extra_info
           } = cfg;
-          
+
           const statusStrokeColors = {
             info: '#bad6f1',
             error: '#e32629',
@@ -596,7 +531,7 @@ const FaultTree = ({ data }) => {
       // 直接使用转换好的数据
       graphRef.current.data(data);
       graphRef.current.render();
-      
+
       graphRef.current.fitView();
     }
 
@@ -640,28 +575,28 @@ const FaultTree = ({ data }) => {
     if (textAreaRef.current) {
       const textarea = textAreaRef.current.resizableTextArea.textArea;
       const text = textarea.value;
-      
+
       // 设置选中状态
       textarea.setSelectionRange(position, position + searchKeyword.length);
       textarea.focus();
-      
+
       // 获取 TextArea 的行高和可视区域高度
       const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
       const visibleHeight = textarea.clientHeight;
-      
+
       // 计算目标位置的行号
       const beforeText = text.substring(0, position);
       const targetLine = beforeText.split('\n').length;
-      
+
       // 计算目标位置应该滚动到的位置
       const targetPosition = (targetLine - 1) * lineHeight;
-      
+
       // 确保目标位置在可视区域的中间
       const scrollPosition = Math.max(
         0, // 不小于0
         targetPosition - (visibleHeight / 2) // 将目标行置于可视区域中间
       );
-      
+
       textarea.scrollTop = scrollPosition;
     }
   };
@@ -684,7 +619,7 @@ const FaultTree = ({ data }) => {
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div style={{ position: 'relative' }}>
       <div style={{
         position: 'absolute',
         right: 20,
@@ -697,18 +632,16 @@ const FaultTree = ({ data }) => {
           title="居中显示"
           style={{ opacity: 0.8 }}
         >
-          <Icon type="fullscreen" /> 居中
+          <Icon type="arrows-alt" /> 居中
         </Button>
       </div>
       <div
         ref={ref}
         style={{
           width: '100%',
-          height: 'calc(100vh - 280px)', // 调整高度以适应父容器
-          overflow: 'hidden', // 防止内容溢出
+          height: '800px',
           border: '1px solid #ccc',
-          borderRadius: '4px',
-          position: 'relative'
+          margin: 'auto'
         }}
       />
       <Drawer
@@ -721,7 +654,7 @@ const FaultTree = ({ data }) => {
       >
         {selectedNode && (
           <div>
-            <div style={{ width: '100%', marginBottom: 16 }}>
+            <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h4>节点：{selectedNode.id}</h4>
                 <RangePicker
@@ -750,17 +683,16 @@ const FaultTree = ({ data }) => {
                     />
                   )}
                   {!loading && drawerType === 'logs' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
                         <Search
                           placeholder="输入搜索关键词"
-                          allowClear
                           onSearch={handleSearch}
-                          style={{ width: 200 }}
+                          style={{ width: 200, marginRight: 8 }}
                         />
                         {searchResults.length > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span>{`${currentResultIndex + 1}/${searchResults.length}`}</span>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ marginRight: 8 }}>{`${currentResultIndex + 1}/${searchResults.length}`}</span>
                             <Button.Group>
                               <Button 
                                 onClick={handlePrevResult}
@@ -782,7 +714,6 @@ const FaultTree = ({ data }) => {
                         ref={textAreaRef}
                         value={logData}
                         readOnly
-                        autoSize={false}
                         style={{ 
                           width: '100%',
                           height: '280px',
