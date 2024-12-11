@@ -206,7 +206,8 @@ class ConfigTreeComponent extends React.Component {
             expandedKeys: [...new Set([...prevState.expandedKeys, parentKey, newNodeKey])],
             isAddNodeModalVisible: false,
             rightClickNodeTreeItem: null,
-            rules: []
+            rules: [],
+            selectedNode: newNode
         }), () => {
             this.props.form.resetFields();
             message.success('节点添加成功');
@@ -255,11 +256,16 @@ class ConfigTreeComponent extends React.Component {
             return node;
         };
 
-        this.setState(prevState => ({
-            treeData: updateNodeInTree(prevState.treeData),
-            isEditModalVisible: false,
-            rules: []
-        }), () => {
+        this.setState(prevState => {
+            const updatedTreeData = updateNodeInTree(prevState.treeData);
+            const updatedNode = this.findNodeByKey(this.state.selectedNode.key, updatedTreeData);
+            return {
+                treeData: updatedTreeData,
+                isEditModalVisible: false,
+                rules: [],
+                selectedNode: updatedNode
+            };
+        }, () => {
             message.success('节点更新成功');
         });
     };
@@ -769,7 +775,7 @@ class ConfigTreeComponent extends React.Component {
                                         <Select placeholder="请选择数据源">
                                             <Option value="zabbix">Zabbix</Option>
                                             <Option value="elasticsearch">Elasticsearch</Option>
-                                            <Option value="custom_function">自定义函��</Option>
+                                            <Option value="custom_function">自定义函数</Option>
                                             <Option value="internal_function">内部函数</Option>
                                         </Select>
                                     )}
