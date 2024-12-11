@@ -26,7 +26,7 @@ const FaultTreeConfig = () => {
             }
         } catch (err) {
             console.error('Fetch config list error:', err);
-            message.error('获取配置列表失败，请稍后重试');
+            message.error('获取配置列���失败，请稍后重试');
         } finally {
             setLoading(false);
         }
@@ -247,36 +247,7 @@ const FaultTreeConfig = () => {
                 <Modal
                     title={currentRecord ? '编辑场景' : '新建场景'}
                     visible={visible}
-                    onCancel={() => {
-                        // 检查 formRef 是否存在且已初始化
-                        if (formRef.current) {
-                            // 获取当前表单数据
-                            const currentFormData = {
-                                ft_name: formRef.current.getFtName(),
-                                ft_desc: formRef.current.getFtDesc(),
-                                ft_status: formRef.current.getFtStatus(),
-                                ft_content: formRef.current.getTreeData()
-                            };
-
-                            // 检查是否有实际变化
-                            if (checkHasActualChanges(currentFormData, currentRecord)) {
-                                Modal.confirm({
-                                    title: '确认退出',
-                                    content: '您有未保存的更新，确定要退出吗？',
-                                    okText: '确认',
-                                    cancelText: '取消',
-                                    onOk: () => {
-                                        setVisible(false);
-                                    }
-                                });
-                            } else {
-                                setVisible(false);
-                            }
-                        } else {
-                            // 如果 formRef 还未初始化，直接关闭
-                            setVisible(false);
-                        }
-                    }}
+                    onCancel={() => setVisible(false)}
                     width="90%"
                     footer={null}
                     destroyOnClose
