@@ -178,7 +178,10 @@ class ConfigTreeComponent extends React.Component {
         };
 
         if (values.isMetricNode) {
-            newNode.data_source = values.data_source;
+            newNode.data_source = {
+                source: values.data_source,
+                config: {}
+            };
             newNode.metric_name = values.metric_name;
             newNode.rules = this.state.rules;
         }
@@ -235,7 +238,10 @@ class ConfigTreeComponent extends React.Component {
                 };
 
                 if (values.isMetricNode) {
-                    updatedNode.data_source = values.data_source;
+                    updatedNode.data_source = {
+                        source: values.data_source,
+                        config: {}
+                    };
                     updatedNode.metric_name = values.metric_name;
                     updatedNode.rules = this.state.rules;
                 } else {
@@ -384,14 +390,11 @@ class ConfigTreeComponent extends React.Component {
                     <p><strong>节点状态：</strong> {selectedNode.node_status || 'info'}</p>
                     {selectedNode.data_source && (
                         <>
-                            <p><strong>数据源：</strong> {selectedNode.data_source}</p>
+                            <p><strong>数据源：</strong> {selectedNode.data_source.source}</p>
                             <p><strong>指标名称：</strong> {selectedNode.metric_name}</p>
                             <Card size="small" title="规则配置" style={{ marginTop: 16 }}>
                                 <Table
-                                    columns={this.ruleColumns.map(col => ({
-                                        ...col,
-                                        render: undefined
-                                    }))}
+                                    columns={this.ruleColumns}
                                     dataSource={selectedNode.rules || []}
                                     pagination={false}
                                     size="small"
@@ -662,10 +665,10 @@ class ConfigTreeComponent extends React.Component {
                                         rules: [{ required: true, message: '请选择数据源' }]
                                     })(
                                         <Select placeholder="请选择数据源">
-                                            <Option value="HandleZabbixMetrics">Zabbix</Option>
-                                            <Option value="HandleElasticSearchMetrics">Elasticsearch</Option>
-                                            <Option value="HandleCustomFunction">自定义函数</Option>
-                                            <Option value="HandleInternalFunction">内部函数</Option>
+                                            <Option value="zabbix">Zabbix</Option>
+                                            <Option value="elasticsearch">Elasticsearch</Option>
+                                            <Option value="custom_function">自定义函数</Option>
+                                            <Option value="internal_function">内部函数</Option>
                                         </Select>
                                     )}
                                 </Form.Item>
@@ -770,10 +773,10 @@ class ConfigTreeComponent extends React.Component {
                                         rules: [{ required: true, message: '请选择数据源' }]
                                     })(
                                         <Select placeholder="请选择数据源">
-                                            <Option value="HandleZabbixMetrics">Zabbix</Option>
-                                            <Option value="HandleElasticSearchMetrics">Elasticsearch</Option>
-                                            <Option value="HandleCustomFunction">自定义函数</Option>
-                                            <Option value="HandleInternalFunction">内部函数</Option>
+                                            <Option value="zabbix">Zabbix</Option>
+                                            <Option value="elasticsearch">Elasticsearch</Option>
+                                            <Option value="custom_function">自定义函数</Option>
+                                            <Option value="internal_function">内部函数</Option>
                                         </Select>
                                     )}
                                 </Form.Item>
