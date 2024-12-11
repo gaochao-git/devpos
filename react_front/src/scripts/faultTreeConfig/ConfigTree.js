@@ -142,10 +142,7 @@ class ConfigTreeComponent extends React.Component {
             return;
         }
 
-        const parentKey = this.state.selectedNode.key;
-        const timestamp = new Date().getTime();
-        const newNodeKey = `${parentKey}->${values.name}_${timestamp}`;
-
+        const newNodeKey = `${parentKey}->${values.name}`;
         const newNode = {
             key: newNodeKey,
             name: values.name,
