@@ -84,23 +84,48 @@ class ConfigEditor extends React.Component {
         }
     };
 
-    handleImport = (info) => {
-        const file = info.file;
+    handleFileChange = (event) => {
+        const file = event.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
+                // 更新状态
                 this.setState({
                     ftName: data.ft_name,
                     ftDesc: data.ft_desc,
                     ftStatus: data.ft_status
+                }, () => {
+                    // 更新树形数据
+                    if (this.configTreeRef.current) {
+                        const treeData = {
+                            key: 'Root',
+                            name: '根节点',
+                            title: '根节点',
+                            description: '',
+                            node_status: 'info',
+                            children: [],
+                            ...data.ft_content // 合并导入的树形数据
+                        };
+
+                        // 使用 setState 更新树形数据
+                        this.configTreeRef.current.setState({
+                            treeData: treeData,
+                            expandedKeys: ['Root']
+                        });
+                    }
+                    // 通知父组件数据已更新
+                    if (this.props.onFormChange) {
+                        this.props.onFormChange({
+                            ft_name: data.ft_name,
+                            ft_desc: data.ft_desc,
+                            ft_status: data.ft_status,
+                            ft_content: data.ft_content
+                        });
+                    }
                 });
-                
-                if (this.configTreeRef.current) {
-                    this.configTreeRef.current.setTreeData(data.ft_content);
-                }
                 message.success('导入成功');
             } catch (error) {
                 console.error('导入失败:', error);
@@ -108,6 +133,8 @@ class ConfigEditor extends React.Component {
             }
         };
         reader.readAsText(file);
+        // 清空 input 值，以便可以重复导入同一个文件
+        event.target.value = '';
     };
 
     handleHistory = async () => {
@@ -194,7 +221,33 @@ class ConfigEditor extends React.Component {
                         >
                             保存
                         </Button>
-                    
+                        <Button
+                            onClick={this.handleHistory}
+                            icon={<Icon type="history" />}
+                        >
+                            历史记录
+                        </Button>
+                        <label style={{ margin: 0 }}>
+                            <Button 
+                                icon={<Icon type="import" />}
+                                onClick={() => this.fileInput.click()}
+                            >
+                                导入
+                            </Button>
+                            <input
+                                type="file"
+                                accept=".json"
+                                style={{ display: 'none' }}
+                                onChange={this.handleFileChange}
+                                ref={input => this.fileInput = input}
+                            />
+                        </label>
+                        <Button
+                            onClick={this.handleExport}
+                            icon={<Icon type="export" />}
+                        >
+                            导出
+                        </Button>
                         <Input
                             placeholder="场景名称"
                             value={this.state.ftName}
@@ -215,21 +268,6 @@ class ConfigEditor extends React.Component {
                             <Option value="draft">草稿</Option>
                             <Option value="active">启用</Option>
                         </Select>
-                        <Button
-                            onClick={this.handleHistory}
-                            icon={<Icon type="history" />}
-                        >
-                            历史记录
-                        </Button>
-                        <Upload accept=".json" showUploadList={false} beforeUpload={this.handleImport}>
-                             <Button size="small">导入</Button>
-                         </Upload>
-                        <Button
-                            onClick={this.handleExport}
-                            icon={<Icon type="export" />}
-                        >
-                            导出
-                        </Button>
                     </div>
                 }
             >
