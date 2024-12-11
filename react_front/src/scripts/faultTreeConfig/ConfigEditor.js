@@ -35,10 +35,20 @@ class ConfigEditor extends React.Component {
                 ft_content: JSON.stringify(treeData)
             };
 
-            const res = await MyAxios.post('/fault_tree/v1/create_config/', submitData);
+            // 判断是否为编辑模式
+            const isEdit = Boolean(this.props.initialValues?.ft_id);
+            const url = isEdit
+                ? '/fault_tree/v1/update_config/'
+                : '/fault_tree/v1/add_config/';
+
+            if (isEdit) {
+                submitData.ft_id = this.props.initialValues.ft_id;
+            }
+
+            const res = await MyAxios.post(url, submitData);
             
             if (res.data.status === 'ok') {
-                message.success('保存成功');
+                message.success(isEdit ? '修改成功' : '保存成功');
                 this.props.onSave && this.props.onSave(res.data.data);
             } else {
                 message.error(res.data.message || '保存失败');
