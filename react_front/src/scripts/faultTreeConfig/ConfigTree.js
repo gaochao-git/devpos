@@ -619,6 +619,95 @@ class ConfigTreeComponent extends React.Component {
         document.removeEventListener('keydown', this.handleKeyDown);
     }
 
+    handleDrop = (info) => {
+        const dropKey = info.node.props.eventKey;
+        const dragKey = info.dragNode.props.eventKey;
+
+        // 深拷贝当前树数据
+        const data = JSON.parse(JSON.stringify(this.state.treeData));
+
+        // 找到并移除被拖拽的节点，同时返回该节点
+        const findAndRemoveDragNode = (nodeData) => {
+            if (!nodeData.children) return null;
+            for (let i = 0; i < nodeData.children.length; i++) {
+                if (nodeData.children[i].key === dragKey) {
+                    const [dragNode] = nodeData.children.splice(i, 1);
+                    return dragNode;
+                }
+                const found = findAndRemoveDragNode(nodeData.children[i]);
+                if (found) return found;
+            }
+            return null;
+        };
+
+        // 获取被拖拽的节点
+        const dragNode = findAndRemoveDragNode(data);
+        if (!dragNode) return;
+
+        // 添加节点到目标位置
+        const addNode = (nodeData, targetKey, node) => {
+            if (nodeData.key === targetKey) {
+                nodeData.children = nodeData.children || [];
+                nodeData.children.push(node);
+                return true;
+            }
+            if (nodeData.children) {
+                for (const child of nodeData.children) {
+                    if (addNode(child, targetKey, node)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+
+        // 特殊处理拖拽到根节点的情况
+        if (dropKey === 'Root') {
+            data.children = data.children || [];
+            data.children.push(dragNode);
+        } else {
+            addNode(data, dropKey, dragNode);
+        }
+
+        // 更新所有节点的 key
+        const updateKeys = (node, parentKey = '') => {
+            const newKey = parentKey ? `${parentKey}->${node.name}` : node.name;
+            node.key = newKey;
+            if (node.children) {
+                node.children.forEach(child => updateKeys(child, newKey));
+            }
+        };
+
+        // 从根节点开始更新所有 key
+        updateKeys(data);
+
+        // 更新状态
+        this.setState({
+            treeData: data,
+            selectedNode: null
+        }, () => {
+            // 验证树结构
+            if (!this.checkInitData()) {
+                message.error('拖拽后的树结构存在问题，请检查节点关系');
+            }
+        });
+    };
+
+    allowDrop = ({ dropNode, dragNode }) => {
+        // 允许拖拽到根节点下
+        if (dropNode.props.eventKey === 'Root') return true;
+        
+        // 不允许将节点拖到自己的子节点下
+        const isChild = (parent, child) => {
+            if (!parent.children) return false;
+            return parent.children.some(node => 
+                node.key === child.key || isChild(node, child)
+            );
+        };
+        
+        return !isChild(dragNode, dropNode);
+    };
+
     render() {
         return (
             <div style={{ display: 'flex', height: 'calc(100vh - 180px)' }}>
@@ -637,6 +726,9 @@ class ConfigTreeComponent extends React.Component {
                         expandedKeys={this.state.expandedKeys}
                         onExpand={(keys) => this.setState({ expandedKeys: keys })}
                         selectedKeys={this.state.selectedNode ? [this.state.selectedNode.key] : []}
+                        draggable
+                        onDrop={this.handleDrop}
+                        allowDrop={this.allowDrop}
                     />
                     {this.renderRightClickMenu()}
                 </div>
