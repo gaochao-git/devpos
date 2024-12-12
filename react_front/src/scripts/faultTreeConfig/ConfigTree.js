@@ -24,6 +24,7 @@ class ConfigTreeComponent extends React.Component {
         rightClickNodeTreeItem: null,
         isMetricNode: false,
         rules: [],
+        copiedNode: null,
     };
 
     ruleColumns = [
@@ -604,6 +605,12 @@ class ConfigTreeComponent extends React.Component {
             } else {
                 message.warning('请先选择一个节点');
             }
+        } else if (e.ctrlKey && e.key === 'c') {
+            e.preventDefault();
+            this.handleCopy();
+        } else if (e.ctrlKey && e.key === 'v') {
+            e.preventDefault();
+            this.handlePaste();
         }
     };
 
@@ -706,6 +713,77 @@ class ConfigTreeComponent extends React.Component {
         };
         
         return !isChild(dragNode, dropNode);
+    };
+
+    handleCopy = () => {
+        const { selectedNode } = this.state;
+        if (!selectedNode || selectedNode.key === 'Root') {
+            message.warning('无法复制根节点');
+            return;
+        }
+
+        // 深拷贝选中的节点
+        const copiedNode = JSON.parse(JSON.stringify(selectedNode));
+        this.setState({ copiedNode });
+        message.success('节点已复制');
+    };
+
+    handlePaste = () => {
+        const { selectedNode, copiedNode } = this.state;
+        if (!selectedNode) {
+            message.warning('请先选择目标节点');
+            return;
+        }
+        if (!copiedNode) {
+            message.warning('没有可粘贴的节点');
+            return;
+        }
+
+        // 递归更新节点及其子节点的key
+        const updateNodeKeys = (node, parentKey) => {
+            const newNode = { ...node };
+            newNode.key = `${parentKey}->${node.name}`;
+            
+            if (node.children && node.children.length > 0) {
+                newNode.children = node.children.map(child => 
+                    updateNodeKeys(child, newNode.key)
+                );
+            }
+            return newNode;
+        };
+
+        const newNode = updateNodeKeys(copiedNode, selectedNode.key);
+
+        const existingNode = this.findNodeByKey(newNode.key);
+        if (existingNode) {
+            message.error(`节点名称已存在，与节点 "${existingNode.key}" 冲突`);
+            return;
+        }
+
+        const updateNodeInTree = (treeData) => {
+            if (treeData.key === selectedNode.key) {
+                return {
+                    ...treeData,
+                    children: [...(treeData.children || []), newNode]
+                };
+            }
+
+            if (treeData.children) {
+                return {
+                    ...treeData,
+                    children: treeData.children.map(child => updateNodeInTree(child))
+                };
+            }
+
+            return treeData;
+        };
+
+        this.setState(prevState => ({
+            treeData: updateNodeInTree(prevState.treeData),
+            expandedKeys: [...new Set([...prevState.expandedKeys, selectedNode.key, newNode.key])]
+        }), () => {
+            message.success('节点已粘贴');
+        });
     };
 
     render() {
