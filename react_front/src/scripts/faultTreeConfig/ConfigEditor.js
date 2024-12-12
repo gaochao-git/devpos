@@ -19,7 +19,9 @@ class ConfigEditor extends React.Component {
             historyLoading: false,
             diffVisible: false,
             diffData: { old: null, new: null },
-            selectedHistory: null
+            selectedHistory: null,
+            isSaveDiffModalVisible: false,
+            saveDiffData: { saveOldData: '', saveNewData: '' }
         };
     }
 
@@ -30,37 +32,75 @@ class ConfigEditor extends React.Component {
         }
 
         try {
-            const treeData = this.configTreeRef.current?.getTreeData();
-            if (!treeData) {
+            const saveTreeData = this.configTreeRef.current?.getTreeData();
+            if (!saveTreeData) {
                 throw new Error('无法获取树数据');
             }
 
-            const submitData = {
+            const saveNewContent = {
                 ft_name: this.state.ftName,
                 ft_desc: this.state.ftDesc,
                 ft_status: this.state.ftStatus,
-                ft_content: JSON.stringify(treeData)
+                ft_content: saveTreeData
             };
 
-            // 判断是否为编辑模式
+            const saveOldContent = {
+                ft_name: this.props.initialValues?.ft_name || '',
+                ft_desc: this.props.initialValues?.ft_desc || '',
+                ft_status: this.props.initialValues?.ft_status || 'draft',
+                ft_content: this.props.initialValues?.ft_content || {}
+            };
+
+            // 显示保存对比框
+            this.setState({
+                isSaveDiffModalVisible: true,
+                saveDiffData: {
+                    saveOldData: JSON.stringify(saveOldContent, null, 2),
+                    saveNewData: JSON.stringify(saveNewContent, null, 2)
+                }
+            });
+        } catch (error) {
+            console.error('准备保存数据失败:', error);
+            message.error('保存失败，请稍后重试');
+        }
+    };
+
+    handleConfirmSave = async () => {
+        try {
+            const saveTreeData = this.configTreeRef.current?.getTreeData();
+            if (!saveTreeData) {
+                throw new Error('无法获取树数据');
+            }
+
+            const saveSubmitData = {
+                ft_name: this.state.ftName,
+                ft_desc: this.state.ftDesc,
+                ft_status: this.state.ftStatus,
+                ft_content: JSON.stringify(saveTreeData)
+            };
+
             const isEdit = Boolean(this.props.initialValues?.ft_id);
-            const url = isEdit
+            const saveUrl = isEdit
                 ? '/fault_tree/v1/update_config/'
                 : '/fault_tree/v1/add_config/';
 
             if (isEdit) {
-                submitData.ft_id = this.props.initialValues.ft_id;
+                saveSubmitData.ft_id = this.props.initialValues.ft_id;
             }
 
-            const res = await MyAxios.post(url, submitData);
+            const saveRes = await MyAxios.post(saveUrl, saveSubmitData);
             
-            if (res.data.status === 'ok') {
+            if (saveRes.data.status === 'ok') {
                 message.success(isEdit ? '修改成功' : '保存成功');
+                this.setState({ 
+                    isSaveDiffModalVisible: false,
+                    saveDiffData: { saveOldData: '', saveNewData: '' }
+                });
                 if (this.props.onSave) {
                     this.props.onSave();
                 }
             } else {
-                message.error(res.data.message || '保存失败');
+                message.error(saveRes.data.message || '保存失败');
             }
         } catch (error) {
             console.error('保存故障树配置失败:', error);
@@ -192,7 +232,7 @@ class ConfigEditor extends React.Component {
             }
         } catch (error) {
             console.error('获取历史记录失败:', error);
-            message.error('获取历史记录失败，请稍后重试');
+            message.error('获取历史记录失败，请���后重试');
         }
     };
 
@@ -498,6 +538,31 @@ class ConfigEditor extends React.Component {
                         showDiffOnly={false}
                     />
                 </Drawer>
+                <Modal
+                    title="修改确认"
+                    visible={this.state.isSaveDiffModalVisible}
+                    onOk={this.handleConfirmSave}
+                    onCancel={() => this.setState({ 
+                        isSaveDiffModalVisible: false,
+                        saveDiffData: { saveOldData: '', saveNewData: '' }
+                    })}
+                    width={1200}
+                    style={{ top: 20 }}
+                >
+                    <div style={{ marginBottom: 16 }}>
+                        <Row>
+                            <Col span={12}>修改前</Col>
+                            <Col span={12}>修改后</Col>
+                        </Row>
+                    </div>
+                    <ReactDiffViewer
+                        oldValue={this.state.saveDiffData.saveOldData}
+                        newValue={this.state.saveDiffData.saveNewData}
+                        splitView={true}
+                        hideLineNumbers={false}
+                        showDiffOnly={false}
+                    />
+                </Modal>
             </div>
         );
     }
