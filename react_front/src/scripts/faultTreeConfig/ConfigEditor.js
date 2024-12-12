@@ -18,7 +18,7 @@ class ConfigEditor extends React.Component {
             historyList: [],
             historyLoading: false,
             diffVisible: false,
-            diffData: { old: null, new: null },
+            diffData: { old: '', new: '' },
             selectedHistory: null,
             isSaveDiffModalVisible: false,
             saveDiffData: { saveOldData: '', saveNewData: '' }
