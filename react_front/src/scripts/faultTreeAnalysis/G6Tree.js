@@ -169,12 +169,55 @@ const FaultTree = ({ data }) => {
         return `时间：${time}<br/>值：${value}`;
       }
     },
+    toolbox: {
+      show: true,
+      feature: {
+        dataZoom: {
+          show: true,
+          yAxisIndex: 'none',
+          title: {
+            zoom: '区域缩放',
+            back: '还原'
+          },
+          icon: {
+            zoom: 'path://M0,13.5h26.9 M13.5,26.9V0 M32.1,13.5H58V58H13.5 V32.1',
+            back: 'path://M22,1.4L9.9,13.5l12.3,12.3 M10.3,13.5H54.9v44.6 H10.3v-26'
+          }
+        }
+      },
+      right: 20
+    },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '3%',
+      top: '10%',
+      bottom: '20%',
       containLabel: true
     },
+    dataZoom: [
+      {
+        type: 'slider',
+        showDetail: true,
+        show: true,
+        xAxisIndex: [0],
+        bottom: '5%',
+        start: 0,
+        end: 100,
+        height: 30,
+        borderColor: '#ddd',
+        backgroundColor: '#f7f7f7',
+        fillerColor: 'rgba(24,144,255,0.2)',
+        handleStyle: {
+          color: '#1890ff'
+        }
+      },
+      {
+        type: 'inside',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100
+      }
+    ],
     xAxis: {
       type: 'time',
       axisLabel: {
