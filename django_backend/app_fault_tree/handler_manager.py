@@ -71,7 +71,6 @@ class HandleZabbixMetrics:
             time_till=time_till,
             limit=100000
         )
-        print(11111, result)
         if result['status'] == 'error':
             return None
 
