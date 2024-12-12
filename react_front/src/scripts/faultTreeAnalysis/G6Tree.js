@@ -442,7 +442,7 @@ const FaultTree = ({ data }) => {
             // 指标信息
             group.addShape('text', {
               attrs: {
-                text: `当前值：${metric_extra_info.metric_value_units_human}`,
+                text: `指标值：${metric_extra_info.metric_value_units_human}`,
                 x: -width / 2 + 10,
                 y: height / 2 + 10,
                 fontSize: 12,
@@ -455,7 +455,7 @@ const FaultTree = ({ data }) => {
 
             group.addShape('text', {
               attrs: {
-                text: `触发时间：${metric_extra_info.metric_time}`,
+                text: `时间：${metric_extra_info.metric_time}`,
                 x: -width / 2 + 10,
                 y: height / 2 + 30,
                 fontSize: 12,
@@ -497,7 +497,7 @@ const FaultTree = ({ data }) => {
             group.addShape('text', {
               attrs: {
                 x: -width / 2 - 15,
-                y: -2,
+                y: 0,
                 text: cfg.collapsed ? '+' : '-',
                 fontSize: 25,
                 textAlign: 'center',
@@ -694,7 +694,7 @@ const FaultTree = ({ data }) => {
         }}
       />
       <Drawer
-        title={drawerType === 'monitor' ? "历史监控" : "日���查看"}
+        title={drawerType === 'monitor' ? "历史监控" : "日志查看"}
         placement="bottom"
         closable={true}
         onClose={() => setDrawerVisible(false)}
