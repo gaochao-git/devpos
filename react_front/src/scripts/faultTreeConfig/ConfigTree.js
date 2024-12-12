@@ -452,30 +452,34 @@ class ConfigTreeComponent extends React.Component {
                 onClick={(e) => e.stopPropagation()}
                 onMouseLeave={() => this.setState({ rightClickNodeTreeItem: null })}
             >
-                <div 
-                    className="right-click-menu-item"
-                    onClick={() => {
-                        this.setState({
-                            expandedKeys: this.getAllKeys(rightClickNodeTreeItem.node),
-                            rightClickNodeTreeItem: null
-                        });
-                    }}
-                >
-                    <Icon type="folder-open" style={{ marginRight: '8px' }} />
-                    展开所有节点
-                </div>
-                <div 
-                    className="right-click-menu-item"
-                    onClick={() => {
-                        this.setState({
-                            expandedKeys: [],
-                            rightClickNodeTreeItem: null
-                        });
-                    }}
-                >
-                    <Icon type="folder" style={{ marginRight: '8px' }} />
-                    收缩所有节点
-                </div>
+                {rightClickNodeTreeItem.node.key === 'Root' && (
+                    <>
+                        <div 
+                            className="right-click-menu-item"
+                            onClick={() => {
+                                this.setState({
+                                    expandedKeys: this.getAllKeys(rightClickNodeTreeItem.node),
+                                    rightClickNodeTreeItem: null
+                                });
+                            }}
+                        >
+                            <Icon type="folder-open" style={{ marginRight: '8px' }} />
+                            展开所有节点
+                        </div>
+                        <div 
+                            className="right-click-menu-item"
+                            onClick={() => {
+                                this.setState({
+                                    expandedKeys: [],
+                                    rightClickNodeTreeItem: null
+                                });
+                            }}
+                        >
+                            <Icon type="folder" style={{ marginRight: '8px' }} />
+                            收缩所有节点
+                        </div>
+                    </>
+                )}
                 <div 
                     className="right-click-menu-item"
                     onClick={() => {
