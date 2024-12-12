@@ -456,13 +456,37 @@ class ConfigTreeComponent extends React.Component {
                     className="right-click-menu-item"
                     onClick={() => {
                         this.setState({
+                            expandedKeys: this.getAllKeys(rightClickNodeTreeItem.node),
+                            rightClickNodeTreeItem: null
+                        });
+                    }}
+                >
+                    <Icon type="folder-open" style={{ marginRight: '8px' }} />
+                    展开所有节点
+                </div>
+                <div 
+                    className="right-click-menu-item"
+                    onClick={() => {
+                        this.setState({
+                            expandedKeys: [],
+                            rightClickNodeTreeItem: null
+                        });
+                    }}
+                >
+                    <Icon type="folder" style={{ marginRight: '8px' }} />
+                    收缩所有节点
+                </div>
+                <div 
+                    className="right-click-menu-item"
+                    onClick={() => {
+                        this.setState({
                             isAddNodeModalVisible: true,
                             rightClickNodeTreeItem: null
                         });
                         this.props.form.resetFields();
                     }}
                 >
-                    <Icon type="plus-circle" style={{ marginRight: '8px' }} />
+                    <Icon type="plus" style={{ marginRight: '8px' }} />
                     新增子节点
                 </div>
                 <div 
@@ -510,6 +534,16 @@ class ConfigTreeComponent extends React.Component {
             </div>
         );
     }
+
+    getAllKeys = (node) => {
+        const keys = [node.key];
+        if (node.children) {
+            node.children.forEach(child => {
+                keys.push(...this.getAllKeys(child));
+            });
+        }
+        return keys;
+    };
 
     processTreeData = (node) => {
         const currentNode = {
