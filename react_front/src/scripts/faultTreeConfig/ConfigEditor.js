@@ -80,7 +80,7 @@ class ConfigEditor extends React.Component {
 
             const saveUrl = isEdit
                 ? '/fault_tree/v1/update_config/'
-                : '/fault_tree/v1/add_config/';
+                : '/fault_tree/v1/create_config/';
 
             const saveRes = await MyAxios.post(saveUrl, saveSubmitData);
             
