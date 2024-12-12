@@ -67,26 +67,20 @@ class ConfigEditor extends React.Component {
 
     handleConfirmSave = async () => {
         try {
-            const saveTreeData = this.configTreeRef.current?.getTreeData();
-            if (!saveTreeData) {
-                throw new Error('无法获取树数据');
-            }
-
-            const saveSubmitData = {
-                ft_name: this.state.ftName,
-                ft_desc: this.state.ftDesc,
-                ft_status: this.state.ftStatus,
-                ft_content: JSON.stringify(saveTreeData)
-            };
-
+            // 解析保存在 saveNewData 中的数据
+            const saveSubmitData = JSON.parse(this.state.saveDiffData.saveNewData);
+            
             const isEdit = Boolean(this.props.initialValues?.ft_id);
-            const saveUrl = isEdit
-                ? '/fault_tree/v1/update_config/'
-                : '/fault_tree/v1/add_config/';
-
             if (isEdit) {
                 saveSubmitData.ft_id = this.props.initialValues.ft_id;
             }
+
+            // ft_content 已经是对象了，需要转成字符串
+            saveSubmitData.ft_content = JSON.stringify(saveSubmitData.ft_content);
+
+            const saveUrl = isEdit
+                ? '/fault_tree/v1/update_config/'
+                : '/fault_tree/v1/add_config/';
 
             const saveRes = await MyAxios.post(saveUrl, saveSubmitData);
             
@@ -232,7 +226,7 @@ class ConfigEditor extends React.Component {
             }
         } catch (error) {
             console.error('获取历史记录失败:', error);
-            message.error('获取历史记录失败，请���后重试');
+            message.error('获取历史记录失败，请稍后重试');
         }
     };
 
