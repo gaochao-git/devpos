@@ -554,11 +554,31 @@ class ConfigTreeComponent extends React.Component {
         return traverse(node);
     };
 
+    handleKeyDown = (e) => {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            if (this.state.selectedNode) {
+                this.setState({
+                    isAddNodeModalVisible: true,
+                    rightClickNodeTreeItem: null
+                });
+                this.props.form.resetFields();
+            } else {
+                message.warning('请先选择一个节点');
+            }
+        }
+    };
+
     componentDidMount() {
         const isValid = this.checkInitData();
         if (!isValid) {
             message.error('初始化故障树结构存在重复节点key，请检查并修正');
         }
+        document.addEventListener('keydown', this.handleKeyDown);
+    }
+
+    componentWillUnmount() {
+        document.removeEventListener('keydown', this.handleKeyDown);
     }
 
     render() {
