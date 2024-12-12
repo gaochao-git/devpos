@@ -179,9 +179,15 @@ const FaultTree = ({ data }) => {
             zoom: '区域缩放',
             back: '还原'
           },
-          icon: {
-            zoom: 'path://M0,13.5h26.9 M13.5,26.9V0 M32.1,13.5H58V58H13.5 V32.1',
-            back: 'path://M22,1.4L9.9,13.5l12.3,12.3 M10.3,13.5H54.9v44.6 H10.3v-26'
+          iconStyle: {
+            borderColor: '#666'  // 默认边框颜色
+          },
+          emphasis: {
+            iconStyle: {
+              borderColor: '#69c0ff',
+              borderWidth: 2,
+              color: '#69c0ff'
+            }
           }
         }
       },
@@ -688,7 +694,7 @@ const FaultTree = ({ data }) => {
         }}
       />
       <Drawer
-        title={drawerType === 'monitor' ? "历史监控" : "日志查看"}
+        title={drawerType === 'monitor' ? "历史监控" : "日���查看"}
         placement="bottom"
         closable={true}
         onClose={() => setDrawerVisible(false)}
