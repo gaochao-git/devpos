@@ -11,7 +11,7 @@ from django.db import models
 class FaultTreeConfig(models.Model):
     id = models.BigAutoField(primary_key=True)
     ft_id = models.BigIntegerField(unique=True)
-    ft_name = models.CharField(max_length=255)
+    ft_name = models.CharField(max_length=255,unique=True)
     ft_desc = models.TextField(blank=True, null=True)
     ft_status = models.CharField(max_length=32, blank=True, null=True)
     ft_content = models.TextField()
