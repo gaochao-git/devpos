@@ -502,7 +502,8 @@ class ConfigEditor extends React.Component {
                     width={1000}
                     visible={this.state.diffVisible}
                     onClose={() => this.setState({ diffVisible: false })}
-                    extra={
+                >
+                    <div style={{ marginBottom: 16 }}>
                         <Button
                             type="primary"
                             onClick={() => {
@@ -515,9 +516,6 @@ class ConfigEditor extends React.Component {
                         >
                             回滚到此版本
                         </Button>
-                    }
-                >
-                    <div style={{ marginBottom: 16 }}>
                         <Row>
                             <Col span={12}>历史版本 ({this.state.selectedHistory?.version_num})</Col>
                             <Col span={12}>当前版本 ({this.props.initialValues?.version_num})</Col>
