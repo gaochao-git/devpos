@@ -28,7 +28,7 @@ class FaultTreeProcessor:
             processed_data = self._process_node(processed_data, parent_type=None)
             return processed_data
         except Exception as e:
-            logger.error(f"处理故障树数据失败: {str(e)}")
+            logger.exception(f"处理故障树数据失败: {str(e)}")
             return tree_data
 
     def _get_cluster_info(self, cluster_name):
@@ -91,7 +91,6 @@ class FaultTreeProcessor:
                 'metric_name': node['metric_name'],  # 指标名称
                 'rules': node.get('rules', [])       # 指标规则
             }
-            print("-----匹配到指标点，开始获取对应数据", node.get('key'), metric)
             self._process_metrics(metric, node)
 
         # 处理子节点并更新父节点状态
@@ -211,7 +210,7 @@ class FaultTreeProcessor:
                 node['node_status'] = rule_severity
                 node['metric_value'] = metric_value
         except Exception as e:
-            print(f"评估子节点规则失败: {str(e)}")
+            logger.exception(f"评估子节点规则失败: {str(e)}")
             node['node_status'] = 'error'
             node['description'] = f"规则评估失败: {str(e)}"
             node['metric_extra_info'] = {
@@ -354,5 +353,5 @@ class FaultTreeProcessor:
                 return float(value), float(threshold)
             return str(value), str(threshold)
         except (ValueError, TypeError):
-            logger.error(f"值转换失败: value={value}, threshold={threshold}, type={value_type}")
+            logger.exception(f"值转换失败: value={value}, threshold={threshold}, type={value_type}")
             return None
