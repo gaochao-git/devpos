@@ -1,25 +1,9 @@
 import re
 from .handler_manager import HandlerManager
-
+from apps.utils import db_helper
 import logging
 logger = logging.getLogger('log')
 
-
-mock_cluster_info ={
-    'db': {
-        'master': {'ip': '127.0.0.1', 'port': 3306},
-        'slave1': {'ip': '192.168.1.2', 'port': 3306},
-        'slave2': {'ip': '192.168.1.3', 'port': 3306}
-    },
-    'proxy': {
-        'proxy1': {'ip': '192.168.1.4', 'port': 6032},
-        'proxy2': {'ip': '192.168.1.5', 'port': 6032}
-    },
-    'manager': {
-        'manager1': {'ip': '192.168.1.6', 'port': 8080},
-        'manager2': {'ip': '192.168.1.7', 'port': 8080}
-    }
-}
 
 class FaultTreeProcessor:
     """故障树处理器"""
@@ -49,8 +33,36 @@ class FaultTreeProcessor:
 
     def _get_cluster_info(self, cluster_name):
         """从资源池获取集群信息"""
-        # TODO: 实现从资源池获取集群信息的逻辑
-        # 示例返回格式：
+        init_cluster_info = {
+            'db': {},
+            'proxy': {},
+            'manager': {}
+        }
+        mock_cluster_info = {
+            'db': {
+                'master': {'ip': '127.0.0.1', 'port': 3306},
+                'slave1': {'ip': '192.168.1.2', 'port': 3306},
+                'slave2': {'ip': '192.168.1.3', 'port': 3306}
+            },
+            'proxy': {
+                'proxy1': {'ip': '192.168.1.4', 'port': 6032},
+                'proxy2': {'ip': '192.168.1.5', 'port': 6032}
+            },
+            'manager': {
+                'manager1': {'ip': '192.168.1.6', 'port': 8080},
+                'manager2': {'ip': '192.168.1.7', 'port': 8080}
+            }
+        }
+        sql = f"""
+            select 
+                ip,
+                port,
+                case instance_role when 'M' then '主' when 'S' then '备' else '未知' end instance_role
+            from mysql_cluster_instance where cluster_name='{cluster_name}'
+        """
+        db_info = db_helper.find_all(sql)['data']
+        for item in db_info:
+            init_cluster_info['dbb'][item['instance_role']] = {'ip': item['ip'], 'port': item['port']}
         return mock_cluster_info
 
     def _get_severity_level(self, severity):
