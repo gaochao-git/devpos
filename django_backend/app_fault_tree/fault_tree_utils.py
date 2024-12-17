@@ -1,11 +1,3 @@
-import random
-import math
-import logging
-from datetime import datetime
-from typing import Dict, Any, List, Union, Tuple, Optional, Callable
-import sys
-from .zabbix_api_util import get_zabbix_metrics
-import json
 import re
 from .handler_manager import HandlerManager
 
@@ -37,14 +29,14 @@ class FaultTreeProcessor:
         self.time_from = None
         self.time_till = None
 
-    def process_tree(self, tree_data: Dict[str, Any], cluster_name: str, time_from: int = None, time_till: int = None) -> Dict[str, Any]:
+    def process_tree(self, tree_data, cluster_name, time_from=None, time_till=None):
         """处理故障树数据的主入口方法"""
         try:
             # 获取集群资源信息
             self.cluster_info = self._get_cluster_info(cluster_name)
             self.time_from = time_from
             self.time_till = time_till
-            # 创建新的根节点，使用集群名替换 'Root'
+            # 创建新的根节点使用集群名替换 'Root'
             processed_data = tree_data.copy()
             processed_data['name'] = cluster_name
 
@@ -55,13 +47,13 @@ class FaultTreeProcessor:
             logger.error(f"处理故障树数据失败: {str(e)}")
             return tree_data
 
-    def _get_cluster_info(self, cluster_name: str) -> Dict[str, Any]:
+    def _get_cluster_info(self, cluster_name):
         """从资源池获取集群信息"""
         # TODO: 实现从资源池获取集群信息的逻辑
         # 示例返回格式：
         return mock_cluster_info
 
-    def _get_severity_level(self, severity: str) -> int:
+    def _get_severity_level(self, severity):
         """获取严重级别的数值"""
         severity_levels = {
             'info': 0,
@@ -70,7 +62,7 @@ class FaultTreeProcessor:
         }
         return severity_levels.get(severity.lower(), 0)
 
-    def _process_node(self, node: Dict[str, Any], parent_type: str = None) -> Dict[str, Any]:
+    def _process_node(self, node, parent_type=None):
         """处理单个节点"""
         if not node:
             return node
@@ -112,7 +104,7 @@ class FaultTreeProcessor:
 
         return node
 
-    def _add_instance_info_to_children(self, node: Dict[str, Any], instance_info: Dict[str, Any]) -> None:
+    def _add_instance_info_to_children(self, node, instance_info):
         """
         递归地将实例信息添加到所有子节点
         Args:
@@ -128,7 +120,7 @@ class FaultTreeProcessor:
             # 递归处理子节点的子节点
             self._add_instance_info_to_children(child, instance_info)
 
-    def _get_instance_info(self, node_name: str, node_type: str) -> Dict[str, Any]:
+    def _get_instance_info(self, node_name, node_type):
         """
         获取实例信息
         node_type: db,proxy,manager
@@ -142,12 +134,11 @@ class FaultTreeProcessor:
 
         return None
 
-    def _process_metrics(self, metric: Dict[str, Any], node: Dict[str, Any]) -> None:
+    def _process_metrics(self, metric, node):
         """处理节点的监控指标"""
         handler_name = metric.get('source', '')
         metric_name = metric.get('metric_name').strip()
         instance_info = node.get('ip_port')
-        metric_id = node.get('key')
         try:
             # 获取对应的处理函数
             handler = HandlerManager.init_metric_handlers(
@@ -160,9 +151,7 @@ class FaultTreeProcessor:
                 raise ValueError(f"Unsupported data source: {handler_name}")
             
             # 执行处理函数获取对应的监控值
-            print(f"开始调用处理器获取{metric_id}的数据")
             values = handler(instance_info, metric_name, self.time_from, self.time_till)
-            print(f"获取{metric_id}返回值", values)
 
             # 对返回的数据进行规则比对
             if node.get('rules') and values: 
@@ -173,7 +162,7 @@ class FaultTreeProcessor:
             node['node_status'] = 'error'
             node['description'] = f"处理失败: {str(e)}"
 
-    def _evaluate_child_rules(self, node: Dict[str, Any], child_values: List[Dict[str, Any]]) -> None:
+    def _evaluate_child_rules(self, node, child_values):
         """
         评估子节点的规则
         Args:
@@ -204,7 +193,7 @@ class FaultTreeProcessor:
                 'metric_value_units_human': formant_metric_value_units_human,
                 'severity': rule_severity,   # 哪个规则对应的严重程度
             }
-            # 更新节点描述，包含触发的规则信息
+            # 更新节点描述，含触发的规则信息
             if triggered_rule:
                 condition = triggered_rule.get('condition', '')
                 threshold = triggered_rule.get('threshold', '')
@@ -232,168 +221,92 @@ class FaultTreeProcessor:
                 'status': '规则评估失败'
             }
 
-    def _evaluate_condition(self, metric_value: str, rules: List[Dict[str, Any]]) -> str:
-        """
-        评估条件并返回状态
-        Args:
-            metric_value: 要评估的值（字符串格式）
-            rules: 规则列表
-        Returns:
-            str: 状态级别
-        """
+    def _evaluate_condition(self, metric_value, rules):
+        """评估条件并返回状态"""
+        if not rules or not metric_value:
+            return 'info', None
+
+        numeric_operators = {
+            '>': lambda x, y: x > y,
+            '<': lambda x, y: x < y,
+            '>=': lambda x, y: x >= y,
+            '<=': lambda x, y: x <= y,
+            '==': lambda x, y: x == y
+        }
+
+        comparison_operators = {
+            'numeric': numeric_operators,
+            'float': numeric_operators,
+            'str': {
+                '==': lambda x, y: x == y,
+                '!=': lambda x, y: x != y,
+                'in': lambda x, y: y in x,
+                'not in': lambda x, y: y not in x,
+                'match': lambda x, y: bool(re.compile(y).search(x)) if self._is_valid_regex(y) else False
+            }
+        }
+
         highest_severity = 'info'
         triggered_rule = None
+
         for rule in rules:
-            try:
-                condition = rule.get('condition', '')
-                threshold = rule.get('threshold', '0')
+            metric_type = rule.get('type', 'numeric')
+            condition = rule.get('condition', '')
+            operators = comparison_operators.get(metric_type, {})
+            compare_func = operators.get(condition)
+            
+            if not compare_func:
+                continue
+
+            value_pair = self._safe_convert_values(
+                metric_value, 
+                rule.get('threshold', '0'), 
+                metric_type
+            )
+            if not value_pair:
+                continue
+
+            value_converted, threshold_converted = value_pair
+            if compare_func(value_converted, threshold_converted):
                 severity = rule.get('status', 'info')
-                metric_type = rule.get('type', 'numeric')   # numeric,float,str
-
-                # 根据类型转换值和阈值
-                if metric_type == 'numeric':
-                    value_converted = float(metric_value)  # 改为float，避免精度损失
-                    threshold_converted = float(threshold)
-                elif metric_type == 'float':
-                    value_converted = float(metric_value)
-                    threshold_converted = float(threshold)
-                elif metric_type == 'str':
-                    value_converted = str(metric_value)
-                    threshold_converted = str(threshold)
-                else:
-                    continue
-
-                # 根据条件比较
-                is_triggered = False
-                if metric_type in ('numeric', 'float'):
-                    if condition == '>':  # 修改条件判断方式
-                        is_triggered = value_converted > threshold_converted
-                    elif condition == '<':
-                        is_triggered = value_converted < threshold_converted
-                    elif condition == '>=':
-                        is_triggered = value_converted >= threshold_converted
-                    elif condition == '<=':
-                        is_triggered = value_converted <= threshold_converted
-                    elif condition == '==':
-                        is_triggered = value_converted == threshold_converted
-                elif metric_type == 'str':
-                    if condition == '==':
-                        is_triggered = value_converted == threshold_converted
-                    elif condition == '!=':
-                        is_triggered = value_converted != threshold_converted
-                    elif condition == 'in':
-                        is_triggered = threshold_converted in value_converted
-                    elif condition == 'not in':
-                        is_triggered = threshold_converted not in value_converted
-                    elif condition == 'match':
-                        import re
-                        try:
-                            pattern = re.compile(threshold_converted)
-                            is_triggered = bool(pattern.search(value_converted))
-                        except re.error:
-                            logger.error(f"Invalid regex pattern: {threshold_converted}")
-                            continue
-
-                print(f"Debug: value={value_converted}, threshold={threshold_converted}, condition={condition}, is_triggered={is_triggered}")
-
-                # 如果规则触发且严重级别更高，则更新
-                if is_triggered and self._get_severity_level(severity) > self._get_severity_level(highest_severity):
+                if self._get_severity_level(severity) > self._get_severity_level(highest_severity):
                     highest_severity = severity
                     triggered_rule = rule
 
-            except (ValueError, TypeError) as e:
-                logger.error(f"规则评估失败: {str(e)}")
-                continue
-
         return highest_severity, triggered_rule
 
-    def _update_parent_status(self, node: Dict[str, Any]) -> None:
-        """更新父节点状态基于子节点状态"""
-        if not node.get('children'):
-            return
+    def _get_history_abnormal_value(self, values, rules):
+        """根据规则获取异常值"""
+        if not rules or not values:
+            return values[0]
 
-        # 找出子节点中最高级别的状态
-        highest_severity = 'info'
-        for child in node['children']:
-            child_status = child.get('node_status', 'info')
-            if self._get_severity_level(child_status) > self._get_severity_level(highest_severity):
-                highest_severity = child_status
-
-        # 更新父节点状态
-        node['type'] = highest_severity
-        node['node_status'] = highest_severity
-
-    def _get_history_abnormal_value(self, values: List[Dict[str, Any]], rules: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        根据规则获取异常值
-        Args:
-            values: 历史数据列表
-            rules: 规则配置
-        Returns:
-            Dict[str, Any]: 异常数据点
-        """
-        if not rules:
-            return values[0]  # 如果没有规则返回最新数据
-        rule = rules[0]       # Todo,后续需要用for循环多条件判断
-        condition = rule.get('condition', '')
+        rule = rules[0]
         metric_type = rule.get('metric_type', 'numeric')
-        target_data = values[0]  # 默认使用最新数据
+        condition = rule.get('condition', '')
+        threshold = rule.get('threshold', '0')
 
-        try:
-            if metric_type in ('numeric', 'float'):
-                target_value = float(target_data.get('metric_value', '0'))
-                threshold = float(rule.get('threshold', '0'))
+        comparison_strategy = {
+            ('numeric', '>'): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
+            ('numeric', '<'): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
+            ('numeric', '>='): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
+            ('numeric', '<='): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
+            ('numeric', '=='): lambda vs: min(vs, key=lambda x: abs(float(x.get('metric_value', 0)) - float(threshold))),
+            ('float', '>'): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
+            ('float', '<'): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
+            ('float', '>='): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
+            ('float', '<='): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
+            ('float', '=='): lambda vs: min(vs, key=lambda x: abs(float(x.get('metric_value', 0)) - float(threshold))),
+            ('str', '=='): lambda vs: next((v for v in vs if v.get('metric_value') == threshold), values[0]),
+            ('str', '!='): lambda vs: next((v for v in vs if v.get('metric_value') != threshold), values[0]),
+            ('str', 'in'): lambda vs: next((v for v in vs if threshold in str(v.get('metric_value', ''))), values[0]),
+            ('str', 'not in'): lambda vs: next((v for v in vs if threshold not in str(v.get('metric_value', ''))), values[0]),
+            ('str', 'match'): lambda vs: next((v for v in vs if self._evaluate_regex_match(str(v.get('metric_value', '')), threshold)), values[0])
+        }
 
-                for point in values:
-                    point_value = float(point.get('metric_value', '0'))
-                    if condition == '>' or condition == '>=':
-                        # 找最大值
-                        if point_value > target_value:
-                            target_value = point_value
-                            target_data = point
-                    elif condition == '<' or condition == '<=':
-                        # 找最小值
-                        if point_value < target_value:
-                            target_value = point_value
-                            target_data = point
-                    elif condition == '==':
-                        # 找最接近阈值的点
-                        if point_value == target_value:
-                            target_value = point_value
-                            target_data = point
-            elif metric_type == 'str':
-                threshold = str(rule.get('threshold', ''))
-                for point in values:
-                    point_value = str(point.get('metric_value', ''))
-                    if condition == '==':
-                        if point_value == threshold:
-                            target_data = point
-                            break
-                    elif condition == '!=':
-                        if point_value != threshold:
-                            target_data = point
-                            break
-                    elif condition == 'in':
-                        if threshold in point_value:
-                            target_data = point
-                            break
-                    elif condition == 'not in':
-                        if threshold not in point_value:
-                            target_data = point
-                            break
-                    elif condition == 'match':
-                        try:
-                            pattern = re.compile(threshold)
-                            if bool(pattern.search(point_value)):
-                                target_data = point
-                                break
-                        except re.error:
-                            logger.error(f"Invalid regex pattern: {threshold}")
-        except Exception as e:
-            print(f"出错了!!{str(e)}")
-        return target_data
+        strategy = comparison_strategy.get((metric_type, condition))
+        return strategy(values) if strategy else values[0]
 
-    def _format_metric_value(self, value: str, units: str) -> str:
+    def _format_metric_value(self, value, units):
         """
         格式化指标值的显示
         Args:
@@ -421,3 +334,25 @@ class FaultTreeProcessor:
             
         except (ValueError, TypeError):
             return value
+
+    def _update_parent_status(self, node):
+        """更新父节点状态"""
+        if not node.get('children'):
+            return
+
+        highest_severity = 'info'
+        for child in node['children']:
+            child_status = child.get('node_status', 'info')
+            if self._get_severity_level(child_status) > self._get_severity_level(highest_severity):
+                highest_severity = child_status
+        node['node_status'] = highest_severity
+
+    def _safe_convert_values(self, value, threshold, value_type):
+        """安全地转换值类型"""
+        try:
+            if value_type in ('numeric', 'float'):
+                return float(value), float(threshold)
+            return str(value), str(threshold)
+        except (ValueError, TypeError):
+            logger.error(f"值转换失败: value={value}, threshold={threshold}, type={value_type}")
+            return None
