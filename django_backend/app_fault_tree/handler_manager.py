@@ -67,7 +67,7 @@ class HandleZabbixMetrics:
             match_type='filter',  # 使用精确匹配
             time_from=time_from,
             time_till=time_till,
-            limit=100000
+            limit=10000
         )
         if result['status'] == 'error':
             return None
