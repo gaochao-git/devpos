@@ -179,19 +179,6 @@ class FaultTreeProcessor:
             # 递归处理子节点的子节点
             self._add_instance_info_to_children(child, instance_info)
 
-    def _get_instance_info(self, node_name, node_type):
-        """
-        获取实例信息
-        node_type: db,proxy,manager
-        """
-        if not self.cluster_info or not node_type:
-            return None
-
-        if node_type in self.cluster_info:
-            result = self.cluster_info[node_type].get(node_name)
-            return result
-
-        return None
 
     def _process_metrics(self, metric, node):
         """处理节点的监控指标"""
