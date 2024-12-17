@@ -167,14 +167,12 @@ class HandlerManager:
 
     @staticmethod
     def init_metric_handlers(
-        metric_name,
         handler_name,
         handler_type='data'
     ):
         """
         初始化指定的处理函数
         Args:
-            metric_name: 指标名称
             handler_name: 处理器名称
             handler_type: 处理器类型 ('data'/'log')
         Returns:
