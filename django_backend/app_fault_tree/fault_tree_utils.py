@@ -8,6 +8,38 @@ logger = logging.getLogger('log')
 class FaultTreeProcessor:
     """故障树处理器"""
 
+    # 值比较策略
+    value_comparison_operators = {
+        '>': lambda x, y: float(x) > float(y),
+        '<': lambda x, y: float(x) < float(y),
+        '>=': lambda x, y: float(x) >= float(y),
+        '<=': lambda x, y: float(x) <= float(y),
+        '==': lambda x, y: float(x) == float(y),
+        '!=': lambda x, y: str(x) != str(y),
+        'in': lambda x, y: str(y) in str(x),
+        'not in': lambda x, y: str(y) not in str(x),
+        'match': lambda x, y, self: bool(re.compile(y).search(str(x))) if self._is_valid_regex(y) else False
+    }
+
+    # 历史数据比较策略
+    history_comparison_strategy = {
+        ('numeric', '>'): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
+        ('numeric', '<'): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
+        ('numeric', '>='): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
+        ('numeric', '<='): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
+        ('numeric', '=='): lambda vs, t: min(vs, key=lambda x: abs(float(x.get('metric_value', 0)) - float(t))),
+        ('float', '>'): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
+        ('float', '<'): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
+        ('float', '>='): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
+        ('float', '<='): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
+        ('float', '=='): lambda vs, t: min(vs, key=lambda x: abs(float(x.get('metric_value', 0)) - float(t))),
+        ('str', '=='): lambda vs, t: next((v for v in vs if v.get('metric_value') == t), vs[0]),
+        ('str', '!='): lambda vs, t: next((v for v in vs if v.get('metric_value') != t), vs[0]),
+        ('str', 'in'): lambda vs, t: next((v for v in vs if t in str(v.get('metric_value', ''))), vs[0]),
+        ('str', 'not in'): lambda vs, t: next((v for v in vs if t not in str(v.get('metric_value', ''))), vs[0]),
+        ('str', 'match'): lambda vs, t, self: next((v for v in vs if self._evaluate_regex_match(str(v.get('metric_value', '')), t)), vs[0])
+    }
+
     def __init__(self):
         self.cluster_info = None
         self.time_from = None
@@ -220,53 +252,34 @@ class FaultTreeProcessor:
                 'status': '规则评估失败'
             }
 
+    def _compare_values(self, value, threshold, condition):
+        """比较值和阈值"""
+        compare_func = self.value_comparison_operators.get(condition)
+        if not compare_func:
+            return False
+        
+        try:
+            # 特殊处理需要 self 参数的 match 操作
+            if condition == 'match':
+                return compare_func(value, threshold, self)
+            return compare_func(value, threshold)
+        except (ValueError, TypeError) as e:
+            logger.exception(f"值比较失败: value={value}, threshold={threshold}, condition={condition}")
+            return False
+
     def _evaluate_condition(self, metric_value, rules):
         """评估条件并返回状态"""
         if not rules or not metric_value:
             return 'info', None
 
-        numeric_operators = {
-            '>': lambda x, y: x > y,
-            '<': lambda x, y: x < y,
-            '>=': lambda x, y: x >= y,
-            '<=': lambda x, y: x <= y,
-            '==': lambda x, y: x == y
-        }
-
-        comparison_operators = {
-            'numeric': numeric_operators,
-            'float': numeric_operators,
-            'str': {
-                '==': lambda x, y: x == y,
-                '!=': lambda x, y: x != y,
-                'in': lambda x, y: y in x,
-                'not in': lambda x, y: y not in x,
-                'match': lambda x, y: bool(re.compile(y).search(x)) if self._is_valid_regex(y) else False
-            }
-        }
-
         highest_severity = 'info'
         triggered_rule = None
 
         for rule in rules:
-            metric_type = rule.get('type', 'numeric')
             condition = rule.get('condition', '')
-            operators = comparison_operators.get(metric_type, {})
-            compare_func = operators.get(condition)
+            threshold = rule.get('threshold', '0')
             
-            if not compare_func:
-                continue
-
-            value_pair = self._safe_convert_values(
-                metric_value, 
-                rule.get('threshold', '0'), 
-                metric_type
-            )
-            if not value_pair:
-                continue
-
-            value_converted, threshold_converted = value_pair
-            if compare_func(value_converted, threshold_converted):
+            if self._compare_values(metric_value, threshold, condition):
                 severity = rule.get('status', 'info')
                 if self._get_severity_level(severity) > self._get_severity_level(highest_severity):
                     highest_severity = severity
@@ -279,31 +292,43 @@ class FaultTreeProcessor:
         if not rules or not values:
             return values[0]
 
-        rule = rules[0]
-        metric_type = rule.get('metric_type', 'numeric')
-        condition = rule.get('condition', '')
-        threshold = rule.get('threshold', '0')
+        most_severe_value = values[0]
+        highest_severity = 'info'
 
-        comparison_strategy = {
-            ('numeric', '>'): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
-            ('numeric', '<'): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
-            ('numeric', '>='): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
-            ('numeric', '<='): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
-            ('numeric', '=='): lambda vs: min(vs, key=lambda x: abs(float(x.get('metric_value', 0)) - float(threshold))),
-            ('float', '>'): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
-            ('float', '<'): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
-            ('float', '>='): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
-            ('float', '<='): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
-            ('float', '=='): lambda vs: min(vs, key=lambda x: abs(float(x.get('metric_value', 0)) - float(threshold))),
-            ('str', '=='): lambda vs: next((v for v in vs if v.get('metric_value') == threshold), values[0]),
-            ('str', '!='): lambda vs: next((v for v in vs if v.get('metric_value') != threshold), values[0]),
-            ('str', 'in'): lambda vs: next((v for v in vs if threshold in str(v.get('metric_value', ''))), values[0]),
-            ('str', 'not in'): lambda vs: next((v for v in vs if threshold not in str(v.get('metric_value', ''))), values[0]),
-            ('str', 'match'): lambda vs: next((v for v in vs if self._evaluate_regex_match(str(v.get('metric_value', '')), threshold)), values[0])
-        }
+        for rule in rules:
+            metric_type = rule.get('metric_type', 'numeric')
+            condition = rule.get('condition', '')
+            threshold = rule.get('threshold', '0')
+            rule_severity = rule.get('status', 'info')
 
-        strategy = comparison_strategy.get((metric_type, condition))
-        return strategy(values) if strategy else values[0]
+            strategy = self.history_comparison_strategy.get((metric_type, condition))
+            if not strategy:
+                continue
+
+            try:
+                # 对于需要特殊参数的策略，分别处理
+                if condition in ['==', '!=', 'in', 'not in']:
+                    current_value = strategy(values, threshold)
+                elif condition == 'match':
+                    current_value = strategy(values, threshold, self)
+                else:
+                    current_value = strategy(values)
+
+                # 检查该值是否触发规则
+                if self._compare_values(
+                    current_value.get('metric_value', '0'),
+                    threshold,
+                    condition
+                ):
+                    if self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
+                        highest_severity = rule_severity
+                        most_severe_value = current_value
+
+            except Exception as e:
+                logger.exception(f"处理历史异常值失败: {str(e)}")
+                continue
+
+        return most_severe_value
 
     def _format_metric_value(self, value, units):
         """
