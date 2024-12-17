@@ -413,7 +413,7 @@ class GetMetricHistory(BaseView):
         instance_info = node_info.get('ip_port')
         try:
             # 获取对应的处理函数
-            handler = HandlerManager.init_metric_handlers(metric_name=metric_name,handler_name=handler_name,handler_type=get_type)
+            handler = HandlerManager.init_metric_handlers(handler_name=handler_name,handler_type=get_type)
             if not handler: raise ValueError(f"Unsupported data source: {handler_name}")
             # 执行处理函数获取对应的监控值
             result = handler(instance_info, metric_name, time_from, time_till)
