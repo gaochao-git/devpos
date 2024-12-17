@@ -1,10 +1,8 @@
-from typing import Dict, Any, List, Callable, Optional
 from .zabbix_api_util import get_zabbix_metrics
 from .es_api_util import get_es_metrics
 
 import logging
 import subprocess
-import paramiko
 import os
 logger = logging.getLogger('log')
 
@@ -16,11 +14,11 @@ class MetricData:
     ALLOWED_TYPES = ['float', 'int', 'str']
 
     @staticmethod
-    def create(metric_name: str = '',
-               metric_units: str = '',
-               metric_type: str = 'float',
-               metric_value: str = '0',
-               metric_time: str = '') -> Dict[str, str]:
+    def create(metric_name='',
+               metric_units='',
+               metric_type='float',
+               metric_value='0',
+               metric_time=''):
         """
         创建指标数据结构
         Args:
@@ -51,11 +49,11 @@ class HandleZabbixMetrics:
     """Zabbix指标处理器"""
     def get_metric_data(
         self,
-        instance_info: Dict[str, Any],
-        metric_name: str,
-        time_from: Optional[int] = None,
-        time_till: Optional[int] = None
-    ) -> Dict[str, Any]:
+        instance_info,
+        metric_name,
+        time_from=None,
+        time_till=None
+    ):
         zabbix_metric_type_map = {
             '0': 'float',  # Numeric float
             '1': 'str',  # Character
@@ -64,7 +62,7 @@ class HandleZabbixMetrics:
             '4': 'str',  # Text
         }
         result = get_zabbix_metrics(
-            host_ip='127.0.0.1',
+            host_ip=instance_info['ip'],
             metric_name=metric_name,
             match_type='filter',  # 使用精确匹配
             time_from=time_from,
@@ -91,53 +89,13 @@ class HandleZabbixMetrics:
     
     def get_metric_logs(
         self,
-        instance_info: Dict[str, Any],
-        metric_name: str,
-        time_from: Optional[int] = None,
-        time_till: Optional[int] = None
-    ) -> Dict[str, Any]:
+        instance_info,
+        metric_name,
+        time_from=None,
+        time_till=None
+    ):
         """通过SSH密钥认证获取远程系统iostat日志"""
-        try:
-            # 创建SSH客户端
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            
-            # 使用默认的SSH密钥路径
-            private_key_path = os.path.expanduser('~/.ssh/id_rsa')
-            key = paramiko.RSAKey.from_private_key_file(private_key_path)
-            
-            # 连接远程服务器
-            ssh.connect(
-                hostname='47.95.3.120',
-                username='root',
-                pkey=key
-            )
-            
-            # 执行iostat命令
-            cmd = "/usr/bin/iostat -x 1 3"
-            stdin, stdout, stderr = ssh.exec_command(cmd)
-            print(stdin,stdout,stderr)
-            # 获取输出
-            result = stdout.read().decode()
-            error = stderr.read().decode()
-            
-            # 关闭连接
-            ssh.close()
-            
-            if error:
-                logger.error(f"Failed to execute remote iostat: {error}")
-                return f"Remote iostat command failed: {error}"
-                
-            return result
-            
-        except Exception as e:
-            logger.error(f"Failed to get remote iostat data: {str(e)}")
-            return {
-                'status': 'error',
-                'msg': str(e),
-                'data': None
-            }
-
+        return f"mock log data"
 
 
 class HandleElasticSearchMetrics:
@@ -145,47 +103,28 @@ class HandleElasticSearchMetrics:
     
     def get_metric_data(
         self,
-        instance_info: Dict[str, Any],
-        metric_name: str,
-        time_from: Optional[int] = None,
-        time_till: Optional[int] = None
-    ) -> Dict[str, Any]:
+        instance_info,
+        metric_name,
+        time_from=None,
+        time_till=None
+    ):
         """获取ElasticSearch指标数据"""
-        try:
-            # 实现ElasticSearch指标数据获取逻辑
-            pass
-        except Exception as e:
-            logger.error(f"Failed to get ElasticSearch metric data: {str(e)}")
-            return {
-                'status': 'error',
-                'msg': str(e),
-                'data': None
-            }
+        # 模拟ES指标数据
+        mock_data = [
+            MetricData.create(metric_name=metric_name,metric_units='bytes',metric_type='float',metric_value='1024.5',metric_time='2024-03-20 10:00:00'),
+            MetricData.create(metric_name=metric_name,metric_units='bytes',metric_type='float',metric_value='2048.7',metric_time='2024-03-20 10:01:00')
+        ]
+        return mock_data
     
     def get_metric_logs(
         self,
-        instance_info: Dict[str, Any],
-        metric_name: str,
-        time_from: Optional[int] = None,
-        time_till: Optional[int] = None
-    ) -> Dict[str, Any]:
+        instance_info,
+        metric_name,
+        time_from=None,
+        time_till=None
+    ):
         """获取ElasticSearch指标相关日志"""
-        try:
-            result = get_es_logs(
-                index="filebeat-*",
-                host_ip=instance_info['ip'],
-                metric_name=metric_name,
-                time_from=time_from,
-                time_till=time_till
-            )
-            return result
-        except Exception as e:
-            logger.error(f"Failed to get ElasticSearch logs: {str(e)}")
-            return {
-                'status': 'error',
-                'msg': str(e),
-                'data': None
-            }
+        return f"mock log data"
 
 
 class HandlerManager:
@@ -195,7 +134,7 @@ class HandlerManager:
     HANDLER_MAP = {}
     
     @classmethod
-    def register_handler(cls, handler_name: str, handler_class: type) -> None:
+    def register_handler(cls, handler_name, handler_class):
         """
         注册处理器类
         Args:
@@ -206,13 +145,13 @@ class HandlerManager:
         logger.info(f"Registered handler: {handler_name}")
     
     @staticmethod
-    def get_source_handlers() -> List[Dict[str, Any]]:
+    def get_source_handlers():
         """
         获取所有数据源处理器配置
         Returns:
             List[Dict]: 数据源处理器配置列表
         """
-        # TODO: 实际项中从数据库获取配置
+        # 实际项中从数据库获取配置
         return [
             {
                 'source_name': 'zabbix',
@@ -228,10 +167,10 @@ class HandlerManager:
 
     @staticmethod
     def init_metric_handlers(
-        metric_name: str,
-        handler_name: str,
-        handler_type: str = 'data'
-    ) -> Optional[Callable]:
+        metric_name,
+        handler_name,
+        handler_type='data'
+    ):
         """
         初始化指定的处理函数
         Args:
@@ -256,7 +195,7 @@ class HandlerManager:
                 logger.error(f"Handler config not found for: {handler_name}")
                 return None
 
-            # 从映射中获取处理器类
+            # 从映��中获取处理器类
             handler_class = HandlerManager.HANDLER_MAP.get(handler_name)
             if not handler_class:
                 logger.error(f"Handler class not found in HANDLER_MAP: {handler_name}")
