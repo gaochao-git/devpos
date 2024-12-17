@@ -37,7 +37,7 @@ class FaultTreeProcessor:
         ('str', '!='): lambda vs, t: next((v for v in vs if v.get('metric_value') != t), vs[0]),
         ('str', 'in'): lambda vs, t: next((v for v in vs if t in str(v.get('metric_value', ''))), vs[0]),
         ('str', 'not in'): lambda vs, t: next((v for v in vs if t not in str(v.get('metric_value', ''))), vs[0]),
-        ('str', 'match'): lambda vs, t, self: next((v for v in vs if self._evaluate_regex_match(str(v.get('metric_value', '')), t)), vs[0])
+        ('str', 'match'): lambda vs, t: next((v for v in vs if bool(re.compile(t).search(str(v.get('metric_value', ''))))), vs[0])
     }
 
     def __init__(self):
@@ -265,7 +265,7 @@ class FaultTreeProcessor:
                 metric_extra_info['rule_condition_format_human'] = f"{formant_metric_value_units_human} {condition} {formant_threshold_value_units_human}"
             node['metric_extra_info'] = metric_extra_info
             node['description'] = f"{metric_value}{metric_units}({formant_metric_value_units_human})"
-            # 更新节点状态
+            # 更新节点状���
             if self._get_severity_level(rule_severity) > self._get_severity_level(node.get('node_status', 'info')):
                 node['node_status'] = rule_severity
                 node['metric_value'] = metric_value
@@ -334,11 +334,9 @@ class FaultTreeProcessor:
                 continue
 
             try:
-                # 对于需要特殊参数的策略，分别处理
-                if condition in ['==', '!=', 'in', 'not in']:
+                # 对于需要特殊参数的策略，统一处理
+                if condition in ['==', '!=', 'in', 'not in', 'match']:
                     current_value = strategy(values, threshold)
-                elif condition == 'match':
-                    current_value = strategy(values, threshold, self)
                 else:
                     current_value = strategy(values)
 
@@ -381,7 +379,7 @@ class FaultTreeProcessor:
                     value_float /= 1024.0
                 return f"{value_float:.2f} PB"
             
-            # 其他情况直接返��原值
+            # 其他情况直接返回原值
             return f"{value} {units}".strip()
             
         except (ValueError, TypeError):
