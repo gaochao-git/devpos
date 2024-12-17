@@ -64,7 +64,7 @@ class TestFaultTreeProcessor(unittest.TestCase):
         # 测试普通值
         self.assertEqual(self.processor._format_metric_value('100', 'ms'), '100 ms')
         
-        # 测试异常值
+        # 测���异常值
         self.assertEqual(self.processor._format_metric_value('invalid', '%'), 'invalid')
 
     @patch('django_backend.app_fault_tree.fault_tree_utils.HandlerManager')
@@ -145,6 +145,110 @@ class TestFaultTreeProcessor(unittest.TestCase):
         }]
         severity, rule = self.processor._evaluate_condition('error', rules)
         self.assertEqual(severity, 'error')
+
+    def test_process_node_type(self):
+        """测试节点类型处理"""
+        # 测试数据库节点
+        node = {'name': 'db'}
+        result = self.processor._process_node_type(node, None)
+        self.assertEqual(result['node_type'], 'db')
+
+        # 测试代理节点
+        node = {'name': 'proxy'}
+        result = self.processor._process_node_type(node, None)
+        self.assertEqual(result['node_type'], 'proxy')
+
+        # 测试继承父节点类型
+        node = {'name': 'unknown'}
+        result = self.processor._process_node_type(node, 'db')
+        self.assertEqual(result['node_type'], 'db')
+
+    def test_process_instance_info(self):
+        """测试实例信息处理"""
+        self.processor.cluster_info = self.mock_cluster_info
+        
+        # 测试数据库主节点
+        node = {
+            'name': '主',
+            'node_type': 'db',
+            'description': 'Database Master'
+        }
+        result = self.processor._process_instance_info(node)
+        self.assertIn('instance_info', result)
+        self.assertIn('ip_port', result)
+        self.assertEqual(result['ip_port']['ip'], '192.168.1.1')
+        self.assertEqual(result['ip_port']['port'], '3306')
+        self.assertIn('[192.168.1.1:3306]', result['description'])
+
+        # 测试无效节点类型
+        node = {
+            'name': 'invalid',
+            'node_type': 'invalid'
+        }
+        result = self.processor._process_instance_info(node)
+        self.assertEqual(result, {})
+
+    def test_process_metrics_info(self):
+        """测试指标信息处理"""
+        # 测试有指标的节点
+        node = {
+            'metric_name': 'cpu_usage',
+            'data_source': {'source': 'zabbix', 'type': 'api'},
+            'rules': [{'condition': '>', 'threshold': '80'}]
+        }
+        with patch.object(self.processor, '_process_metrics') as mock_process:
+            result = self.processor._process_metrics_info(node)
+            mock_process.assert_called_once()
+            self.assertEqual(result, {})
+
+        # 测试无指标的节点
+        node = {'name': 'no_metrics'}
+        result = self.processor._process_metrics_info(node)
+        self.assertEqual(result, {})
+
+    def test_process_children(self):
+        """测试子节点处理"""
+        node = {
+            'name': 'parent',
+            'children': [
+                {'name': 'child1'},
+                {'name': 'child2'}
+            ]
+        }
+        
+        with patch.object(self.processor, '_process_node') as mock_process:
+            mock_process.side_effect = lambda x, y: x
+            result = self.processor._process_children(node, 'db')
+            
+            # 验证处理了所有子节点
+            self.assertEqual(len(mock_process.call_args_list), 2)
+            self.assertIn('children', result)
+            self.assertEqual(len(result['children']), 2)
+
+    def test_process_node_integration(self):
+        """测试节点处理的集成测试"""
+        self.processor.cluster_info = self.mock_cluster_info
+        node = {
+            'name': '主',
+            'node_type': 'db',
+            'description': 'Database Master',
+            'metric_name': 'cpu_usage',
+            'data_source': {'source': 'zabbix', 'type': 'api'},
+            'rules': [{'condition': '>', 'threshold': '80'}],
+            'children': [
+                {'name': 'child1'}
+            ]
+        }
+
+        with patch.object(self.processor, '_process_metrics'):
+            result = self.processor._process_node(node, 'db')
+            
+            # 验证所有字段都被正确处理
+            self.assertEqual(result['node_type'], 'db')
+            self.assertIn('instance_info', result)
+            self.assertIn('ip_port', result)
+            self.assertIn('[192.168.1.1:3306]', result['description'])
+            self.assertIn('children', result)
 
 if __name__ == '__main__':
     unittest.main()

@@ -98,42 +98,70 @@ class FaultTreeProcessor:
         """处理单个节点"""
         if not node:
             return node
-        # 直接内联 node_type 判断逻辑
-        node_type = node['name'].lower() if node['name'].lower() in ['db', 'proxy', 'manager'] else parent_type
-        instance_info = self._get_instance_info(node['name'], node_type)
 
-        # 如果找到实例信息，更新节点的 ip_port 和描述
-        if instance_info:
-            # 添加新的 instance_info 字段
-            node['instance_info'] = instance_info.copy()  # 使用copy()来避免引用相同的字典
-            node['ip_port'] = instance_info.copy()  # 也为ip_port创建一个副本
-            original_desc = node.get('description', '')
-            ip_info = f"[{instance_info['ip']}:{instance_info['port']}]"
-            node['description'] = f"{original_desc} {ip_info}".strip()
-            # 递归地将instance_info添加到所有子节点
-            self._add_instance_info_to_children(node, instance_info)
+        processed_node = node.copy()
+        processed_node.update(self._process_node_type(node, parent_type))
+        processed_node.update(self._process_instance_info(processed_node))
+        processed_node.update(self._process_metrics_info(processed_node))
+        processed_node.update(self._process_children(processed_node, processed_node.get('node_type')))
+        
+        return processed_node
 
-        # 处理叶子节点的监控指标
-        if 'metric_name' in node:
-            source = node['data_source'].get('source', '')
-            source_type = node['data_source'].get('type', '')
-            metric = {
-                'source': source,      # 数据源或者函数名称
-                'type': source_type,   # api、internal_function
-                'metric_name': node['metric_name'],  # 指标名称
-                'rules': node.get('rules', [])       # 指标规则
-            }
-            self._process_metrics(metric, node)
+    def _process_node_type(self, node, parent_type):
+        """处理节点类型"""
+        node_name = node['name'].lower()
+        return {
+            'node_type': node_name if node_name in ['db', 'proxy', 'manager'] else parent_type
+        }
 
-        # 处理子节点并更新父节点状态
-        if node.get('children'):
-            node['children'] = [
-                self._process_node(child, node_type)
-                for child in node['children']
-            ]
-            self._update_parent_status(node)
+    def _process_instance_info(self, node):
+        """处理实例信息"""
+        updates = {}
+        node_type = node.get('node_type')
+        
+        if not (self.cluster_info and node_type and node_type in self.cluster_info):
+            return updates
+        
+        instance_info = self.cluster_info[node_type].get(node['name'])
+        if not instance_info:
+            return updates
+        
+        instance_info_copy = instance_info.copy()
+        ip_info = f"[{instance_info['ip']}:{instance_info['port']}]"
+        updates.update({
+            'instance_info': instance_info_copy,
+            'ip_port': instance_info_copy,
+            'description': f"{node.get('description', '')} {ip_info}".strip()
+        })
+        
+        self._add_instance_info_to_children(node, instance_info_copy)
+        return updates
 
-        return node
+    def _process_metrics_info(self, node):
+        """处理监控指标信息"""
+        if 'metric_name' not in node:
+            return {}
+        
+        metric = {
+            'source': node['data_source'].get('source', ''),
+            'type': node['data_source'].get('type', ''),
+            'metric_name': node['metric_name'],
+            'rules': node.get('rules', [])
+        }
+        self._process_metrics(metric, node)
+        return {}
+
+    def _process_children(self, node, node_type):
+        """处理子节点"""
+        if not node.get('children'):
+            return {}
+        
+        children = [
+            self._process_node(child, node_type)
+            for child in node['children']
+        ]
+        self._update_parent_status(node)
+        return {'children': children}
 
     def _add_instance_info_to_children(self, node, instance_info):
         """
@@ -353,7 +381,7 @@ class FaultTreeProcessor:
                     value_float /= 1024.0
                 return f"{value_float:.2f} PB"
             
-            # 其他情况直接返回原值
+            # 其他情况直接返��原值
             return f"{value} {units}".strip()
             
         except (ValueError, TypeError):
