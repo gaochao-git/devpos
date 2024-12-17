@@ -5,6 +5,31 @@ import './index.css';
 const { Option } = Select;
 const { TreeNode } = Tree;
 
+// 将 conditionOptions 移到类外部作为常量
+const conditionOptions = {
+    numeric: [
+        { value: ">", label: "大于" },
+        { value: "<", label: "小于" },
+        { value: "=", label: "等于" },
+        { value: ">=", label: "大于等于" },
+        { value: "<=", label: "小于等于" }
+    ],
+    float: [
+        { value: ">", label: "大于" },
+        { value: "<", label: "小于" },
+        { value: "=", label: "等于" },
+        { value: ">=", label: "大于等于" },
+        { value: "<=", label: "小于等于" }
+    ],
+    string: [
+        { value: "==", label: "等于" },
+        { value: "!=", label: "不等于" },
+        { value: "in", label: "包含" },
+        { value: "not in", label: "不包含" },
+        { value: "match", label: "匹配" }
+    ]
+};
+
 class ConfigTreeComponent extends React.Component {
     state = {
         isAddNodeModalVisible: false,
@@ -56,11 +81,11 @@ class ConfigTreeComponent extends React.Component {
                     onChange={(value) => this.handleRuleChange(index, 'condition', value)}
                     style={{ width: '100%' }}
                 >
-                    <Option value=">">大于</Option>
-                    <Option value="<">小于</Option>
-                    <Option value="=">等于</Option>
-                    <Option value=">=">大于等于</Option>
-                    <Option value="<=">小于等于</Option>
+                    {conditionOptions[record.type]?.map(option => (
+                        <Option key={option.value} value={option.value}>
+                            {option.label}
+                        </Option>
+                    ))}
                 </Select>
             )
         },
@@ -300,10 +325,24 @@ class ConfigTreeComponent extends React.Component {
 
     handleRuleChange = (index, field, value) => {
         const updatedRules = [...this.state.rules];
-        updatedRules[index] = {
-            ...updatedRules[index],
-            [field]: value
-        };
+        if (field === 'type') {
+            // 当类型改变时，重置条件为对应类型的默认值
+            const defaultConditions = {
+                numeric: '>',
+                float: '>',
+                string: '=='
+            };
+            updatedRules[index] = {
+                ...updatedRules[index],
+                [field]: value,
+                condition: defaultConditions[value]
+            };
+        } else {
+            updatedRules[index] = {
+                ...updatedRules[index],
+                [field]: value
+            };
+        }
         this.setState({ rules: updatedRules });
     };
 
@@ -315,7 +354,7 @@ class ConfigTreeComponent extends React.Component {
     handleAddRule = () => {
         const newRule = {
             type: 'numeric',
-            condition: '>',
+            condition: '>',  // 数值型默认使用大于
             threshold: 0,
             status: 'warning',
             impact_analysis: '',
