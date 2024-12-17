@@ -18,7 +18,7 @@ class FaultTreeProcessor:
         '!=': lambda x, y: str(x) != str(y),
         'in': lambda x, y: str(y) in str(x),
         'not in': lambda x, y: str(y) not in str(x),
-        'match': lambda x, y, self: bool(re.compile(y).search(str(x))) if self._is_valid_regex(y) else False
+        'match': lambda x, y: bool(re.compile(y).search(str(x)))
     }
 
     # 历史数据比较策略
@@ -138,7 +138,7 @@ class FaultTreeProcessor:
         return updates
 
     def _process_metrics_info(self, node):
-        """处理监控指标信息"""
+        """处理监控指��信息"""
         if 'metric_name' not in node:
             return {}
         
@@ -252,7 +252,7 @@ class FaultTreeProcessor:
                 metric_extra_info['rule_condition_format_human'] = f"{formant_metric_value_units_human} {condition} {formant_threshold_value_units_human}"
             node['metric_extra_info'] = metric_extra_info
             node['description'] = f"{metric_value}{metric_units}({formant_metric_value_units_human})"
-            # 更新节点状���
+            # 更新节点状态
             if self._get_severity_level(rule_severity) > self._get_severity_level(node.get('node_status', 'info')):
                 node['node_status'] = rule_severity
                 node['metric_value'] = metric_value
@@ -274,9 +274,6 @@ class FaultTreeProcessor:
             return False
         
         try:
-            # 特殊处理需要 self 参数的 match 操作
-            if condition == 'match':
-                return compare_func(value, threshold, self)
             return compare_func(value, threshold)
         except (ValueError, TypeError) as e:
             logger.exception(f"值比较失败: value={value}, threshold={threshold}, condition={condition}")
