@@ -32,6 +32,76 @@ function hideLoading(){
     }
 }
 
+// 添加流式请求处理函数
+async function streamFetch(url, params, options = {}) {
+    const token = localStorage.getItem('token');
+    const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+        ...options.headers
+    };
+
+    // 处理全局loading
+    if (headers.global_loading) {
+        showLoading();
+        delete headers.global_loading;
+    }
+
+    try {
+        const response = await fetch(backendServerApiRoot + url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(params),
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        let partialData = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            partialData += new TextDecoder().decode(value);
+            
+            try {
+                const result = JSON.parse(partialData);
+                if (result.status !== "ok") {
+                    switch (result.code) {
+                        case 401:
+                            message.error('用户未登陆');
+                            break;
+                        case 402:
+                            message.error('登陆过期');
+                            window.localStorage.removeItem("token");
+                            window.location.reload();
+                            break;
+                    }
+                }
+                if (options.onData) {
+                    options.onData(result);
+                }
+                partialData = '';
+            } catch (e) {
+                continue;
+            }
+        }
+    } catch (error) {
+        console.error('Stream request failed:', error);
+        throw error;
+    } finally {
+        hideLoading();
+    }
+}
+
+// 添加stream.fetch方法到MyAxios
+MyAxios.stream = {
+    fetch: (url, params, options = {}) => streamFetch(url, params, options)
+};
 
 MyAxios.interceptors.request.use(
     config => {
