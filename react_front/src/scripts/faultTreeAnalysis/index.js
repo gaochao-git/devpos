@@ -474,8 +474,10 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
     };
 
     const handleCaseChange = async (value, selectedTimeRange = timeRange) => {
-        console.log('Changing fault case to:', value, selectedTimeRange);
+        console.log('Changing fault case to:', value);
         setSelectedCase(value);
+        setTreeData(null); // 重置树数据
+
         try {
             const params = {
                 fault_case: value,
@@ -487,38 +489,91 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                 params.time_till = selectedTimeRange[1].format('YYYY-MM-DD HH:mm:ss');
             }
 
-            if (enableStream) {
-                // 使用流式请求
-                await MyAxios.stream.fetch('/fault_tree/v1/get_fault_tree_stream_data/', params, {
-                    onData: (result) => {
-                        // 处理流式数据
-                        console.log(result)
+            console.log('Sending request with params:', params);
+
+            await MyAxios.stream.fetch('/fault_tree/v1/get_fault_tree_stream_data/', params, {
+                onData: (result) => {
+                    console.log('Received stream data:', result);
+                    
+                    if (result.type === 'node') {
+                        // 处理新节点数据
+                        setTreeData(prevTree => {
+                            const newNode = {
+                                key: result.data.id,
+                                name: result.data.name,
+                                parent_id: result.data.parent_id,
+                                type: 'custom-node',
+                                metric_name: result.data.metric_name,
+                                node_status: 'info', // 默认状态
+                                children: []
+                            };
+
+                            if (!prevTree) {
+                                // 如果是第一个节点（根节点）
+                                if (!result.data.parent_id) {
+                                    return newNode;
+                                }
+                                return null;
+                            }
+
+                            // 递归函数来更新树
+                            const updateTree = (node) => {
+                                if (node.key === result.data.parent_id) {
+                                    // 找到父节点，添加新的子节点
+                                    return {
+                                        ...node,
+                                        children: [...(node.children || []), newNode]
+                                    };
+                                }
+
+                                if (node.children) {
+                                    return {
+                                        ...node,
+                                        children: node.children.map(child => updateTree(child))
+                                    };
+                                }
+
+                                return node;
+                            };
+
+                            return updateTree(prevTree);
+                        });
+                    } 
+                    else if (result.type === 'metric') {
+                        // 更新节点的指标数据
+                        setTreeData(prevTree => {
+                            if (!prevTree) return null;
+
+                            const updateNode = (node) => {
+                                if (node.key === result.data.node_id) {
+                                    return {
+                                        ...node,
+                                        value: result.data.value,
+                                        node_status: result.data.status
+                                    };
+                                }
+
+                                if (node.children) {
+                                    return {
+                                        ...node,
+                                        children: node.children.map(child => updateNode(child))
+                                    };
+                                }
+
+                                return node;
+                            };
+
+                            return updateNode(prevTree);
+                        });
                     }
-                });
-            } else {
-                // 使用普通请求
-                const response = await MyAxios.post('/fault_tree/v1/get_fault_tree_data/', params);
-
-                if (response.data.status === 'ok') {
-                    // 在这里转换数据格式
-                    const processToG6Data = (node) => {
-                        return {
-                            ...node,
-                            id: node.key,
-                            type: 'custom-node',
-                            collapsed: node.depth > 1,
-                            children: node.children ? node.children.map(processToG6Data) : [],
-                        };
-                    };
-
-                    const g6TreeData = processToG6Data(response.data.data);
-                    setTreeData(g6TreeData);
-                } else {
-                    message.error(response.data.message || '获取故障树数据失败');
-                    setTreeData(null);
+                },
+                onError: (error) => {
+                    console.error('Stream error:', error);
+                    message.error('获取数据流失败，请稍后重试');
                 }
-            }
+            });
         } catch (error) {
+            console.error('Error in handleCaseChange:', error);
             message.error('获取故障树数据失败，请稍后重试');
             setTreeData(null);
         }
@@ -692,7 +747,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                         >
                                             <Option value="数据库无法连接">数据库无法连接</Option>
                                             <Option value="数据库无法写入">数据库无法写入</Option>
-                                            <Option value="数据库响应升高">数据库响应升高</Option>
+                                            <Option value="数据库响应升���">数据库响应升高</Option>
                                         </Select>
                                         <Tooltip title="开启流式传输可实时获取分析结果">
                                             <Switch
