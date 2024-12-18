@@ -32,7 +32,7 @@ function hideLoading(){
     }
 }
 
-// 添加流式请求处理函数
+// 修改流式请求处理函数
 async function streamFetch(url, params, options = {}) {
     const token = localStorage.getItem('token');
     const headers = {
@@ -66,33 +66,75 @@ async function streamFetch(url, params, options = {}) {
             const { done, value } = await reader.read();
             if (done) break;
 
-            partialData += new TextDecoder().decode(value);
+            // 将新接收的数据添加到partialData
+            const newText = new TextDecoder().decode(value);
+            partialData += newText;
+
+            // 按行分割数据
+            const lines = partialData.split('\n');
             
-            try {
-                const result = JSON.parse(partialData);
-                if (result.status !== "ok") {
-                    switch (result.code) {
-                        case 401:
-                            message.error('用户未登陆');
-                            break;
-                        case 402:
-                            message.error('登陆过期');
-                            window.localStorage.removeItem("token");
-                            window.location.reload();
-                            break;
+            // 处理除最后一行外的所有完整行
+            for (let i = 0; i < lines.length - 1; i++) {
+                const line = lines[i].trim();
+                if (line) {
+                    try {
+                        // 检查是否是SSE格式的数据
+                        if (line.startsWith('data: ')) {
+                            const jsonStr = line.slice(6); // 移除 "data: " 前缀
+                            const result = JSON.parse(jsonStr);
+                            
+                            if (result.status !== "ok" && result.code) {
+                                switch (result.code) {
+                                    case 401:
+                                        message.error('用户未登陆');
+                                        break;
+                                    case 402:
+                                        message.error('登陆过期');
+                                        window.localStorage.removeItem("token");
+                                        window.location.reload();
+                                        break;
+                                }
+                            }
+                            
+                            if (options.onData) {
+                                options.onData(result);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse line:', line, e);
                     }
                 }
-                if (options.onData) {
-                    options.onData(result);
-                }
-                partialData = '';
-            } catch (e) {
-                continue;
             }
+            
+            // 保留最后一个可能不完整的行
+            partialData = lines[lines.length - 1];
+        }
+
+        // 处理最后一行数据（如果有的话）
+        if (partialData.trim()) {
+            try {
+                if (partialData.startsWith('data: ')) {
+                    const jsonStr = partialData.slice(6);
+                    const result = JSON.parse(jsonStr);
+                    if (options.onData) {
+                        options.onData(result);
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to parse final data:', partialData, e);
+            }
+        }
+
+        if (options.onComplete) {
+            options.onComplete();
         }
     } catch (error) {
         console.error('Stream request failed:', error);
-        throw error;
+        if (options.onError) {
+            options.onError(error);
+        } else {
+            throw error;
+        }
     } finally {
         hideLoading();
     }
