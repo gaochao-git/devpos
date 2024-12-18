@@ -396,119 +396,141 @@ class GetFaultTreeStreamData(BaseView):
 
     def generate_mock_data(self, cluster_name, fault_case):
         """生成模拟数据流"""
-        # 模拟树结构
-        mock_tree = {
-            "id": "root",
-            "name": "数据库故障",
-            "children": [
-                {
-                    "id": "db",
-                    "name": "数据库节点",
-                    "children": [
-                        {
-                            "id": "db_cpu",
-                            "name": "CPU使用率",
-                            "metric_name": "cpu_usage",
-                            "node_status": "error",
-                            "value": 92.5
-                        },
-                        {
-                            "id": "db_memory",
-                            "name": "内存使用率",
-                            "metric_name": "memory_usage",
-                            "node_status": "warning",
-                            "value": 85.3
-                        }
-                    ]
-                },
-                {
-                    "id": "proxy",
-                    "name": "代理节点",
-                    "children": [
-                        {
-                            "id": "proxy_connections",
-                            "name": "连接数",
-                            "metric_name": "connections",
-                            "node_status": "normal",
-                            "value": 150
-                        }
-                    ]
-                }
-            ]
-        }
-
         try:
-            # 发送开始消息
-            start_data = {
+            # 1. 发送开始消息
+            yield 'data: ' + json.dumps({
                 'type': 'start',
                 'data': {
                     'message': f'开始分析 {cluster_name} 集群的 {fault_case} 场景',
                     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
-            }
-            yield 'data: ' + json.dumps(start_data) + '\n\n'
+            }) + '\n\n'
 
-            time.sleep(1)  # 模拟初始化延迟
+            time.sleep(0.5)
 
-            # 递归处理节点的函数
-            def process_node(node, level=0):
-                # 发送节点处理开始消息
-                processing_data = {
-                    'type': 'node_processing',
-                    'data': {
-                        'node_id': node['id'],
-                        'name': node['name'],
-                        'level': level,
-                        'message': f'Processing {node["name"]}...'
-                    }
+            # 2. 发送根节点
+            yield 'data: ' + json.dumps({
+                'type': 'node',
+                'data': {
+                    'id': 'root',
+                    'name': '数据库故障',
+                    'parent_id': None
                 }
-                yield 'data: ' + json.dumps(processing_data) + '\n\n'
+            }) + '\n\n'
 
-                time.sleep(0.5)  # 模拟处理延迟
+            time.sleep(0.5)
 
-                # 如果节点有指标数据，发送指标更新
-                if 'metric_name' in node:
-                    metric_data = {
-                        'type': 'metric_update',
+            # 3. 发送数据库节点
+            yield 'data: ' + json.dumps({
+                'type': 'node',
+                'data': {
+                    'id': 'db',
+                    'name': '数据库节点',
+                    'parent_id': 'root'
+                }
+            }) + '\n\n'
+
+            time.sleep(0.5)
+
+            # 4. 发送数据库指标节点
+            db_metrics = [
+                {
+                    'id': 'db_cpu',
+                    'name': 'CPU使用率',
+                    'parent_id': 'db',
+                    'metric_name': 'cpu_usage'
+                },
+                {
+                    'id': 'db_memory',
+                    'name': '内存使用率',
+                    'parent_id': 'db',
+                    'metric_name': 'memory_usage'
+                }
+            ]
+
+            for metric in db_metrics:
+                # 发送节点结构
+                yield 'data: ' + json.dumps({
+                    'type': 'node',
+                    'data': metric
+                }) + '\n\n'
+
+                time.sleep(0.5)
+
+                # 发送节点指标数据
+                if metric['id'] == 'db_cpu':
+                    yield 'data: ' + json.dumps({
+                        'type': 'metric',
                         'data': {
-                            'node_id': node['id'],
-                            'name': node['name'],
-                            'metric_name': node['metric_name'],
-                            'value': node['value'],
-                            'status': node['node_status']
+                            'node_id': metric['id'],
+                            'value': 92.5,
+                            'status': 'error'
                         }
-                    }
-                    yield 'data: ' + json.dumps(metric_data) + '\n\n'
+                    }) + '\n\n'
+                elif metric['id'] == 'db_memory':
+                    yield 'data: ' + json.dumps({
+                        'type': 'metric',
+                        'data': {
+                            'node_id': metric['id'],
+                            'value': 85.3,
+                            'status': 'warning'
+                        }
+                    }) + '\n\n'
 
-                # 处理子节点
-                if 'children' in node:
-                    for child in node['children']:
-                        yield from process_node(child, level + 1)
+                time.sleep(0.5)
 
-            # 处理整个树
-            yield from process_node(mock_tree)
+            # 5. 发送代理节点
+            yield 'data: ' + json.dumps({
+                'type': 'node',
+                'data': {
+                    'id': 'proxy',
+                    'name': '代理节点',
+                    'parent_id': 'root'
+                }
+            }) + '\n\n'
 
-            # 发送完成消息
-            complete_data = {
+            time.sleep(0.5)
+
+            # 6. 发送代理节点指标
+            yield 'data: ' + json.dumps({
+                'type': 'node',
+                'data': {
+                    'id': 'proxy_connections',
+                    'name': '连接数',
+                    'parent_id': 'proxy',
+                    'metric_name': 'connections'
+                }
+            }) + '\n\n'
+
+            time.sleep(0.5)
+
+            yield 'data: ' + json.dumps({
+                'type': 'metric',
+                'data': {
+                    'node_id': 'proxy_connections',
+                    'value': 150,
+                    'status': 'normal'
+                }
+            }) + '\n\n'
+
+            # 7. 发送完成消息
+            yield 'data: ' + json.dumps({
                 'type': 'complete',
                 'data': {
                     'message': '分析完成',
-                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    'tree_data': mock_tree  # 发送完整的树数据
+                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
-            }
-            yield 'data: ' + json.dumps(complete_data) + '\n\n'
+            }) + '\n\n'
 
         except Exception as e:
             # 发送错误消息
-            error_data = {
+            yield 'data: ' + json.dumps({
                 'type': 'error',
                 'data': {
                     'message': f'处理出错: {str(e)}',
                     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
-            }
-            yield 'data: ' + json.dumps(error_data) + '\n\n'
+            }) + '\n\n'
 
     def post(self, request):
         try:
