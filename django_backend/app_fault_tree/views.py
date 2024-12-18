@@ -394,82 +394,134 @@ class GetFaultTreeData(BaseView):
 class GetFaultTreeStreamData(BaseView):
     """流式获取故障树分析数据"""
 
-    def generate_stream_data(self, tree_data, cluster_name, time_from, time_till):
-        """模拟流式处理数据并生成响应"""
-        # 模拟处理每个节点
-        def process_node(node, level=0):
-            # 模拟节点处理耗时
-            time.sleep(0.5)  
-            
-            # 构建节点响应数据
-            response_data = {
-                "type": "node_update",
-                "data": {
-                    "node_id": node.get('id'),
-                    "status": "processing",
-                    "message": f"Processing node: {node.get('name')}",
-                    "level": level
+    def generate_mock_data(self, cluster_name, fault_case):
+        """生成模拟数据流"""
+        # 模拟树结构
+        mock_tree = {
+            "id": "root",
+            "name": "数据库故障",
+            "children": [
+                {
+                    "id": "db",
+                    "name": "数据库节点",
+                    "children": [
+                        {
+                            "id": "db_cpu",
+                            "name": "CPU使用率",
+                            "metric_name": "cpu_usage",
+                            "node_status": "error",
+                            "value": 92.5
+                        },
+                        {
+                            "id": "db_memory",
+                            "name": "内存使用率",
+                            "metric_name": "memory_usage",
+                            "node_status": "warning",
+                            "value": 85.3
+                        }
+                    ]
+                },
+                {
+                    "id": "proxy",
+                    "name": "代理节点",
+                    "children": [
+                        {
+                            "id": "proxy_connections",
+                            "name": "连接数",
+                            "metric_name": "connections",
+                            "node_status": "normal",
+                            "value": 150
+                        }
+                    ]
+                }
+            ]
+        }
+
+        try:
+            # 发送开始消息
+            start_data = {
+                'type': 'start',
+                'data': {
+                    'message': f'开始分析 {cluster_name} 集群的 {fault_case} 场景',
+                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
             }
-            yield f"data: {json.dumps(response_data)}\n\n"
+            yield 'data: ' + json.dumps(start_data) + '\n\n'
 
-            # 模拟节点处理完成
-            time.sleep(0.5)
-            response_data["data"]["status"] = "completed"
-            response_data["data"]["metric_value"] = 123.45  # 模拟指标值
-            yield f"data: {json.dumps(response_data)}\n\n"
+            time.sleep(1)  # 模拟初始化延迟
 
-            # 递归处理子节点
-            for child in node.get('children', []):
-                yield from process_node(child, level + 1)
+            # 递归处理节点的函数
+            def process_node(node, level=0):
+                # 发送节点处理开始消息
+                processing_data = {
+                    'type': 'node_processing',
+                    'data': {
+                        'node_id': node['id'],
+                        'name': node['name'],
+                        'level': level,
+                        'message': f'Processing {node["name"]}...'
+                    }
+                }
+                yield 'data: ' + json.dumps(processing_data) + '\n\n'
+
+                time.sleep(0.5)  # 模拟处理延迟
+
+                # 如果节点有指标数据，发送指标更新
+                if 'metric_name' in node:
+                    metric_data = {
+                        'type': 'metric_update',
+                        'data': {
+                            'node_id': node['id'],
+                            'name': node['name'],
+                            'metric_name': node['metric_name'],
+                            'value': node['value'],
+                            'status': node['node_status']
+                        }
+                    }
+                    yield 'data: ' + json.dumps(metric_data) + '\n\n'
+
+                # 处理子节点
+                if 'children' in node:
+                    for child in node['children']:
+                        yield from process_node(child, level + 1)
+
+            # 处理整个树
+            yield from process_node(mock_tree)
+
+            # 发送完成消息
+            complete_data = {
+                'type': 'complete',
+                'data': {
+                    'message': '分析完成',
+                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'tree_data': mock_tree  # 发送完整的树数据
+                }
+            }
+            yield 'data: ' + json.dumps(complete_data) + '\n\n'
+
+        except Exception as e:
+            # 发送错误消息
+            error_data = {
+                'type': 'error',
+                'data': {
+                    'message': f'处理出错: {str(e)}',
+                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+            }
+            yield 'data: ' + json.dumps(error_data) + '\n\n'
 
     def post(self, request):
         try:
-            # 验证和参数处理部分保持不变
             request_body = self.request_params
-            rules = {
-                "cluster_name": [Length(2, 64)],
-                "fault_case": [Length(2, 120)],
-                "time_from": [],
-                "time_till": [],
-            }
-            print(request_body)
-            valid_ret = validate(rules, request_body)
-            if not valid_ret.valid:
-                return self.my_response({
-                    "status": "error",
-                    "message": str(valid_ret.errors),
-                    "code": status.HTTP_400_BAD_REQUEST
-                })
-
             cluster_name = request_body.get('cluster_name')
             fault_case = request_body.get('fault_case')
-            time_from = int(datetime.strptime(request_body.get('time_from'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_from') else None
-            time_till = int(datetime.strptime(request_body.get('time_till'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_till') else None
-
-            # 获取故障树配置
-            fault_tree = FaultTreeConfig.objects.filter(
-                ft_name=fault_case,
-                ft_status='active'
-            ).order_by('-version_num').first()
-
-            if not fault_tree:
-                return self.my_response({
-                    "status": "error",
-                    "message": f"未找到场景 '{fault_case}' 的故障树配置",
-                    "code": status.HTTP_404_NOT_FOUND
-                })
-
-            # 获取配置内容
-            tree_data = FaultTreeConfigSerializer().get_content_json(fault_tree)
-
-            # 返回 SSE 流式响应
+            
             response = StreamingHttpResponse(
-                self.generate_stream_data(tree_data, cluster_name, time_from, time_till),
+                self.generate_mock_data(cluster_name, fault_case),
                 content_type='text/event-stream'
             )
             response['Cache-Control'] = 'no-cache'
-            response['X-Accel-Buffering'] = 'no'  # 禁用 Nginx 缓冲
+            response['X-Accel-Buffering'] = 'no'
             return response
 
         except Exception as e:
@@ -614,7 +666,7 @@ class AnalyzeRootCause(BaseView):
 
     def _format_context_for_llm(self, cluster_name, fault_case, abnormal_nodes):
         """将故障信息格式化为结构化的上下文"""
-        context = f"""集群 {cluster_name} 出现了 "{fault_case}" 场景的异常。
+        context = f"""群 {cluster_name} 出现了 "{fault_case}" 场景的异常。
 
 发现以下异常指标：
 
