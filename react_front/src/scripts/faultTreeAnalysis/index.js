@@ -487,25 +487,35 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                 params.time_till = selectedTimeRange[1].format('YYYY-MM-DD HH:mm:ss');
             }
 
-            const response = await MyAxios.post('/fault_tree/v1/get_fault_tree_data/', params);
-
-            if (response.data.status === 'ok') {
-                // 在这里转换数据格式
-                const processToG6Data = (node) => {
-                    return {
-                        ...node,
-                        id: node.key,
-                        type: 'custom-node',
-                        collapsed: node.depth > 1,
-                        children: node.children ? node.children.map(processToG6Data) : [],
-                    };
-                };
-
-                const g6TreeData = processToG6Data(response.data.data);
-                setTreeData(g6TreeData);
+            if (enableStream) {
+                // 使用流式请求
+                await MyAxios.stream.fetch('/fault_tree/v1/get_fault_tree_data/', params, {
+                    onData: (result) => {
+                        // 处理流式数据
+                    }
+                });
             } else {
-                message.error(response.data.message || '获取故障树数据失败');
-                setTreeData(null);
+                // 使用普通请求
+                const response = await MyAxios.post('/fault_tree/v1/get_fault_tree_data/', params);
+
+                if (response.data.status === 'ok') {
+                    // 在这里转换数据格式
+                    const processToG6Data = (node) => {
+                        return {
+                            ...node,
+                            id: node.key,
+                            type: 'custom-node',
+                            collapsed: node.depth > 1,
+                            children: node.children ? node.children.map(processToG6Data) : [],
+                        };
+                    };
+
+                    const g6TreeData = processToG6Data(response.data.data);
+                    setTreeData(g6TreeData);
+                } else {
+                    message.error(response.data.message || '获取故障树数据失败');
+                    setTreeData(null);
+                }
             }
         } catch (error) {
             message.error('获取故障树数据失败，请稍后重试');
