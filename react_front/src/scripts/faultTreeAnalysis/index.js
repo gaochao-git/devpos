@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Card, message, Button, Select, DatePicker, Radio, Modal, Icon } from 'antd';
+import { Layout, Card, message, Button, Select, DatePicker, Radio, Modal, Icon, Tooltip, Switch } from 'antd';
 import moment from 'moment';
 import MyAxios from "../common/interface"
 import './index.css';
@@ -349,7 +349,7 @@ const AnalysisModal = ({ visible, content, treeData, onClose }) => {
   );
 };
 
-// 可以���取一个通用的统计框组件
+// 可以取一个通用的统计框组件
 const StatBox = ({ title, stats }) => (
   <div style={{
     background: 'rgba(255,255,255,0.1)',
@@ -449,6 +449,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisModalVisible, setAnalysisModalVisible] = useState(false);
     const [analysisContent, setAnalysisContent] = useState(null);
+    const [enableStream, setEnableStream] = useState(false);
 
     // 更新时间范围的通用函数
     const updateTimeRange = (value) => {
@@ -539,7 +540,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
         }
     };
 
-    // 新增���刷新按钮点击处理
+    // 新增刷新按钮点击处理
     const handleRefreshClick = () => {
         // 使用当前的 timeMode 重新计算时间范围
         if (timeMode !== 'realtime') {
@@ -670,17 +671,27 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
 
                                 {/* 场景选择和按钮组 */}
                                 <div style={{ marginRight: '48px' }}>
-                                    <Select
-                                        value={selectedCase}
-                                        onChange={handleCaseSelect}
-                                        style={{ width: '248px', marginBottom: '12px' }}
-                                        size="large"
-                                        placeholder="选择故障场景"
-                                    >
-                                        <Option value="数据库无法连接">数据库无法连接</Option>
-                                        <Option value="数据库无法写入">数据库无法写入</Option>
-                                        <Option value="数据库响应升高">数据库响应升高</Option>
-                                    </Select>
+                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', gap: '12px' }}>
+                                        <Select
+                                            value={selectedCase}
+                                            onChange={handleCaseSelect}
+                                            style={{ width: '248px' }}
+                                            size="large"
+                                            placeholder="选择故障场景"
+                                        >
+                                            <Option value="数据库无法连接">数据库无法连接</Option>
+                                            <Option value="数据库无法写入">数据库无法写入</Option>
+                                            <Option value="数据库响应升高">数据库响应升高</Option>
+                                        </Select>
+                                        <Tooltip title="开启流式传输可实时获取分析结果">
+                                            <Switch
+                                                checkedChildren="流式"
+                                                unCheckedChildren="普通"
+                                                onChange={(checked) => setEnableStream(checked)}
+                                                style={{ width: '70px' }}
+                                            />
+                                        </Tooltip>
+                                    </div>
                                     
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <Button
