@@ -489,9 +489,10 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
 
             if (enableStream) {
                 // 使用流式请求
-                await MyAxios.stream.fetch('/fault_tree/v1/get_fault_tree_data/', params, {
+                await MyAxios.stream.fetch('/fault_tree/v1/get_fault_tree_stream_data/', params, {
                     onData: (result) => {
                         // 处理流式数据
+                        console.log(result)
                     }
                 });
             } else {

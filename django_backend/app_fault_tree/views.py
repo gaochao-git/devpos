@@ -16,6 +16,9 @@ from .serializers import (
 from .handler_manager import HandlerManager
 import logging
 logger = logging.getLogger('log')
+from django.http import StreamingHttpResponse
+import json
+import time
 
 class CreateFaultTreeConfig(BaseView):
     """创建故障树配置"""
@@ -387,6 +390,95 @@ class GetFaultTreeData(BaseView):
                 "code": status.HTTP_500_INTERNAL_SERVER_ERROR
             })
 
+
+class GetFaultTreeStreamData(BaseView):
+    """流式获取故障树分析数据"""
+
+    def generate_stream_data(self, tree_data, cluster_name, time_from, time_till):
+        """模拟流式处理数据并生成响应"""
+        # 模拟处理每个节点
+        def process_node(node, level=0):
+            # 模拟节点处理耗时
+            time.sleep(0.5)  
+            
+            # 构建节点响应数据
+            response_data = {
+                "type": "node_update",
+                "data": {
+                    "node_id": node.get('id'),
+                    "status": "processing",
+                    "message": f"Processing node: {node.get('name')}",
+                    "level": level
+                }
+            }
+            yield f"data: {json.dumps(response_data)}\n\n"
+
+            # 模拟节点处理完成
+            time.sleep(0.5)
+            response_data["data"]["status"] = "completed"
+            response_data["data"]["metric_value"] = 123.45  # 模拟指标值
+            yield f"data: {json.dumps(response_data)}\n\n"
+
+            # 递归处理子节点
+            for child in node.get('children', []):
+                yield from process_node(child, level + 1)
+
+    def post(self, request):
+        try:
+            # 验证和参数处理部分保持不变
+            request_body = self.request_params
+            rules = {
+                "cluster_name": [Length(2, 64)],
+                "fault_case": [Length(2, 120)],
+                "time_from": [],
+                "time_till": [],
+            }
+            print(request_body)
+            valid_ret = validate(rules, request_body)
+            if not valid_ret.valid:
+                return self.my_response({
+                    "status": "error",
+                    "message": str(valid_ret.errors),
+                    "code": status.HTTP_400_BAD_REQUEST
+                })
+
+            cluster_name = request_body.get('cluster_name')
+            fault_case = request_body.get('fault_case')
+            time_from = int(datetime.strptime(request_body.get('time_from'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_from') else None
+            time_till = int(datetime.strptime(request_body.get('time_till'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_till') else None
+
+            # 获取故障树配置
+            fault_tree = FaultTreeConfig.objects.filter(
+                ft_name=fault_case,
+                ft_status='active'
+            ).order_by('-version_num').first()
+
+            if not fault_tree:
+                return self.my_response({
+                    "status": "error",
+                    "message": f"未找到场景 '{fault_case}' 的故障树配置",
+                    "code": status.HTTP_404_NOT_FOUND
+                })
+
+            # 获取配置内容
+            tree_data = FaultTreeConfigSerializer().get_content_json(fault_tree)
+
+            # 返回 SSE 流式响应
+            response = StreamingHttpResponse(
+                self.generate_stream_data(tree_data, cluster_name, time_from, time_till),
+                content_type='text/event-stream'
+            )
+            response['Cache-Control'] = 'no-cache'
+            response['X-Accel-Buffering'] = 'no'  # 禁用 Nginx 缓冲
+            return response
+
+        except Exception as e:
+            logger.exception(f"流式获取故障树数据失败: {str(e)}")
+            return self.my_response({
+                "status": "error",
+                "message": f"获取数据失败：{str(e)}",
+                "code": status.HTTP_500_INTERNAL_SERVER_ERROR
+            })
 
 class GetMetricHistory(BaseView):
     """获取指标历史数据数据或日志"""
