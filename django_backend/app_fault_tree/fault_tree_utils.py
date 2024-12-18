@@ -188,7 +188,6 @@ class FaultTreeProcessor:
         try:
             # 获取对应的处理函数
             handler = HandlerManager.init_metric_handlers(
-                metric_name=metric_name,
                 handler_name=handler_name,
                 handler_type='data'
             )
