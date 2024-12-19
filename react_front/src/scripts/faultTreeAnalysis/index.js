@@ -758,12 +758,12 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                 </div>
 
                                 {/* 场景选择和按钮组 */}
-                                <div style={{ marginRight: '48px' }}>
+                                <div>
                                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', gap: '12px' }}>
                                         <Select
                                             value={selectedCase}
                                             onChange={handleCaseSelect}
-                                            style={{ width: '248px' }}
+                                            style={{ width: '178px' }}
                                             size="large"
                                             placeholder="选择故障场景"
                                         >
@@ -771,14 +771,12 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                             <Option value="数据库无法写入">数据库无法写入</Option>
                                             <Option value="数据库响应升高">数据库响应升高</Option>
                                         </Select>
-                                        <Tooltip title="开启流式传输可实时获取分析结果">
                                             <Switch
                                                 checkedChildren="流式"
-                                                unCheckedChildren="普通"
+                                                unCheckedChildren="阻塞"
                                                 onChange={(checked) => setEnableStream(checked)}
-                                                style={{ width: '70px' }}
+                                                style={{ width: '58px' }}
                                             />
-                                        </Tooltip>
                                     </div>
                                     
                                     <div style={{ display: 'flex', gap: '8px' }}>
