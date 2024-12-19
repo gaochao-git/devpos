@@ -19,6 +19,7 @@ logger = logging.getLogger('log')
 from django.http import StreamingHttpResponse
 import json
 import time
+import random
 
 class CreateFaultTreeConfig(BaseView):
     """创建故障树配置"""
@@ -373,7 +374,7 @@ class GetFaultTreeData(BaseView):
 
             # 获取配置内容并处理
             tree_data = FaultTreeConfigSerializer().get_content_json(fault_tree)
-            # 对初始化树进行填充及处理
+            # 对初始化���进行填充及处理
             processor = FaultTreeProcessor()
             processed_data = processor.process_tree(tree_data, cluster_name, time_from, time_till)
 
@@ -394,8 +395,8 @@ class GetFaultTreeData(BaseView):
 class GetFaultTreeStreamData(BaseView):
     """流式获取故障树分析数据"""
 
-    def generate_mock_data(self, cluster_name, fault_case):
-        """生成模拟数据流"""
+    def generate_tree_data(self, fault_tree_config, cluster_name, fault_case):
+        """基于故障树配置生成数据流"""
         try:
             # 1. 发送开始消息
             yield 'data: ' + json.dumps({
@@ -408,112 +409,60 @@ class GetFaultTreeStreamData(BaseView):
 
             time.sleep(0.5)
 
-            # 2. 发送根节点
-            yield 'data: ' + json.dumps({
-                'type': 'node',
-                'data': {
-                    'id': 'root',
-                    'name': '数据库故障',
-                    'parent_id': None
+            def traverse_tree(node):
+                """递归遍历树节点并生成数据流"""
+                # 发送当前节点
+                node_data = {
+                    'id': node.get('key'),
+                    'name': node.get('name'),
+                    'parent_id': node.get('key').rsplit('->', 1)[0] if '->' in node.get('key') else None,
+                    'type': 'custom-node',
+                    'metric_name': node.get('metric_name'),
+                    'data_source': node.get('data_source'),
+                    'rules': node.get('rules')
                 }
-            }) + '\n\n'
 
-            time.sleep(0.5)
-
-            # 3. 发送数据库节点
-            yield 'data: ' + json.dumps({
-                'type': 'node',
-                'data': {
-                    'id': 'db',
-                    'name': '数据库节点',
-                    'parent_id': 'root'
-                }
-            }) + '\n\n'
-
-            time.sleep(0.5)
-
-            # 4. 发送数据库指标节点
-            db_metrics = [
-                {
-                    'id': 'db_cpu',
-                    'name': 'CPU使用率',
-                    'parent_id': 'db',
-                    'metric_name': 'cpu_usage'
-                },
-                {
-                    'id': 'db_memory',
-                    'name': '内存使用率',
-                    'parent_id': 'db',
-                    'metric_name': 'memory_usage'
-                }
-            ]
-
-            for metric in db_metrics:
-                # 发送节点结构
                 yield 'data: ' + json.dumps({
                     'type': 'node',
-                    'data': metric
+                    'data': node_data
                 }) + '\n\n'
 
-                time.sleep(0.5)
+                time.sleep(0.3)  # 添加小延迟使流式效果更明显
 
-                # 发送节点指标数据
-                if metric['id'] == 'db_cpu':
+                # 如果节点有指标配置，模拟发送指标数据
+                if node.get('metric_name') and node.get('data_source'):
+                    # 这里可以根据实际需求从数据源获取真实数据
+                    # 现在使用模拟数据
+                    mock_value = random.uniform(0, 100)
+                    status = 'info'
+                    
+                    # 根据规则判断状态
+                    if node.get('rules'):
+                        for rule in node['rules']:
+                            threshold = float(rule['threshold'])
+                            if rule['condition'] == '>' and mock_value > threshold:
+                                status = rule['status']
+                                break
+
                     yield 'data: ' + json.dumps({
                         'type': 'metric',
                         'data': {
-                            'node_id': metric['id'],
-                            'value': 92.5,
-                            'status': 'error'
-                        }
-                    }) + '\n\n'
-                elif metric['id'] == 'db_memory':
-                    yield 'data: ' + json.dumps({
-                        'type': 'metric',
-                        'data': {
-                            'node_id': metric['id'],
-                            'value': 85.3,
-                            'status': 'warning'
+                            'node_id': node['key'],
+                            'value': round(mock_value, 2),
+                            'status': status
                         }
                     }) + '\n\n'
 
-                time.sleep(0.5)
+                    time.sleep(0.2)
 
-            # 5. 发送代理节点
-            yield 'data: ' + json.dumps({
-                'type': 'node',
-                'data': {
-                    'id': 'proxy',
-                    'name': '代理节点',
-                    'parent_id': 'root'
-                }
-            }) + '\n\n'
+                # 递归处理子节点
+                for child in node.get('children', []):
+                    yield from traverse_tree(child)
 
-            time.sleep(0.5)
+            # 开始遍历整个树
+            yield from traverse_tree(fault_tree_config)
 
-            # 6. 发送代理节点指标
-            yield 'data: ' + json.dumps({
-                'type': 'node',
-                'data': {
-                    'id': 'proxy_connections',
-                    'name': '连接数',
-                    'parent_id': 'proxy',
-                    'metric_name': 'connections'
-                }
-            }) + '\n\n'
-
-            time.sleep(0.5)
-
-            yield 'data: ' + json.dumps({
-                'type': 'metric',
-                'data': {
-                    'node_id': 'proxy_connections',
-                    'value': 150,
-                    'status': 'normal'
-                }
-            }) + '\n\n'
-
-            # 7. 发送完成消息
+            # 最后发送完成消息
             yield 'data: ' + json.dumps({
                 'type': 'complete',
                 'data': {
@@ -538,8 +487,24 @@ class GetFaultTreeStreamData(BaseView):
             cluster_name = request_body.get('cluster_name')
             fault_case = request_body.get('fault_case')
             
+            # 获取故障树配置
+            fault_tree = FaultTreeConfig.objects.filter(
+                ft_name=fault_case,
+                ft_status='active'
+            ).order_by('-version_num').first()
+
+            if not fault_tree:
+                return self.my_response({
+                    "status": "error",
+                    "message": f"未找到场景 '{fault_case}' 的故障树配置",
+                    "code": status.HTTP_404_NOT_FOUND
+                })
+
+            # 解析故障树配置内容
+            ft_content = json.loads(fault_tree.ft_content)
+            
             response = StreamingHttpResponse(
-                self.generate_mock_data(cluster_name, fault_case),
+                self.generate_tree_data(ft_content, cluster_name, fault_case),
                 content_type='text/event-stream'
             )
             response['Cache-Control'] = 'no-cache'
@@ -568,7 +533,7 @@ class GetMetricHistory(BaseView):
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid: return self.my_response({"status": "error","message": str(valid_ret.errors),"code": status.HTTP_400_BAD_REQUEST})
-        # 转换为时间戳
+        # 转换为时��戳
         time_from = int(datetime.strptime(request_body.get('time_from'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_from') else None
         time_till = int(datetime.strptime(request_body.get('time_till'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_till') else None
         node_info = request_body.get('node_info')
@@ -588,7 +553,7 @@ class GetMetricHistory(BaseView):
             return self.my_response({"status": "error","message": f"获取故障树数据失败: {str(e)}","code": status.HTTP_500_INTERNAL_SERVER_ERROR})
 
 class AnalyzeRootCause(BaseView):
-    """分析故障根因"""
+    """分析故障根��"""
     def post(self, request):
         # 验证请求参数
         request_body = self.request_params
