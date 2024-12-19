@@ -433,7 +433,7 @@ class GetFaultTreeStreamData(BaseView):
                 }
             }) + '\n\n'
 
-            time.sleep(2)
+            time.sleep(0.1)
 
             def traverse_tree(node):
                 """递归遍历树节点并生成数据流"""
@@ -454,7 +454,7 @@ class GetFaultTreeStreamData(BaseView):
                     'data': node_data
                 }) + '\n\n'
 
-                time.sleep(1)
+                time.sleep(0.1)
 
                 # 2. 如果是指标节点，发送指标数据
                 if node.get('metric_name'):
@@ -518,7 +518,7 @@ class GetFaultTreeStreamData(BaseView):
                         'data': metric_data
                     }) + '\n\n'
 
-                    time.sleep(0.8)
+                    time.sleep(3)
 
                 # 3. 递归处理子节点
                 for child in node.get('children', []):
