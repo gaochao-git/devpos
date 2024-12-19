@@ -28,6 +28,9 @@ const FaultTree = ({ data }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [currentResultIndex, setCurrentResultIndex] = useState(-1);
   const textAreaRef = useRef(null);
+  const [graph, setGraph] = useState(null);
+  const treeDataRef = useRef({ nodes: [], edges: [] });  // 添加树数据引用
+  const prevDataRef = useRef(null);  // 添加前一次数据的引用
 
   // 组件卸载时清理
   useEffect(() => {
@@ -116,7 +119,7 @@ const FaultTree = ({ data }) => {
     setLoading(true);
     setLogData('');
     try {
-      // 模拟API调用延迟
+      // 模拟API调用延
       const params = {
         "time_from": moment(startTime).format('YYYY-MM-DD HH:mm:ss'),
         "time_till": moment(endTime).format('YYYY-MM-DD HH:mm:ss'),
@@ -280,7 +283,7 @@ const FaultTree = ({ data }) => {
   // 在初始化图时，为每个节点添加父节点引用
   useEffect(() => {
     if (!graphRef.current) {
-      // 使用你原有的完整节点注册代码
+      // 使用你���有的完整节点注册代码
       G6.registerNode('custom-node', {
         draw(cfg, group) {
           const {
@@ -588,6 +591,49 @@ const FaultTree = ({ data }) => {
         graphRef.current.destroy();
       }
     };
+  }, [data]);
+
+  // 修改数据更新的 useEffect
+  useEffect(() => {
+    if (!graphRef.current || !data) return;
+
+    const graph = graphRef.current;
+    const existingNodes = new Set(graph.getNodes().map(node => node.get('id')));
+    
+    // 递归处理节点
+    const processNode = (node, parentId = null) => {
+      const nodeExists = existingNodes.has(node.id);
+      
+      if (!nodeExists) {
+        // 添加新节点
+        graph.addItem('node', {
+          ...node,
+          x: 0,  // 初始位置将由布局调整
+          y: 0
+        });
+
+        // 如果有父节点，添加边
+        if (parentId) {
+          graph.addItem('edge', {
+            source: parentId,
+            target: node.id
+          });
+        }
+      }
+
+      // 递归处理子节点
+      if (node.children) {
+        node.children.forEach(child => processNode(child, node.id));
+      }
+    };
+
+    // 从根节点开始处理
+    processNode(data);
+
+    // 重新布局
+    graph.layout();
+    graph.fitView([100, 260, 100, 100]);
+
   }, [data]);
 
   // 添加搜索处理函数

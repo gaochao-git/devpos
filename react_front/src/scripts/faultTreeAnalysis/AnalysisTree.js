@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Tree, Card, Space, message, Dropdown } from 'antd';
 import { ExpandOutlined } from '@ant-design/icons';
 import './index.css';
@@ -254,7 +254,7 @@ const FaultTree = ({ treeData }) => {
                 )}
                 {info.impact_analysis && info.impact_analysis !== '未提供影响分析' && (
                   <div className="info-item">
-                    <span className="label">影响分析：</span>
+                    <span className="label">影��分析：</span>
                     <span className="value">{info.impact_analysis}</span>
                   </div>
                 )}
@@ -272,31 +272,11 @@ const FaultTree = ({ treeData }) => {
     );
   };
 
+  // 使用 useMemo 来记忆 treeData，只在真正需要更新时才更新
+  const memoizedTreeData = useMemo(() => treeData, [treeData]);
+
   return (
-      <G6Tree data={treeData} />
-    // <div style={{ display: 'flex', height: 'calc(100vh - 180px)' }}>
-    //   <div className="tree-container" style={{ width: '400px', borderRight: '1px solid #f0f0f0' }}>
-    //     <div className="tree-scroll-container">
-    //       <Dropdown
-    //         menu={{ items: menuItems }}
-    //         trigger={['contextMenu']}
-    //       >
-    //         <Tree
-    //           treeData={[convertToTreeData(treeData)]}
-    //           onSelect={onSelect}
-    //           showLine
-    //           showIcon
-    //           expandedKeys={expandedKeys}
-    //           onExpand={(keys) => setExpandedKeys(keys)}
-    //           selectedKeys={selectedNode ? [selectedNode.key] : []}
-    //         />
-    //       </Dropdown>
-    //     </div>
-    //   </div>
-    //   <div className="node-info" style={{ marginLeft: 24, flex: 1, overflowY: 'auto' }}>
-    //     {renderNodeInfo()}
-    //   </div>
-    // </div>
+    <G6Tree data={memoizedTreeData} key="g6-tree" />  // 添加固定的 key
   );
 };
 
