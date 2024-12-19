@@ -498,51 +498,51 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                         console.log('Received stream data:', result);
                         
                         if (result.type === 'node') {
-                            // 处理新节点数据
                             setTreeData(prevTree => {
                                 const newNode = {
                                     key: result.data.id,
                                     name: result.data.name,
+                                    title: result.data.name,
                                     parent_id: result.data.parent_id,
                                     type: 'custom-node',
                                     metric_name: result.data.metric_name,
-                                    node_status: 'info', // 默认状态
+                                    description: result.data.description || '',
+                                    node_status: 'info',
+                                    node_type: result.data.node_type,
+                                    ip_port: result.data.ip_port,
                                     children: []
                                 };
 
                                 if (!prevTree) {
-                                    // 如果是第一个节点（根节点）
-                                    if (!result.data.parent_id) {
-                                        return newNode;
-                                    }
-                                    return null;
+                                    return !result.data.parent_id ? newNode : null;
                                 }
 
-                                // 递归函数来更新树
-                                const updateTree = (node) => {
+                                const updateNode = (node) => {
                                     if (node.key === result.data.parent_id) {
-                                        // 找到父节点，添加新的子节点
-                                        return {
-                                            ...node,
-                                            children: [...(node.children || []), newNode]
-                                        };
+                                        const existingChild = node.children.find(child => child.key === newNode.key);
+                                        if (!existingChild) {
+                                            return {
+                                                ...node,
+                                                children: [...node.children, newNode]
+                                            };
+                                        }
+                                        return node;
                                     }
 
                                     if (node.children) {
                                         return {
                                             ...node,
-                                            children: node.children.map(child => updateTree(child))
+                                            children: node.children.map(child => updateNode(child))
                                         };
                                     }
 
                                     return node;
                                 };
 
-                                return updateTree(prevTree);
+                                return updateNode(prevTree);
                             });
                         } 
                         else if (result.type === 'metric') {
-                            // 更新节点的指标数据
                             setTreeData(prevTree => {
                                 if (!prevTree) return null;
 
@@ -550,8 +550,18 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                     if (node.key === result.data.node_id) {
                                         return {
                                             ...node,
+                                            node_status: result.data.status,
+                                            description: result.data.description,
+                                            metric_extra_info: result.data.metric_extra_info,
                                             value: result.data.value,
-                                            node_status: result.data.status
+                                            rules: [{
+                                                type: 'float',
+                                                condition: result.data.metric_extra_info.rule_condition,
+                                                threshold: result.data.metric_extra_info.rule_threshold,
+                                                status: result.data.status,
+                                                impact_analysis: result.data.metric_extra_info.impact_analysis || '',
+                                                suggestion: result.data.metric_extra_info.suggestion || ''
+                                            }]
                                         };
                                     }
 
