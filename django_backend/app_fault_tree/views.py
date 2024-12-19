@@ -30,7 +30,7 @@ class CreateFaultTreeConfig(BaseView):
             last_config = FaultTreeConfig.objects.order_by('-ft_id').first()
             new_ft_id = (last_config.ft_id + 1) if last_config else 1
             
-            # 将 ft_id 添��到请求数据中
+            # 将 ft_id 添加到请求数据中
             request_data = self.request_params.copy()
             request_data['ft_id'] = new_ft_id
             
@@ -63,7 +63,7 @@ class CreateFaultTreeConfig(BaseView):
 
 
 class UpdateFaultTreeConfig(BaseView):
-    """更新故障树配置"""
+    """���新故障树配置"""
 
     def post(self, request):
         try:
@@ -170,7 +170,7 @@ class GetFaultTreeConfigDetail(BaseView):
             serializer = FaultTreeConfigSerializer(instance)
             return self.my_response({
                 "status": "ok",
-                "message": "获取成功",
+                "message": "获��成功",
                 "data": serializer.data
             })
         except FaultTreeConfig.DoesNotExist:
@@ -278,7 +278,7 @@ class RollbackFaultTreeConfig(BaseView):
                 "message": "配置不存在"
             })
         except Exception as e:
-            logger.exception(f"回滚配置失���: {str(e)}")
+            logger.exception(f"回滚配置失败: {str(e)}")
             return self.my_response({
                 "status": "error",
                 "message": f"回滚失败：{str(e)}"
@@ -433,7 +433,7 @@ class GetFaultTreeStreamData(BaseView):
                 }
             }) + '\n\n'
 
-            time.sleep(0.5)
+            time.sleep(2)
 
             def traverse_tree(node):
                 """递归遍历树节点并生成数据流"""
@@ -454,7 +454,7 @@ class GetFaultTreeStreamData(BaseView):
                     'data': node_data
                 }) + '\n\n'
 
-                time.sleep(0.3)
+                time.sleep(1)
 
                 # 2. 如果是指标节点，发送指标数据
                 if node.get('metric_name'):
@@ -518,7 +518,7 @@ class GetFaultTreeStreamData(BaseView):
                         'data': metric_data
                     }) + '\n\n'
 
-                    time.sleep(0.2)
+                    time.sleep(0.8)
 
                 # 3. 递归处理子节点
                 for child in node.get('children', []):
@@ -608,7 +608,7 @@ class GetMetricHistory(BaseView):
         metric_name = node_info.get('metric_name').strip()
         instance_info = node_info.get('ip_port')
         try:
-            # 获取对应的处��函数
+            # 获取对应的处理函数
             handler = HandlerManager.init_metric_handlers(handler_name=handler_name,handler_type=get_type)
             if not handler: raise ValueError(f"Unsupported data source: {handler_name}")
             # 执行处理函数获取对应的监控值
