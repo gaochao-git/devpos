@@ -30,7 +30,7 @@ class CreateFaultTreeConfig(BaseView):
             last_config = FaultTreeConfig.objects.order_by('-ft_id').first()
             new_ft_id = (last_config.ft_id + 1) if last_config else 1
             
-            # 将 ft_id 添加到请求数据中
+            # 将 ft_id 添��到请求数据中
             request_data = self.request_params.copy()
             request_data['ft_id'] = new_ft_id
             
@@ -278,7 +278,7 @@ class RollbackFaultTreeConfig(BaseView):
                 "message": "配置不存在"
             })
         except Exception as e:
-            logger.exception(f"回滚配置失败: {str(e)}")
+            logger.exception(f"回滚配置失��: {str(e)}")
             return self.my_response({
                 "status": "error",
                 "message": f"回滚失败：{str(e)}"
@@ -459,6 +459,19 @@ class GetFaultTreeStreamData(BaseView):
                 # 使用 FaultTreeProcessor 处理节点
                 processed_node = processor._process_node(node.copy(), parent_type)
                 
+                # 处理根节点名称
+                if not processed_node.get('key').count('->'):
+                    processed_node['name'] = cluster_name
+                
+                # 处理角色节点的 IP 和端口信息
+                node_type = processed_node.get('node_type')
+                if node_type in processor.cluster_info:
+                    role_info = processor.cluster_info[node_type].get(processed_node['name'])
+                    if role_info:
+                        ip_info = f"[{role_info['ip']}:{role_info['port']}]"
+                        processed_node['description'] = f"{processed_node.get('description', '')} {ip_info}".strip()
+                        processed_node['ip_port'] = role_info
+                
                 # 1. 发送节点基本信息
                 node_data = {
                     'id': processed_node.get('key'),
@@ -546,7 +559,7 @@ class GetMetricHistory(BaseView):
         metric_name = node_info.get('metric_name').strip()
         instance_info = node_info.get('ip_port')
         try:
-            # 获取对应的处理函���
+            # 获取对应的处理函数
             handler = HandlerManager.init_metric_handlers(handler_name=handler_name,handler_type=get_type)
             if not handler: raise ValueError(f"Unsupported data source: {handler_name}")
             # 执行处理函数获取对应的监控值
