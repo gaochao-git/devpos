@@ -63,7 +63,7 @@ class CreateFaultTreeConfig(BaseView):
 
 
 class UpdateFaultTreeConfig(BaseView):
-    """���新故障树配置"""
+    """更新故障树配置"""
 
     def post(self, request):
         try:
@@ -170,7 +170,7 @@ class GetFaultTreeConfigDetail(BaseView):
             serializer = FaultTreeConfigSerializer(instance)
             return self.my_response({
                 "status": "ok",
-                "message": "获��成功",
+                "message": "获取成功",
                 "data": serializer.data
             })
         except FaultTreeConfig.DoesNotExist:
@@ -396,156 +396,6 @@ class GetFaultTreeData(BaseView):
 class GetFaultTreeStreamData(BaseView):
     """流式获取故障树分析数据"""
 
-    def _get_cluster_info(self, cluster_name):
-        """从资源池获取集群信息"""
-        init_cluster_info = {
-            'db': {},
-            'proxy': {},
-            'manager': {}
-        }
-        sql = f"""
-            select 
-                instance_name,
-                case instance_role when 'M' then '主' when 'S' then '备' else '未知' end instance_role
-            from mysql_cluster_instance where cluster_name='{cluster_name}'
-        """
-        ret = db_helper.find_all(sql)
-        db_info = ret['data']
-        for item in db_info:
-            ip = item['instance_name'].split('_')[0].strip()
-            port = item['instance_name'].split('_')[1].strip()
-            instance_role = item['instance_role']
-            init_cluster_info['db'][instance_role] = {'ip': ip, 'port': port}
-        return init_cluster_info
-
-    def generate_tree_data(self, fault_tree_config, cluster_name, fault_case):
-        """基于故障树配置生成数据流"""
-        try:
-            # 获取集群信息
-            cluster_info = self._get_cluster_info(cluster_name)
-
-            # 1. 发送开始消息
-            yield 'data: ' + json.dumps({
-                'type': 'start',
-                'data': {
-                    'message': f'开始分析 {cluster_name} 集群的 {fault_case} 场景',
-                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                }
-            }) + '\n\n'
-
-            time.sleep(0.1)
-
-            def traverse_tree(node):
-                """递归遍历树节点并生成数据流"""
-                # 1. 发送节点基本信息
-                node_data = {
-                    'id': node.get('key'),
-                    'name': node.get('name'),
-                    'parent_id': node.get('key').rsplit('->', 1)[0] if '->' in node.get('key') else None,
-                    'type': 'custom-node',
-                    'metric_name': node.get('metric_name'),
-                    'description': node.get('description', ''),
-                    'node_type': node.get('node_type'),
-                    'ip_port': node.get('ip_port')
-                }
-
-                yield 'data: ' + json.dumps({
-                    'type': 'node',
-                    'data': node_data
-                }) + '\n\n'
-
-                time.sleep(0.1)
-
-                # 2. 如果是指标节点，发送指标数据
-                if node.get('metric_name'):
-                    mock_value = random.uniform(0, 100)
-                    status = 'info'
-                    metric_units = '%'
-                    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-                    # 处理规则判断
-                    rules = node.get('rules', [])
-                    triggered_rule = None
-                    for rule in rules:
-                        threshold = float(rule['threshold'])
-                        condition = rule['condition']
-                        if condition == '>' and mock_value > threshold:
-                            status = rule['status']
-                            triggered_rule = rule
-                            break
-
-                    # 构造规则条件描述
-                    rule_condition_format = ''
-                    rule_condition_format_human = ''
-                    if triggered_rule:
-                        rule_condition_format = f"{mock_value:.2f}% {triggered_rule['condition']} {triggered_rule['threshold']}%"
-                        rule_condition_format_human = f"{mock_value:.2f} % {triggered_rule['condition']} {float(triggered_rule['threshold']):.2f} %"
-                        description = (
-                            f"监控值: {mock_value:.2f}%\n"
-                            f"时间: {current_time}\n"
-                            f"规则条件: {rule_condition_format_human}"
-                        )
-                    else:
-                        description = (
-                            f"监控值: {mock_value:.2f}%\n"
-                            f"时间: {current_time}"
-                        )
-
-                    # 构造指标数据
-                    metric_data = {
-                        'node_id': node['key'],
-                        'value': round(mock_value, 2),
-                        'status': status,
-                        'description': description,
-                        'metric_extra_info': {
-                            'metric_name': node.get('name'),
-                            'metric_time': current_time,
-                            'metric_value': f"{mock_value:.2f}",
-                            'metric_units': metric_units,
-                            'metric_value_units_human': f"{mock_value:.2f}%",
-                            'severity': status,
-                            'rule_condition': triggered_rule['condition'] if triggered_rule else '>',
-                            'rule_threshold': triggered_rule['threshold'] if triggered_rule else '0',
-                            'rule_condition_format': rule_condition_format,
-                            'rule_condition_format_human': rule_condition_format_human,  # 添加人性化格式
-                            'impact_analysis': triggered_rule.get('impact_analysis', '') if triggered_rule else '',
-                            'suggestion': triggered_rule.get('suggestion', '') if triggered_rule else ''
-                        }
-                    }
-
-                    yield 'data: ' + json.dumps({
-                        'type': 'metric',
-                        'data': metric_data
-                    }) + '\n\n'
-
-                    time.sleep(3)
-
-                # 3. 递归处理子节点
-                for child in node.get('children', []):
-                    yield from traverse_tree(child)
-
-            # 开始遍历整个树
-            yield from traverse_tree(fault_tree_config)
-
-            # 最后发送完成消息
-            yield 'data: ' + json.dumps({
-                'type': 'complete',
-                'data': {
-                    'message': '分析完成',
-                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                }
-            }) + '\n\n'
-
-        except Exception as e:
-            logger.exception(f"生成故障树数据失败: {str(e)}")
-            yield 'data: ' + json.dumps({
-                'type': 'error',
-                'data': {
-                    'message': f'处理出错: {str(e)}',
-                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                }
-            }) + '\n\n'
-
     def post(self, request):
         try:
             request_body = self.request_params
@@ -569,7 +419,7 @@ class GetFaultTreeStreamData(BaseView):
             ft_content = json.loads(fault_tree.ft_content)
             
             response = StreamingHttpResponse(
-                self.generate_tree_data(ft_content, cluster_name, fault_case),
+                self._generate_tree_data(ft_content, cluster_name, fault_case),
                 content_type='text/event-stream'
             )
             response['Cache-Control'] = 'no-cache'
@@ -583,6 +433,94 @@ class GetFaultTreeStreamData(BaseView):
                 "message": f"获取数据失败：{str(e)}",
                 "code": status.HTTP_500_INTERNAL_SERVER_ERROR
             })
+
+    def _generate_tree_data(self, fault_tree_config, cluster_name, fault_case):
+        """基于故障树配置生成数据流"""
+        try:
+            processor = FaultTreeProcessor()
+            # 初始化处理器的集群信息和时间参数
+            processor.cluster_info = processor._get_cluster_info(cluster_name)
+            processor.time_from = None  # 如果需要时间范围，可以从请求参数中获取
+            processor.time_till = None
+            
+            # 1. 发送开始消息
+            yield 'data: ' + json.dumps({
+                'type': 'start',
+                'data': {
+                    'message': f'开始分析 {cluster_name} 集群的 {fault_case} 场景',
+                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+            }) + '\n\n'
+
+            time.sleep(0.1)
+
+            def traverse_tree(node, parent_type=None):
+                """递归遍历树节点并生成数据流"""
+                # 使用 FaultTreeProcessor 处理节点
+                processed_node = processor._process_node(node.copy(), parent_type)
+                
+                # 1. 发送节点基本信息
+                node_data = {
+                    'id': processed_node.get('key'),
+                    'name': processed_node.get('name'),
+                    'parent_id': processed_node.get('key').rsplit('->', 1)[0] if '->' in processed_node.get('key') else None,
+                    'type': 'custom-node',
+                    'metric_name': processed_node.get('metric_name'),
+                    'description': processed_node.get('description', ''),
+                    'node_type': processed_node.get('node_type'),
+                    'ip_port': processed_node.get('ip_port'),
+                    'node_status': processed_node.get('node_status', 'info')
+                }
+
+                yield 'data: ' + json.dumps({
+                    'type': 'node',
+                    'data': node_data
+                }) + '\n\n'
+
+                time.sleep(0.1)
+
+                # 2. 如果有指标数据，发送指标信息
+                if processed_node.get('metric_name'):  # 修改这里的判断条件
+                    metric_data = {
+                        'node_id': processed_node['key'],
+                        'value': processed_node.get('metric_value'),
+                        'status': processed_node.get('node_status'),
+                        'description': processed_node.get('description'),
+                        'metric_extra_info': processed_node.get('metric_extra_info', {})
+                    }
+
+                    yield 'data: ' + json.dumps({
+                        'type': 'metric',
+                        'data': metric_data
+                    }) + '\n\n'
+
+                    time.sleep(0.5)
+
+                # 3. 递归处理子节点
+                for child in processed_node.get('children', []):
+                    yield from traverse_tree(child, processed_node.get('node_type'))
+
+            # 开始遍历整个树
+            yield from traverse_tree(fault_tree_config)
+
+            # 最后发送完成消息
+            yield 'data: ' + json.dumps({
+                'type': 'complete',
+                'data': {
+                    'message': '分析完成',
+                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+            }) + '\n\n'
+
+        except Exception as e:
+            logger.exception(f"生成故障树数据失败: {str(e)}")
+            yield 'data: ' + json.dumps({
+                'type': 'error',
+                'data': {
+                    'message': f'处理出错: {str(e)}',
+                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+            }) + '\n\n'
 
 class GetMetricHistory(BaseView):
     """获取指标历史数据数据或日志"""
@@ -608,7 +546,7 @@ class GetMetricHistory(BaseView):
         metric_name = node_info.get('metric_name').strip()
         instance_info = node_info.get('ip_port')
         try:
-            # 获取对应的处理函数
+            # 获取对应的处理函���
             handler = HandlerManager.init_metric_handlers(handler_name=handler_name,handler_type=get_type)
             if not handler: raise ValueError(f"Unsupported data source: {handler_name}")
             # 执行处理函数获取对应的监控值
