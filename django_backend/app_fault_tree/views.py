@@ -1,6 +1,7 @@
 from validator import Required, In, validate, Length, InstanceOf,Range
 from rest_framework import status
 from apps.utils.common import CheckValidators,BaseView,my_response
+from apps.utils import db_helper
 from django.db import transaction
 from datetime import datetime
 from .models import FaultTreeConfig, FaultTreeConfigHistory
@@ -62,7 +63,7 @@ class CreateFaultTreeConfig(BaseView):
 
 
 class UpdateFaultTreeConfig(BaseView):
-    """更新故障树配置"""
+    """���新故障树配置"""
 
     def post(self, request):
         try:
@@ -136,7 +137,7 @@ class GetFaultTreeConfigList(BaseView):
         try:
             queryset = FaultTreeConfig.objects.all().order_by('-create_time')
 
-            # 处理筛选条件
+            # 处理筛选条
             ft_status = self.request_params.get('ft_status')
             if ft_status:
                 queryset = queryset.filter(ft_status=ft_status)
@@ -169,7 +170,7 @@ class GetFaultTreeConfigDetail(BaseView):
             serializer = FaultTreeConfigSerializer(instance)
             return self.my_response({
                 "status": "ok",
-                "message": "获取成功",
+                "message": "获��成功",
                 "data": serializer.data
             })
         except FaultTreeConfig.DoesNotExist:
@@ -374,7 +375,7 @@ class GetFaultTreeData(BaseView):
 
             # 获取配置内容并处理
             tree_data = FaultTreeConfigSerializer().get_content_json(fault_tree)
-            # 对初始化���进行填充及处理
+            # 对初始化进行填充及处理
             processor = FaultTreeProcessor()
             processed_data = processor.process_tree(tree_data, cluster_name, time_from, time_till)
 
@@ -395,9 +396,34 @@ class GetFaultTreeData(BaseView):
 class GetFaultTreeStreamData(BaseView):
     """流式获取故障树分析数据"""
 
+    def _get_cluster_info(self, cluster_name):
+        """从资源池获取集群信息"""
+        init_cluster_info = {
+            'db': {},
+            'proxy': {},
+            'manager': {}
+        }
+        sql = f"""
+            select 
+                instance_name,
+                case instance_role when 'M' then '主' when 'S' then '备' else '未知' end instance_role
+            from mysql_cluster_instance where cluster_name='{cluster_name}'
+        """
+        ret = db_helper.find_all(sql)
+        db_info = ret['data']
+        for item in db_info:
+            ip = item['instance_name'].split('_')[0].strip()
+            port = item['instance_name'].split('_')[1].strip()
+            instance_role = item['instance_role']
+            init_cluster_info['db'][instance_role] = {'ip': ip, 'port': port}
+        return init_cluster_info
+
     def generate_tree_data(self, fault_tree_config, cluster_name, fault_case):
         """基于故障树配置生成数据流"""
         try:
+            # 获取集群信息
+            cluster_info = self._get_cluster_info(cluster_name)
+
             # 1. 发送开始消息
             yield 'data: ' + json.dumps({
                 'type': 'start',
@@ -409,17 +435,29 @@ class GetFaultTreeStreamData(BaseView):
 
             time.sleep(0.5)
 
-            def traverse_tree(node):
+            def traverse_tree(node, parent_type=None):
                 """递归遍历树节点并生成数据流"""
-                # 发送当前节点
+                # 处理节点类型
+                node_type = node['name'].lower() if node['name'].lower() in ['db', 'proxy', 'manager'] else parent_type
+
+                # 处理实例信息
+                instance_info = None
+                ip_info = ""
+                if cluster_info and node_type and node_type in cluster_info:
+                    instance_info = cluster_info[node_type].get(node.get('name'))
+                    if instance_info:
+                        ip_info = f"[{instance_info['ip']}:{instance_info['port']}]"
+
+                # 发送节点信息
                 node_data = {
                     'id': node.get('key'),
                     'name': node.get('name'),
                     'parent_id': node.get('key').rsplit('->', 1)[0] if '->' in node.get('key') else None,
                     'type': 'custom-node',
                     'metric_name': node.get('metric_name'),
-                    'data_source': node.get('data_source'),
-                    'rules': node.get('rules')
+                    'description': f"{node.get('description', '')} {ip_info}".strip(),
+                    'node_type': node_type,
+                    'ip_port': instance_info
                 }
 
                 yield 'data: ' + json.dumps({
@@ -427,29 +465,64 @@ class GetFaultTreeStreamData(BaseView):
                     'data': node_data
                 }) + '\n\n'
 
-                time.sleep(0.3)  # 添加小延迟使流式效果更明显
+                time.sleep(0.3)
 
-                # 如果节点有指标配置，模拟发送指标数据
-                if node.get('metric_name') and node.get('data_source'):
-                    # 这里可以根据实际需求从数据源获取真实数据
-                    # 现在使用模拟数据
+                # 如果节点有指标配置，生成mock数据
+                if node.get('metric_name'):
+                    # Mock一个随机值
                     mock_value = random.uniform(0, 100)
                     status = 'info'
-                    
+                    metric_units = '%'  # 默认单位
+
                     # 根据规则判断状态
+                    triggered_rule = None
                     if node.get('rules'):
                         for rule in node['rules']:
                             threshold = float(rule['threshold'])
                             if rule['condition'] == '>' and mock_value > threshold:
                                 status = rule['status']
+                                triggered_rule = rule
                                 break
+
+                    # 构建详细的描述信息
+                    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    description_lines = [
+                        f"监控值: {round(mock_value, 2)}{metric_units}",
+                        f"时间: {current_time}",
+                    ]
+                    
+                    if triggered_rule:
+                        description_lines.append(
+                            f"规则条件: {round(mock_value, 2)}{metric_units} {triggered_rule['condition']} {triggered_rule['threshold']}{metric_units}"
+                        )
+
+                    # 构建metric_extra_info
+                    metric_extra_info = {
+                        'metric_name': node.get('name', ''),
+                        'metric_time': current_time,
+                        'metric_value': str(round(mock_value, 2)),
+                        'metric_units': metric_units,
+                        'metric_value_units_human': f"{round(mock_value, 2)}{metric_units}",
+                        'severity': status
+                    }
+
+                    if triggered_rule:
+                        metric_extra_info.update({
+                            'rule_condition': triggered_rule.get('condition', ''),
+                            'rule_threshold': triggered_rule.get('threshold', ''),
+                            'rule_condition_format': f"{round(mock_value, 2)}{metric_units} {triggered_rule['condition']} {triggered_rule['threshold']}{metric_units}",
+                            'impact_analysis': triggered_rule.get('impact_analysis', ''),
+                            'suggestion': triggered_rule.get('suggestion', '')
+                        })
 
                     yield 'data: ' + json.dumps({
                         'type': 'metric',
                         'data': {
                             'node_id': node['key'],
                             'value': round(mock_value, 2),
-                            'status': status
+                            'status': status,
+                            'description': '\n'.join(description_lines),  # 使用换行符连接多行描述
+                            'metric_extra_info': metric_extra_info
                         }
                     }) + '\n\n'
 
@@ -457,7 +530,7 @@ class GetFaultTreeStreamData(BaseView):
 
                 # 递归处理子节点
                 for child in node.get('children', []):
-                    yield from traverse_tree(child)
+                    yield from traverse_tree(child, node_type)
 
             # 开始遍历整个树
             yield from traverse_tree(fault_tree_config)
@@ -472,7 +545,7 @@ class GetFaultTreeStreamData(BaseView):
             }) + '\n\n'
 
         except Exception as e:
-            # 发送错误消息
+            logger.exception(f"生成故障树数据失败: {str(e)}")
             yield 'data: ' + json.dumps({
                 'type': 'error',
                 'data': {
@@ -520,7 +593,7 @@ class GetFaultTreeStreamData(BaseView):
             })
 
 class GetMetricHistory(BaseView):
-    """获取指标历史数据数据或日志"""
+    """获取指标���史数据数据或日志"""
 
     def post(self, request):
         # 验证请求参数
@@ -533,7 +606,7 @@ class GetMetricHistory(BaseView):
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid: return self.my_response({"status": "error","message": str(valid_ret.errors),"code": status.HTTP_400_BAD_REQUEST})
-        # 转换为时��戳
+        # 转换为时间戳
         time_from = int(datetime.strptime(request_body.get('time_from'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_from') else None
         time_till = int(datetime.strptime(request_body.get('time_till'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_till') else None
         node_info = request_body.get('node_info')
@@ -553,7 +626,7 @@ class GetMetricHistory(BaseView):
             return self.my_response({"status": "error","message": f"获取故障树数据失败: {str(e)}","code": status.HTTP_500_INTERNAL_SERVER_ERROR})
 
 class AnalyzeRootCause(BaseView):
-    """分析故障根��"""
+    """分析故障根"""
     def post(self, request):
         # 验证请求参数
         request_body = self.request_params
@@ -597,7 +670,7 @@ class AnalyzeRootCause(BaseView):
             # TODO: 调用实际的大模型API
             # response = call_llm_api(prompt)
             print(prompt)
-            # 模拟大模型响应
+            # 模大模型响应
             analysis_result = f"模拟大模型分析结果：\n{prompt}"
 
             return self.my_response({
@@ -624,7 +697,7 @@ class AnalyzeRootCause(BaseView):
             if (node.get('node_status') in ['error', 'critical'] and 
                 node.get('metric_name')):
                 node_info = {
-                    'key': node.get('key'),  # 保存完整路径
+                    'key': node.get('key'),  # 存储完整路径
                     'name': node.get('name', 'Unknown'),
                     'metric_name': node.get('metric_name'),
                     'description': node.get('description', ''),
@@ -652,7 +725,7 @@ class AnalyzeRootCause(BaseView):
         return abnormal_nodes
 
     def _format_context_for_llm(self, cluster_name, fault_case, abnormal_nodes):
-        """将故障信息格式化为结构化的上下文"""
+        """将故障信息格式化为结构化上下文"""
         context = f"""群 {cluster_name} 出现了 "{fault_case}" 场景的异常。
 
 发现以下异常指标：
