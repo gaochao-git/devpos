@@ -30,7 +30,7 @@ class CreateFaultTreeConfig(BaseView):
             last_config = FaultTreeConfig.objects.order_by('-ft_id').first()
             new_ft_id = (last_config.ft_id + 1) if last_config else 1
             
-            # 将 ft_id 添加到请求数据中
+            # 将 ft_id 添��到请求数据中
             request_data = self.request_params.copy()
             request_data['ft_id'] = new_ft_id
             
@@ -63,7 +63,7 @@ class CreateFaultTreeConfig(BaseView):
 
 
 class UpdateFaultTreeConfig(BaseView):
-    """���新故障树配置"""
+    """更新故障树配置"""
 
     def post(self, request):
         try:
@@ -170,7 +170,7 @@ class GetFaultTreeConfigDetail(BaseView):
             serializer = FaultTreeConfigSerializer(instance)
             return self.my_response({
                 "status": "ok",
-                "message": "获��成功",
+                "message": "获取成功",
                 "data": serializer.data
             })
         except FaultTreeConfig.DoesNotExist:
@@ -278,7 +278,7 @@ class RollbackFaultTreeConfig(BaseView):
                 "message": "配置不存在"
             })
         except Exception as e:
-            logger.exception(f"回滚配置失败: {str(e)}")
+            logger.exception(f"回滚配置失���: {str(e)}")
             return self.my_response({
                 "status": "error",
                 "message": f"回滚失败：{str(e)}"
@@ -435,29 +435,18 @@ class GetFaultTreeStreamData(BaseView):
 
             time.sleep(0.5)
 
-            def traverse_tree(node, parent_type=None):
+            def traverse_tree(node):
                 """递归遍历树节点并生成数据流"""
-                # 处理节点类型
-                node_type = node['name'].lower() if node['name'].lower() in ['db', 'proxy', 'manager'] else parent_type
-
-                # 处理实例信息
-                instance_info = None
-                ip_info = ""
-                if cluster_info and node_type and node_type in cluster_info:
-                    instance_info = cluster_info[node_type].get(node.get('name'))
-                    if instance_info:
-                        ip_info = f"[{instance_info['ip']}:{instance_info['port']}]"
-
-                # 发送节点信息
+                # 1. 发送节点基本信息
                 node_data = {
                     'id': node.get('key'),
                     'name': node.get('name'),
                     'parent_id': node.get('key').rsplit('->', 1)[0] if '->' in node.get('key') else None,
                     'type': 'custom-node',
                     'metric_name': node.get('metric_name'),
-                    'description': f"{node.get('description', '')} {ip_info}".strip(),
-                    'node_type': node_type,
-                    'ip_port': instance_info
+                    'description': node.get('description', ''),
+                    'node_type': node.get('node_type'),
+                    'ip_port': node.get('ip_port')
                 }
 
                 yield 'data: ' + json.dumps({
@@ -467,70 +456,73 @@ class GetFaultTreeStreamData(BaseView):
 
                 time.sleep(0.3)
 
-                # 如果节点有指标配置，生成mock数据
+                # 2. 如果是指标节点，发送指标数据
                 if node.get('metric_name'):
-                    # Mock一个随机值
                     mock_value = random.uniform(0, 100)
                     status = 'info'
-                    metric_units = '%'  # 默认单位
-
-                    # 根据规则判断状态
-                    triggered_rule = None
-                    if node.get('rules'):
-                        for rule in node['rules']:
-                            threshold = float(rule['threshold'])
-                            if rule['condition'] == '>' and mock_value > threshold:
-                                status = rule['status']
-                                triggered_rule = rule
-                                break
-
-                    # 构建详细的描述信息
+                    metric_units = '%'
                     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    description_lines = [
-                        f"监控值: {round(mock_value, 2)}{metric_units}",
-                        f"时间: {current_time}",
-                    ]
-                    
+
+                    # 处理规则判断
+                    rules = node.get('rules', [])
+                    triggered_rule = None
+                    for rule in rules:
+                        threshold = float(rule['threshold'])
+                        condition = rule['condition']
+                        if condition == '>' and mock_value > threshold:
+                            status = rule['status']
+                            triggered_rule = rule
+                            break
+
+                    # 构造规则条件描述
+                    rule_condition_format = ''
+                    rule_condition_format_human = ''
                     if triggered_rule:
-                        description_lines.append(
-                            f"规则条件: {round(mock_value, 2)}{metric_units} {triggered_rule['condition']} {triggered_rule['threshold']}{metric_units}"
+                        rule_condition_format = f"{mock_value:.2f}% {triggered_rule['condition']} {triggered_rule['threshold']}%"
+                        rule_condition_format_human = f"{mock_value:.2f} % {triggered_rule['condition']} {float(triggered_rule['threshold']):.2f} %"
+                        description = (
+                            f"监控值: {mock_value:.2f}%\n"
+                            f"时间: {current_time}\n"
+                            f"规则条件: {rule_condition_format_human}"
+                        )
+                    else:
+                        description = (
+                            f"监控值: {mock_value:.2f}%\n"
+                            f"时间: {current_time}"
                         )
 
-                    # 构建metric_extra_info
-                    metric_extra_info = {
-                        'metric_name': node.get('name', ''),
-                        'metric_time': current_time,
-                        'metric_value': str(round(mock_value, 2)),
-                        'metric_units': metric_units,
-                        'metric_value_units_human': f"{round(mock_value, 2)}{metric_units}",
-                        'severity': status
+                    # 构造指标数据
+                    metric_data = {
+                        'node_id': node['key'],
+                        'value': round(mock_value, 2),
+                        'status': status,
+                        'description': description,
+                        'metric_extra_info': {
+                            'metric_name': node.get('name'),
+                            'metric_time': current_time,
+                            'metric_value': f"{mock_value:.2f}",
+                            'metric_units': metric_units,
+                            'metric_value_units_human': f"{mock_value:.2f}%",
+                            'severity': status,
+                            'rule_condition': triggered_rule['condition'] if triggered_rule else '>',
+                            'rule_threshold': triggered_rule['threshold'] if triggered_rule else '0',
+                            'rule_condition_format': rule_condition_format,
+                            'rule_condition_format_human': rule_condition_format_human,  # 添加人性化格式
+                            'impact_analysis': triggered_rule.get('impact_analysis', '') if triggered_rule else '',
+                            'suggestion': triggered_rule.get('suggestion', '') if triggered_rule else ''
+                        }
                     }
-
-                    if triggered_rule:
-                        metric_extra_info.update({
-                            'rule_condition': triggered_rule.get('condition', ''),
-                            'rule_threshold': triggered_rule.get('threshold', ''),
-                            'rule_condition_format': f"{round(mock_value, 2)}{metric_units} {triggered_rule['condition']} {triggered_rule['threshold']}{metric_units}",
-                            'impact_analysis': triggered_rule.get('impact_analysis', ''),
-                            'suggestion': triggered_rule.get('suggestion', '')
-                        })
 
                     yield 'data: ' + json.dumps({
                         'type': 'metric',
-                        'data': {
-                            'node_id': node['key'],
-                            'value': round(mock_value, 2),
-                            'status': status,
-                            'description': '\n'.join(description_lines),  # 使用换行符连接多行描述
-                            'metric_extra_info': metric_extra_info
-                        }
+                        'data': metric_data
                     }) + '\n\n'
 
                     time.sleep(0.2)
 
-                # 递归处理子节点
+                # 3. 递归处理子节点
                 for child in node.get('children', []):
-                    yield from traverse_tree(child, node_type)
+                    yield from traverse_tree(child)
 
             # 开始遍历整个树
             yield from traverse_tree(fault_tree_config)
@@ -593,7 +585,7 @@ class GetFaultTreeStreamData(BaseView):
             })
 
 class GetMetricHistory(BaseView):
-    """获取指标���史数据数据或日志"""
+    """获取指标历史数据数据或日志"""
 
     def post(self, request):
         # 验证请求参数
@@ -616,7 +608,7 @@ class GetMetricHistory(BaseView):
         metric_name = node_info.get('metric_name').strip()
         instance_info = node_info.get('ip_port')
         try:
-            # 获取对应的处理函数
+            # 获取对应的处��函数
             handler = HandlerManager.init_metric_handlers(handler_name=handler_name,handler_type=get_type)
             if not handler: raise ValueError(f"Unsupported data source: {handler_name}")
             # 执行处理函数获取对应的监控值
