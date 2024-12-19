@@ -510,6 +510,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                     node_status: 'info',
                                     node_type: result.data.node_type,
                                     ip_port: result.data.ip_port,
+                                    instance_info: result.data.instance_info,
                                     children: []
                                 };
 
@@ -767,7 +768,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                             size="large"
                                             placeholder="选择故障场景"
                                         >
-                                            <Option value="数据库无法连接">数据库无法连接</Option>
+                                            <Option value="数据库无法连接">数据库无法连���</Option>
                                             <Option value="数据库无法写入">数据库无法写入</Option>
                                             <Option value="数据库响应升高">数据库响应升高</Option>
                                         </Select>

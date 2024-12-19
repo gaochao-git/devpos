@@ -481,7 +481,7 @@ class GetFaultTreeStreamData(BaseView):
                     'metric_name': processed_node.get('metric_name'),
                     'description': processed_node.get('description', ''),
                     'node_type': processed_node.get('node_type'),
-                    'ip_port': processed_node.get('ip_port'),
+                    'instance_info': processed_node.get('ip_port'),
                     'node_status': processed_node.get('node_status', 'info')
                 }
 
