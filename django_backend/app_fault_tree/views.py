@@ -508,9 +508,7 @@ class GetFaultTreeStreamData(BaseView):
 
                 # 3. 递归处理子节点
                 for child in processed_node.get('children', []):
-                    yield from traverse_tree(child, processed_node.get('node_type'))
-            fault_tree_config
-            # 开始遍历整个树
+                    yield from traverse_tree(child, processed_node.get('node_type'))            # 开始遍历整个树
             yield from traverse_tree(fault_tree_config)
 
             # 最后发送完成消息
