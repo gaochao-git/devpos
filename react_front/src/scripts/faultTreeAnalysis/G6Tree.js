@@ -285,6 +285,31 @@ const FaultTree = ({ data }) => {
   // 在初始化图时，为每个节点添加父节点引用
   useEffect(() => {
     if (!graphRef.current) {
+      // 注册自定义边动画
+      const lineDash = [5, 5];
+      G6.registerEdge('line-dash', {
+        afterDraw(cfg, group) {
+          const shape = group.get('children')[0];
+          let index = 0;
+          shape.animate(
+            () => {
+              index += 0.5;  // 控制流动速度
+              if (index > 9) {
+                index = 0;
+              }
+              const res = {
+                lineDash,
+                lineDashOffset: -index,
+              };
+              return res;
+            },
+            {
+              repeat: true,
+            }
+          );
+        },
+      }, 'polyline');
+
       // 使用你有的完整节点注册代码
       G6.registerNode('custom-node', {
         draw(cfg, group) {
@@ -529,11 +554,15 @@ const FaultTree = ({ data }) => {
           type: 'custom-node',
         },
         defaultEdge: {
-          type: 'polyline',
+          type: 'line-dash',  // 使用我们自定义的边类型
           style: {
-            stroke: '#AAB7C4',
-            lineWidth: 2,
-          },
+            stroke: '#1890ff',
+            lineWidth: 3,
+            endArrow: {
+              path: 'M 0,0 L 8,4 L 8,-4 Z',
+              fill: '#1890ff'
+            }
+          }
         },
         layout: {
           type: 'compactBox',
