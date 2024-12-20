@@ -30,7 +30,7 @@ class CreateFaultTreeConfig(BaseView):
             last_config = FaultTreeConfig.objects.order_by('-ft_id').first()
             new_ft_id = (last_config.ft_id + 1) if last_config else 1
             
-            # 将 ft_id 添��到请求数据中
+            # 将 ft_id 添加到请求数据中
             request_data = self.request_params.copy()
             request_data['ft_id'] = new_ft_id
             
@@ -278,7 +278,7 @@ class RollbackFaultTreeConfig(BaseView):
                 "message": "配置不存在"
             })
         except Exception as e:
-            logger.exception(f"回滚配置失��: {str(e)}")
+            logger.exception(f"回滚配置失败: {str(e)}")
             return self.my_response({
                 "status": "error",
                 "message": f"回滚失败：{str(e)}"
@@ -469,7 +469,7 @@ class GetFaultTreeStreamData(BaseView):
                         processed_node['description'] = f"{processed_node.get('description', '')} {ip_info}".strip()
                         processed_node['ip_port'] = role_info
                 
-                # 1. 发送节点基本信息
+                # Combine node and metric data into a single response
                 node_data = {
                     'id': processed_node.get('key'),
                     'name': processed_node.get('name'),
@@ -482,29 +482,19 @@ class GetFaultTreeStreamData(BaseView):
                     'node_status': processed_node.get('node_status', 'info')
                 }
 
+                # Add metric data if available
+                if processed_node.get('metric_name'):
+                    node_data.update({
+                        'value': processed_node.get('metric_value'),
+                        'metric_extra_info': processed_node.get('metric_extra_info', {})
+                    })
+
                 yield 'data: ' + json.dumps({
                     'type': 'node',
                     'data': node_data
                 }) + '\n\n'
 
                 time.sleep(0.1)
-
-                # 2. 如果有指标数据，发送指标信息
-                if processed_node.get('metric_name'):  # 修改这里的判断条件
-                    metric_data = {
-                        'node_id': processed_node['key'],
-                        'value': processed_node.get('metric_value'),
-                        'status': processed_node.get('node_status'),
-                        'description': processed_node.get('description'),
-                        'metric_extra_info': processed_node.get('metric_extra_info', {})
-                    }
-
-                    yield 'data: ' + json.dumps({
-                        'type': 'metric',
-                        'data': metric_data
-                    }) + '\n\n'
-
-                    time.sleep(0.5)
 
                 # 3. 递归处理子节点
                 for child in processed_node.get('children', []):

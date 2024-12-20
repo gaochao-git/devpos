@@ -507,12 +507,26 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                     type: 'custom-node',
                                     metric_name: result.data.metric_name,
                                     description: result.data.description || '',
-                                    node_status: 'info',
+                                    node_status: result.data.node_status,  // 直接使用后端返回的状态
                                     node_type: result.data.node_type,
                                     ip_port: result.data.ip_port,
                                     instance_info: result.data.instance_info,
+                                    value: result.data.value,  // 添加 metric 相关字段
+                                    metric_extra_info: result.data.metric_extra_info,  // 添加 metric 相关字段
                                     children: []
                                 };
+
+                                // 如果有 metric 相关信息，添加规则
+                                if (result.data.metric_name) {
+                                    newNode.rules = [{
+                                        type: 'float',
+                                        condition: result.data.metric_extra_info?.rule_condition,
+                                        threshold: result.data.metric_extra_info?.rule_threshold,
+                                        status: result.data.node_status,
+                                        impact_analysis: result.data.metric_extra_info?.impact_analysis || '',
+                                        suggestion: result.data.metric_extra_info?.suggestion || ''
+                                    }];
+                                }
 
                                 if (!prevTree) {
                                     return !result.data.parent_id ? newNode : null;
@@ -528,42 +542,6 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                             };
                                         }
                                         return node;
-                                    }
-
-                                    if (node.children) {
-                                        return {
-                                            ...node,
-                                            children: node.children.map(child => updateNode(child))
-                                        };
-                                    }
-
-                                    return node;
-                                };
-
-                                return updateNode(prevTree);
-                            });
-                        } 
-                        else if (result.type === 'metric') {
-                            setTreeData(prevTree => {
-                                if (!prevTree) return null;
-
-                                const updateNode = (node) => {
-                                    if (node.key === result.data.node_id) {
-                                        return {
-                                            ...node,
-                                            node_status: result.data.status,
-                                            description: result.data.description,
-                                            metric_extra_info: result.data.metric_extra_info,
-                                            value: result.data.value,
-                                            rules: [{
-                                                type: 'float',
-                                                condition: result.data.metric_extra_info.rule_condition,
-                                                threshold: result.data.metric_extra_info.rule_threshold,
-                                                status: result.data.status,
-                                                impact_analysis: result.data.metric_extra_info.impact_analysis || '',
-                                                suggestion: result.data.metric_extra_info.suggestion || ''
-                                            }]
-                                        };
                                     }
 
                                     if (node.children) {
@@ -768,7 +746,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                             size="large"
                                             placeholder="选择故障场景"
                                         >
-                                            <Option value="数据库无法连接">数据库无法连���</Option>
+                                            <Option value="数据库无法连接">数据库无法连接</Option>
                                             <Option value="数据库无法写入">数据库无法写入</Option>
                                             <Option value="数据库响应升高">数据库响应升高</Option>
                                         </Select>
