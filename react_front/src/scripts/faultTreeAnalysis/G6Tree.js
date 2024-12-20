@@ -77,7 +77,7 @@ const FaultTree = ({ data }) => {
   // 获取历史监控数据
   const handleGetHistoryData = async (nodeInfo, startTime, endTime) => {
     setLoading(true);
-    setChartData([]);
+    setChartData({unit: '', data: []});  // 初始化为正确的格式
 
     try {
       const params = {
@@ -105,10 +105,12 @@ const FaultTree = ({ data }) => {
         message.success('获取成功');
       } else {
         message.error(res.data.message || '获取失败');
+        setChartData({unit: '', data: []});  // 失败时设置为空数组
       }
     } catch (err) {
       console.error('获取监控日志出现异常:', err);
       message.error('获取监控日志出现异常，请稍后重试');
+      setChartData({unit: '', data: []});  // 异常时设置为空数组
     } finally {
       setLoading(false);
     }
@@ -283,7 +285,7 @@ const FaultTree = ({ data }) => {
   // 在初始化图时，为每个节点添加父节点引用
   useEffect(() => {
     if (!graphRef.current) {
-      // 使用你���有的完整节点注册代码
+      // 使用你有的完整节点注册代码
       G6.registerNode('custom-node', {
         draw(cfg, group) {
           const {

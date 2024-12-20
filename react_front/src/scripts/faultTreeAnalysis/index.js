@@ -513,7 +513,8 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                     instance_info: result.data.instance_info,
                                     value: result.data.value,  // 添加 metric 相关字段
                                     metric_extra_info: result.data.metric_extra_info,  // 添加 metric 相关字段
-                                    children: []
+                                    children: [],
+                                    data_source: result.data.data_source,
                                 };
 
                                 // 如果有 metric 相关信息，添加规则
