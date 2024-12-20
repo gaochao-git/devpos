@@ -753,7 +753,7 @@ const FaultTree = ({ data }) => {
           <div>
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h4>节点：{selectedNode.id}</h4>
+                <h4>节点：{selectedNode.key}</h4>
                 <RangePicker
                   showTime
                   value={timeRange}
