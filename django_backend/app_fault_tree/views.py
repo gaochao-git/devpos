@@ -30,7 +30,7 @@ class CreateFaultTreeConfig(BaseView):
             last_config = FaultTreeConfig.objects.order_by('-ft_id').first()
             new_ft_id = (last_config.ft_id + 1) if last_config else 1
             
-            # 将 ft_id 添加到请求数据中
+            # 将 ft_id 添��到请求数据中
             request_data = self.request_params.copy()
             request_data['ft_id'] = new_ft_id
             
@@ -246,7 +246,7 @@ class GetFaultTreeHistoryDetail(BaseView):
             })
 
 class RollbackFaultTreeConfig(BaseView):
-    """回滚故障树配置到指定版本"""
+    """���滚故障树配置到指定版本"""
     def post(self, request):
         try:
             history_id = self.request_params.get('history_id')
@@ -435,12 +435,12 @@ class GetFaultTreeStreamData(BaseView):
             })
 
     def _generate_tree_data(self, fault_tree_config, cluster_name, fault_case):
-        """基于故障树配置生成数据流"""
         try:
             processor = FaultTreeProcessor()
-            # 初始化处理器的集群信息和时间参数
+            processed_nodes = set()
+            
             processor.cluster_info = processor._get_cluster_info(cluster_name)
-            processor.time_from = None  # 如果需要时间范围，可以从请求参数中获取
+            processor.time_from = None
             processor.time_till = None
             fault_tree_config['name'] = cluster_name
             
@@ -456,20 +456,15 @@ class GetFaultTreeStreamData(BaseView):
             time.sleep(0.1)
 
             def traverse_tree(node, parent_type=None):
-                """递归遍历树节点并生成数据流,从整个配置节点一层一层处理"""
-                # 使用 FaultTreeProcessor 处理节点
+                node_key = node.get('key')
+                if node_key in processed_nodes:
+                    return
+                processed_nodes.add(node_key)
+
+                # Process node
                 processed_node = processor._process_node(node.copy(), parent_type)
-                print(processed_node)
-                # 处理角色节点的 IP 和端口信息
-                node_type = processed_node.get('node_type')
-                if node_type in processor.cluster_info:
-                    role_info = processor.cluster_info[node_type].get(processed_node['name'])
-                    if role_info:
-                        ip_info = f"[{role_info['ip']}:{role_info['port']}]"
-                        processed_node['description'] = f"{processed_node.get('description', '')} {ip_info}".strip()
-                        processed_node['ip_port'] = role_info
                 
-                # Combine node and metric data into a single response
+                # Create base node data
                 node_data = {
                     'id': processed_node.get('key'),
                     'name': processed_node.get('name'),
@@ -478,9 +473,17 @@ class GetFaultTreeStreamData(BaseView):
                     'metric_name': processed_node.get('metric_name'),
                     'description': processed_node.get('description', ''),
                     'node_type': processed_node.get('node_type'),
-                    'instance_info': processed_node.get('ip_port'),
+                    'instance_info': None,
                     'node_status': processed_node.get('node_status', 'info')
                 }
+
+                # Add instance info if available
+                node_type = processed_node.get('node_type')
+                if node_type in processor.cluster_info:
+                    role_info = processor.cluster_info[node_type].get(processed_node['name'])
+                    if role_info:
+                        node_data['instance_info'] = role_info
+                        node_data['description'] = f"{node_data['description'].split('[')[0].strip()} [{role_info['ip']}:{role_info['port']}]"
 
                 # Add metric data if available
                 if processed_node.get('metric_name'):
@@ -496,12 +499,14 @@ class GetFaultTreeStreamData(BaseView):
 
                 time.sleep(0.1)
 
-                # 3. 递归处理子节点
+                # Process children
                 for child in processed_node.get('children', []):
-                    yield from traverse_tree(child, processed_node.get('node_type'))            # 开始遍历整个树
+                    yield from traverse_tree(child, processed_node.get('node_type'))
+
+            # 2. 开始遍历整个树
             yield from traverse_tree(fault_tree_config)
 
-            # 最后发送完成消息
+            # 3. 发送完成消息
             yield 'data: ' + json.dumps({
                 'type': 'complete',
                 'data': {
@@ -579,7 +584,7 @@ class AnalyzeRootCause(BaseView):
             # 收集异常节点信息
             abnormal_nodes = self._collect_abnormal_nodes(tree_data)
             
-            # 构建问题上下文
+            # 构建问上下文
             context = self._format_context_for_llm(cluster_name, fault_case, abnormal_nodes)
             
             # 构建提示语
