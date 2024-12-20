@@ -14,7 +14,7 @@ class FaultTreeProcessor:
         '<': lambda x, y: float(x) < float(y),
         '>=': lambda x, y: float(x) >= float(y),
         '<=': lambda x, y: float(x) <= float(y),
-        '==': lambda x, y: float(x) == float(y),
+        '==': lambda x, y: (float(x) == float(y)) if all(isinstance(v, (int, float)) or str(v).replace('.', '').isdigit() for v in [x, y]) else str(x) == str(y),
         '!=': lambda x, y: str(x) != str(y),
         'in': lambda x, y: str(y) in str(x),
         'not in': lambda x, y: str(y) not in str(x),
@@ -138,7 +138,7 @@ class FaultTreeProcessor:
         return updates
 
     def _process_metrics_info(self, node):
-        """处理监控指��信息"""
+        """处理监控指标信息"""
         if 'metric_name' not in node:
             return {}
         
