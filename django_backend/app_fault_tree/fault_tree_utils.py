@@ -2,6 +2,10 @@ import re
 from .handler_manager import HandlerManager
 from apps.utils import db_helper
 import logging
+import json
+import time
+from datetime import datetime
+
 logger = logging.getLogger('log')
 
 
@@ -438,3 +442,121 @@ class FaultTreeProcessor:
             node['description'] = f"处理失败: {str(e)}"
         
         return node
+
+def generate_tree_data(fault_tree_config, cluster_name, fault_case):
+    """
+    生成故障树数据的生成器函数
+    
+    Args:
+        fault_tree_config (dict): 故障树配置
+        cluster_name (str): 集群名称
+        fault_case (str): 故障场景名称
+        
+    Yields:
+        str: 格式化的SSE数据
+    """
+    try:
+        # 初始化为流式模式，只生成树结构
+        processor = FaultTreeProcessor(stream_mode=True)
+        processor.cluster_info = processor._get_cluster_info(cluster_name)
+        base_tree = processor.process_tree(fault_tree_config, cluster_name)
+        
+        # 1. 发送开始消息
+        yield 'data: ' + json.dumps({
+            'type': 'start',
+            'data': {
+                'message': f'开始分析 {cluster_name} 集群的 {fault_case} 场景',
+                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+        }) + '\n\n'
+
+        time.sleep(0.1)
+
+        def traverse_tree(node):
+            """遍历树并处理节点"""
+            node_key = node.get('key')
+            current_node = node.copy()
+
+            # 构建基础节点数据
+            node_data = {
+                'id': node_key,
+                'name': current_node.get('name'),
+                'parent_id': node_key.rsplit('->', 1)[0] if '->' in node_key else None,
+                'type': 'custom-node',
+                'metric_name': current_node.get('metric_name'),
+                'description': current_node.get('description', ''),
+                'node_type': current_node.get('node_type'),
+                'node_status': current_node.get('node_status', 'info'),
+                'instance_info': current_node.get('instance_info'),
+                'ip_port': current_node.get('ip_port'),
+                'data_source': current_node.get('data_source')
+            }
+
+            # 如果是指标节点，则获取监控数据
+            if ('data_source' in current_node and 
+                'metric_name' in current_node and 
+                current_node.get('ip_port')):
+                try:
+                    logger.info(f"处理指标节点: {current_node.get('name')}, metric: {current_node.get('metric_name')}")
+                    handler = HandlerManager.init_metric_handlers(
+                        handler_name=current_node['data_source'].get('source', ''),
+                        handler_type='data'
+                    )
+                    
+                    if handler:
+                        values = handler(
+                            current_node['ip_port'], 
+                            current_node['metric_name'], 
+                            processor.time_from, 
+                            processor.time_till
+                        )
+                        
+                        if values and current_node.get('rules'):
+                            # 更新节点状态和描述
+                            processor._evaluate_child_rules(current_node, values)
+                            node_data.update({
+                                'node_status': current_node.get('node_status'),
+                                'description': current_node.get('description'),
+                                'value': current_node.get('metric_value'),
+                                'metric_extra_info': current_node.get('metric_extra_info')
+                            })
+                except Exception as e:
+                    logger.exception(f"获取监控指标失败: {str(e)}")
+                    node_data.update({
+                        'node_status': 'error',
+                        'description': f"获取监控数据失败: {str(e)}"
+                    })
+
+            # 发送当前节点数据
+            yield 'data: ' + json.dumps({
+                'type': 'node',
+                'data': node_data
+            }) + '\n\n'
+
+            time.sleep(0.1)
+
+            # 继续处理子节点
+            for child in node.get('children', []):
+                yield from traverse_tree(child)
+
+        # 2. 遍历树，遇到指标节点时获取监控数据
+        yield from traverse_tree(base_tree)
+
+        # 3. 发送完成消息
+        yield 'data: ' + json.dumps({
+            'type': 'complete',
+            'data': {
+                'message': '分析完成',
+                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+        }) + '\n\n'
+
+    except Exception as e:
+        logger.exception(f"生成故障树数据失败: {str(e)}")
+        yield 'data: ' + json.dumps({
+            'type': 'error',
+            'data': {
+                'message': f'处理出错: {str(e)}',
+                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+        }) + '\n\n'

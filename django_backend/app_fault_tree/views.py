@@ -5,7 +5,7 @@ from apps.utils import db_helper
 from django.db import transaction
 from datetime import datetime
 from .models import FaultTreeConfig, FaultTreeConfigHistory
-from .fault_tree_utils import FaultTreeProcessor
+from .fault_tree_utils import FaultTreeProcessor, generate_tree_data
 from .serializers import (
     FaultTreeConfigSerializer,
     FaultTreeConfigCreateSerializer,
@@ -30,7 +30,7 @@ class CreateFaultTreeConfig(BaseView):
             last_config = FaultTreeConfig.objects.order_by('-ft_id').first()
             new_ft_id = (last_config.ft_id + 1) if last_config else 1
             
-            # 将 ft_id 添��到请求数据中
+            # 将 ft_id 添加到请求数据中
             request_data = self.request_params.copy()
             request_data['ft_id'] = new_ft_id
             
@@ -278,7 +278,7 @@ class RollbackFaultTreeConfig(BaseView):
                 "message": "配置不存在"
             })
         except Exception as e:
-            logger.exception(f"回滚配置失��: {str(e)}")
+            logger.exception(f"回滚配置失败: {str(e)}")
             return self.my_response({
                 "status": "error",
                 "message": f"回滚失败：{str(e)}"
@@ -333,8 +333,7 @@ class DeleteFaultTreeHistory(BaseView):
 
 
 class GetFaultTreeData(BaseView):
-    """获取故障树分析数据"""
-
+    """获取故障树分析数据（支持阻塞模式和流式模式）"""
     def post(self, request):
         # 验证请求参数
         request_body = self.request_params
@@ -343,6 +342,7 @@ class GetFaultTreeData(BaseView):
             "fault_case": [Length(2, 120)],  # 场景名
             "time_from": [],  # 开始时间,格式如 2023-12-01 00:00:00,非必填
             "time_till": [],  # 结束时间,格式如 2023-12-01 00:00:05,非必填
+            "response_mode": [In(['stream', 'block'])]  # 响应模式：block为阻塞模式，stream为流式模式
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid:
@@ -352,55 +352,12 @@ class GetFaultTreeData(BaseView):
                 "code": status.HTTP_400_BAD_REQUEST
             })
 
-        # 获取请求参数
-        cluster_name = request_body.get('cluster_name')
-        fault_case = request_body.get('fault_case')
-        # 转换为时间戳
-        time_from = int(datetime.strptime(request_body.get('time_from'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_from') else None
-        time_till = int(datetime.strptime(request_body.get('time_till'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_till') else None
-
         try:
-            # 获取故障树配置
-            fault_tree = FaultTreeConfig.objects.filter(
-                ft_name=fault_case,
-                ft_status='active'
-            ).order_by('-version_num').first()
-
-            if not fault_tree:
-                return self.my_response({
-                    "status": "error",
-                    "message": f"未找到场景 '{fault_case}' 的故障树配置",
-                    "code": status.HTTP_404_NOT_FOUND
-                })
-
-            # 获取配置内容并处理
-            tree_data = FaultTreeConfigSerializer().get_content_json(fault_tree)
-            # 对初始化进行填充及处理
-            processor = FaultTreeProcessor()
-            processed_data = processor.process_tree(tree_data, cluster_name, time_from, time_till)
-
-            return self.my_response({
-                "status": "ok",
-                "message": "success",
-                "data": processed_data
-            })
-
-        except Exception as e:
-            return self.my_response({
-                "status": "error",
-                "message": f"获取故障树数据失败: {str(e)}",
-                "code": status.HTTP_500_INTERNAL_SERVER_ERROR
-            })
-
-
-class GetFaultTreeStreamData(BaseView):
-    """流式获取故障树分析数据"""
-
-    def post(self, request):
-        try:
-            request_body = self.request_params
+            # 获取请求参数
             cluster_name = request_body.get('cluster_name')
             fault_case = request_body.get('fault_case')
+            fault_case = request_body.get('fault_case')
+            response_mode = request_body.get('response_mode')
             
             # 获取故障树配置
             fault_tree = FaultTreeConfig.objects.filter(
@@ -415,131 +372,38 @@ class GetFaultTreeStreamData(BaseView):
                     "code": status.HTTP_404_NOT_FOUND
                 })
 
-            # 解析故障树配置内容
-            ft_content = json.loads(fault_tree.ft_content)
-            
-            response = StreamingHttpResponse(
-                self._generate_tree_data(ft_content, cluster_name, fault_case),
-                content_type='text/event-stream'
-            )
-            response['Cache-Control'] = 'no-cache'
-            response['X-Accel-Buffering'] = 'no'
-            return response
+            if response_mode == 'stream':
+                # 流式模式
+                ft_content = json.loads(fault_tree.ft_content)
+                response = StreamingHttpResponse(
+                    generate_tree_data(ft_content, cluster_name, fault_case),
+                    content_type='text/event-stream'
+                )
+                response['Cache-Control'] = 'no-cache'
+                response['X-Accel-Buffering'] = 'no'
+                return response
+            else:
+                # 普通模式
+                time_from = int(datetime.strptime(request_body.get('time_from'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_from') else None
+                time_till = int(datetime.strptime(request_body.get('time_till'), '%Y-%m-%d %H:%M:%S').timestamp()) if request_body.get('time_till') else None
+                
+                tree_data = FaultTreeConfigSerializer().get_content_json(fault_tree)
+                processor = FaultTreeProcessor()
+                processed_data = processor.process_tree(tree_data, cluster_name, time_from, time_till)
 
+                return self.my_response({
+                    "status": "ok",
+                    "message": "success",
+                    "data": processed_data
+                })
         except Exception as e:
-            logger.exception(f"流式获取故障树数据失败: {str(e)}")
+            logger.exception(error_msg)
             return self.my_response({
                 "status": "error",
-                "message": f"获取数据失败：{str(e)}",
+                "message": error_msg,
                 "code": status.HTTP_500_INTERNAL_SERVER_ERROR
             })
 
-    def _generate_tree_data(self, fault_tree_config, cluster_name, fault_case):
-        try:
-            # 初始化为流式模式，只生成树结构
-            processor = FaultTreeProcessor(stream_mode=True)
-            processor.cluster_info = processor._get_cluster_info(cluster_name)
-            base_tree = processor.process_tree(fault_tree_config, cluster_name)
-            
-            # 1. 发送开始消息
-            yield 'data: ' + json.dumps({
-                'type': 'start',
-                'data': {
-                    'message': f'开始分析 {cluster_name} 集群的 {fault_case} 场景',
-                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                }
-            }) + '\n\n'
-
-            time.sleep(0.1)
-
-            def traverse_tree(node):
-                """遍历树并处理节点"""
-                node_key = node.get('key')
-                current_node = node.copy()
-
-                # 构建基础节点数据
-                node_data = {
-                    'id': node_key,
-                    'name': current_node.get('name'),
-                    'parent_id': node_key.rsplit('->', 1)[0] if '->' in node_key else None,
-                    'type': 'custom-node',
-                    'metric_name': current_node.get('metric_name'),
-                    'description': current_node.get('description', ''),
-                    'node_type': current_node.get('node_type'),
-                    'node_status': current_node.get('node_status', 'info'),
-                    'instance_info': current_node.get('instance_info'),
-                    'ip_port': current_node.get('ip_port'),
-                    'data_source': current_node.get('data_source')
-                }
-
-                # 如果是指标节点，则获取监控数据
-                if ('data_source' in current_node and 
-                    'metric_name' in current_node and 
-                    current_node.get('ip_port')):
-                    try:
-                        logger.info(f"处理指标节点: {current_node.get('name')}, metric: {current_node.get('metric_name')}")
-                        handler = HandlerManager.init_metric_handlers(
-                            handler_name=current_node['data_source'].get('source', ''),
-                            handler_type='data'
-                        )
-                        
-                        if handler:
-                            values = handler(
-                                current_node['ip_port'], 
-                                current_node['metric_name'], 
-                                processor.time_from, 
-                                processor.time_till
-                            )
-                            
-                            if values and current_node.get('rules'):
-                                # 更新节点状态和描述
-                                processor._evaluate_child_rules(current_node, values)
-                                node_data.update({
-                                    'node_status': current_node.get('node_status'),
-                                    'description': current_node.get('description'),
-                                    'value': current_node.get('metric_value'),
-                                    'metric_extra_info': current_node.get('metric_extra_info')
-                                })
-                    except Exception as e:
-                        logger.exception(f"获取监控指标失败: {str(e)}")
-                        node_data.update({
-                            'node_status': 'error',
-                            'description': f"获取监控数据失败: {str(e)}"
-                        })
-
-                # 发送当前节点数据
-                yield 'data: ' + json.dumps({
-                    'type': 'node',
-                    'data': node_data
-                }) + '\n\n'
-
-                time.sleep(0.1)
-
-                # 继续处理子节点
-                for child in node.get('children', []):
-                    yield from traverse_tree(child)
-
-            # 2. 遍历树，遇到指标节点时获取监控数据
-            yield from traverse_tree(base_tree)
-
-            # 3. 发送完成消息
-            yield 'data: ' + json.dumps({
-                'type': 'complete',
-                'data': {
-                    'message': '分析完成',
-                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                }
-            }) + '\n\n'
-
-        except Exception as e:
-            logger.exception(f"生成故障树数据失败: {str(e)}")
-            yield 'data: ' + json.dumps({
-                'type': 'error',
-                'data': {
-                    'message': f'处理出错: {str(e)}',
-                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                }
-            }) + '\n\n'
 
 class GetMetricHistory(BaseView):
     """获取指标历史数据数据或日志"""
@@ -597,7 +461,7 @@ class AnalyzeRootCause(BaseView):
             fault_case = request_body.get('fault_case')
             tree_data = request_body.get('tree_data')
 
-            # 收集异常节点信息
+            # 收集异常点信息
             abnormal_nodes = self._collect_abnormal_nodes(tree_data)
             
             # 构建问上下文

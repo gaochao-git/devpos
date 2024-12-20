@@ -481,7 +481,8 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
         try {
             const params = {
                 fault_case: value,
-                cluster_name: currentCluster
+                cluster_name: currentCluster,
+                response_mode: enableStream ? 'stream' : 'block'
             };
 
             if (selectedTimeRange && selectedTimeRange[0] && selectedTimeRange[1]) {
@@ -493,10 +494,8 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
 
             if (enableStream) {
                 // 流式处理
-                await MyAxios.stream.fetch('/fault_tree/v1/get_fault_tree_stream_data/', params, {
-                    onData: (result) => {
-                        console.log('Received stream data:', result);
-                        
+                await MyAxios.stream.fetch('/fault_tree/v1/get_fault_tree_data/', params, {
+                    onData: (result) => {                        
                         if (result.type === 'node') {
                             setTreeData(prevTree => {
                                 const newNode = {

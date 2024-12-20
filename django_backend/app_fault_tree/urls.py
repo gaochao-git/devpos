@@ -12,7 +12,6 @@ from .views import (
     RollbackFaultTreeConfig,
     DeleteFaultTreeHistory,
     GetFaultTreeData,
-    GetFaultTreeStreamData,
     AnalyzeRootCause,
     GetMetricHistory
 )
@@ -34,7 +33,6 @@ urlpatterns = [
 
     # 获取故障树渲染数据
     path('v1/get_fault_tree_data/', GetFaultTreeData.as_view()),        # 获取故障树数据
-    path('v1/get_fault_tree_stream_data/', GetFaultTreeStreamData.as_view()),        # 流式获取故障树数据
     path('v1/analyze_root_cause/', AnalyzeRootCause.as_view()),         # 根因分析
     path('v1/get_metric_history/', GetMetricHistory.as_view()),             # 获取某个指标历史数据
 
