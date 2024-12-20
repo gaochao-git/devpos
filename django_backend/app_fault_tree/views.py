@@ -473,8 +473,11 @@ class GetFaultTreeStreamData(BaseView):
                     'metric_name': processed_node.get('metric_name'),
                     'description': processed_node.get('description', ''),
                     'node_type': processed_node.get('node_type'),
+                    'node_status': processed_node.get('node_status', 'info'),
                     'instance_info': None,
-                    'node_status': processed_node.get('node_status', 'info')
+                    'value': None,
+                    'metric_extra_info': None,
+                    'ip_port': None,
                 }
 
                 # Add instance info if available
@@ -487,10 +490,9 @@ class GetFaultTreeStreamData(BaseView):
 
                 # Add metric data if available
                 if processed_node.get('metric_name'):
-                    node_data.update({
-                        'value': processed_node.get('metric_value'),
-                        'metric_extra_info': processed_node.get('metric_extra_info', {})
-                    })
+                    node_data['value'] = processed_node.get('metric_value')
+                    node_data['metric_extra_info'] = processed_node.get('metric_extra_info', {})
+                    node_data['ip_port'] = processed_node.get('ip_port', {})
 
                 yield 'data: ' + json.dumps({
                     'type': 'node',
