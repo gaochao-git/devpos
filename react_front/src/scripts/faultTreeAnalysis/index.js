@@ -499,34 +499,9 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                         if (result.type === 'node') {
                             setTreeData(prevTree => {
                                 const newNode = {
-                                    key: result.data.id,
-                                    name: result.data.name,
-                                    title: result.data.name,
-                                    parent_id: result.data.parent_id,
-                                    type: 'custom-node',
-                                    metric_name: result.data.metric_name,
-                                    description: result.data.description || '',
-                                    node_status: result.data.node_status,  // 直接使用后端返回的状态
-                                    node_type: result.data.node_type,
-                                    ip_port: result.data.ip_port,
-                                    instance_info: result.data.instance_info,
-                                    value: result.data.value,  // 添加 metric 相关字段
-                                    metric_extra_info: result.data.metric_extra_info,  // 添加 metric 相关字段
-                                    children: [],
-                                    data_source: result.data.data_source,
+                                    ...result.data,
+                                    children: [],             // 添加空的 children 数组
                                 };
-
-                                // 如果有 metric 相关信息，添加规则
-                                if (result.data.metric_name) {
-                                    newNode.rules = [{
-                                        type: 'float',
-                                        condition: result.data.metric_extra_info?.rule_condition,
-                                        threshold: result.data.metric_extra_info?.rule_threshold,
-                                        status: result.data.node_status,
-                                        impact_analysis: result.data.metric_extra_info?.impact_analysis || '',
-                                        suggestion: result.data.metric_extra_info?.suggestion || ''
-                                    }];
-                                }
 
                                 if (!prevTree) {
                                     return !result.data.parent_id ? newNode : null;

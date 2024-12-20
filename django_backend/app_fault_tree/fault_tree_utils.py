@@ -479,8 +479,9 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
 
             # 构建基础节点数据
             node_data = {
-                'id': node_key,
+                'key': node_key,
                 'name': current_node.get('name'),
+                'title': current_node.get('title'),
                 'parent_id': node_key.rsplit('->', 1)[0] if '->' in node_key else None,
                 'type': 'custom-node',
                 'metric_name': current_node.get('metric_name'),
