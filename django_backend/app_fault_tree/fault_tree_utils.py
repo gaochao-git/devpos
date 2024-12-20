@@ -490,7 +490,8 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
                 'node_status': current_node.get('node_status', 'info'),
                 'instance_info': current_node.get('instance_info'),
                 'ip_port': current_node.get('ip_port'),
-                'data_source': current_node.get('data_source')
+                'data_source': current_node.get('data_source'),
+                'children': []
             }
 
             # 如果是指标节点，则获取监控数据

@@ -498,11 +498,8 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                     onData: (result) => {                        
                         if (result.type === 'node') {
                             setTreeData(prevTree => {
-                                const newNode = {
-                                    ...result.data,
-                                    children: [],             // 添加空的 children 数组
-                                };
-
+                                const newNode = {...result.data};
+   
                                 if (!prevTree) {
                                     return !result.data.parent_id ? newNode : null;
                                 }
