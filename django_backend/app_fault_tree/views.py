@@ -455,10 +455,10 @@ class GetFaultTreeStreamData(BaseView):
             time.sleep(0.1)
 
             def traverse_tree(node, parent_type=None):
-                """递归遍历树节点并生成数据流"""
+                """递归遍历树节点并生成数据流,从整个配置节点一层一层处理"""
                 # 使用 FaultTreeProcessor 处理节点
                 processed_node = processor._process_node(node.copy(), parent_type)
-                
+                print(processed_node)
                 # 处理根节点名称
                 if not processed_node.get('key').count('->'):
                     processed_node['name'] = cluster_name
