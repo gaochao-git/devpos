@@ -246,7 +246,7 @@ class GetFaultTreeHistoryDetail(BaseView):
             })
 
 class RollbackFaultTreeConfig(BaseView):
-    """���滚故障树配置到指定版本"""
+    """回滚故障树配置到指定版本"""
     def post(self, request):
         try:
             history_id = self.request_params.get('history_id')
@@ -278,7 +278,7 @@ class RollbackFaultTreeConfig(BaseView):
                 "message": "配置不存在"
             })
         except Exception as e:
-            logger.exception(f"回滚配置失败: {str(e)}")
+            logger.exception(f"回滚配置失��: {str(e)}")
             return self.my_response({
                 "status": "error",
                 "message": f"回滚失败：{str(e)}"
@@ -436,13 +436,10 @@ class GetFaultTreeStreamData(BaseView):
 
     def _generate_tree_data(self, fault_tree_config, cluster_name, fault_case):
         try:
-            processor = FaultTreeProcessor()
-            processed_nodes = set()
-            
+            # 初始化为流式模式，只生成树结构
+            processor = FaultTreeProcessor(stream_mode=True)
             processor.cluster_info = processor._get_cluster_info(cluster_name)
-            processor.time_from = None
-            processor.time_till = None
-            fault_tree_config['name'] = cluster_name
+            base_tree = processor.process_tree(fault_tree_config, cluster_name)
             
             # 1. 发送开始消息
             yield 'data: ' + json.dumps({
@@ -455,47 +452,62 @@ class GetFaultTreeStreamData(BaseView):
 
             time.sleep(0.1)
 
-            def traverse_tree(node, parent_type=None):
+            def traverse_tree(node):
+                """遍历树并处理节点"""
                 node_key = node.get('key')
-                if node_key in processed_nodes:
-                    return
-                processed_nodes.add(node_key)
+                current_node = node.copy()
 
-                # Process node
-                processed_node = processor._process_node(node.copy(), parent_type)
-                
-                # Create base node data
+                # 构建基础节点数据
                 node_data = {
-                    'id': processed_node.get('key'),
-                    'name': processed_node.get('name'),
-                    'parent_id': processed_node.get('key').rsplit('->', 1)[0] if '->' in processed_node.get('key') else None,
+                    'id': node_key,
+                    'name': current_node.get('name'),
+                    'parent_id': node_key.rsplit('->', 1)[0] if '->' in node_key else None,
                     'type': 'custom-node',
-                    'metric_name': processed_node.get('metric_name'),
-                    'description': processed_node.get('description', ''),
-                    'node_type': processed_node.get('node_type'),
-                    'node_status': processed_node.get('node_status', 'info'),
-                    'instance_info': None,
-                    'value': None,
-                    'metric_extra_info': None,
-                    'ip_port': None,
-                    'data_source': None,
+                    'metric_name': current_node.get('metric_name'),
+                    'description': current_node.get('description', ''),
+                    'node_type': current_node.get('node_type'),
+                    'node_status': current_node.get('node_status', 'info'),
+                    'instance_info': current_node.get('instance_info'),
+                    'ip_port': current_node.get('ip_port'),
+                    'data_source': current_node.get('data_source')
                 }
 
-                # Add instance info if available
-                node_type = processed_node.get('node_type')
-                if node_type in processor.cluster_info:
-                    role_info = processor.cluster_info[node_type].get(processed_node['name'])
-                    if role_info:
-                        node_data['instance_info'] = role_info
-                        node_data['description'] = f"{node_data['description'].split('[')[0].strip()} [{role_info['ip']}:{role_info['port']}]"
+                # 如果是指标节点，则获取监控数据
+                if ('data_source' in current_node and 
+                    'metric_name' in current_node and 
+                    current_node.get('ip_port')):
+                    try:
+                        logger.info(f"处理指标节点: {current_node.get('name')}, metric: {current_node.get('metric_name')}")
+                        handler = HandlerManager.init_metric_handlers(
+                            handler_name=current_node['data_source'].get('source', ''),
+                            handler_type='data'
+                        )
+                        
+                        if handler:
+                            values = handler(
+                                current_node['ip_port'], 
+                                current_node['metric_name'], 
+                                processor.time_from, 
+                                processor.time_till
+                            )
+                            
+                            if values and current_node.get('rules'):
+                                # 更新节点状态和描述
+                                processor._evaluate_child_rules(current_node, values)
+                                node_data.update({
+                                    'node_status': current_node.get('node_status'),
+                                    'description': current_node.get('description'),
+                                    'value': current_node.get('metric_value'),
+                                    'metric_extra_info': current_node.get('metric_extra_info')
+                                })
+                    except Exception as e:
+                        logger.exception(f"获取监控指标失败: {str(e)}")
+                        node_data.update({
+                            'node_status': 'error',
+                            'description': f"获取监控数据失败: {str(e)}"
+                        })
 
-                # Add metric data if available
-                if processed_node.get('metric_name'):
-                    node_data['value'] = processed_node.get('metric_value')
-                    node_data['metric_extra_info'] = processed_node.get('metric_extra_info', {})
-                    node_data['ip_port'] = processed_node.get('ip_port', {})
-                    node_data['data_source'] = processed_node.get('data_source', {})
-
+                # 发送当前节点数据
                 yield 'data: ' + json.dumps({
                     'type': 'node',
                     'data': node_data
@@ -503,12 +515,12 @@ class GetFaultTreeStreamData(BaseView):
 
                 time.sleep(0.1)
 
-                # Process children
-                for child in processed_node.get('children', []):
-                    yield from traverse_tree(child, processed_node.get('node_type'))
+                # 继续处理子节点
+                for child in node.get('children', []):
+                    yield from traverse_tree(child)
 
-            # 2. 开始遍历整个树
-            yield from traverse_tree(fault_tree_config)
+            # 2. 遍历树，遇到指标节点时获取监控数据
+            yield from traverse_tree(base_tree)
 
             # 3. 发送完成消息
             yield 'data: ' + json.dumps({

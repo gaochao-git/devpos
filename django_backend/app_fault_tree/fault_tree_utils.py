@@ -40,10 +40,16 @@ class FaultTreeProcessor:
         ('str', 'match'): lambda vs, t: next((v for v in vs if bool(re.compile(t).search(str(v.get('metric_value', ''))))), vs[0])
     }
 
-    def __init__(self):
+    def __init__(self, stream_mode=False):
+        """
+        初始化处理器
+        Args:
+            stream_mode: 是否为流式模式，True时只生成树结构，不调用监控接口
+        """
         self.cluster_info = None
         self.time_from = None
         self.time_till = None
+        self.stream_mode = stream_mode
 
     def process_tree(self, tree_data, cluster_name, time_from=None, time_till=None):
         """处理故障树数据的主入口方法"""
@@ -141,6 +147,13 @@ class FaultTreeProcessor:
         """处理监控指标信息"""
         if 'metric_name' not in node:
             return {}
+        
+        # 流式模式下，只添加基础信息，不调用监控接口
+        if self.stream_mode:
+            return {
+                'node_status': 'info',
+                'description': f"待获取指标: {node['metric_name']}"
+            }
         
         metric = {
             'source': node['data_source'].get('source', ''),
@@ -389,3 +402,39 @@ class FaultTreeProcessor:
         except (ValueError, TypeError):
             logger.exception(f"值转换失败: value={value}, threshold={threshold}, type={value_type}")
             return None
+
+    def process_node_metrics(self, node):
+        """
+        处理单个节点的监控数据
+        仅在非流式模式下调用监控接口
+        """
+        if not node.get('metric_name') or not node.get('ip_port'):
+            return node
+
+        try:
+            metric = {
+                'source': node['data_source'].get('source', ''),
+                'type': node['data_source'].get('type', ''),
+                'metric_name': node['metric_name'],
+                'rules': node.get('rules', [])
+            }
+            
+            handler = HandlerManager.init_metric_handlers(
+                handler_name=metric['source'],
+                handler_type='data'
+            )
+            
+            if not handler:
+                raise ValueError(f"Unsupported data source: {metric['source']}")
+            
+            values = handler(node['ip_port'], metric['metric_name'], self.time_from, self.time_till)
+            
+            if node.get('rules') and values:
+                self._evaluate_child_rules(node, values)
+                
+        except Exception as e:
+            logger.exception(f"处理指标{node['metric_name']}失败: {str(e)}")
+            node['node_status'] = 'error'
+            node['description'] = f"处理失败: {str(e)}"
+        
+        return node
