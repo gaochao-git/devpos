@@ -442,6 +442,7 @@ class GetFaultTreeStreamData(BaseView):
             processor.cluster_info = processor._get_cluster_info(cluster_name)
             processor.time_from = None  # 如果需要时间范围，可以从请求参数中获取
             processor.time_till = None
+            fault_tree_config['name'] = cluster_name
             
             # 1. 发送开始消息
             yield 'data: ' + json.dumps({
@@ -459,10 +460,6 @@ class GetFaultTreeStreamData(BaseView):
                 # 使用 FaultTreeProcessor 处理节点
                 processed_node = processor._process_node(node.copy(), parent_type)
                 print(processed_node)
-                # 处理根节点名称
-                if not processed_node.get('key').count('->'):
-                    processed_node['name'] = cluster_name
-                
                 # 处理角色节点的 IP 和端口信息
                 node_type = processed_node.get('node_type')
                 if node_type in processor.cluster_info:
@@ -512,7 +509,7 @@ class GetFaultTreeStreamData(BaseView):
                 # 3. 递归处理子节点
                 for child in processed_node.get('children', []):
                     yield from traverse_tree(child, processed_node.get('node_type'))
-
+            fault_tree_config
             # 开始遍历整个树
             yield from traverse_tree(fault_tree_config)
 
