@@ -474,7 +474,6 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
     };
 
     const handleCaseChange = async (value, selectedTimeRange = timeRange) => {
-        console.log('Changing fault case to:', value);
         setSelectedCase(value);
         setTreeData(null); // 重置树数据
 
@@ -489,8 +488,6 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                 params.time_from = selectedTimeRange[0].format('YYYY-MM-DD HH:mm:ss');
                 params.time_till = selectedTimeRange[1].format('YYYY-MM-DD HH:mm:ss');
             }
-
-            console.log('Sending request with params:', params);
 
             if (enableStream) {
                 // 流式处理
