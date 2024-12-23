@@ -591,6 +591,12 @@ const FaultTree = ({ data }) => {
           graph.layout();
         } else if (targetName.includes('history-btn')) {
           if (model.metric_extra_info) {
+            // 设置默认时间范围为最近15分钟
+            const newTimeRange = [
+              moment().subtract(15, 'minutes'),
+              moment()
+            ];
+            setTimeRange(newTimeRange);
             setDrawerType('monitor');
             setSelectedNode(model);
             setDrawerVisible(true);
@@ -598,6 +604,12 @@ const FaultTree = ({ data }) => {
           }
         } else if (targetName.includes('log-btn')) {
           if (model.metric_extra_info) {
+            // 设置默认时间范围为最近15分钟
+            const newTimeRange = [
+              moment().subtract(15, 'minutes'),
+              moment()
+            ];
+            setTimeRange(newTimeRange);
             setDrawerType('logs');
             setSelectedNode(model);
             setDrawerVisible(true);
