@@ -150,12 +150,16 @@ const FaultTree = ({ data }) => {
   const handleTimeRangeChange = (dates) => {
     if (dates && dates.length === 2) {
       setTimeRange(dates);
-      if (selectedNode) {
-        if (drawerType === 'monitor') {
-          handleGetHistoryData(selectedNode, dates[0], dates[1]);
-        } else {
-          handleGetLogs(selectedNode, dates[0], dates[1]);
-        }
+    }
+  };
+
+  const handleGetHistoryMetric = () => {
+    if (selectedNode) {
+      if (drawerType === 'monitor') {   
+        handleGetHistoryData(selectedNode, timeRange[0], timeRange[1]);
+      } else {
+        handleGetLogs(selectedNode, timeRange[0], timeRange[1]);
+        
       }
     }
   };
@@ -591,12 +595,6 @@ const FaultTree = ({ data }) => {
           graph.layout();
         } else if (targetName.includes('history-btn')) {
           if (model.metric_extra_info) {
-            // 设置默认时间范围为最近15分钟
-            const newTimeRange = [
-              moment().subtract(15, 'minutes'),
-              moment()
-            ];
-            setTimeRange(newTimeRange);
             setDrawerType('monitor');
             setSelectedNode(model);
             setDrawerVisible(true);
@@ -604,12 +602,7 @@ const FaultTree = ({ data }) => {
           }
         } else if (targetName.includes('log-btn')) {
           if (model.metric_extra_info) {
-            // 设置默认时间范围为最近15分钟
-            const newTimeRange = [
-              moment().subtract(15, 'minutes'),
-              moment()
-            ];
-            setTimeRange(newTimeRange);
+
             setDrawerType('logs');
             setSelectedNode(model);
             setDrawerVisible(true);
@@ -809,6 +802,7 @@ const FaultTree = ({ data }) => {
                     '最近7天': [moment().subtract(7, 'days'), moment()],
                   }}
                 />
+                <Button type="primary" onClick={handleGetHistoryMetric}>获取数据</Button>
               </div>
               <Spin spinning={loading}>
                 <div style={{ width: '100%', height: 280 }}>
