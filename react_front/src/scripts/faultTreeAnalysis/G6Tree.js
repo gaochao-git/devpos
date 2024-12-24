@@ -141,7 +141,10 @@ const FaultTree = ({ data, initialTimeRange }) => {
   };
 
 
-  const handleGetHistoryMetric = () => {
+  const handleGetHistoryMetric = (dates) => {
+    if (dates && dates.length === 2) {
+      timeRangeRef.current = dates;
+    }
     if (selectedNode) {
       if (drawerType === 'monitor') {   
         handleGetHistoryData(selectedNode);
