@@ -789,7 +789,7 @@ const FaultTree = ({ data, initialTimeRange }) => {
                 <h4>节点：{selectedNode.key}</h4>
                 <RangePicker
                   showTime
-                  value={timeRangeRef.current}
+                  defaultValue={timeRangeRef.current}
                   onChange={handleTimeRangeChange}
                   onOk={handleGetHistoryMetric}
                   ranges={{
