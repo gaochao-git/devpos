@@ -576,7 +576,7 @@ const FaultTree = ({ data }) => {
         animate: true,
       });
 
-      // 使用你原有的事件处理代码，但添加历史监控功能
+      // 使用你原有的事件处理代码，但添加历史监控功���
       graph.on('node:click', (evt) => {
         const { item, target } = evt;
         const targetName = target.get('name');
@@ -786,6 +786,7 @@ const FaultTree = ({ data }) => {
                   showTime
                   value={timeRangeRef.current}
                   onChange={handleTimeRangeChange}
+                  onOk={handleGetHistoryMetric}
                   ranges={{
                     '最近1分钟': [moment().subtract(1, 'minutes'), moment()],
                     '最近5分钟': [moment().subtract(5, 'minutes'), moment()],
@@ -796,7 +797,6 @@ const FaultTree = ({ data }) => {
                     '最近7天': [moment().subtract(7, 'days'), moment()],
                   }}
                 />
-                <Button type="primary" onClick={handleGetHistoryMetric}>获取数据</Button>
               </div>
               <Spin spinning={loading}>
                 <div style={{ width: '100%', height: 280 }}>
