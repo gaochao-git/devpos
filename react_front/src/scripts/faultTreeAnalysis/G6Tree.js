@@ -12,12 +12,7 @@ const { TextArea, Search } = Input;
 const FaultTree = ({ data, initialTimeRange }) => {
   const ref = useRef(null);
   const graphRef = useRef(null);
-  const timeRangeRef = useRef(
-    initialTimeRange || [
-      moment().subtract(15, 'minutes'),
-      moment()
-    ]
-  );
+  const timeRangeRef = useRef(initialTimeRange || [moment().subtract(15, 'minutes'), moment()]);
   const mountedRef = useRef(true);
   const textAreaRef = useRef(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -145,12 +140,6 @@ const FaultTree = ({ data, initialTimeRange }) => {
     }
   };
 
-  // 时间范围变化处理
-  const handleTimeRangeChange = (dates) => {
-    if (dates && dates.length === 2) {
-      timeRangeRef.current = dates;  // 更新持久化的时间
-    }
-  };
 
   const handleGetHistoryMetric = () => {
     if (selectedNode) {
@@ -790,7 +779,6 @@ const FaultTree = ({ data, initialTimeRange }) => {
                 <RangePicker
                   showTime
                   defaultValue={timeRangeRef.current}
-                  onChange={handleTimeRangeChange}
                   onOk={handleGetHistoryMetric}
                   ranges={{
                     '最近1分钟': [moment().subtract(1, 'minutes'), moment()],
