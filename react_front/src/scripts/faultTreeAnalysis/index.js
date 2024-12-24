@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Layout, Card, message, Button, Select, DatePicker, Radio, Modal, Icon, Tooltip, Switch } from 'antd';
 import moment from 'moment';
 import MyAxios from "../common/interface"
@@ -441,6 +441,7 @@ const StatBox = ({ title, stats }) => (
 );
 
 const FaultTreeAnalysis = ({ cluster_name }) => {
+    const persistTimeRange = useRef(null);
     const [treeData, setTreeData] = useState(null);
     const [selectedCase, setSelectedCase] = useState('选择场景');
     const [currentCluster, setCurrentCluster] = useState(cluster_name);
@@ -487,6 +488,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
             if (selectedTimeRange && selectedTimeRange[0] && selectedTimeRange[1]) {
                 params.time_from = selectedTimeRange[0].format('YYYY-MM-DD HH:mm:ss');
                 params.time_till = selectedTimeRange[1].format('YYYY-MM-DD HH:mm:ss');
+                persistTimeRange.current = selectedTimeRange;
             }
 
             if (enableStream) {
