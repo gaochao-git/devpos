@@ -14,10 +14,11 @@ const FaultTree = ({ data }) => {
   const graphRef = useRef(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
-  const [timeRange, setTimeRange] = useState([
+  const persistTimeRange = useRef([
     moment().subtract(15, 'minutes'),
     moment()
   ]);
+  const [timeRange, setTimeRange] = useState(persistTimeRange.current);
   const [chartData, setChartData] = useState({unit: '', data: []});
   const [loading, setLoading] = useState(false);
   const [isDataReady, setIsDataReady] = useState(false);
@@ -75,14 +76,14 @@ const FaultTree = ({ data }) => {
 
 
   // 获取历史监控数据
-  const handleGetHistoryData = async (nodeInfo, startTime, endTime) => {
+  const handleGetHistoryData = async (nodeInfo, currentTimeRange) => {
     setLoading(true);
-    setChartData({unit: '', data: []});  // 初始化为正确的格式
+    setChartData({unit: '', data: []});
 
     try {
       const params = {
-        "time_from": moment(startTime).format('YYYY-MM-DD HH:mm:ss'),
-        "time_till": moment(endTime).format('YYYY-MM-DD HH:mm:ss'),
+        "time_from": currentTimeRange[0].format('YYYY-MM-DD HH:mm:ss'),
+        "time_till": currentTimeRange[1].format('YYYY-MM-DD HH:mm:ss'),
         "node_info": nodeInfo,
         "get_type": "data"
       }
@@ -149,6 +150,7 @@ const FaultTree = ({ data }) => {
   // 时间范围变化处理
   const handleTimeRangeChange = (dates) => {
     if (dates && dates.length === 2) {
+      persistTimeRange.current = dates;  // 更新持久化的时间
       setTimeRange(dates);
     }
   };
@@ -156,7 +158,7 @@ const FaultTree = ({ data }) => {
   const handleGetHistoryMetric = () => {
     if (selectedNode) {
       if (drawerType === 'monitor') {   
-        handleGetHistoryData(selectedNode, timeRange[0], timeRange[1]);
+        handleGetHistoryData(selectedNode, persistTimeRange.current);
       } else {
         handleGetLogs(selectedNode, timeRange[0], timeRange[1]);
         
@@ -598,7 +600,7 @@ const FaultTree = ({ data }) => {
             setDrawerType('monitor');
             setSelectedNode(model);
             setDrawerVisible(true);
-            handleGetHistoryData(model, timeRange[0], timeRange[1]);
+            handleGetHistoryData(model, persistTimeRange.current);
           }
         } else if (targetName.includes('log-btn')) {
           if (model.metric_extra_info) {
