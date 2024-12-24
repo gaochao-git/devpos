@@ -12,23 +12,19 @@ const { TextArea, Search } = Input;
 const FaultTree = ({ data }) => {
   const ref = useRef(null);
   const graphRef = useRef(null);
+  const timeRangeRef = useRef([moment().subtract(15, 'minutes'),moment()]);
+  const mountedRef = useRef(true);
+  const textAreaRef = useRef(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
-  // 持久化时间范围，默认15分钟，采用ref来保存，useState初始化的每次点击节点指标时，会重新读取第一次初始化时间，无法保留时间窗口修改的值
-  const persistTimeRange = useRef([moment().subtract(15, 'minutes'),moment()]);
   const [chartData, setChartData] = useState({unit: '', data: []});
   const [loading, setLoading] = useState(false);
   const [isDataReady, setIsDataReady] = useState(false);
-  const mountedRef = useRef(true);
   const [drawerType, setDrawerType] = useState(null); // 'monitor' 或 'logs'
   const [logData, setLogData] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [currentResultIndex, setCurrentResultIndex] = useState(-1);
-  const textAreaRef = useRef(null);
-  const [graph, setGraph] = useState(null);
-  const treeDataRef = useRef({ nodes: [], edges: [] });  // 添加树数据引用
-  const prevDataRef = useRef(null);  // 添加前一次数据的引用
 
   // 组件卸载时清理
   useEffect(() => {
@@ -79,8 +75,8 @@ const FaultTree = ({ data }) => {
 
     try {
       const params = {
-        "time_from": persistTimeRange.current[0].format('YYYY-MM-DD HH:mm:ss'),
-        "time_till": persistTimeRange.current[1].format('YYYY-MM-DD HH:mm:ss'),
+        "time_from": timeRangeRef.current[0].format('YYYY-MM-DD HH:mm:ss'),
+        "time_till": timeRangeRef.current[1].format('YYYY-MM-DD HH:mm:ss'),
         "node_info": nodeInfo,
         "get_type": "data"
       }
@@ -121,8 +117,8 @@ const FaultTree = ({ data }) => {
     try {
       // 模拟API调用延
       const params = {
-        "time_from": persistTimeRange.current[0].format('YYYY-MM-DD HH:mm:ss'),
-        "time_till": persistTimeRange.current[1].format('YYYY-MM-DD HH:mm:ss'),
+        "time_from": timeRangeRef.current[0].format('YYYY-MM-DD HH:mm:ss'),
+        "time_till": timeRangeRef.current[1].format('YYYY-MM-DD HH:mm:ss'),
         "node_info": nodeInfo,
         "get_type": "log"
       }
@@ -147,7 +143,7 @@ const FaultTree = ({ data }) => {
   // 时间范围变化处理
   const handleTimeRangeChange = (dates) => {
     if (dates && dates.length === 2) {
-      persistTimeRange.current = dates;  // 更新持久化的时间
+      timeRangeRef.current = dates;  // 更新持久化的时间
     }
   };
 
@@ -788,7 +784,7 @@ const FaultTree = ({ data }) => {
                 <h4>节点：{selectedNode.key}</h4>
                 <RangePicker
                   showTime
-                  value={persistTimeRange.current}
+                  value={timeRangeRef.current}
                   onChange={handleTimeRangeChange}
                   ranges={{
                     '最近1分钟': [moment().subtract(1, 'minutes'), moment()],
