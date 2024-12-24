@@ -14,11 +14,8 @@ const FaultTree = ({ data }) => {
   const graphRef = useRef(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
-  const persistTimeRange = useRef([
-    moment().subtract(15, 'minutes'),
-    moment()
-  ]);
-  const [timeRange, setTimeRange] = useState(persistTimeRange.current);
+  // 持久化时间范围，默认15分钟，采用ref来保存，useState初始化的每次点击节点指标时，会重新读取第一次初始化时间，无法保留时间窗口修改的值
+  const persistTimeRange = useRef([moment().subtract(15, 'minutes'),moment()]);
   const [chartData, setChartData] = useState({unit: '', data: []});
   const [loading, setLoading] = useState(false);
   const [isDataReady, setIsDataReady] = useState(false);
@@ -76,14 +73,14 @@ const FaultTree = ({ data }) => {
 
 
   // 获取历史监控数据
-  const handleGetHistoryData = async (nodeInfo, currentTimeRange) => {
+  const handleGetHistoryData = async (nodeInfo) => {
     setLoading(true);
     setChartData({unit: '', data: []});
 
     try {
       const params = {
-        "time_from": currentTimeRange[0].format('YYYY-MM-DD HH:mm:ss'),
-        "time_till": currentTimeRange[1].format('YYYY-MM-DD HH:mm:ss'),
+        "time_from": persistTimeRange.current[0].format('YYYY-MM-DD HH:mm:ss'),
+        "time_till": persistTimeRange.current[1].format('YYYY-MM-DD HH:mm:ss'),
         "node_info": nodeInfo,
         "get_type": "data"
       }
@@ -118,14 +115,14 @@ const FaultTree = ({ data }) => {
   };
 
   // 修改日志数据处理方法
-  const handleGetLogs = async (nodeInfo, startTime, endTime) => {
+  const handleGetLogs = async (nodeInfo) => {
     setLoading(true);
     setLogData('');
     try {
       // 模拟API调用延
       const params = {
-        "time_from": moment(startTime).format('YYYY-MM-DD HH:mm:ss'),
-        "time_till": moment(endTime).format('YYYY-MM-DD HH:mm:ss'),
+        "time_from": persistTimeRange.current[0].format('YYYY-MM-DD HH:mm:ss'),
+        "time_till": persistTimeRange.current[1].format('YYYY-MM-DD HH:mm:ss'),
         "node_info": nodeInfo,
         "get_type": "log"
       }
@@ -151,16 +148,15 @@ const FaultTree = ({ data }) => {
   const handleTimeRangeChange = (dates) => {
     if (dates && dates.length === 2) {
       persistTimeRange.current = dates;  // 更新持久化的时间
-      setTimeRange(dates);
     }
   };
 
   const handleGetHistoryMetric = () => {
     if (selectedNode) {
       if (drawerType === 'monitor') {   
-        handleGetHistoryData(selectedNode, persistTimeRange.current);
+        handleGetHistoryData(selectedNode);
       } else {
-        handleGetLogs(selectedNode, timeRange[0], timeRange[1]);
+        handleGetLogs(selectedNode);
         
       }
     }
@@ -600,7 +596,7 @@ const FaultTree = ({ data }) => {
             setDrawerType('monitor');
             setSelectedNode(model);
             setDrawerVisible(true);
-            handleGetHistoryData(model, persistTimeRange.current);
+            handleGetHistoryData(model);
           }
         } else if (targetName.includes('log-btn')) {
           if (model.metric_extra_info) {
@@ -608,7 +604,7 @@ const FaultTree = ({ data }) => {
             setDrawerType('logs');
             setSelectedNode(model);
             setDrawerVisible(true);
-            handleGetLogs(model, timeRange[0], timeRange[1]);
+            handleGetLogs(model);
           }
         }
       });
@@ -792,7 +788,7 @@ const FaultTree = ({ data }) => {
                 <h4>节点：{selectedNode.key}</h4>
                 <RangePicker
                   showTime
-                  value={timeRange}
+                  value={persistTimeRange.current}
                   onChange={handleTimeRangeChange}
                   ranges={{
                     '最近1分钟': [moment().subtract(1, 'minutes'), moment()],
