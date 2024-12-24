@@ -816,7 +816,12 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                         padding: '24px',
                         minHeight: 'calc(100vh - 280px)',
                     }}>
-                        {treeData && <G6Tree data={treeData} />}
+                        {treeData && (
+                            <G6Tree 
+                                data={treeData} 
+                                initialTimeRange={timeRange}
+                            />
+                        )}
                     </div>
                 </Card>
 

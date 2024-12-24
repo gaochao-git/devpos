@@ -9,10 +9,15 @@ import MyAxios from "../common/interface"
 const { RangePicker } = DatePicker;
 const { TextArea, Search } = Input;
 
-const FaultTree = ({ data }) => {
+const FaultTree = ({ data, initialTimeRange }) => {
   const ref = useRef(null);
   const graphRef = useRef(null);
-  const timeRangeRef = useRef([moment().subtract(15, 'minutes'),moment()]);
+  const timeRangeRef = useRef(
+    initialTimeRange || [
+      moment().subtract(15, 'minutes'),
+      moment()
+    ]
+  );
   const mountedRef = useRef(true);
   const textAreaRef = useRef(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -576,7 +581,7 @@ const FaultTree = ({ data }) => {
         animate: true,
       });
 
-      // 使用你原有的事件处理代码，但添加历史监控功���
+      // 使用你原有的事件处理代码，但添加历史监控功能
       graph.on('node:click', (evt) => {
         const { item, target } = evt;
         const targetName = target.get('name');
