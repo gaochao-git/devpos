@@ -152,7 +152,7 @@ class FaultTreeProcessor:
         if 'metric_name' not in node:
             return {}
         
-        # 流���模式下，只添加基础信息，不调用监控接口
+        # 流式模式下，只添加基础信息，不调用监控接口
         if self.stream_mode:
             return {
                 'node_status': 'info',
@@ -324,16 +324,32 @@ class FaultTreeProcessor:
         highest_severity = 'info'
 
         for rule in rules:
-            metric_type = rule.get('metric_type', 'numeric')
-            condition = rule.get('condition', '')
-            threshold = rule.get('threshold', '0')
+            rule_type = rule.get('ruleType', 'threshold')  # 新增：获取规则类型
             rule_severity = rule.get('status', 'info')
 
-            strategy = self.history_comparison_strategy.get((metric_type, condition))
-            if not strategy:
-                continue
-
             try:
+                if rule_type == 'rate':  # 新增：处理变化率规则
+                    is_triggered, rate = self._evaluate_rate_change(values, rule)
+                    if is_triggered and self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
+                        highest_severity = rule_severity
+                        most_severe_value = values[-1].copy()  # 使用最新的值作为基础
+                        most_severe_value.update({
+                            'metric_value': f"{rate:.2f}",
+                            'metric_units': '%',
+                            'severity': rule_severity,
+                            'triggered_rule': rule
+                        })
+                    continue
+
+                # 原有的阈值处理逻辑保持不变
+                metric_type = rule.get('metric_type', 'numeric')
+                condition = rule.get('condition', '')
+                threshold = rule.get('threshold', '0')
+                
+                strategy = self.history_comparison_strategy.get((metric_type, condition))
+                if not strategy:
+                    continue
+
                 # 对于需要特殊参数的策略，统一处理
                 if condition in ['==', '!=', 'in', 'not in', 'match']:
                     current_value = strategy(values, threshold)
@@ -349,6 +365,8 @@ class FaultTreeProcessor:
                     if self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
                         highest_severity = rule_severity
                         most_severe_value = current_value
+                        most_severe_value['severity'] = rule_severity
+                        most_severe_value['triggered_rule'] = rule
 
             except Exception as e:
                 logger.exception(f"处理历史异常值失败: {str(e)}")
@@ -531,7 +549,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
             node_key = node.get('key')
             current_node = node.copy()
 
-            # 构建基础节点数据
+            # 构建基础���点数据
             node_data = {
                 'key': node_key,
                 'name': current_node.get('name'),
