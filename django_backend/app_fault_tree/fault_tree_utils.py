@@ -240,7 +240,7 @@ class FaultTreeProcessor:
                 data = child_values[0]
             else:
                 data = self._get_history_abnormal_value(child_values, rules)   # 历史数据获取异常点
-
+            print(888888,data)
             metric_value = data.get('metric_value', '0')
             metric_time = data.get('metric_time', '-')
             metric_units = data.get('metric_units', '')
@@ -327,19 +327,26 @@ class FaultTreeProcessor:
         for rule in rules:
             rule_type = rule.get('ruleType', 'threshold')  # 新增：获取规则类型
             rule_severity = rule.get('status', 'info')
-
             try:
                 if rule_type == 'rate':  # 新增：处理变化率规则
-                    is_triggered, rate = self._evaluate_rate_change(values, rule)
+                    most_severe_value.update({'is_rate_change': True})
+                    is_triggered, rate_info = self._evaluate_rate_change(values, rule)
+                    print(99999,is_triggered, rate_info)
                     if is_triggered and self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
                         highest_severity = rule_severity
                         most_severe_value = values[-1].copy()
                         most_severe_value.update({
-                            'metric_value': f"{rate:.2f}",
+                            'metric_value': f"{rate_info['rate']:.2f}",
                             'metric_units': '%',
                             'severity': rule_severity,
                             'triggered_rule': rule,
-                            'is_rate_change': True  # 仅添加这个标记
+                            'rate_change_details': {
+                                'start_time': rate_info['start_time'],
+                                'end_time': rate_info['end_time'],
+                                'start_value': f"{rate_info['start_value']:.2f}",
+                                'end_value': f"{rate_info['end_value']:.2f}",
+                                'time_window': rule.get('timeWindow', '5min')
+                            }
                         })
                     continue
 
@@ -373,7 +380,6 @@ class FaultTreeProcessor:
             except Exception as e:
                 logger.exception(f"处理历史异常值失败: {str(e)}")
                 continue
-
         return most_severe_value
 
     def _format_metric_value(self, value, units):
@@ -476,12 +482,11 @@ class FaultTreeProcessor:
 
     def _evaluate_rate_change(self, values, rule):
         """评估指标变化率
-        时间窗口处理：
-        1. 按时间窗口分组，如5分钟一组
-        2. 每组取第一个点和最后一个点计算变化率
+        Returns:
+            (bool, dict): (是否触发规则, 包含变化率和时间点信息的字典)
         """
         if len(values) < 2:
-            return False, 0
+            return False, {'rate': 0}
         
         time_window = rule.get('timeWindow', '5min')
         window_seconds = self._get_time_window_seconds(time_window)
@@ -490,47 +495,40 @@ class FaultTreeProcessor:
         compare_func = self.value_comparison_operators.get(condition)
         
         if not compare_func:
-            return False, 0
+            return False, {'rate': 0}
 
-        max_rate_change = 0
+        max_rate_info = {
+            'rate': 0,
+            'start_time': values[0].get('metric_time'),
+            'end_time': values[0].get('metric_time'),
+            'start_value': float(values[0].get('metric_value', 0)),
+            'end_value': float(values[0].get('metric_value', 0))
+        }
         
         try:
-            # 获取整个时间范围的起止时间
             first_time = datetime.strptime(values[0].get('metric_time'), '%Y-%m-%d %H:%M:%S')
             last_time = datetime.strptime(values[-1].get('metric_time'), '%Y-%m-%d %H:%M:%S')
             total_seconds = (last_time - first_time).total_seconds()
-            
-            # 计算需要分成几个时间窗口
             window_count = int(total_seconds / window_seconds) + 1
             
-            # 遍历每个时间窗口
             for i in range(window_count):
                 window_start_time = first_time + timedelta(seconds=i * window_seconds)
                 window_end_time = window_start_time + timedelta(seconds=window_seconds)
                 
-                # 找到该时间窗口的第一个点
-                start_point = None
+                # 找到该时间窗口内的所有点
+                window_points = []
                 for point in values:
                     point_time = datetime.strptime(point.get('metric_time'), '%Y-%m-%d %H:%M:%S')
                     if window_start_time <= point_time < window_end_time:
-                        start_point = point
-                        break
+                        window_points.append(point)
                 
-                if not start_point:
-                    continue
-                    
-                # 找到该时间窗口的最后一个点
-                end_point = None
-                for point in reversed(values):
-                    point_time = datetime.strptime(point.get('metric_time'), '%Y-%m-%d %H:%M:%S')
-                    if window_start_time <= point_time < window_end_time:
-                        end_point = point
-                        break
-                
-                if not end_point or end_point == start_point:
+                if len(window_points) < 2:
                     continue
                 
-                # 计算变化率
+                # 确保使用时间顺序的第一个和最后一个点
+                start_point = window_points[0]
+                end_point = window_points[-1]
+                
                 start_value = float(start_point.get('metric_value', 0))
                 end_value = float(end_point.get('metric_value', 0))
                 
@@ -539,19 +537,31 @@ class FaultTreeProcessor:
                     
                 rate_change = ((end_value - start_value) / start_value) * 100
                 
-                # 更新最大变化率
-                if abs(rate_change) > abs(max_rate_change):
-                    max_rate_change = rate_change
+                # 更新最大变化率信息
+                if abs(rate_change) > abs(max_rate_info['rate']):
+                    max_rate_info = {
+                        'rate': rate_change,
+                        'start_time': start_point.get('metric_time'),
+                        'end_time': end_point.get('metric_time'),
+                        'start_value': start_value,
+                        'end_value': end_value
+                    }
                 
                 # 检查是否触发规则
                 if compare_func(rate_change, threshold):
-                    return True, rate_change
+                    return True, {
+                        'rate': rate_change,
+                        'start_time': start_point.get('metric_time'),
+                        'end_time': end_point.get('metric_time'),
+                        'start_value': start_value,
+                        'end_value': end_value
+                    }
                 
         except (ValueError, TypeError) as e:
             logger.warning(f"处理数据点时出错: {str(e)}")
-            return False, 0
+            return False, max_rate_info
 
-        return False, max_rate_change
+        return False, max_rate_info
 
 def generate_tree_data(fault_tree_config, cluster_name, fault_case):
     """
@@ -587,7 +597,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
             node_key = node.get('key')
             current_node = node.copy()
 
-            # 构建基础点数据
+            # 构建基础点���据
             node_data = {
                 'key': node_key,
                 'name': current_node.get('name'),
