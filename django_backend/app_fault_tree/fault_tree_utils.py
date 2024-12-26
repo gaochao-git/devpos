@@ -267,7 +267,7 @@ class FaultTreeProcessor:
                 metric_extra_info['rule_condition_format_human'] = f"{formant_metric_value_units_human} {condition} {formant_threshold_value_units_human}"
             node['metric_extra_info'] = metric_extra_info
             node['description'] = f"{metric_value}{metric_units}({formant_metric_value_units_human})"
-            # 更新节点状态
+            # 更新节点状���
             if self._get_severity_level(rule_severity) > self._get_severity_level(node.get('node_status', 'info')):
                 node['node_status'] = rule_severity
                 node['metric_value'] = metric_value
@@ -317,11 +317,15 @@ class FaultTreeProcessor:
     def _get_history_abnormal_value(self, values, rules):
         """根据规则获取异常值
         Returns:
-            dict: 包含 is_rate_change 的异常值信息
+            dict: 统一的返回结构，包含所有必要字段
         """
         # 只做一次 copy
         result = values[0].copy()
-        result['is_rate_change'] = False
+        result.update({
+            'is_rate_change': False,
+            'severity': 'info',
+            'triggered_rule': None
+        })
         
         if not rules or not values:
             return result
@@ -334,17 +338,26 @@ class FaultTreeProcessor:
 
             try:
                 if rule_type == 'rate':
-                    # 只需要标记为变化率类型
                     result['is_rate_change'] = True
                     
                     is_triggered, rate_info = self._evaluate_rate_change(values, rule)
                     if is_triggered and self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
                         highest_severity = rule_severity
                         result.update({
+                            'metric_name': rule.get('metric', ''),
                             'metric_value': f"{rate_info['rate']:.2f}",
                             'metric_units': '%',
+                            'metric_type': 'float',
+                            'metric_time': rate_info['next_time'],
                             'severity': rule_severity,
-                            'triggered_rule': rule,
+                            'triggered_rule': {
+                                'type': 'float',
+                                'condition': rule.get('condition', ''),
+                                'threshold': rule.get('threshold', ''),
+                                'status': rule_severity,
+                                'impact_analysis': rule.get('impact_analysis', ''),
+                                'suggestion': rule.get('suggestion', '')
+                            },
                             'rate_change_details': {
                                 'prev_time': rate_info['prev_time'],
                                 'next_time': rate_info['next_time'],
@@ -354,8 +367,7 @@ class FaultTreeProcessor:
                             }
                         })
                     continue
-                
-                # 原有的阈值处理逻辑保持不变
+
                 metric_type = rule.get('metric_type', 'numeric')
                 condition = rule.get('condition', '')
                 threshold = rule.get('threshold', '0')
@@ -364,27 +376,31 @@ class FaultTreeProcessor:
                 if not strategy:
                     continue
 
-                # 对于需要特殊参数的策略，统一处理
                 if condition in ['==', '!=', 'in', 'not in', 'match']:
                     current_value = strategy(values, threshold)
                 else:
                     current_value = strategy(values)
 
-                # 检查该值是否触发规则
-                if self._compare_values(
-                    current_value.get('metric_value', '0'),
-                    threshold,
-                    condition
-                ):
+                if self._compare_values(current_value.get('metric_value', '0'),threshold,condition):
                     if self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
                         highest_severity = rule_severity
-                        result = current_value
-                        result['severity'] = rule_severity
-                        result['triggered_rule'] = rule
+                        result.update(current_value)
+                        result.update({
+                            'severity': rule_severity,
+                            'triggered_rule': {
+                                'type': metric_type,
+                                'condition': condition,
+                                'threshold': threshold,
+                                'status': rule_severity,
+                                'impact_analysis': rule.get('impact_analysis', ''),
+                                'suggestion': rule.get('suggestion', '')
+                            }
+                        })
 
             except Exception as e:
-                logger.exception(f"处理历史异常值失败: {str(e)}")
+                logger.warning(f"处理历史异常值失败: {str(e)}")
                 continue
+
         return result
 
     def _format_metric_value(self, value, units):
