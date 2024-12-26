@@ -152,7 +152,7 @@ class FaultTreeProcessor:
         if 'metric_name' not in node:
             return {}
         
-        # 流式模式下，只添加基础信息，不调用监控接口
+        # 流���模式下，只添加基础信息，不调用监控接口
         if self.stream_mode:
             return {
                 'node_status': 'info',
@@ -332,12 +332,13 @@ class FaultTreeProcessor:
                     is_triggered, rate = self._evaluate_rate_change(values, rule)
                     if is_triggered and self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
                         highest_severity = rule_severity
-                        most_severe_value = values[-1].copy()  # 使用最新的值作为基础
+                        most_severe_value = values[-1].copy()
                         most_severe_value.update({
                             'metric_value': f"{rate:.2f}",
                             'metric_units': '%',
                             'severity': rule_severity,
-                            'triggered_rule': rule
+                            'triggered_rule': rule,
+                            'is_rate_change': True  # 仅添加这个标记
                         })
                     continue
 
@@ -549,7 +550,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
             node_key = node.get('key')
             current_node = node.copy()
 
-            # 构建基础���点数据
+            # 构建基础点数据
             node_data = {
                 'key': node_key,
                 'name': current_node.get('name'),
@@ -601,7 +602,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
                         'description': f"获取监控数据失败: {str(e)}"
                     })
 
-            # 发送当前节点数据
+            # 发送���前节点数据
             yield 'data: ' + json.dumps({
                 'type': 'node',
                 'data': node_data

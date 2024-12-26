@@ -465,9 +465,13 @@ const FaultTree = ({ data, initialTimeRange }) => {
             });
 
             // 指标信息
+            const displayValue = metric_extra_info.is_rate_change 
+              ? `变化率: ${metric_extra_info.metric_value_units_human}%`
+              : `指标值：${metric_extra_info.metric_value_units_human}`;
+
             group.addShape('text', {
               attrs: {
-                text: `指标值：${metric_extra_info.metric_value_units_human}`,
+                text: displayValue ,
                 x: -width / 2 + 10,
                 y: height / 2 + 10,
                 fontSize: 12,
