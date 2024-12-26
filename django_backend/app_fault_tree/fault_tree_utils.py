@@ -5,44 +5,49 @@ import logging
 import json
 import time
 from datetime import datetime, timedelta
-
 logger = logging.getLogger('log')
 
 
+VALUE_COMPARISON_OPERATORS = {
+    '>': lambda x, y: float(x) > float(y),
+    '<': lambda x, y: float(x) < float(y),
+    '>=': lambda x, y: float(x) >= float(y),
+    '<=': lambda x, y: float(x) <= float(y),
+    '==': lambda x, y: (float(x) == float(y)) if all(isinstance(v, (int, float)) or str(v).replace('.', '').isdigit() for v in [x, y]) else str(x) == str(y),
+    '!=': lambda x, y: str(x) != str(y),
+    'in': lambda x, y: str(y) in str(x),
+    'not in': lambda x, y: str(y) not in str(x),
+    'match': lambda x, y: bool(re.compile(y).search(str(x)))
+}
+
+# 历史数据比较策略
+HISTORY_COMPARISON_STRATEGY = {
+    ('numeric', '>'): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
+    ('numeric', '<'): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
+    ('numeric', '>='): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
+    ('numeric', '<='): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
+    ('numeric', '=='): lambda vs, t: min(vs, key=lambda x: abs(float(x.get('metric_value', 0)) - float(t))),
+    ('float', '>'): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
+    ('float', '<'): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
+    ('float', '>='): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
+    ('float', '<='): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
+    ('float', '=='): lambda vs, t: min(vs, key=lambda x: abs(float(x.get('metric_value', 0)) - float(t))),
+    ('str', '=='): lambda vs, t: next((v for v in vs if v.get('metric_value') == t), vs[0]),
+    ('str', '!='): lambda vs, t: next((v for v in vs if v.get('metric_value') != t), vs[0]),
+    ('str', 'in'): lambda vs, t: next((v for v in vs if t in str(v.get('metric_value', ''))), vs[0]),
+    ('str', 'not in'): lambda vs, t: next((v for v in vs if t not in str(v.get('metric_value', ''))), vs[0]),
+    ('str', 'match'): lambda vs, t: next((v for v in vs if bool(re.compile(t).search(str(v.get('metric_value', ''))))), vs[0])
+}
+
+# 严重程度级别映射
+SEVERITY_LEVELS = {
+    'info': 0,
+    'warning': 1,
+    'error': 2
+} 
+
 class FaultTreeProcessor:
     """故障树处理器"""
-
-    # 值比较策略
-    value_comparison_operators = {
-        '>': lambda x, y: float(x) > float(y),
-        '<': lambda x, y: float(x) < float(y),
-        '>=': lambda x, y: float(x) >= float(y),
-        '<=': lambda x, y: float(x) <= float(y),
-        '==': lambda x, y: (float(x) == float(y)) if all(isinstance(v, (int, float)) or str(v).replace('.', '').isdigit() for v in [x, y]) else str(x) == str(y),
-        '!=': lambda x, y: str(x) != str(y),
-        'in': lambda x, y: str(y) in str(x),
-        'not in': lambda x, y: str(y) not in str(x),
-        'match': lambda x, y: bool(re.compile(y).search(str(x)))
-    }
-
-    # 历史数据比较策略
-    history_comparison_strategy = {
-        ('numeric', '>'): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
-        ('numeric', '<'): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
-        ('numeric', '>='): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
-        ('numeric', '<='): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
-        ('numeric', '=='): lambda vs, t: min(vs, key=lambda x: abs(float(x.get('metric_value', 0)) - float(t))),
-        ('float', '>'): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
-        ('float', '<'): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
-        ('float', '>='): lambda vs: max(vs, key=lambda x: float(x.get('metric_value', 0))),
-        ('float', '<='): lambda vs: min(vs, key=lambda x: float(x.get('metric_value', 0))),
-        ('float', '=='): lambda vs, t: min(vs, key=lambda x: abs(float(x.get('metric_value', 0)) - float(t))),
-        ('str', '=='): lambda vs, t: next((v for v in vs if v.get('metric_value') == t), vs[0]),
-        ('str', '!='): lambda vs, t: next((v for v in vs if v.get('metric_value') != t), vs[0]),
-        ('str', 'in'): lambda vs, t: next((v for v in vs if t in str(v.get('metric_value', ''))), vs[0]),
-        ('str', 'not in'): lambda vs, t: next((v for v in vs if t not in str(v.get('metric_value', ''))), vs[0]),
-        ('str', 'match'): lambda vs, t: next((v for v in vs if bool(re.compile(t).search(str(v.get('metric_value', ''))))), vs[0])
-    }
 
     def __init__(self, stream_mode=False):
         """
@@ -97,12 +102,7 @@ class FaultTreeProcessor:
 
     def _get_severity_level(self, severity):
         """获取严重级别的数值"""
-        severity_levels = {
-            'info': 0,
-            'warning': 1,
-            'error': 2
-        }
-        return severity_levels.get(severity.lower(), 0)
+        return SEVERITY_LEVELS.get(severity.lower(), 0)
 
     def _process_node(self, node, parent_type=None):
         """处理单个节点"""
@@ -285,7 +285,7 @@ class FaultTreeProcessor:
 
     def _compare_values(self, value, threshold, condition):
         """比较值和阈值"""
-        compare_func = self.value_comparison_operators.get(condition)
+        compare_func = VALUE_COMPARISON_OPERATORS.get(condition)
         if not compare_func:
             return False
         
@@ -374,7 +374,7 @@ class FaultTreeProcessor:
                 condition = rule.get('condition', '')
                 threshold = rule.get('threshold', '0')
                 
-                strategy = self.history_comparison_strategy.get((metric_type, condition))
+                strategy = HISTORY_COMPARISON_STRATEGY.get((metric_type, condition))
                 if not strategy:
                     continue
 
@@ -400,7 +400,7 @@ class FaultTreeProcessor:
                         })
 
             except Exception as e:
-                logger.warning(f"处理历史异常值失败: {str(e)}")
+                logger.warning(f"处理历史��常值失败: {str(e)}")
                 continue
         return result
 
@@ -559,7 +559,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
     生成故障树数据的生成器函数
     
     Args:
-        fault_tree_config (dict): 故���树配置
+        fault_tree_config (dict): 故障树配置
         cluster_name (str): 集群名称
         fault_case (str): 故障场景名称
         
