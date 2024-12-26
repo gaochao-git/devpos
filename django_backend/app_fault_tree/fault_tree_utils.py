@@ -336,7 +336,6 @@ class FaultTreeProcessor:
         for rule in rules:
             rule_type = rule.get('ruleType', 'threshold')
             rule_severity = rule.get('status', 'info')
-            print(3333, result)
             try:
                 if rule_type == 'rate':
                     result['is_rate_change'] = True
@@ -369,7 +368,6 @@ class FaultTreeProcessor:
                                 'time_window': rule.get('timeWindow', '5min')
                             }
                         })
-                    print(5555, result)    
                     continue
 
                 metric_type = rule.get('metric_type', 'numeric')
