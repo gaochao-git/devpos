@@ -254,6 +254,7 @@ class FaultTreeProcessor:
                 'metric_units,': metric_units,
                 'metric_value_units_human': formant_metric_value_units_human,
                 'severity': rule_severity,   # 哪个规则对应的严重程度
+                'is_rate_change': data.get('is_rate_change', False)
             }
             # 更新节点描述，含触发的规则信息
             if triggered_rule:
