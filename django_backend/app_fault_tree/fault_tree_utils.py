@@ -240,7 +240,6 @@ class FaultTreeProcessor:
                 data = child_values[0]
             else:
                 data = self._get_history_abnormal_value(child_values, rules)   # 历史数据获取异常点
-            print(888888,data)
             metric_value = data.get('metric_value', '0')
             metric_time = data.get('metric_time', '-')
             metric_units = data.get('metric_units', '')
@@ -482,8 +481,8 @@ class FaultTreeProcessor:
 
     def _evaluate_rate_change(self, values, rule):
         """评估指标变化率
-        Returns:
-            (bool, dict): (是否触发规则, 包含变化率和时间点信息的字典)
+        对于百分比类型的指标，直接使用差值作为变化率
+        例如：从1.1%变为0.89%，变化率为 -0.21%
         """
         if len(values) < 2:
             return False, {'rate': 0}
@@ -493,6 +492,8 @@ class FaultTreeProcessor:
         threshold = float(rule.get('threshold', 0))
         condition = rule.get('condition', '>')
         compare_func = self.value_comparison_operators.get(condition)
+        # 新增：检查是否为百分比类型的指标
+        is_percentage = rule.get('metric_units', '') == '%' or any(v.get('metric_units', '') == '%' for v in values)
         
         if not compare_func:
             return False, {'rate': 0}
@@ -510,12 +511,11 @@ class FaultTreeProcessor:
             last_time = datetime.strptime(values[0].get('metric_time'), '%Y-%m-%d %H:%M:%S')
             total_seconds = (last_time - first_time).total_seconds()
             window_count = int(total_seconds / window_seconds) + 1
-            print(11111,first_time,last_time,total_seconds,window_count)
+            
             for i in range(window_count):
                 window_start_time = first_time + timedelta(seconds=i * window_seconds)
                 window_end_time = window_start_time + timedelta(seconds=window_seconds)
                 
-                # 找到该时间窗口内的所有点
                 window_points = []
                 for point in values:
                     point_time = datetime.strptime(point.get('metric_time'), '%Y-%m-%d %H:%M:%S')
@@ -525,17 +525,22 @@ class FaultTreeProcessor:
                 if len(window_points) < 2:
                     continue
                 
-                # 确保使用时间顺序的第一个和最后一个点
                 start_point = window_points[0]
                 end_point = window_points[-1]
                 
                 start_value = float(start_point.get('metric_value', 0))
                 end_value = float(end_point.get('metric_value', 0))
                 
-                if start_value == 0:
+                if start_value == 0 and not is_percentage:
                     continue
                     
-                rate_change = ((end_value - start_value) / start_value) * 100
+                # 根据指标类型计算变化率
+                if is_percentage:
+                    # 对于百分比类型，直接使用差值
+                    rate_change = end_value - start_value
+                else:
+                    # 对于非百分比类型，使用相对变化率
+                    rate_change = ((end_value - start_value) / start_value) * 100
                 
                 # 更新最大变化率信息
                 if abs(rate_change) > abs(max_rate_info['rate']):
@@ -565,7 +570,7 @@ class FaultTreeProcessor:
 
 def generate_tree_data(fault_tree_config, cluster_name, fault_case):
     """
-    生成故障树数据的生成器函数
+    生成故障树数���的生成器函数
     
     Args:
         fault_tree_config (dict): 故障树配置
@@ -597,7 +602,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
             node_key = node.get('key')
             current_node = node.copy()
 
-            # 构建基础点���据
+            # 构建基础点数据
             node_data = {
                 'key': node_key,
                 'name': current_node.get('name'),
