@@ -506,11 +506,11 @@ class FaultTreeProcessor:
         }
         
         try:
-            first_time = datetime.strptime(values[0].get('metric_time'), '%Y-%m-%d %H:%M:%S')
-            last_time = datetime.strptime(values[-1].get('metric_time'), '%Y-%m-%d %H:%M:%S')
+            first_time = datetime.strptime(values[-1].get('metric_time'), '%Y-%m-%d %H:%M:%S')
+            last_time = datetime.strptime(values[0].get('metric_time'), '%Y-%m-%d %H:%M:%S')
             total_seconds = (last_time - first_time).total_seconds()
             window_count = int(total_seconds / window_seconds) + 1
-            
+            print(11111,first_time,last_time,total_seconds,window_count)
             for i in range(window_count):
                 window_start_time = first_time + timedelta(seconds=i * window_seconds)
                 window_end_time = window_start_time + timedelta(seconds=window_seconds)
