@@ -152,7 +152,7 @@ class FaultTreeProcessor:
         if 'metric_name' not in node:
             return {}
         
-        # 流式模式下，只添加基础信息，不调用监控接口
+        # 流���模式下，只添加基础信息，不调用监控接口
         if self.stream_mode:
             return {
                 'node_status': 'info',
@@ -442,6 +442,60 @@ class FaultTreeProcessor:
             node['description'] = f"处理失败: {str(e)}"
         
         return node
+
+    def _get_time_window_seconds(self, time_window):
+        """转换时间窗口为秒"""
+        time_map = {
+            '1min': 60,
+            '5min': 300,
+            '10min': 600,
+            '30min': 1800,
+            '1h': 3600
+        }
+        return time_map.get(time_window, 300)  # 默认5分钟
+
+    def _evaluate_rate_change(self, values, rule):
+        """评估指标变化率"""
+        if len(values) < 2:
+            return False, 0
+        
+        time_window = rule.get('timeWindow', '5min')
+        window_seconds = self._get_time_window_seconds(time_window)
+        threshold = float(rule.get('threshold', 0))
+        condition = rule.get('condition', '>')
+        compare_func = self.value_comparison_operators.get(condition)
+        
+        if not compare_func:
+            return False, 0
+
+        max_rate_change = 0
+        # 滑动窗口遍历所有数据点
+        for i in range(len(values) - 1):
+            start_time = values[i].get('timestamp')
+            start_value = float(values[i].get('metric_value', 0))
+            
+            if start_value == 0:
+                continue
+                
+            # 在时间窗口范围内查找结束点
+            for j in range(i + 1, len(values)):
+                end_time = values[j].get('timestamp')
+                # 如果超出时间窗口，跳出内层循环
+                if end_time - start_time > window_seconds:
+                    break
+                    
+                end_value = float(values[j].get('metric_value', 0))
+                rate_change = ((end_value - start_value) / start_value) * 100
+                
+                # 更新最大变化率
+                max_rate_change = max(max_rate_change, abs(rate_change))
+                
+                # 如果发现超过阈值的变化率，立即返回
+                if compare_func(abs(rate_change), threshold):
+                    return True, rate_change
+
+        # 如果没有找到超过阈值的变化率，返回最大变化率
+        return False, max_rate_change
 
 def generate_tree_data(fault_tree_config, cluster_name, fault_case):
     """
