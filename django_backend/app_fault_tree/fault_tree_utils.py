@@ -361,8 +361,16 @@ class FaultTreeProcessor:
                                 'status': rule_severity,
                                 'impact_analysis': rule.get('impact_analysis', ''),
                                 'suggestion': rule.get('suggestion', '')
+                            },
+                            'rate_change_details': {
+                                'prev_time': rate_info['prev_time'],
+                                'next_time': rate_info['next_time'],
+                                'prev_value': f"{rate_info['prev_value']:.2f}",
+                                'next_value': f"{rate_info['next_value']:.2f}",
+                                'time_window': rule.get('timeWindow', '5min')
                             }
                         })
+                    print(5555, result)    
                     continue
 
                 metric_type = rule.get('metric_type', 'numeric')
@@ -696,7 +704,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
             for child in node.get('children', []):
                 yield from traverse_tree(child)
 
-        # 2. 遍历树，遇到指标节点时获取监控数据
+        # 2. 遍历树，遇到指标节点时获取监控数��
         yield from traverse_tree(base_tree)
 
         # 3. 发送完成消息
