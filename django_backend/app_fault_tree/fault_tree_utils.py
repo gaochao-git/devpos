@@ -483,6 +483,7 @@ class FaultTreeProcessor:
         threshold = float(rule.get('threshold', 0))
         condition = rule.get('condition', '>')
         compare_func = self.value_comparison_operators.get(condition)
+        print(time_window, window_seconds, threshold, condition, compare_func)
         
         if not compare_func:
             return False, 0
@@ -490,7 +491,7 @@ class FaultTreeProcessor:
         max_rate_change = 0
         # 滑动窗口遍历所有数据点
         for i in range(len(values) - 1):
-            start_time = values[i].get('timestamp')
+            start_time = datetime.strptime(values[i].get('metric_time'), '%Y-%m-%d %H:%M:%S')
             start_value = float(values[i].get('metric_value', 0))
             
             if start_value == 0:
@@ -498,9 +499,10 @@ class FaultTreeProcessor:
                 
             # 在时间窗口范围内查找结束点
             for j in range(i + 1, len(values)):
-                end_time = values[j].get('timestamp')
+                end_time = datetime.strptime(values[j].get('metric_time'), '%Y-%m-%d %H:%M:%S')
                 # 如果超出时间窗口，跳出内层循环
-                if end_time - start_time > window_seconds:
+                time_diff = (end_time - start_time).total_seconds()
+                if time_diff > window_seconds:
                     break
                     
                 end_value = float(values[j].get('metric_value', 0))
