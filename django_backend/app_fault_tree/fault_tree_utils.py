@@ -268,7 +268,7 @@ class FaultTreeProcessor:
                 metric_extra_info['rule_condition_format_human'] = f"{formant_metric_value_units_human} {condition} {formant_threshold_value_units_human}"
             node['metric_extra_info'] = metric_extra_info
             node['description'] = f"{metric_value}{metric_units}({formant_metric_value_units_human})"
-            # 更新节点状态
+            # 更新节点��态
             if self._get_severity_level(rule_severity) > self._get_severity_level(node.get('node_status', 'info')):
                 node['node_status'] = rule_severity
                 node['metric_value'] = metric_value
@@ -340,10 +340,10 @@ class FaultTreeProcessor:
                             'severity': rule_severity,
                             'triggered_rule': rule,
                             'rate_change_details': {
-                                'start_time': rate_info['start_time'],
-                                'end_time': rate_info['end_time'],
-                                'start_value': f"{rate_info['start_value']:.2f}",
-                                'end_value': f"{rate_info['end_value']:.2f}",
+                                'prev_time': rate_info['prev_time'],
+                                'next_time': rate_info['next_time'],
+                                'prev_value': f"{rate_info['prev_value']:.2f}",
+                                'next_value': f"{rate_info['next_value']:.2f}",
                                 'time_window': rule.get('timeWindow', '5min')
                             }
                         })
@@ -480,9 +480,8 @@ class FaultTreeProcessor:
         return time_map.get(time_window, 300)  # 默认5分钟
 
     def _evaluate_rate_change(self, values, rule):
-        """评估指标变化率
-        对于百分比类型的指标，直接使用差值作为变化率
-        例如：从1.1%变为0.89%，变化率为 -0.21%
+        """评估指标变化率，使用滑动窗口方式
+        确保前一个点的时间早于后一个点的时间
         """
         if len(values) < 2:
             return False, {'rate': 0}
@@ -492,77 +491,90 @@ class FaultTreeProcessor:
         threshold = float(rule.get('threshold', 0))
         condition = rule.get('condition', '>')
         compare_func = self.value_comparison_operators.get(condition)
-        # 新增：检查是否为百分比类型的指标
         is_percentage = rule.get('metric_units', '') == '%' or any(v.get('metric_units', '') == '%' for v in values)
+        is_increase_rule = condition in ['>', '>=']
         
         if not compare_func:
             return False, {'rate': 0}
 
         max_rate_info = {
             'rate': 0,
-            'start_time': values[0].get('metric_time'),
-            'end_time': values[0].get('metric_time'),
-            'start_value': float(values[0].get('metric_value', 0)),
-            'end_value': float(values[0].get('metric_value', 0))
+            'prev_time': values[0].get('metric_time'),
+            'next_time': values[0].get('metric_time'),
+            'prev_value': float(values[0].get('metric_value', 0)),
+            'next_value': float(values[0].get('metric_value', 0))
         }
         
         try:
-            first_time = datetime.strptime(values[-1].get('metric_time'), '%Y-%m-%d %H:%M:%S')
-            last_time = datetime.strptime(values[0].get('metric_time'), '%Y-%m-%d %H:%M:%S')
-            total_seconds = (last_time - first_time).total_seconds()
-            window_count = int(total_seconds / window_seconds) + 1
+            # 按时间正序排序
+            time_points = []
+            for point in values:
+                try:
+                    time_points.append({
+                        'time': datetime.strptime(point.get('metric_time'), '%Y-%m-%d %H:%M:%S'),
+                        'value': float(point.get('metric_value', 0)),
+                        'original': point
+                    })
+                except (ValueError, TypeError):
+                    continue
             
-            for i in range(window_count):
-                window_start_time = first_time + timedelta(seconds=i * window_seconds)
-                window_end_time = window_start_time + timedelta(seconds=window_seconds)
+            time_points.sort(key=lambda x: x['time'])
+            
+            # 遍历所有点
+            for i in range(len(time_points) - 1):
+                prev_point = time_points[i]
+                prev_time = prev_point['time']
+                prev_value = prev_point['value']
                 
-                window_points = []
-                for point in values:
-                    point_time = datetime.strptime(point.get('metric_time'), '%Y-%m-%d %H:%M:%S')
-                    if window_start_time <= point_time < window_end_time:
-                        window_points.append(point)
-                
-                if len(window_points) < 2:
+                if prev_value == 0 and not is_percentage:
                     continue
                 
-                start_point = window_points[0]
-                end_point = window_points[-1]
-                
-                start_value = float(start_point.get('metric_value', 0))
-                end_value = float(end_point.get('metric_value', 0))
-                
-                if start_value == 0 and not is_percentage:
-                    continue
+                # 查找时间窗口内的后续点
+                for j in range(i + 1, len(time_points)):
+                    next_point = time_points[j]
+                    next_time = next_point['time']
+                    next_value = next_point['value']
                     
-                # 根据指标类型计算变化率
-                if is_percentage:
-                    # 对于百分比类型，直接使用差值
-                    rate_change = end_value - start_value
-                else:
-                    # 对于非百分比类型，使用相对变化率
-                    rate_change = ((end_value - start_value) / start_value) * 100
-                
-                # 更新最大变化率信息
-                if abs(rate_change) > abs(max_rate_info['rate']):
-                    max_rate_info = {
-                        'rate': rate_change,
-                        'start_time': start_point.get('metric_time'),
-                        'end_time': end_point.get('metric_time'),
-                        'start_value': start_value,
-                        'end_value': end_value
-                    }
-                
-                # 检查是否触发规则
-                if compare_func(rate_change, threshold):
-                    return True, {
-                        'rate': rate_change,
-                        'start_time': start_point.get('metric_time'),
-                        'end_time': end_point.get('metric_time'),
-                        'start_value': start_value,
-                        'end_value': end_value
-                    }
-                
-        except (ValueError, TypeError) as e:
+                    # 检查时间窗口
+                    if (next_time - prev_time).total_seconds() > window_seconds:
+                        break
+                    
+                    if is_percentage:
+                        rate_change = next_value - prev_value
+                    else:
+                        rate_change = ((next_value - prev_value) / prev_value) * 100
+                    
+                    # 根据规则类型筛选变化率
+                    if is_increase_rule:
+                        # 增长规则：只关注正值变化率
+                        if rate_change <= 0:
+                            continue
+                    else:
+                        # 减少规则：只关注负值变化率
+                        if rate_change >= 0:
+                            continue
+                    
+                    # 更新最大变化率信息
+                    if abs(rate_change) > abs(max_rate_info['rate']):
+                        max_rate_info = {
+                            'rate': rate_change,
+                            'prev_time': prev_point['original'].get('metric_time'),
+                            'next_time': next_point['original'].get('metric_time'),
+                            'prev_value': prev_value,
+                            'next_value': next_value
+                        }
+                    
+                    # 检查是否触发规则
+                    if compare_func(rate_change, threshold):
+                        return True, {
+                            'rate': rate_change,
+                            'prev_time': prev_point['original'].get('metric_time'),
+                            'next_time': next_point['original'].get('metric_time'),
+                            'prev_value': prev_value,
+                            'next_value': next_value
+                        }
+            
+        except Exception as e:
             logger.warning(f"处理数据点时出错: {str(e)}")
             return False, max_rate_info
 
@@ -570,7 +582,7 @@ class FaultTreeProcessor:
 
 def generate_tree_data(fault_tree_config, cluster_name, fault_case):
     """
-    生成故障树数���的生成器函数
+    生成故障树数据的生成器函数
     
     Args:
         fault_tree_config (dict): 故障树配置
@@ -654,7 +666,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
                         'description': f"获取监控数据失败: {str(e)}"
                     })
 
-            # 发送前节点数据
+            # 送前节点数据
             yield 'data: ' + json.dumps({
                 'type': 'node',
                 'data': node_data
