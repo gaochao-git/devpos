@@ -46,6 +46,45 @@ SEVERITY_LEVELS = {
     'error': 2
 } 
 
+class ClusterInfoProvider:
+    """集群信息提供者，负责从不同类型的资源池获取集群信息"""
+
+    def get_cluster_info(self, cluster_name):
+        """
+        获取集群信息的主入口方法
+        Args:
+            cluster_name: 集群名称
+        Returns:
+            dict: 包含集群信息的字典
+        """
+        init_cluster_info = {
+            'db': {},
+            'proxy': {},
+            'manager': {}
+        }
+        
+        try:
+            sql = f"""
+                select 
+                    instance_name,
+                    case instance_role when 'M' then '主' when 'S' then '备' else '未知' end instance_role
+                from mysql_cluster_instance where cluster_name='{cluster_name}'
+            """
+            ret = db_helper.find_all(sql)
+            db_info = ret['data']
+            
+            for item in db_info:
+                ip = item['instance_name'].split('_')[0].strip()
+                port = item['instance_name'].split('_')[1].strip()
+                instance_role = item['instance_role']
+                init_cluster_info['db'][instance_role] = {'ip': ip, 'port': port}
+                
+            return init_cluster_info
+            
+        except Exception as e:
+            logger.exception(f"获取集群信息失败: {str(e)}")
+            return init_cluster_info
+
 class FaultTreeProcessor:
     """故障树处理器"""
 
@@ -59,6 +98,7 @@ class FaultTreeProcessor:
         self.time_from = None
         self.time_till = None
         self.stream_mode = stream_mode
+        self.cluster_info_provider = ClusterInfoProvider()
 
     def process_tree(self, tree_data, cluster_name, time_from=None, time_till=None):
         """处理故障树数据的主入口方法"""
@@ -80,25 +120,7 @@ class FaultTreeProcessor:
 
     def _get_cluster_info(self, cluster_name):
         """从资源池获取集群信息"""
-        init_cluster_info = {
-            'db': {},
-            'proxy': {},
-            'manager': {}
-        }
-        sql = f"""
-            select 
-                instance_name,
-                case instance_role when 'M' then '主' when 'S' then '备' else '未知' end instance_role
-            from mysql_cluster_instance where cluster_name='{cluster_name}'
-        """
-        ret = db_helper.find_all(sql)
-        db_info = ret['data']
-        for item in db_info:
-            ip = item['instance_name'].split('_')[0].strip()
-            port =  item['instance_name'].split('_')[1].strip()
-            instance_role = item['instance_role']
-            init_cluster_info['db'][instance_role] = {'ip': ip, 'port': port}
-        return init_cluster_info
+        return self.cluster_info_provider.get_cluster_info(cluster_name)
 
     def _get_severity_level(self, severity):
         """获取严重级别的数值"""
@@ -400,7 +422,7 @@ class FaultTreeProcessor:
                         })
 
             except Exception as e:
-                logger.warning(f"处理历史��常值失败: {str(e)}")
+                logger.warning(f"处理历史数据失败: {str(e)}")
                 continue
         return result
 
@@ -665,7 +687,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
         }) + '\n\n'
 
     except Exception as e:
-        logger.exception(f"生成故障树数据失败: {str(e)}")
+        logger.exception(f"生成故障树数据���败: {str(e)}")
         yield 'data: ' + json.dumps({
             'type': 'error',
             'data': {
