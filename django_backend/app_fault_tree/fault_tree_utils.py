@@ -127,7 +127,7 @@ class RateChangeEvaluator:
         评估指标变化率，适用于逆序（新到旧）的数据
         
         Args:
-            values (list): 指标��列表，按时间逆序排列
+            values (list): 指标��表，按时间逆序排列
             rule (dict): 规则配置
             
         Returns:
@@ -446,6 +446,10 @@ class FaultTreeProcessor:
 
             # 处理整个树
             processed_data = self._process_node(processed_data, parent_type=None)
+            
+            # 确保状态正确传播
+            self._update_parent_status(processed_data)
+            
             return processed_data
         except Exception as e:
             logger.exception(f"处理故障树数据失败: {str(e)}")
@@ -532,7 +536,18 @@ class FaultTreeProcessor:
             self._process_node(child, node_type)
             for child in node['children']
         ]
-        self._update_parent_status(node)
+        
+        # 更新当前节点的状态
+        highest_severity = 'info'
+        for child in children:
+            child_status = child.get('node_status', 'info')
+            if self._get_severity_level(child_status) > self._get_severity_level(highest_severity):
+                highest_severity = child_status
+        
+        # 如果子节点有更高级别的状态，更新当前节点
+        if self._get_severity_level(highest_severity) > self._get_severity_level(node.get('node_status', 'info')):
+            node['node_status'] = highest_severity
+            
         return {'children': children}
 
     def _add_instance_info_to_children(self, node, instance_info):
@@ -540,7 +555,7 @@ class FaultTreeProcessor:
         递归地将实例信息添加到所有子节点
         Args:
             node: 当前节点
-            instance_info: 要添加的实例信息
+            instance_info: 要添���的实例信息
         """
         if not node.get('children'):
             return
@@ -564,10 +579,17 @@ class FaultTreeProcessor:
 
         highest_severity = 'info'
         for child in node['children']:
+            # 递归更新子节点的状态
+            self._update_parent_status(child)
+            
+            # 获取子节点状态
             child_status = child.get('node_status', 'info')
             if self._get_severity_level(child_status) > self._get_severity_level(highest_severity):
                 highest_severity = child_status
-        node['node_status'] = highest_severity
+        
+        # 更新当前节点状态
+        if self._get_severity_level(highest_severity) > self._get_severity_level(node.get('node_status', 'info')):
+            node['node_status'] = highest_severity
 
     def _safe_convert_values(self, value, threshold, value_type):
         """安全地转换值类型"""
