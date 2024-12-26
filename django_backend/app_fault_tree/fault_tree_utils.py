@@ -347,7 +347,6 @@ class FaultTreeProcessor:
                         'next_value': f"{float(result['metric_value']):.2f}",
                         'time_window': rule.get('timeWindow', '5min')
                     }
-                    print(4444, result)
                     is_triggered, rate_info = self._evaluate_rate_change(values, rule)
                     if is_triggered and self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
                         highest_severity = rule_severity
