@@ -46,6 +46,39 @@ SEVERITY_LEVELS = {
     'error': 2
 } 
 
+class MetricValueFormatter:
+    """指标值格式化器，用于将指标值转换为人类可读的格式"""
+    
+    @staticmethod
+    def format(value, units):
+        """
+        格式化指标值的显示
+        Args:
+            value: 指标值
+            units: 单位
+        Returns:
+            str: 格式化后的显示值
+        """
+        try:
+            # 如果是百分比，保留2位小数
+            if units == '%':
+                return f"{float(value):.2f} {units}"
+            
+            # 如果是字节相关单位，转换为人类可读格式
+            if units.upper() in ['B', 'BYTES']:
+                value_float = float(value)
+                for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+                    if value_float < 1024.0:
+                        return f"{value_float:.2f} {unit}"
+                    value_float /= 1024.0
+                return f"{value_float:.2f} PB"
+            
+            # 其他情况直接返回原值
+            return f"{value} {units}".strip()
+            
+        except (ValueError, TypeError):
+            return value
+
 class ClusterInfoProvider:
     """集群信息提供者，负责从不同类型的资源池获取集群信息"""
 
@@ -503,33 +536,8 @@ class FaultTreeProcessor:
         return result
 
     def _format_metric_value(self, value, units):
-        """
-        格式化指标值的显示
-        Args:
-            value: 指标值
-            units: 单位
-        Returns:
-            str: 格式化后的显示值
-        """
-        try:
-            # 如果是百分比，保留2位小数
-            if units == '%':
-                return f"{float(value):.2f} {units}"
-            
-            # 如果是字节相关单位，转换为人类可读格式
-            if units.upper() in ['B', 'BYTES']:
-                value_float = float(value)
-                for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-                    if value_float < 1024.0:
-                        return f"{value_float:.2f} {unit}"
-                    value_float /= 1024.0
-                return f"{value_float:.2f} PB"
-            
-            # 其他情况直接返回原值
-            return f"{value} {units}".strip()
-            
-        except (ValueError, TypeError):
-            return value
+        """格式化指标值的显示"""
+        return MetricValueFormatter.format(value, units)
 
     def _update_parent_status(self, node):
         """更新父节点状态"""
@@ -704,7 +712,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
         }) + '\n\n'
 
     except Exception as e:
-        logger.exception(f"生成故障树数据失败: {str(e)}")
+        logger.exception(f"生成故障��数据失败: {str(e)}")
         yield 'data: ' + json.dumps({
             'type': 'error',
             'data': {
