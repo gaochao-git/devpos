@@ -400,7 +400,6 @@ class FaultTreeProcessor:
             except Exception as e:
                 logger.warning(f"处理历史异常值失败: {str(e)}")
                 continue
-
         return result
 
     def _format_metric_value(self, value, units):
