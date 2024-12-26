@@ -253,7 +253,8 @@ class FaultTreeProcessor:
                 'metric_units,': metric_units,
                 'metric_value_units_human': formant_metric_value_units_human,
                 'severity': rule_severity,   # 哪个规则对应的严重程度
-                'is_rate_change': data.get('is_rate_change', False)
+                'is_rate_change': data.get('is_rate_change', False),
+                'rate_change_details': data.get('rate_change_details', {})
             }            # 更新节点描述，含触发的规则信息
             if triggered_rule:
                 condition = triggered_rule.get('condition', '')
@@ -267,7 +268,7 @@ class FaultTreeProcessor:
                 metric_extra_info['rule_condition_format_human'] = f"{formant_metric_value_units_human} {condition} {formant_threshold_value_units_human}"
             node['metric_extra_info'] = metric_extra_info
             node['description'] = f"{metric_value}{metric_units}({formant_metric_value_units_human})"
-            # 更新节点状���
+            # 更新节点状态
             if self._get_severity_level(rule_severity) > self._get_severity_level(node.get('node_status', 'info')):
                 node['node_status'] = rule_severity
                 node['metric_value'] = metric_value
@@ -335,35 +336,31 @@ class FaultTreeProcessor:
         for rule in rules:
             rule_type = rule.get('ruleType', 'threshold')
             rule_severity = rule.get('status', 'info')
-
+            print(3333, result)
             try:
                 if rule_type == 'rate':
                     result['is_rate_change'] = True
-                    
+                    result['rate_change_details'] = {
+                        'prev_time': result['metric_time'],
+                        'next_time': result['metric_time'],
+                        'prev_value': f"{float(result['metric_value']):.2f}",
+                        'next_value': f"{float(result['metric_value']):.2f}",
+                        'time_window': rule.get('timeWindow', '5min')
+                    }
+                    print(4444, result)
                     is_triggered, rate_info = self._evaluate_rate_change(values, rule)
                     if is_triggered and self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
                         highest_severity = rule_severity
                         result.update({
-                            'metric_name': rule.get('metric', ''),
                             'metric_value': f"{rate_info['rate']:.2f}",
-                            'metric_units': '%',
-                            'metric_type': 'float',
-                            'metric_time': rate_info['next_time'],
                             'severity': rule_severity,
                             'triggered_rule': {
-                                'type': 'float',
+                                'type': rule.get('type', 'numeric'),
                                 'condition': rule.get('condition', ''),
                                 'threshold': rule.get('threshold', ''),
                                 'status': rule_severity,
                                 'impact_analysis': rule.get('impact_analysis', ''),
                                 'suggestion': rule.get('suggestion', '')
-                            },
-                            'rate_change_details': {
-                                'prev_time': rate_info['prev_time'],
-                                'next_time': rate_info['next_time'],
-                                'prev_value': f"{rate_info['prev_value']:.2f}",
-                                'next_value': f"{rate_info['next_value']:.2f}",
-                                'time_window': rule.get('timeWindow', '5min')
                             }
                         })
                     continue

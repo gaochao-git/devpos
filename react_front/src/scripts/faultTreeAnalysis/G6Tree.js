@@ -466,7 +466,7 @@ const FaultTree = ({ data, initialTimeRange }) => {
 
             // 指标信息
             const displayValue = metric_extra_info.is_rate_change 
-              ? `变化率: ${metric_extra_info.metric_value_units_human}`
+              ? `变化率: ${metric_extra_info.metric_value_units_human}-${metric_extra_info.rate_change_details.next_time}`
               : `指标值：${metric_extra_info.metric_value_units_human}`;
 
             group.addShape('text', {
@@ -482,9 +482,13 @@ const FaultTree = ({ data, initialTimeRange }) => {
               name: 'metric-value',
             });
 
+            const displayTime = metric_extra_info.is_rate_change 
+              ? `时间: ${metric_extra_info.rate_change_details.prev_time}`
+              : `时间：${metric_extra_info.metric_time}`;
+
             group.addShape('text', {
               attrs: {
-                text: `时间：${metric_extra_info.metric_time}`,
+                text: displayTime,
                 x: -width / 2 + 10,
                 y: height / 2 + 30,
                 fontSize: 12,
