@@ -506,24 +506,18 @@ class FaultTreeProcessor:
         return time_map.get(time_window, 300)  # 默认5分钟
 
     def _evaluate_rate_change(self, values, rule):
-        """评估指标变化率，使用滑动窗口方式
-        确保前一个点的时间早于后一个点的时间
-        """
+        """评估指标变化率，适用于逆序（新到旧）的数据"""
         if len(values) < 2:
             return False, {'rate': 0}
         
-        time_window = rule.get('timeWindow', '5min')
-        window_seconds = self._get_time_window_seconds(time_window)
+        # 提取规则参数
+        time_window = self._get_time_window_seconds(rule.get('timeWindow', '5min'))
         threshold = float(rule.get('threshold', 0))
         condition = rule.get('condition', '>')
-        compare_func = self.value_comparison_operators.get(condition)
         is_percentage = rule.get('metric_units', '') == '%' or any(v.get('metric_units', '') == '%' for v in values)
         is_increase_rule = condition in ['>', '>=']
         
-        if not compare_func:
-            return False, {'rate': 0}
-
-        max_rate_info = {
+        max_change = {
             'rate': 0,
             'prev_time': values[0].get('metric_time'),
             'next_time': values[0].get('metric_time'),
@@ -531,80 +525,49 @@ class FaultTreeProcessor:
             'next_value': float(values[0].get('metric_value', 0))
         }
         
-        try:
-            # 按时间正序排序
-            time_points = []
-            for point in values:
-                try:
-                    time_points.append({
-                        'time': datetime.strptime(point.get('metric_time'), '%Y-%m-%d %H:%M:%S'),
-                        'value': float(point.get('metric_value', 0)),
-                        'original': point
-                    })
-                except (ValueError, TypeError):
-                    continue
+        # 从新到旧遍历
+        for i in range(len(values) - 1):
+            next_point = values[i]  # 较新的点
+            next_time = datetime.strptime(next_point.get('metric_time'), '%Y-%m-%d %H:%M:%S')
+            next_value = float(next_point.get('metric_value', 0))
             
-            time_points.sort(key=lambda x: x['time'])
-            
-            # 遍历所有点
-            for i in range(len(time_points) - 1):
-                prev_point = time_points[i]
-                prev_time = prev_point['time']
-                prev_value = prev_point['value']
+            # 向后查找较早的点
+            for j in range(i + 1, len(values)):
+                prev_point = values[j]  # 较早的点
+                prev_time = datetime.strptime(prev_point.get('metric_time'), '%Y-%m-%d %H:%M:%S')
+                prev_value = float(prev_point.get('metric_value', 0))
                 
                 if prev_value == 0 and not is_percentage:
                     continue
-                
-                # 查找时间窗口内的后续点
-                for j in range(i + 1, len(time_points)):
-                    next_point = time_points[j]
-                    next_time = next_point['time']
-                    next_value = next_point['value']
                     
-                    # 检查时间窗口
-                    if (next_time - prev_time).total_seconds() > window_seconds:
-                        break
+                # 检查时间窗口
+                if (next_time - prev_time).total_seconds() > time_window:
+                    break
                     
-                    if is_percentage:
-                        rate_change = next_value - prev_value
-                    else:
-                        rate_change = ((next_value - prev_value) / prev_value) * 100
+                # 计算变化率
+                rate = (next_value - prev_value)
+                if not is_percentage:
+                    rate = (rate / prev_value) * 100
                     
-                    # 根据规则类型筛选变化率
-                    if is_increase_rule:
-                        # 增长规则：只关注正值变化率
-                        if rate_change <= 0:
-                            continue
-                    else:
-                        # 减少规则：只关注负值变化率
-                        if rate_change >= 0:
-                            continue
+                # 根据规则类型过滤
+                if (is_increase_rule and rate <= 0) or (not is_increase_rule and rate >= 0):
+                    continue
                     
-                    # 更新最大变化率信息
-                    if abs(rate_change) > abs(max_rate_info['rate']):
-                        max_rate_info = {
-                            'rate': rate_change,
-                            'prev_time': prev_point['original'].get('metric_time'),
-                            'next_time': next_point['original'].get('metric_time'),
-                            'prev_value': prev_value,
-                            'next_value': next_value
-                        }
+                # 更新最大变化
+                if abs(rate) > abs(max_change['rate']):
+                    max_change = {
+                        'rate': rate,
+                        'prev_time': prev_point.get('metric_time'),
+                        'next_time': next_point.get('metric_time'),
+                        'prev_value': prev_value,
+                        'next_value': next_value
+                    }
                     
-                    # 检查是否触发规则
-                    if compare_func(rate_change, threshold):
-                        return True, {
-                            'rate': rate_change,
-                            'prev_time': prev_point['original'].get('metric_time'),
-                            'next_time': next_point['original'].get('metric_time'),
-                            'prev_value': prev_value,
-                            'next_value': next_value
-                        }
-            
-        except Exception as e:
-            logger.warning(f"处理数据点时出错: {str(e)}")
-            return False, max_rate_info
-
-        return False, max_rate_info
+                # 检查是否触发规则
+                if (is_increase_rule and rate > threshold) or (not is_increase_rule and rate < threshold):
+                    return True, max_change
+        
+        return False, max_change
 
 def generate_tree_data(fault_tree_config, cluster_name, fault_case):
     """
@@ -704,7 +667,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
             for child in node.get('children', []):
                 yield from traverse_tree(child)
 
-        # 2. 遍历树，遇到指标节点时获取监控数��
+        # 2. 遍历树，遇到指标节点时获取监控数据
         yield from traverse_tree(base_tree)
 
         # 3. 发送完成消息
