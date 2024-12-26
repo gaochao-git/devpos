@@ -54,10 +54,10 @@ class ConfigTreeComponent extends React.Component {
 
     ruleColumns = [
         {
-            title: '类型',
+            title: '指标类型',
             dataIndex: 'type',
             key: 'type',
-            width: '15%',
+            width: '120px',
             render: (text, record, index) => (
                 <Select
                     value={text}
@@ -68,6 +68,43 @@ class ConfigTreeComponent extends React.Component {
                     <Option value="float">浮点型</Option>
                     <Option value="string">字符串</Option>
                 </Select>
+            )
+        },
+        {
+            title: '规则类型',
+            dataIndex: 'ruleType',
+            key: 'ruleType',
+            width: '120px',
+            render: (text, record, index) => (
+                <Select
+                    value={text || 'threshold'}
+                    onChange={(value) => this.handleRuleChange(index, 'ruleType', value)}
+                    style={{ width: '100%' }}
+                >
+                    <Option value="threshold">阈值</Option>
+                    <Option value="rate">变化率</Option>
+                </Select>
+            )
+        },
+        {
+            title: '时间窗口',
+            dataIndex: 'timeWindow',
+            key: 'timeWindow',
+            width: '120px',
+            render: (text, record, index) => (
+                record.ruleType === 'rate' ? (
+                    <Select
+                        value={text || '5min'}
+                        onChange={(value) => this.handleRuleChange(index, 'timeWindow', value)}
+                        style={{ width: '100%' }}
+                    >
+                        <Option value="1min">1分钟</Option>
+                        <Option value="5min">5分钟</Option>
+                        <Option value="10min">10分钟</Option>
+                        <Option value="30min">30分钟</Option>
+                        <Option value="1h">1小时</Option>
+                    </Select>
+                ) : null
             )
         },
         {
