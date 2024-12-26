@@ -494,24 +494,12 @@ class FaultTreeProcessor:
         
         return node
 
-    def _get_time_window_seconds(self, time_window):
-        """转换时间窗口为秒"""
-        time_map = {
-            '1min': 60,
-            '5min': 300,
-            '10min': 600,
-            '30min': 1800,
-            '1h': 3600
-        }
-        return time_map.get(time_window, 300)  # 默认5分钟
-
     def _evaluate_rate_change(self, values, rule):
         """评估指标变化率，适用于逆序（新到旧）的数据"""
         if len(values) < 2:
             return False, {'rate': 0}
         
-        # 提取规则参数
-        time_window = self._get_time_window_seconds(rule.get('timeWindow', '5min'))
+        time_window = rule.get('timeWindow', 300)  # 直接使用秒数
         threshold = float(rule.get('threshold', 0))
         condition = rule.get('condition', '>')
         is_percentage = rule.get('metric_units', '') == '%' or any(v.get('metric_units', '') == '%' for v in values)
@@ -574,7 +562,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
     生成故障树数据的生成器函数
     
     Args:
-        fault_tree_config (dict): 故障树配置
+        fault_tree_config (dict): 故���树配置
         cluster_name (str): 集群名称
         fault_case (str): 故障场景名称
         

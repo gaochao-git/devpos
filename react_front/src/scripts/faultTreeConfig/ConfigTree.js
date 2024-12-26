@@ -94,15 +94,15 @@ class ConfigTreeComponent extends React.Component {
             render: (text, record, index) => (
                 record.ruleType === 'rate' ? (
                     <Select
-                        value={text || '5min'}
+                        value={text || 300}
                         onChange={(value) => this.handleRuleChange(index, 'timeWindow', value)}
                         style={{ width: '100%' }}
                     >
-                        <Option value="1min">1分钟</Option>
-                        <Option value="5min">5分钟</Option>
-                        <Option value="10min">10分钟</Option>
-                        <Option value="30min">30分钟</Option>
-                        <Option value="1h">1小时</Option>
+                        <Option value={60}>1分钟</Option>
+                        <Option value={300}>5分钟</Option>
+                        <Option value={600}>10分钟</Option>
+                        <Option value={1800}>30分钟</Option>
+                        <Option value={3600}>1小时</Option>
                     </Select>
                 ) : null
             )
