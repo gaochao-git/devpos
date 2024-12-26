@@ -4,7 +4,7 @@ from apps.utils import db_helper
 import logging
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 logger = logging.getLogger('log')
 
@@ -152,7 +152,7 @@ class FaultTreeProcessor:
         if 'metric_name' not in node:
             return {}
         
-        # 流���模式下，只添加基础信息，不调用监控接口
+        # 流式模式下，只添加基础信息，不调用监控接口
         if self.stream_mode:
             return {
                 'node_status': 'info',
@@ -475,7 +475,11 @@ class FaultTreeProcessor:
         return time_map.get(time_window, 300)  # 默认5分钟
 
     def _evaluate_rate_change(self, values, rule):
-        """评估指标变化率"""
+        """评估指标变化率
+        时间窗口处理：
+        1. 按时间窗口分组，如5分钟一组
+        2. 每组取第一个点和最后一个点计算变化率
+        """
         if len(values) < 2:
             return False, 0
         
@@ -484,39 +488,69 @@ class FaultTreeProcessor:
         threshold = float(rule.get('threshold', 0))
         condition = rule.get('condition', '>')
         compare_func = self.value_comparison_operators.get(condition)
-        print(time_window, window_seconds, threshold, condition, compare_func)
         
         if not compare_func:
             return False, 0
 
         max_rate_change = 0
-        # 滑动窗口遍历所有数据点
-        for i in range(len(values) - 1):
-            start_time = datetime.strptime(values[i].get('metric_time'), '%Y-%m-%d %H:%M:%S')
-            start_value = float(values[i].get('metric_value', 0))
+        
+        try:
+            # 获取整个时间范围的起止时间
+            first_time = datetime.strptime(values[0].get('metric_time'), '%Y-%m-%d %H:%M:%S')
+            last_time = datetime.strptime(values[-1].get('metric_time'), '%Y-%m-%d %H:%M:%S')
+            total_seconds = (last_time - first_time).total_seconds()
             
-            if start_value == 0:
-                continue
+            # 计算需要分成几个时间窗口
+            window_count = int(total_seconds / window_seconds) + 1
+            
+            # 遍历每个时间窗口
+            for i in range(window_count):
+                window_start_time = first_time + timedelta(seconds=i * window_seconds)
+                window_end_time = window_start_time + timedelta(seconds=window_seconds)
                 
-            # 在时间窗口范围内查找结束点
-            for j in range(i + 1, len(values)):
-                end_time = datetime.strptime(values[j].get('metric_time'), '%Y-%m-%d %H:%M:%S')
-                # 如果超出时间窗口，跳出内层循环
-                time_diff = (end_time - start_time).total_seconds()
-                if time_diff > window_seconds:
-                    break
+                # 找到该时间窗口的第一个点
+                start_point = None
+                for point in values:
+                    point_time = datetime.strptime(point.get('metric_time'), '%Y-%m-%d %H:%M:%S')
+                    if window_start_time <= point_time < window_end_time:
+                        start_point = point
+                        break
+                
+                if not start_point:
+                    continue
                     
-                end_value = float(values[j].get('metric_value', 0))
+                # 找到该时间窗口的最后一个点
+                end_point = None
+                for point in reversed(values):
+                    point_time = datetime.strptime(point.get('metric_time'), '%Y-%m-%d %H:%M:%S')
+                    if window_start_time <= point_time < window_end_time:
+                        end_point = point
+                        break
+                
+                if not end_point or end_point == start_point:
+                    continue
+                
+                # 计算变化率
+                start_value = float(start_point.get('metric_value', 0))
+                end_value = float(end_point.get('metric_value', 0))
+                
+                if start_value == 0:
+                    continue
+                    
                 rate_change = ((end_value - start_value) / start_value) * 100
                 
                 # 更新最大变化率
-                max_rate_change = max(max_rate_change, abs(rate_change))
+                if abs(rate_change) > abs(max_rate_change):
+                    max_rate_change = rate_change
                 
-                # 如果发现超过阈值的变化率，立即返回
-                if compare_func(abs(rate_change), threshold):
+                # 检查是否触发规则
+                if compare_func(rate_change, threshold):
                     return True, rate_change
+                
+        except (ValueError, TypeError) as e:
+            logger.warning(f"处理数据点时出错: {str(e)}")
+            return False, 0
 
-        # 如果没有找到超过阈值的变化率，返回最大变化率
         return False, max_rate_change
 
 def generate_tree_data(fault_tree_config, cluster_name, fault_case):
@@ -605,7 +639,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
                         'description': f"获取监控数据失败: {str(e)}"
                     })
 
-            # 发送���前节点数据
+            # 发送前节点数据
             yield 'data: ' + json.dumps({
                 'type': 'node',
                 'data': node_data
