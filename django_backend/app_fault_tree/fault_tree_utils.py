@@ -88,7 +88,7 @@ class ClusterInfoProvider:
         Args:
             cluster_name: 集群名称
         Returns:
-            dict: 包含集群信息的字典
+            dict: 包含集群信息的字���
         """
         init_cluster_info = {
             'db': {},
@@ -127,7 +127,7 @@ class RateChangeEvaluator:
         评估指标变化率，适用于逆序（新到旧）的数据
         
         Args:
-            values (list): 指标值列表，按时间逆序排列
+            values (list): 指标��列表，按时间逆序排列
             rule (dict): 规则配置
             
         Returns:
@@ -194,6 +194,229 @@ class RateChangeEvaluator:
         
         return False, max_change
 
+class MetricsProcessor:
+    """监控指标处理器，负责处理节点的监控指标"""
+
+    def __init__(self, time_from=None, time_till=None):
+        self.time_from = time_from
+        self.time_till = time_till
+
+    def process_metrics(self, metric, node):
+        """
+        处理节点的监控指标，会直接修改传入的node对象
+        Args:
+            metric (dict): 指标配置信息
+            node (dict): 节点信息
+        """
+        handler_name = metric.get('source', '')
+        metric_name = metric.get('metric_name').strip()
+        instance_info = node.get('ip_port')
+        try:
+            # 获取对应的处理函数
+            handler = HandlerManager.init_metric_handlers(
+                handler_name=handler_name,
+                handler_type='data'
+            )
+            
+            if not handler:
+                raise ValueError(f"Unsupported data source: {handler_name}")
+            
+            # 执行处理函数获取对应的监控值
+            values = handler(instance_info, metric_name, self.time_from, self.time_till)
+
+            # 对返回的数据进行规则比对
+            if node.get('rules') and values: 
+                self._evaluate_child_rules(node, values)
+            
+        except Exception as e:
+            logger.exception(f"处理指标{metric_name}失败: {str(e)}")
+            node['node_status'] = 'error'
+            node['description'] = f"处理失败: {str(e)}"
+
+    def _evaluate_child_rules(self, node, child_values):
+        """
+        评估子节点的规则
+        Args:
+            node: 当前节点
+            child_values: Zabbix返回的数据列表（当前数据或历史数据）
+        """
+        node['node_status'] = 'info'
+        try:
+            # 获取节点的规则
+            rules = node.get('rules')
+            # 获取最近1个监控的值或历史监控值
+            if len(child_values) == 1:   # 获取最近1个数据
+                data = child_values[0]
+            else:
+                data = self._get_history_abnormal_value(child_values, rules)   # 历史数据获取异常点
+            metric_value = data.get('metric_value', '0')
+            metric_time = data.get('metric_time', '-')
+            metric_units = data.get('metric_units', '')
+            formant_metric_value_units_human = MetricValueFormatter.format(metric_value, metric_units)  # 格式化显示值
+            rule_severity, triggered_rule = self._evaluate_condition(metric_value, rules)
+            # 添加额外的信息，提供前端展示或者调用
+            metric_extra_info = {
+                'metric_name': node.get('name', ''),
+                'metric_time': metric_time,
+                'metric_value': f"{metric_value}",
+                'metric_units,': metric_units,
+                'metric_value_units_human': formant_metric_value_units_human,
+                'severity': rule_severity,   # 哪个规则对应的严重程度
+                'is_rate_change': data.get('is_rate_change', False),
+                'rate_change_details': data.get('rate_change_details', {})
+            }            
+            # 更新节点描述，含触发的规则信息
+            if triggered_rule:
+                condition = triggered_rule.get('condition', '')
+                threshold = triggered_rule.get('threshold', '')
+                formant_threshold_value_units_human = MetricValueFormatter.format(threshold, metric_units)  # 格式化显示值
+                metric_extra_info.update({
+                    'rule_condition': triggered_rule.get('condition', ''),
+                    'rule_threshold': triggered_rule.get('threshold', ''),
+                    'impact_analysis': triggered_rule.get('impact_analysis', ''),
+                    'suggestion': triggered_rule.get('suggestion', ''),
+                    'rule_condition_format': f"{metric_value}{metric_units} {condition} {threshold}{metric_units}",
+                    'rule_condition_format_human': f"{formant_metric_value_units_human} {condition} {formant_threshold_value_units_human}"
+                })
+            node['metric_extra_info'] = metric_extra_info
+            node['description'] = f"{metric_value}{metric_units}({formant_metric_value_units_human})"
+            # 更新节点状态
+            if self._get_severity_level(rule_severity) > self._get_severity_level(node.get('node_status', 'info')):
+                node['node_status'] = rule_severity
+                node['metric_value'] = metric_value
+        except Exception as e:
+            logger.exception(f"评估子节点规则失败: {str(e)}")
+            node['node_status'] = 'error'
+            node['description'] = f"规则评估失败: {str(e)}"
+            node['metric_extra_info'] = {
+                'metric_name': node.get('metric_name', ''),
+                'error_message': str(e),
+                'severity': 'error',
+                'status': '规则评估失败'
+            }
+
+    def _get_history_abnormal_value(self, values, rules):
+        """根据规则获取异常值"""
+        # 只做一次 copy
+        result = values[0].copy()
+        result.update({
+            'is_rate_change': False,
+            'severity': 'info',
+            'triggered_rule': None
+        })
+        
+        if not rules or not values:
+            return result
+
+        highest_severity = 'info'
+
+        for rule in rules:
+            rule_type = rule.get('ruleType', 'threshold')
+            rule_severity = rule.get('status', 'info')
+            try:
+                if rule_type == 'rate':
+                    result['is_rate_change'] = True
+                    result['rate_change_details'] = {
+                        'prev_time': result['metric_time'],
+                        'next_time': result['metric_time'],
+                        'prev_value': f"{float(result['metric_value']):.2f}",
+                        'next_value': f"{float(result['metric_value']):.2f}",
+                        'time_window': rule.get('timeWindow', '5min')
+                    }
+                    is_triggered, rate_info = RateChangeEvaluator.evaluate(values, rule)
+                    if is_triggered and self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
+                        highest_severity = rule_severity
+                        result.update({
+                            'metric_value': f"{rate_info['rate']:.2f}",
+                            'severity': rule_severity,
+                            'triggered_rule': {
+                                'type': rule.get('type', 'numeric'),
+                                'condition': rule.get('condition', ''),
+                                'threshold': rule.get('threshold', ''),
+                                'status': rule_severity,
+                                'impact_analysis': rule.get('impact_analysis', ''),
+                                'suggestion': rule.get('suggestion', '')
+                            },
+                            'rate_change_details': {
+                                'prev_time': rate_info['prev_time'],
+                                'next_time': rate_info['next_time'],
+                                'prev_value': f"{rate_info['prev_value']:.2f}",
+                                'next_value': f"{rate_info['next_value']:.2f}",
+                                'time_window': rule.get('timeWindow', '5min')
+                            }
+                        })
+                    continue
+
+                metric_type = rule.get('metric_type', 'numeric')
+                condition = rule.get('condition', '')
+                threshold = rule.get('threshold', '0')
+                
+                strategy = HISTORY_COMPARISON_STRATEGY.get((metric_type, condition))
+                if not strategy:
+                    continue
+
+                if condition in ['==', '!=', 'in', 'not in', 'match']:
+                    current_value = strategy(values, threshold)
+                else:
+                    current_value = strategy(values)
+
+                if self._compare_values(current_value.get('metric_value', '0'), threshold, condition):
+                    if self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
+                        highest_severity = rule_severity
+                        result.update(current_value)
+                        result.update({
+                            'severity': rule_severity,
+                            'triggered_rule': {
+                                'type': metric_type,
+                                'condition': condition,
+                                'threshold': threshold,
+                                'status': rule_severity,
+                                'impact_analysis': rule.get('impact_analysis', ''),
+                                'suggestion': rule.get('suggestion', '')
+                            }
+                        })
+
+            except Exception as e:
+                logger.warning(f"处理历史数据失败: {str(e)}")
+                continue
+        return result
+
+    def _evaluate_condition(self, metric_value, rules):
+        """评估条件并返回状态"""
+        if not rules or not metric_value:
+            return 'info', None
+
+        highest_severity = 'info'
+        triggered_rule = None
+
+        for rule in rules:
+            condition = rule.get('condition', '')
+            threshold = rule.get('threshold', '0')
+            
+            if self._compare_values(metric_value, threshold, condition):
+                severity = rule.get('status', 'info')
+                if self._get_severity_level(severity) > self._get_severity_level(highest_severity):
+                    highest_severity = severity
+                    triggered_rule = rule
+
+        return highest_severity, triggered_rule
+
+    def _compare_values(self, value, threshold, condition):
+        """比较值和阈值"""
+        compare_func = VALUE_COMPARISON_OPERATORS.get(condition)
+        if not compare_func:
+            return False
+        
+        try:
+            return compare_func(value, threshold)
+        except (ValueError, TypeError) as e:
+            logger.exception(f"值比较失败: value={value}, threshold={threshold}, condition={condition}")
+            return False
+
+    def _get_severity_level(self, severity):
+        """获取严重级别的数值"""
+        return SEVERITY_LEVELS.get(severity.lower(), 0)
+
 class FaultTreeProcessor:
     """故障树处理器"""
 
@@ -208,6 +431,7 @@ class FaultTreeProcessor:
         self.time_till = None
         self.stream_mode = stream_mode
         self.cluster_info_provider = ClusterInfoProvider()
+        self.metrics_processor = MetricsProcessor()
 
     def process_tree(self, tree_data, cluster_name, time_from=None, time_till=None):
         """处理故障树数据的主入口方法"""
@@ -327,217 +551,11 @@ class FaultTreeProcessor:
             # 递归处理子节点的子节点
             self._add_instance_info_to_children(child, instance_info)
 
-
     def _process_metrics(self, metric, node):
         """处理节点的监控指标"""
-        handler_name = metric.get('source', '')
-        metric_name = metric.get('metric_name').strip()
-        instance_info = node.get('ip_port')
-        try:
-            # 获取对应的处理函数
-            handler = HandlerManager.init_metric_handlers(
-                handler_name=handler_name,
-                handler_type='data'
-            )
-            
-            if not handler:
-                raise ValueError(f"Unsupported data source: {handler_name}")
-            
-            # 执行处理函数获取对应的监控值
-            values = handler(instance_info, metric_name, self.time_from, self.time_till)
-
-            # 对返回的数据进行规则比对
-            if node.get('rules') and values: 
-                self._evaluate_child_rules(node, values)
-            
-        except Exception as e:
-            logger.exception(f"处理指标{metric_name}失败: {str(e)}")
-            node['node_status'] = 'error'
-            node['description'] = f"处理失败: {str(e)}"
-
-    def _evaluate_child_rules(self, node, child_values):
-        """
-        评估子节点的规则
-        Args:
-            node: 当前节点
-            child_values: Zabbix返回的数据列表（当前数据或历史数据）
-        """
-        node['node_status'] = 'info'
-        try:
-            # 获取节点的规则
-            rules = node.get('rules')
-            # 获取最近1个监控的值或历史监控值
-            if len(child_values) == 1:   # 获取最近1个数据
-                data = child_values[0]
-            else:
-                data = self._get_history_abnormal_value(child_values, rules)   # 历史数据获取异常点
-            metric_value = data.get('metric_value', '0')
-            metric_time = data.get('metric_time', '-')
-            metric_units = data.get('metric_units', '')
-            formant_metric_value_units_human = self._format_metric_value(metric_value, metric_units)  # 格式化显示值
-            rule_severity, triggered_rule = self._evaluate_condition(metric_value, rules)
-            # 添加额外的信息，提供前端展示或者调用
-            metric_extra_info = {
-                'metric_name': node.get('name', ''),
-                'metric_time': metric_time,
-                'metric_value': f"{metric_value}",
-                'metric_units,': metric_units,
-                'metric_value_units_human': formant_metric_value_units_human,
-                'severity': rule_severity,   # 哪个规则对应的严重程度
-                'is_rate_change': data.get('is_rate_change', False),
-                'rate_change_details': data.get('rate_change_details', {})
-            }            # 更新节点描述，含触发的规则信息
-            if triggered_rule:
-                condition = triggered_rule.get('condition', '')
-                threshold = triggered_rule.get('threshold', '')
-                formant_threshold_value_units_human = self._format_metric_value(threshold, metric_units)  # 格式化显示值
-                metric_extra_info['rule_condition'] = triggered_rule.get('condition', '')
-                metric_extra_info['rule_threshold'] = triggered_rule.get('threshold', '')
-                metric_extra_info['impact_analysis'] = triggered_rule.get('impact_analysis', '')
-                metric_extra_info['suggestion'] = triggered_rule.get('suggestion', '')
-                metric_extra_info['rule_condition_format'] = f"{metric_value}{metric_units} {condition} {threshold}{metric_units}"
-                metric_extra_info['rule_condition_format_human'] = f"{formant_metric_value_units_human} {condition} {formant_threshold_value_units_human}"
-            node['metric_extra_info'] = metric_extra_info
-            node['description'] = f"{metric_value}{metric_units}({formant_metric_value_units_human})"
-            # 更新节点状态
-            if self._get_severity_level(rule_severity) > self._get_severity_level(node.get('node_status', 'info')):
-                node['node_status'] = rule_severity
-                node['metric_value'] = metric_value
-        except Exception as e:
-            logger.exception(f"评估子节点规则失败: {str(e)}")
-            node['node_status'] = 'error'
-            node['description'] = f"规则评估失败: {str(e)}"
-            node['metric_extra_info'] = {
-                'metric_name': node.get('metric_name', ''),
-                'error_message': str(e),
-                'severity': 'error',
-                'status': '规则评估失败'
-            }
-
-    def _compare_values(self, value, threshold, condition):
-        """比较值和阈值"""
-        compare_func = VALUE_COMPARISON_OPERATORS.get(condition)
-        if not compare_func:
-            return False
-        
-        try:
-            return compare_func(value, threshold)
-        except (ValueError, TypeError) as e:
-            logger.exception(f"值比较失败: value={value}, threshold={threshold}, condition={condition}")
-            return False
-
-    def _evaluate_condition(self, metric_value, rules):
-        """评估条件并返回状态"""
-        if not rules or not metric_value:
-            return 'info', None
-
-        highest_severity = 'info'
-        triggered_rule = None
-
-        for rule in rules:
-            condition = rule.get('condition', '')
-            threshold = rule.get('threshold', '0')
-            
-            if self._compare_values(metric_value, threshold, condition):
-                severity = rule.get('status', 'info')
-                if self._get_severity_level(severity) > self._get_severity_level(highest_severity):
-                    highest_severity = severity
-                    triggered_rule = rule
-
-        return highest_severity, triggered_rule
-
-    def _get_history_abnormal_value(self, values, rules):
-        """根据规则获取异常值
-        Returns:
-            dict: 统一的返回结构，包含所有必要字段
-        """
-        # 只做一次 copy
-        result = values[0].copy()
-        result.update({
-            'is_rate_change': False,
-            'severity': 'info',
-            'triggered_rule': None
-        })
-        
-        if not rules or not values:
-            return result
-
-        highest_severity = 'info'
-
-        for rule in rules:
-            rule_type = rule.get('ruleType', 'threshold')
-            rule_severity = rule.get('status', 'info')
-            try:
-                if rule_type == 'rate':
-                    result['is_rate_change'] = True
-                    result['rate_change_details'] = {
-                        'prev_time': result['metric_time'],
-                        'next_time': result['metric_time'],
-                        'prev_value': f"{float(result['metric_value']):.2f}",
-                        'next_value': f"{float(result['metric_value']):.2f}",
-                        'time_window': rule.get('timeWindow', '5min')
-                    }
-                    is_triggered, rate_info = self._evaluate_rate_change(values, rule)
-                    if is_triggered and self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
-                        highest_severity = rule_severity
-                        result.update({
-                            'metric_value': f"{rate_info['rate']:.2f}",
-                            'severity': rule_severity,
-                            'triggered_rule': {
-                                'type': rule.get('type', 'numeric'),
-                                'condition': rule.get('condition', ''),
-                                'threshold': rule.get('threshold', ''),
-                                'status': rule_severity,
-                                'impact_analysis': rule.get('impact_analysis', ''),
-                                'suggestion': rule.get('suggestion', '')
-                            },
-                            'rate_change_details': {
-                                'prev_time': rate_info['prev_time'],
-                                'next_time': rate_info['next_time'],
-                                'prev_value': f"{rate_info['prev_value']:.2f}",
-                                'next_value': f"{rate_info['next_value']:.2f}",
-                                'time_window': rule.get('timeWindow', '5min')
-                            }
-                        })
-                    continue
-
-                metric_type = rule.get('metric_type', 'numeric')
-                condition = rule.get('condition', '')
-                threshold = rule.get('threshold', '0')
-                
-                strategy = HISTORY_COMPARISON_STRATEGY.get((metric_type, condition))
-                if not strategy:
-                    continue
-
-                if condition in ['==', '!=', 'in', 'not in', 'match']:
-                    current_value = strategy(values, threshold)
-                else:
-                    current_value = strategy(values)
-
-                if self._compare_values(current_value.get('metric_value', '0'),threshold,condition):
-                    if self._get_severity_level(rule_severity) > self._get_severity_level(highest_severity):
-                        highest_severity = rule_severity
-                        result.update(current_value)
-                        result.update({
-                            'severity': rule_severity,
-                            'triggered_rule': {
-                                'type': metric_type,
-                                'condition': condition,
-                                'threshold': threshold,
-                                'status': rule_severity,
-                                'impact_analysis': rule.get('impact_analysis', ''),
-                                'suggestion': rule.get('suggestion', '')
-                            }
-                        })
-
-            except Exception as e:
-                logger.warning(f"处理历史数据失败: {str(e)}")
-                continue
-        return result
-
-    def _format_metric_value(self, value, units):
-        """格式化指标值的显示"""
-        return MetricValueFormatter.format(value, units)
+        self.metrics_processor.time_from = self.time_from
+        self.metrics_processor.time_till = self.time_till
+        self.metrics_processor.process_metrics(metric, node)
 
     def _update_parent_status(self, node):
         """更新父节点状态"""
@@ -712,7 +730,7 @@ def generate_tree_data(fault_tree_config, cluster_name, fault_case):
         }) + '\n\n'
 
     except Exception as e:
-        logger.exception(f"生成故障��数据失败: {str(e)}")
+        logger.exception(f"生成故障树数据失败: {str(e)}")
         yield 'data: ' + json.dumps({
             'type': 'error',
             'data': {
