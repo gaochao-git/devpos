@@ -5,6 +5,7 @@ import logging
 import json
 import time
 from datetime import datetime, timedelta
+from .trend_evaluator import RateChangeEvaluator
 logger = logging.getLogger('log')
 
 
@@ -118,81 +119,6 @@ class ClusterInfoProvider:
             logger.exception(f"获取集群信息失败: {str(e)}")
             return init_cluster_info
 
-class RateChangeEvaluator:
-    """变化率评估器，用于评估指标的变化率"""
-    
-    @staticmethod
-    def evaluate(values, rule):
-        """
-        评估指标变化率，适用于逆序（新到旧）的数据
-        
-        Args:
-            values (list): 指标��表，按时间逆序排列
-            rule (dict): 规则配置
-            
-        Returns:
-            tuple: (是否触发规则, 最大变化详情)
-        """
-        max_change = {
-            'rate': 0,
-            'prev_time': values[0].get('metric_time'),
-            'next_time': values[0].get('metric_time'),
-            'prev_value': float(values[0].get('metric_value', 0)),
-            'next_value': float(values[0].get('metric_value', 0))
-        }
-        if len(values) < 2: return False, max_change
-        
-        time_window = rule.get('timeWindow', 300)  # 直接使用秒数
-        threshold = float(rule.get('threshold', 0))
-        condition = rule.get('condition', '>')
-        is_percentage = rule.get('metric_units', '') == '%' or any(v.get('metric_units', '') == '%' for v in values)
-        is_increase_rule = condition in ['>', '>=']
-        
-        # 从新到旧遍历
-        for i in range(len(values) - 1):
-            next_point = values[i]  # 较新的点
-            next_time = datetime.strptime(next_point.get('metric_time'), '%Y-%m-%d %H:%M:%S')
-            next_value = float(next_point.get('metric_value', 0))
-            
-            # 向后查找较早的点
-            for j in range(i + 1, len(values)):
-                prev_point = values[j]  # 较早的点
-                prev_time = datetime.strptime(prev_point.get('metric_time'), '%Y-%m-%d %H:%M:%S')
-                prev_value = float(prev_point.get('metric_value', 0))
-                print(i, j)
-                if prev_value == 0 and not is_percentage:
-                    continue
-                    
-                # 检查时间窗口
-                time_diff = (next_time - prev_time).total_seconds()
-                if time_diff > time_window:
-                    print(f"时间差超过{time_window}秒，跳出循环")
-                    break
-                    
-                # 计算变化率
-                rate = (next_value - prev_value)
-                if not is_percentage:
-                    rate = (rate / prev_value) * 100
-                    
-                # 根据规则类型过滤
-                if (is_increase_rule and rate <= 0) or (not is_increase_rule and rate >= 0):
-                    continue
-                    
-                # 更新最大变化
-                if abs(rate) > abs(max_change['rate']):
-                    max_change = {
-                        'rate': rate,
-                        'prev_time': prev_point.get('metric_time'),
-                        'next_time': next_point.get('metric_time'),
-                        'prev_value': prev_value,
-                        'next_value': next_value
-                    }
-                    
-                # 检查是否触发规则
-                if (is_increase_rule and rate > threshold) or (not is_increase_rule and rate < threshold):
-                    return True, max_change
-        
-        return False, max_change
 
 class MetricsProcessor:
     """监控指标处理器，负责处理节点的监控指标"""
