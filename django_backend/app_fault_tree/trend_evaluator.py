@@ -28,9 +28,7 @@ class SimpleRateAlgorithm(TrendAlgorithm):
             
         time_window = rule.get('timeWindow', 300)  # 默认5分钟
         threshold = float(rule.get('threshold', 0))
-        unit = values[0].get('metric_units', '')
-        print(values[0])
-        
+        unit = values[0].get('metric_units', '')        
         def parse_time(time_str):
             return datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
         
@@ -63,13 +61,8 @@ class SimpleRateAlgorithm(TrendAlgorithm):
                     last_time = parse_time(block[-1]['metric_time'])
                     actual_window = abs((last_time - first_time).total_seconds())
                     blocks.append((block, actual_window))
-        
-        print(f"Interval: {interval}s, Points per window: {points_per_window}")
-        print(f"Total points: {len(values)}, Blocks: {len(blocks)}, Points in blocks: {[len(b[0]) for b in blocks]}")
-            
         # 如果没有有效的块，返回无变化
-        if not blocks:
-            return False, {'rate': 0}
+        if not blocks: return False, {'rate': 0}
             
         # 计算每个块内的最大变化率
         max_change = {'rate': 0}
@@ -85,8 +78,7 @@ class SimpleRateAlgorithm(TrendAlgorithm):
                 base_value = min_value if threshold > 0 else max_value
                 if base_value != 0:
                     rate = (max_value - min_value) / base_value
-                    if unit != '%':
-                        rate *= 100
+                    if unit != '%': rate *= 100
                 else:
                     rate = 0
                 # 更新最大变化
