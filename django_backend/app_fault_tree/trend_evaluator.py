@@ -28,44 +28,53 @@ class SimpleRateAlgorithm(TrendAlgorithm):
             
         time_window = rule.get('timeWindow', 300)  # 默认5分钟
         threshold = float(rule.get('threshold', 0))
+        unit = values[0].get('metric_units', '')
+        print(values[0])
         
-        # 确保时间是 datetime 对象
         def parse_time(time_str):
             return datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
         
-        # 检查数据排序方向（通过比较前两个时间点）
+        # 计算相邻时间点的间隔
         time1 = parse_time(values[0]['metric_time'])
         time2 = parse_time(values[1]['metric_time'])
-        is_reverse = time1 > time2
+        interval = abs((time2 - time1).total_seconds())
         
-        # 如果是逆序，转换为正序以便处理
-        sorted_values = values[::-1] if is_reverse else values[:]
+        # 计算一个时间窗口内应该包含的点数
+        points_per_window = int(time_window / interval) + 1
         
-        # 按时间窗口拆分数据块
-        blocks = []
-        start_idx = 0
-        start_time = parse_time(sorted_values[0]['metric_time'])
+        # 如果总点数小于等于时间窗口的点数，直接作为一个块
+        if len(values) <= points_per_window:
+            if len(values) >= 2:
+                # 计算实际的时间窗口
+                first_time = parse_time(values[0]['metric_time'])
+                last_time = parse_time(values[-1]['metric_time'])
+                actual_window = abs((last_time - first_time).total_seconds())
+                blocks = [(values, actual_window)]
+            else:
+                blocks = []
+        else:
+            # 按步长切分数据，确保每个块至少有2个点
+            blocks = []
+            for i in range(0, len(values), points_per_window):
+                block = values[i:i + points_per_window]
+                if len(block) >= 2:
+                    # 计算每个块的实际时间窗口
+                    first_time = parse_time(block[0]['metric_time'])
+                    last_time = parse_time(block[-1]['metric_time'])
+                    actual_window = abs((last_time - first_time).total_seconds())
+                    blocks.append((block, actual_window))
         
-        # 遍历数据点，按时间窗口分块
-        for i, point in enumerate(sorted_values[1:], 1):
-            current_time = parse_time(point['metric_time'])
-            time_diff = (current_time - start_time).total_seconds()
-            if time_diff > time_window:
-                # 当前窗口结束，保存块
-                if i - start_idx > 1:  # 确保块内至少有2个点
-                    blocks.append(sorted_values[start_idx:i])
-                # 开始新的窗口
-                start_idx = i
-                start_time = current_time
-        
-        # 添加最后一个块
-        if len(sorted_values) - start_idx > 1:
-            blocks.append(sorted_values[start_idx:])
+        print(f"Interval: {interval}s, Points per window: {points_per_window}")
+        print(f"Total points: {len(values)}, Blocks: {len(blocks)}, Points in blocks: {[len(b[0]) for b in blocks]}")
+            
+        # 如果没有有效的块，返回无变化
+        if not blocks:
+            return False, {'rate': 0}
             
         # 计算每个块内的最大变化率
         max_change = {'rate': 0}
         
-        for block in blocks:
+        for block, actual_window in blocks:
             try:
                 # 获取块内的最大最小值
                 values_in_block = [(float(point['metric_value']), point) for point in block]
@@ -74,18 +83,23 @@ class SimpleRateAlgorithm(TrendAlgorithm):
                 
                 # 计算变化率
                 base_value = min_value if threshold > 0 else max_value
-                rate = ((max_value - min_value) / base_value * 100) if base_value != 0 else 0
-                
+                if base_value != 0:
+                    rate = (max_value - min_value) / base_value
+                    if unit != '%':
+                        rate *= 100
+                else:
+                    rate = 0
                 # 更新最大变化
-                if (threshold > 0 and rate > max_change['rate']) or \
-                   (threshold < 0 and rate < max_change['rate']):
+                if (threshold > 0 and rate > max_change['rate']) or (threshold < 0 and rate < max_change['rate']):
                     max_change = {
                         'rate': rate,
                         'prev_time': min_point['metric_time'],
                         'next_time': max_point['metric_time'],
                         'prev_value': min_value,
                         'next_value': max_value,
-                        'time_window': f"{(parse_time(max_point['metric_time']) - parse_time(min_point['metric_time'])).total_seconds()}s"
+                        'time_window': f"{actual_window}s",
+                        'actual_window': actual_window,  # 添加实际窗口大小
+                        'expected_window': time_window   # 添加预期窗口大小
                     }
                     
             except (ValueError, TypeError) as e:
@@ -154,7 +168,7 @@ class MovingAverageAlgorithm(TrendAlgorithm):
         return False, max_change
 
 class RateChangeEvaluator:
-    """变化��评估器，支持多种趋势评估算法"""
+    """变化评估器，支持多种趋势评估算法"""
     
     ALGORITHMS = {
         'simple': SimpleRateAlgorithm,
