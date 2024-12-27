@@ -28,13 +28,11 @@ class SimpleRateAlgorithm(TrendAlgorithm):
             
         time_window = rule.get('timeWindow', 300)  # 默认5分钟
         threshold = float(rule.get('threshold', 0))
-        unit = values[0].get('metric_units', '')        
-        def parse_time(time_str):
-            return datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
+        unit = values[0].get('metric_units', '')
         
         # 计算相邻时间点的间隔
-        time1 = parse_time(values[0]['metric_time'])
-        time2 = parse_time(values[1]['metric_time'])
+        time1 = datetime.strptime(values[0]['metric_time'], '%Y-%m-%d %H:%M:%S')
+        time2 = datetime.strptime(values[1]['metric_time'], '%Y-%m-%d %H:%M:%S')
         interval = abs((time2 - time1).total_seconds())
         
         # 计算一个时间窗口内应该包含的点数
@@ -43,55 +41,39 @@ class SimpleRateAlgorithm(TrendAlgorithm):
         # 如果总点数小于等于时间窗口的点数，直接作为一个块
         if len(values) <= points_per_window:
             if len(values) >= 2:
-                # 计算实际的时间窗口
-                first_time = parse_time(values[0]['metric_time'])
-                last_time = parse_time(values[-1]['metric_time'])
-                actual_window = abs((last_time - first_time).total_seconds())
-                blocks = [(values, actual_window)]
+                blocks = [(values, abs((datetime.strptime(values[-1]['metric_time'], '%Y-%m-%d %H:%M:%S') - 
+                                     datetime.strptime(values[0]['metric_time'], '%Y-%m-%d %H:%M:%S')).total_seconds()))]
             else:
                 blocks = []
         else:
-            # 按步长切分数据，确保每个块至少有2个点
-            blocks = []
-            for i in range(0, len(values), points_per_window):
-                block = values[i:i + points_per_window]
-                if len(block) >= 2:
-                    # 计算每个块的实际时间窗口
-                    first_time = parse_time(block[0]['metric_time'])
-                    last_time = parse_time(block[-1]['metric_time'])
-                    actual_window = abs((last_time - first_time).total_seconds())
-                    blocks.append((block, actual_window))
-        # 如果没有有效的块，返回无变化
-        if not blocks: return False, {'rate': 0}
+            blocks = SimpleRateAlgorithm._split_into_blocks(values, points_per_window)
+            
+        if not blocks:
+            return False, {'rate': 0}
             
         # 计算每个块内的最大变化率
         max_change = {'rate': 0}
         
         for block, actual_window in blocks:
             try:
-                # 获取块内的最大最小值
-                values_in_block = [(float(point['metric_value']), point) for point in block]
-                min_value, min_point = min(values_in_block, key=lambda x: x[0])
-                max_value, max_point = max(values_in_block, key=lambda x: x[0])
+                min_point, max_point = SimpleRateAlgorithm._find_min_max(block)
+                rate = SimpleRateAlgorithm._calculate_rate(
+                    min_point if threshold > 0 else max_point,
+                    max_point if threshold > 0 else min_point,
+                    unit
+                )
                 
-                # 计算变化率
-                base_value = min_value if threshold > 0 else max_value
-                if base_value != 0:
-                    rate = (max_value - min_value) / base_value
-                    if unit != '%': rate *= 100
-                else:
-                    rate = 0
                 # 更新最大变化
                 if (threshold > 0 and rate > max_change['rate']) or (threshold < 0 and rate < max_change['rate']):
                     max_change = {
                         'rate': rate,
                         'prev_time': min_point['metric_time'],
                         'next_time': max_point['metric_time'],
-                        'prev_value': min_value,
-                        'next_value': max_value,
+                        'prev_value': float(min_point['metric_value']),
+                        'next_value': float(max_point['metric_value']),
                         'time_window': f"{actual_window}s",
-                        'actual_window': actual_window,  # 添加实际窗口大小
-                        'expected_window': time_window   # 添加预期窗口大小
+                        'actual_window': actual_window,
+                        'expected_window': time_window
                     }
                     
             except (ValueError, TypeError) as e:
@@ -103,6 +85,39 @@ class SimpleRateAlgorithm(TrendAlgorithm):
             return max_change['rate'] > threshold, max_change
         else:  # 下降规则
             return max_change['rate'] < threshold, max_change
+
+    @staticmethod
+    def _split_into_blocks(values, points_per_window):
+        """将数据分割成块，并计算每个块的实际时间窗口"""
+        blocks = []
+        for i in range(0, len(values), points_per_window-1):  # 减1以确保至少有2个点
+            block = values[i:i + points_per_window]
+            if len(block) >= 2:
+                first_time = datetime.strptime(block[0]['metric_time'], '%Y-%m-%d %H:%M:%S')
+                last_time = datetime.strptime(block[-1]['metric_time'], '%Y-%m-%d %H:%M:%S')
+                actual_window = abs((last_time - first_time).total_seconds())
+                blocks.append((block, actual_window))
+        return blocks
+    
+    @staticmethod
+    def _find_min_max(block):
+        """找到块中的最小值和最大值"""
+        values_in_block = [(float(point['metric_value']), point) for point in block]
+        min_value, min_point = min(values_in_block, key=lambda x: x[0])
+        max_value, max_point = max(values_in_block, key=lambda x: x[0])
+        return min_point, max_point
+    
+    @staticmethod
+    def _calculate_rate(base_point, target_point, unit):
+        """计算变化率"""
+        base_value = float(base_point['metric_value'])
+        if base_value != 0:
+            rate = (float(target_point['metric_value']) - base_value) / base_value
+            if unit != '%':
+                rate *= 100
+        else:
+            rate = 0
+        return rate
 
 class MovingAverageAlgorithm(TrendAlgorithm):
     """移动平均算法：使用移动平均计算趋势变化"""
