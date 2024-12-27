@@ -90,7 +90,7 @@ class SimpleRateAlgorithm(TrendAlgorithm):
     def _split_into_blocks(values, points_per_window):
         """将数据分割成块，并计算每个块的实际时间窗口"""
         blocks = []
-        for i in range(0, len(values), points_per_window-1):  # 减1以确保至少有2个点
+        for i in range(0, len(values), points_per_window-1):  # 减1以确保至有2个点
             block = values[i:i + points_per_window]
             if len(block) >= 2:
                 first_time = datetime.strptime(block[0]['metric_time'], '%Y-%m-%d %H:%M:%S')
@@ -127,19 +127,32 @@ class MovingAverageAlgorithm(TrendAlgorithm):
         if len(values) < 2:
             return False, {'rate': 0}
             
-        window_size = rule.get('windowSize', 3)
+        time_window = rule.get('timeWindow', 300)  # 默认5分钟
         threshold = float(rule.get('threshold', 0))
-        unit = values[0].get('metric_unit', '')  # 获取单位
+        unit = values[0].get('metric_units', '')
+        
+        # 计算相邻时间点的间隔
+        time1 = datetime.strptime(values[0]['metric_time'], '%Y-%m-%d %H:%M:%S')
+        time2 = datetime.strptime(values[1]['metric_time'], '%Y-%m-%d %H:%M:%S')
+        interval = abs((time2 - time1).total_seconds())
+        
+        # 计算一个时间窗口内应该包含的点数
+        window_size = min(int(time_window / interval) + 1, len(values))
         
         # 计算移动平均
         ma_values = []
         for i in range(len(values) - window_size + 1):
             window = values[i:i + window_size]
             try:
-                ma_value = sum(float(point['metric_value']) for point in window) / window_size
+                ma_value = sum(float(point['metric_value']) for point in window) / len(window)
+                window_start_time = datetime.strptime(window[-1]['metric_time'], '%Y-%m-%d %H:%M:%S')
+                window_end_time = datetime.strptime(window[0]['metric_time'], '%Y-%m-%d %H:%M:%S')
+                actual_window = abs((window_end_time - window_start_time).total_seconds())
+                
                 ma_values.append({
                     'value': ma_value,
-                    'time': window[-1]['metric_time']
+                    'time': window[0]['metric_time'],
+                    'actual_window': actual_window
                 })
             except (ValueError, TypeError):
                 continue
@@ -157,7 +170,6 @@ class MovingAverageAlgorithm(TrendAlgorithm):
             try:
                 if prev_ma['value'] != 0:
                     rate = (next_ma['value'] - prev_ma['value']) / prev_ma['value']
-                    # 只有在单位不是百分比时才乘以100
                     if unit != '%':
                         rate *= 100
                 else:
@@ -171,7 +183,9 @@ class MovingAverageAlgorithm(TrendAlgorithm):
                         'next_time': next_ma['time'],
                         'prev_value': prev_ma['value'],
                         'next_value': next_ma['value'],
-                        'window_size': window_size
+                        'time_window': f"{prev_ma['actual_window']}s",
+                        'actual_window': prev_ma['actual_window'],
+                        'expected_window': time_window
                     }
             except (ValueError, TypeError):
                 continue
@@ -182,12 +196,134 @@ class MovingAverageAlgorithm(TrendAlgorithm):
         else:  # 下降规则
             return max_change['rate'] < threshold, max_change
 
+class InstantRateAlgorithm(TrendAlgorithm):
+    """瞬时变化率算法：计算相邻数据点之间的变化率"""
+    
+    @staticmethod
+    def calculate(values, rule):
+        if len(values) < 2:
+            return False, {'rate': 0}
+            
+        threshold = float(rule.get('threshold', 0))
+        unit = values[0].get('metric_units', '')
+        
+        # 计算所有相邻点的变化率
+        max_change = {'rate': 0}
+        
+        for i in range(len(values) - 1):
+            curr_point = values[i]
+            next_point = values[i + 1]
+            
+            try:
+                curr_value = float(curr_point['metric_value'])
+                next_value = float(next_point['metric_value'])
+                
+                if next_value != 0:
+                    rate = (curr_value - next_value) / next_value
+                    if unit != '%':
+                        rate *= 100
+                else:
+                    rate = 0
+                
+                # 计算时间间隔
+                curr_time = datetime.strptime(curr_point['metric_time'], '%Y-%m-%d %H:%M:%S')
+                next_time = datetime.strptime(next_point['metric_time'], '%Y-%m-%d %H:%M:%S')
+                time_diff = abs((curr_time - next_time).total_seconds())
+                
+                # 更新最大变化
+                if (threshold > 0 and rate > max_change['rate']) or \
+                   (threshold < 0 and rate < max_change['rate']):
+                    max_change = {
+                        'rate': rate,
+                        'prev_time': next_point['metric_time'],
+                        'next_time': curr_point['metric_time'],
+                        'prev_value': next_value,
+                        'next_value': curr_value,
+                        'time_window': f"{time_diff}s",
+                        'actual_window': time_diff,
+                        'expected_window': time_diff
+                    }
+                    
+            except (ValueError, TypeError) as e:
+                continue
+                
+        # 检查是否触发规则
+        if threshold > 0:  # 增长规则
+            return max_change['rate'] > threshold, max_change
+        else:  # 下降规则
+            return max_change['rate'] < threshold, max_change
+
+
+
+class VarianceAlgorithm(TrendAlgorithm):
+    """方差算法：检测数据的波动程度"""
+    
+    @staticmethod
+    def calculate(values, rule):
+        if len(values) < 2:
+            return False, {'variance': 0}
+            
+        time_window = rule.get('timeWindow', 60)  # 默认1分钟
+        threshold = float(rule.get('threshold', 0))  # 方差阈值
+        
+        # 计算相邻时间点的间隔
+        time1 = datetime.strptime(values[0]['metric_time'], '%Y-%m-%d %H:%M:%S')
+        time2 = datetime.strptime(values[1]['metric_time'], '%Y-%m-%d %H:%M:%S')
+        interval = abs((time2 - time1).total_seconds())
+        
+        # 计算窗口大小
+        window_size = min(int(time_window / interval) + 1, len(values))
+        
+        max_variance = {'variance': 0}
+        
+        # 使用滑动窗口计算方差
+        for i in range(len(values) - window_size + 1):
+            window = values[i:i + window_size]
+            try:
+                # 计算窗口内的均值
+                values_in_window = [float(point['metric_value']) for point in window]
+                mean = sum(values_in_window) / len(values_in_window)
+                
+                # 计算方差
+                variance = sum((x - mean) ** 2 for x in values_in_window) / len(values_in_window)
+                
+                # 计算实际时间窗口
+                window_start_time = datetime.strptime(window[-1]['metric_time'], '%Y-%m-%d %H:%M:%S')
+                window_end_time = datetime.strptime(window[0]['metric_time'], '%Y-%m-%d %H:%M:%S')
+                actual_window = abs((window_end_time - window_start_time).total_seconds())
+                
+                if variance > max_variance['variance']:
+                    max_variance = {
+                        'variance': variance,
+                        'start_time': window[-1]['metric_time'],
+                        'end_time': window[0]['metric_time'],
+                        'mean': mean,
+                        'time_window': f"{actual_window}s",
+                        'actual_window': actual_window,
+                        'expected_window': time_window
+                    }
+                    
+            except (ValueError, TypeError) as e:
+                continue
+                
+        # 检查是否触发规则
+        return max_variance['variance'] > threshold, max_variance 
+
+
 class RateChangeEvaluator:
-    """变化评估器，支持多种趋势评估算法"""
+    """
+    变化评估器，支持多种趋势评估算法
+    InstantRateAlgorithm: 最敏感，适合检测突发变化
+    VarianceAlgorithm: 适合检测数据的不稳定性
+    SimpleRateAlgorithm: 平衡了敏感度和稳定性
+    MovingAverageAlgorithm: 最平滑，适合中长期趋势
+    """
     
     ALGORITHMS = {
         'simple': SimpleRateAlgorithm,
-        'moving_average': MovingAverageAlgorithm
+        'moving_average': MovingAverageAlgorithm,
+        'instant': InstantRateAlgorithm,
+        'variance': VarianceAlgorithm
     }
     
     @classmethod
