@@ -19,57 +19,87 @@ class TrendAlgorithm:
         raise NotImplementedError("Subclasses must implement calculate()")
 
 class SimpleRateAlgorithm(TrendAlgorithm):
-    """简单变化率算法：相邻两点的变化率"""
+    """简单变化率算法：按时间窗口拆分数据块，计算块内最大变化率"""
     
     @staticmethod
     def calculate(values, rule):
         if len(values) < 2:
             return False, {'rate': 0}
             
-        time_window = rule.get('timeWindow', 300)
+        time_window = rule.get('timeWindow', 300)  # 默认5分钟
         threshold = float(rule.get('threshold', 0))
-        is_increase_rule = threshold > 0
         
+        # 确保时间是 datetime 对象
+        def parse_time(time_str):
+            return datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
+        
+        # 检查数据排序方向（通过比较前两个时间点）
+        time1 = parse_time(values[0]['metric_time'])
+        time2 = parse_time(values[1]['metric_time'])
+        is_reverse = time1 > time2
+        
+        # 如果是逆序，转换为正序以便处理
+        sorted_values = values[::-1] if is_reverse else values[:]
+        
+        # 按时间窗口拆分数据块
+        blocks = []
+        start_idx = 0
+        start_time = parse_time(sorted_values[0]['metric_time'])
+        
+        # 遍历数据点，按时间窗口分块
+        for i, point in enumerate(sorted_values[1:], 1):
+            current_time = parse_time(point['metric_time'])
+            time_diff = (current_time - start_time).total_seconds()
+            if time_diff > time_window:
+                # 当前窗口结束，保存块
+                if i - start_idx > 1:  # 确保块内至少有2个点
+                    blocks.append(sorted_values[start_idx:i])
+                # 开始新的窗口
+                start_idx = i
+                start_time = current_time
+        
+        # 添加最后一个块
+        if len(sorted_values) - start_idx > 1:
+            blocks.append(sorted_values[start_idx:])
+            
+        # 计算每个块内的最大变化率
         max_change = {'rate': 0}
         
-        for i in range(len(values) - 1):
-            prev_point = values[i]
-            next_point = values[i + 1]
-            
-            # 检查时间窗口
-            time_diff = (prev_point['metric_time'] - next_point['metric_time']).total_seconds()
-            if time_diff > time_window:
-                continue
-                
+        for block in blocks:
             try:
-                prev_value = float(prev_point['metric_value'])
-                next_value = float(next_point['metric_value'])
+                # 获取块内的最大最小值
+                values_in_block = [(float(point['metric_value']), point) for point in block]
+                min_value, min_point = min(values_in_block, key=lambda x: x[0])
+                max_value, max_point = max(values_in_block, key=lambda x: x[0])
                 
                 # 计算变化率
-                rate = ((next_value - prev_value) / prev_value * 100) if prev_value != 0 else 0
+                base_value = min_value if threshold > 0 else max_value
+                rate = ((max_value - min_value) / base_value * 100) if base_value != 0 else 0
                 
                 # 更新最大变化
-                if abs(rate) > abs(max_change['rate']):
+                if (threshold > 0 and rate > max_change['rate']) or \
+                   (threshold < 0 and rate < max_change['rate']):
                     max_change = {
                         'rate': rate,
-                        'prev_time': prev_point['metric_time'],
-                        'next_time': next_point['metric_time'],
-                        'prev_value': prev_value,
-                        'next_value': next_value,
-                        'time_window': f"{time_diff}s"
+                        'prev_time': min_point['metric_time'],
+                        'next_time': max_point['metric_time'],
+                        'prev_value': min_value,
+                        'next_value': max_value,
+                        'time_window': f"{(parse_time(max_point['metric_time']) - parse_time(min_point['metric_time'])).total_seconds()}s"
                     }
                     
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Error processing block: {e}")
                 continue
                 
         # 检查是否触发规则
-        if abs(max_change['rate']) > abs(threshold):
-            return True, max_change
-            
-        return False, max_change
+        if threshold > 0:  # 增长规则
+            return max_change['rate'] > threshold, max_change
+        else:  # 下降规则
+            return max_change['rate'] < threshold, max_change
 
 class MovingAverageAlgorithm(TrendAlgorithm):
-    """移动平均算法：使用移动平均来平滑数据并检测��势"""
+    """移动平均算法：使用移动平均来平滑数据并检测趋势"""
     
     @staticmethod
     def calculate(values, rule):
@@ -124,7 +154,7 @@ class MovingAverageAlgorithm(TrendAlgorithm):
         return False, max_change
 
 class RateChangeEvaluator:
-    """变化率评估器，支持多种趋势评估算法"""
+    """变化��评估器，支持多种趋势评估算法"""
     
     ALGORITHMS = {
         'simple': SimpleRateAlgorithm,

@@ -303,7 +303,7 @@ class MetricsProcessor:
                         })
 
             except Exception as e:
-                logger.warning(f"处理历史数据失败: {str(e)}")
+                logger.exception(f"处理历史数据失败: {str(e)}")
                 continue
         return result
 
