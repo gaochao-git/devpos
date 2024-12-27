@@ -113,43 +113,51 @@ class SimpleRateAlgorithm(TrendAlgorithm):
             return max_change['rate'] < threshold, max_change
 
 class MovingAverageAlgorithm(TrendAlgorithm):
-    """移动平均算法：使用移动平均来平滑数据并检测趋势"""
+    """移动平均算法：使用移动平均计算趋势变化"""
     
     @staticmethod
     def calculate(values, rule):
-        if len(values) < 3:  # 至少需要3个点来计算移动平均
+        if len(values) < 2:
             return False, {'rate': 0}
             
         window_size = rule.get('windowSize', 3)
         threshold = float(rule.get('threshold', 0))
-        is_increase_rule = threshold > 0
+        unit = values[0].get('metric_unit', '')  # 获取单位
         
         # 计算移动平均
-        moving_averages = []
+        ma_values = []
         for i in range(len(values) - window_size + 1):
             window = values[i:i + window_size]
             try:
-                avg = sum(float(v['metric_value']) for v in window) / window_size
-                moving_averages.append({
-                    'value': avg,
-                    'time': window[0]['metric_time']
+                ma_value = sum(float(point['metric_value']) for point in window) / window_size
+                ma_values.append({
+                    'value': ma_value,
+                    'time': window[-1]['metric_time']
                 })
             except (ValueError, TypeError):
                 continue
                 
-        if len(moving_averages) < 2:
+        if len(ma_values) < 2:
             return False, {'rate': 0}
             
-        # 计算移动平均的变化率
+        # 计算最大变化率
         max_change = {'rate': 0}
-        for i in range(len(moving_averages) - 1):
-            prev_ma = moving_averages[i]
-            next_ma = moving_averages[i + 1]
+        
+        for i in range(len(ma_values) - 1):
+            prev_ma = ma_values[i]
+            next_ma = ma_values[i + 1]
             
             try:
-                rate = ((next_ma['value'] - prev_ma['value']) / prev_ma['value'] * 100) if prev_ma['value'] != 0 else 0
-                
-                if abs(rate) > abs(max_change['rate']):
+                if prev_ma['value'] != 0:
+                    rate = (next_ma['value'] - prev_ma['value']) / prev_ma['value']
+                    # 只有在单位不是百分比时才乘以100
+                    if unit != '%':
+                        rate *= 100
+                else:
+                    rate = 0
+                    
+                if (threshold > 0 and rate > max_change['rate']) or \
+                   (threshold < 0 and rate < max_change['rate']):
                     max_change = {
                         'rate': rate,
                         'prev_time': prev_ma['time'],
@@ -162,10 +170,10 @@ class MovingAverageAlgorithm(TrendAlgorithm):
                 continue
                 
         # 检查是否触发规则
-        if abs(max_change['rate']) > abs(threshold):
-            return True, max_change
-            
-        return False, max_change
+        if threshold > 0:  # 增长规则
+            return max_change['rate'] > threshold, max_change
+        else:  # 下降规则
+            return max_change['rate'] < threshold, max_change
 
 class RateChangeEvaluator:
     """变化评估器，支持多种趋势评估算法"""
