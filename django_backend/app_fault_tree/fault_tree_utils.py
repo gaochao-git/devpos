@@ -133,15 +133,6 @@ class RateChangeEvaluator:
         Returns:
             tuple: (是否触发规则, 最大变化详情)
         """
-        if len(values) < 2:
-            return False, {'rate': 0}
-        
-        time_window = rule.get('timeWindow', 300)  # 直接使用秒数
-        threshold = float(rule.get('threshold', 0))
-        condition = rule.get('condition', '>')
-        is_percentage = rule.get('metric_units', '') == '%' or any(v.get('metric_units', '') == '%' for v in values)
-        is_increase_rule = condition in ['>', '>=']
-        
         max_change = {
             'rate': 0,
             'prev_time': values[0].get('metric_time'),
@@ -149,6 +140,13 @@ class RateChangeEvaluator:
             'prev_value': float(values[0].get('metric_value', 0)),
             'next_value': float(values[0].get('metric_value', 0))
         }
+        if len(values) < 2: return False, max_change
+        
+        time_window = rule.get('timeWindow', 300)  # 直接使用秒数
+        threshold = float(rule.get('threshold', 0))
+        condition = rule.get('condition', '>')
+        is_percentage = rule.get('metric_units', '') == '%' or any(v.get('metric_units', '') == '%' for v in values)
+        is_increase_rule = condition in ['>', '>=']
         
         # 从新到旧遍历
         for i in range(len(values) - 1):
@@ -161,12 +159,14 @@ class RateChangeEvaluator:
                 prev_point = values[j]  # 较早的点
                 prev_time = datetime.strptime(prev_point.get('metric_time'), '%Y-%m-%d %H:%M:%S')
                 prev_value = float(prev_point.get('metric_value', 0))
-                
+                print(i, j)
                 if prev_value == 0 and not is_percentage:
                     continue
                     
                 # 检查时间窗口
-                if (next_time - prev_time).total_seconds() > time_window:
+                time_diff = (next_time - prev_time).total_seconds()
+                if time_diff > time_window:
+                    print(f"时间差超过{time_window}秒，跳出循环")
                     break
                     
                 # 计算变化率
