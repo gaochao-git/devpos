@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Layout, Card, message, Button, Select, DatePicker, Radio, Modal, Icon, Tooltip, Switch } from 'antd';
 import moment from 'moment';
 import MyAxios from "../common/interface"
@@ -685,7 +685,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
             <Content style={{ padding: '24px' }}>
                 <Card bordered={false}>
                     {/* 顶部工具栏 */}
-                    <div style={{ marginBottom: '24px' }}>
+                    <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             {/* 左侧分析按钮组 */}
                             <div style={{ display: 'flex', alignItems: 'center' }}>
