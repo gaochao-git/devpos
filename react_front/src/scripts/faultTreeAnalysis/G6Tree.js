@@ -795,8 +795,7 @@ const FaultTree = ({ data, initialTimeRange }) => {
                     '最近5分钟': [moment().subtract(5, 'minutes'), moment()],
                     '最近10分钟': [moment().subtract(10, 'minutes'), moment()],
                     '最近15分钟': [moment().subtract(15, 'minutes'), moment()],
-                    '最近20小时': [moment().subtract(20, 'minutes'), moment()],
-                    '最近30小时': [moment().subtract(30, 'minutes'), moment()],
+                    '最近30分钟': [moment().subtract(30, 'minutes'), moment()],
                     '最近1小时': [moment().subtract(1, 'hours'), moment()],
                     '最近2小时': [moment().subtract(2, 'hours'), moment()],
                   }}
