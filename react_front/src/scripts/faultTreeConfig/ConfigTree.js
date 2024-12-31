@@ -681,10 +681,10 @@ class ConfigTreeComponent extends React.Component {
             } else {
                 message.warning('请先选择一个节点');
             }
-        } else if (e.ctrlKey && e.key === 'c') {
+        } else if (e.altKey && e.key === 'c') {
             e.preventDefault();
             this.handleCopy();
-        } else if (e.ctrlKey && e.key === 'v') {
+        } else if (e.altKey && e.key === 'v') {
             e.preventDefault();
             this.handlePaste();
         }
