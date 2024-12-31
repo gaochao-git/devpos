@@ -3,9 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, message } from 'antd';
 import robotGif from '../../images/robot.gif';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { CopyToClipboard } from 'react-copy-to-clipboard';
 
 const difyApiUrl = 'http://127.0.0.1/v1/chat-messages';
-const difyApiKey = 'Bearer app-ivi5AcOq9e90X20EpcNamjDj';
+const difyApiKey = 'Bearer app-Wyp6uFhaeygmRNJJjTquB1ZO';
 // StatBox 子组件
 const StatBox = ({ title, stats }) => (
   <div style={{
@@ -253,6 +257,23 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
   const proxyStats = calculateStats(proxyNode);
   const managerStats = calculateStats(managerNode);
 
+  // 添加 Markdown 渲染器配置
+  const renderers = {
+    code: ({ node, inline, className, children, ...props }) => {
+      const match = /language-(\w+)/.exec(className || '');
+      const codeString = String(children).replace(/\n$/, '');
+      return !inline && match ? (
+        <div style={{ position: 'relative' }}>
+          <CopyToClipboard text={codeString} onCopy={() => message.success('代码已复制!')}>
+            <Button size="small" style={{ position: 'absolute', right: 0, top: 0, zIndex: 1 }}>复制</Button>
+          </CopyToClipboard>
+          <SyntaxHighlighter style={nightOwl} language={match[1]} {...props}>{codeString}</SyntaxHighlighter>
+        </div>
+      ) : (<code className={className} {...props}>{children}</code>);
+    },
+    pre: ({ children }) => <div style={{ overflow: 'auto' }}>{children}</div>,
+  };
+
   return (
     <Modal
       visible={visible}
@@ -432,12 +453,13 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
             border: '3px solid rgba(255,255,255,0.1)'
           }}>
             <div style={{
-              whiteSpace: 'pre-wrap',
               fontSize: '14px',
               lineHeight: '1.6',
               color: 'white'
             }}>
-              {streamContent || content}
+              <ReactMarkdown components={renderers}>
+                {streamContent || content}
+              </ReactMarkdown>
               {isStreaming && (
                 <span style={{ display: 'inline-block', marginLeft: '4px' }}>
                   <span className="loading-dots">...</span>
