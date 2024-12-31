@@ -312,7 +312,8 @@ const FaultTree = ({ data, initialTimeRange }) => {
             name,
             node_status,
             instance_info,
-            metric_extra_info
+            metric_extra_info,
+            ip_port
           } = cfg;
 
           const statusStrokeColors = {
