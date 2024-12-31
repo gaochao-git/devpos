@@ -63,7 +63,7 @@ class MetricValueFormatter:
         try:
             # 如果是百分比，保留2位小数
             if units == '%':
-                return f"{float(value):.2f} {units}"
+                return f"{float(value):.2f}{units}"
             
             # 如果是字节相关单位，转换为人类可读格式
             if units.upper() in ['B', 'BYTES']:
