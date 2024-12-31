@@ -150,9 +150,7 @@ const AnalysisModal = ({ visible, content, treeData, onClose }) => {
               background: '#2563eb',
               borderRadius: '8px'
             }}>
-              <span role="img" aria-label="database" style={{ fontSize: '24px' }}>
-                🗄️
-              </span>
+              <Icon type="robot" />
             </div>
             <div>
               <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>
