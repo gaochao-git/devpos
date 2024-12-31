@@ -1,7 +1,7 @@
 // react_front/src/scripts/faultTreeAnalysis/components/AnalysisResultModal.js
 
-import React from 'react';
-import { Modal } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Modal, Button } from 'antd';
 import robotGif from '../../images/robot.gif';
 
 // StatBox 子组件
@@ -96,6 +96,98 @@ const StatBox = ({ title, stats }) => (
 );
 
 const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
+  const [streamContent, setStreamContent] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  
+  // 创建解析器
+  const createParser = (onEvent) => {
+    return {
+      feed(chunk) {
+        try {
+          const jsonData = JSON.parse(chunk);
+          if (jsonData.answer) {
+            onEvent(jsonData.answer);
+          }
+        } catch (e) {
+          console.error('Parse error:', e);
+        }
+      }
+    };
+  };
+
+  // 处理流式响应
+  const handleStream = async (response) => {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    const parser = createParser((text) => {
+      setStreamContent(prev => prev + text);
+    });
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        parser.feed(chunk);
+      }
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  // 生成分析报告
+  const generateAnalysisReport = async () => {
+    try {
+      setIsStreaming(true);
+      setStreamContent('');
+      
+      const response = await fetch('your_dify_api_endpoint', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'your_api_key',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: { "mode": "故障定位" },
+          query: content,
+          response_mode: 'streaming'
+        })
+      });
+
+      await handleStream(response);
+    } catch (error) {
+      console.error('Stream error:', error);
+      setIsStreaming(false);
+    }
+  };
+
+  // 获取分析结果
+  useEffect(() => {
+    if (visible && content) {
+      setIsStreaming(true);
+      setStreamContent('');
+      
+      // 模拟调用 dify 接口
+      fetch('your_dify_api_endpoint', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'your_api_key',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: { "mode": "故障定位" },
+          query: content,
+          response_mode: 'streaming'
+        })
+      })
+      .then(response => handleStream(response))
+      .catch(error => {
+        console.error('Stream error:', error);
+        setIsStreaming(false);
+      });
+    }
+  }, [visible, content]);
+
   // 计算最高严重等级
   const calculateMaxSeverity = (nodes) => {
     let maxSeverity = 'info';
@@ -191,13 +283,25 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
           <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
             故障根因分析报告
           </div>
-          <div style={{ 
-            background: '#2563eb',
-            padding: '4px 12px',
-            borderRadius: '16px',
-            fontSize: '14px'
-          }}>
-            {new Date().toLocaleString()}
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <Button
+              type="primary"
+              onClick={generateAnalysisReport}
+              style={{
+                background: '#2563eb',
+                borderColor: '#2563eb',
+              }}
+            >
+              生成分析报告
+            </Button>
+            <div style={{ 
+              background: '#2563eb',
+              padding: '4px 12px',
+              borderRadius: '16px',
+              fontSize: '14px'
+            }}>
+              {new Date().toLocaleString()}
+            </div>
           </div>
         </div>
 
@@ -334,7 +438,12 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
               lineHeight: '1.6',
               color: 'white'
             }}>
-              {content}
+              {isStreaming ? streamContent : content}
+              {isStreaming && (
+                <span style={{ display: 'inline-block', marginLeft: '4px' }}>
+                  <span className="loading-dots">...</span>
+                </span>
+              )}
             </div>
           </div>
         </div>
