@@ -548,8 +548,8 @@ const FaultTree = ({ data, initialTimeRange }) => {
 
       const graph = new G6.TreeGraph({
         container: ref.current,
-        width: 1200,
-        height: 800,
+        // width: 1200,
+        // height: 800,
         modes: {
           default: ['drag-canvas', 'zoom-canvas'],
         },
@@ -601,7 +601,6 @@ const FaultTree = ({ data, initialTimeRange }) => {
           }
         } else if (targetName.includes('log-btn')) {
           if (model.metric_extra_info) {
-
             setDrawerType('logs');
             setSelectedNode(model);
             setDrawerVisible(true);
@@ -794,11 +793,12 @@ const FaultTree = ({ data, initialTimeRange }) => {
                   ranges={{
                     '最近1分钟': [moment().subtract(1, 'minutes'), moment()],
                     '最近5分钟': [moment().subtract(5, 'minutes'), moment()],
+                    '最近10分钟': [moment().subtract(10, 'minutes'), moment()],
                     '最近15分钟': [moment().subtract(15, 'minutes'), moment()],
-                    '最近30分钟': [moment().subtract(30, 'minutes'), moment()],
+                    '最近20小时': [moment().subtract(20, 'minutes'), moment()],
+                    '最近30小时': [moment().subtract(30, 'minutes'), moment()],
                     '最近1小时': [moment().subtract(1, 'hours'), moment()],
-                    '最近24小时': [moment().subtract(24, 'hours'), moment()],
-                    '最近7天': [moment().subtract(7, 'days'), moment()],
+                    '最近2小时': [moment().subtract(2, 'hours'), moment()],
                   }}
                 />
               </div>
