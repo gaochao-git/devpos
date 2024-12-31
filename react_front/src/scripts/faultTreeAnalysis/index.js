@@ -4,6 +4,8 @@ import moment from 'moment';
 import MyAxios from "../common/interface"
 import './index.css';
 import G6Tree from "./G6Tree";
+import robotGif from '../../images/robot.gif';
+import aiGif from '../../images/AI.gif';
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -147,10 +149,18 @@ const AnalysisModal = ({ visible, content, treeData, onClose }) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: '#2563eb',
-              borderRadius: '8px'
+              overflow: 'hidden'
             }}>
-              <Icon type="robot" />
+              <img 
+                src={robotGif} 
+                alt="Robot"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  marginLeft:'30%'
+                }}
+              />
             </div>
             <div>
               <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>
@@ -593,7 +603,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
     // 场景选择时自动刷新
     const handleCaseSelect = (value) => {
         setSelectedCase(value);
-        handleCaseChange(value, timeRange);
+        // handleCaseChange(value, timeRange);
     };
 
     // 添加根因分析处理函数
@@ -680,19 +690,28 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                             {/* 左侧分析按钮组 */}
                             <div style={{ display: 'flex', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', marginRight: '24px' }}>
-                                    <Button
-                                        type="primary"
-                                        icon="experiment"
-                                        onClick={handleRootCauseAnalysis}
-                                        loading={isAnalyzing}
-                                        disabled={!treeData}
-                                        size="large"
+                                    <div 
+                                      style={{
+                                        width: '80px',
+                                        height: '80px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        overflow: 'hidden',
+                                        cursor: 'pointer'
+                                      }}
+                                      onClick={handleRootCauseAnalysis}
+                                    >
+                                      <img 
+                                        src={aiGif} 
+                                        alt="AI"
                                         style={{
-                                            width: '40px',
-                                            borderRadius: '8px',
-                                            background: '#1d4ed8',
+                                          width: '100%',
+                                          height: '100%',
+                                          objectFit: 'cover'
                                         }}
-                                    />
+                                      />
+                                    </div>
                                     <div style={{ marginLeft: '16px' }}>
                                         <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' }}>
                                             故障诊断分析
@@ -762,32 +781,12 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                         <Radio.Button value="realtime">实时</Radio.Button>
                                         <Radio.Button value="1min">1分钟</Radio.Button>
                                         <Radio.Button value="5min">5分钟</Radio.Button>
+                                        <Radio.Button value="10min">10分钟</Radio.Button>
                                         <Radio.Button value="15min">15分钟</Radio.Button>
                                         <Radio.Button value="30min">30分钟</Radio.Button>
                                         <Radio.Button value="1h">1小时</Radio.Button>
+                                        <Radio.Button value="2h">2小时</Radio.Button>
                                     </Radio.Group>
-
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                        <Radio.Group
-                                            value={timeMode}
-                                            onChange={(e) => handleQuickRangeChange(e.target.value)}
-                                            buttonStyle="solid"
-                                            size="default"
-                                        >
-                                            <Radio.Button value="3h">3小时</Radio.Button>
-                                            <Radio.Button value="6h">6小时</Radio.Button>
-                                            <Radio.Button value="12h">12小时</Radio.Button>
-                                            <Radio.Button value="24h">24小时</Radio.Button>
-                                            <Radio.Button value="2d">2天</Radio.Button>
-                                        </Radio.Group>
-                                        <Button
-                                            onClick={handleRefreshClick}
-                                            style={{ marginLeft: '8px' }}
-                                        >
-                                            <Icon type="reload" /> 刷新
-                                        </Button>
-                                    </div>
-
                                     <div style={{ display: 'flex', alignItems: 'center' }}>
                                         <RangePicker
                                             showTime
@@ -799,7 +798,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                             type="primary"
                                             onClick={handleRefresh}
                                         >
-                                            <Icon type="search" /> 搜索
+                                            分析
                                         </Button>
                                     </div>
                                 </div>
