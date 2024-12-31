@@ -1,9 +1,11 @@
 // react_front/src/scripts/faultTreeAnalysis/components/AnalysisResultModal.js
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Button } from 'antd';
+import { Modal, Button, message } from 'antd';
 import robotGif from '../../images/robot.gif';
 
+const difyApiUrl = 'http://127.0.0.1/v1/chat-messages';
+const difyApiKey = 'Bearer app-ivi5AcOq9e90X20EpcNamjDj';
 // StatBox 子组件
 const StatBox = ({ title, stats }) => (
   <div style={{
@@ -104,12 +106,26 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
     return {
       feed(chunk) {
         try {
-          const jsonData = JSON.parse(chunk);
-          if (jsonData.answer) {
-            onEvent(jsonData.answer);
+          // 按行分割并过滤空行
+          const lines = chunk.split('\n').filter(line => line.trim());
+          
+          for (const line of lines) {
+            // 检查是否是 SSE 数据行
+            if (line.startsWith('data: ')) {
+              // 移除 'data: ' 前缀
+              const jsonStr = line.slice(6);
+              try {
+                const jsonData = JSON.parse(jsonStr);
+                if (jsonData.answer) {
+                  onEvent(jsonData.answer);
+                }
+              } catch (jsonError) {
+                console.error('JSON parse error:', jsonError);
+              }
+            }
           }
         } catch (e) {
-          console.error('Parse error:', e);
+          console.error('Parse error:', e, 'Chunk:', chunk);
         }
       }
     };
@@ -130,6 +146,9 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
         const chunk = decoder.decode(value, { stream: true });
         parser.feed(chunk);
       }
+    } catch (error) {
+      console.error('Stream processing error:', error);
+      throw error;
     } finally {
       setIsStreaming(false);
     }
@@ -141,23 +160,30 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
       setIsStreaming(true);
       setStreamContent('');
       
-      const response = await fetch('your_dify_api_endpoint', {
+      const response = await fetch(difyApiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': 'your_api_key',
+          'Authorization': difyApiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           inputs: { "mode": "故障定位" },
           query: content,
-          response_mode: 'streaming'
+          response_mode: 'streaming',
+          conversation_id: '', // 如果需要保持会话上下文，可以传入会话ID
+          user: 'system' // 用户标识
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       await handleStream(response);
     } catch (error) {
-      console.error('Stream error:', error);
+      console.error('Generate report error:', error);
       setIsStreaming(false);
+      message.error('生成报告失败，请重试');
     }
   };
 
@@ -168,14 +194,13 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
       setStreamContent('');
       
       // 模拟调用 dify 接口
-      fetch('your_dify_api_endpoint', {
+      fetch(difyApiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': 'your_api_key',
+          'Authorization': difyApiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          inputs: { "mode": "故障定位" },
           query: content,
           response_mode: 'streaming'
         })
