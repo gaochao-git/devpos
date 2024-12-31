@@ -350,7 +350,7 @@ const FaultTree = ({ data, initialTimeRange }) => {
             attrs: {
               text: name,
               x: 0,
-              y: instance_info ? -15 : 0,
+              y: ip_port ? -15 : 0,
               fontSize: 20,
               fontWeight: 'bold',
               textAlign: 'center',
@@ -360,10 +360,10 @@ const FaultTree = ({ data, initialTimeRange }) => {
             name: 'node-label',
           });
 
-          if (instance_info) {
+          if (ip_port) {
             group.addShape('text', {
               attrs: {
-                text: `${instance_info.ip}_${instance_info.port}`,
+                text: `${ip_port.ip}_${ip_port.port}`,
                 x: 0,
                 y: 15,
                 fontSize: 15,
