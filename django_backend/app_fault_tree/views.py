@@ -484,7 +484,7 @@ class AnalyzeRootCause(BaseView):
             # response = call_llm_api(prompt)
             print(prompt)
             # 模大模型响应
-            analysis_result = f"模拟大模型分析结果：\n{prompt}"
+            analysis_result = f"{prompt}"
 
             return self.my_response({
                 "status": "ok",
@@ -507,7 +507,7 @@ class AnalyzeRootCause(BaseView):
         def recursive_find_abnormal(node):
             """递归查找异常节点"""
             # 检查节点是否异常且有指标信息
-            if (node.get('node_status') in ['error', 'critical'] and 
+            if (node.get('node_status') in ['warning','error', 'critical'] and 
                 node.get('metric_name')):
                 node_info = {
                     'key': node.get('key'),  # 存储完整路径
