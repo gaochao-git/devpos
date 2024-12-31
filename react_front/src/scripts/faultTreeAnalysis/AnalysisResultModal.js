@@ -187,31 +187,6 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
     }
   };
 
-  // 获取分析结果
-  useEffect(() => {
-    if (visible && content && !streamContent) {
-      setIsStreaming(true);
-      setStreamContent('');
-      
-      fetch(difyApiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': difyApiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: content,
-          response_mode: 'streaming'
-        })
-      })
-      .then(response => handleStream(response))
-      .catch(error => {
-        console.error('Stream error:', error);
-        setIsStreaming(false);
-      });
-    }
-  }, [visible, content]);
-
   // 计算最高严重等级
   const calculateMaxSeverity = (nodes) => {
     let maxSeverity = 'info';
