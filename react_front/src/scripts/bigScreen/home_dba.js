@@ -24,15 +24,15 @@ import bg_background_frame from '../../images/beijing.gif'
 import ai_image from '../../images/center.gif'
 import huanxing_image from '../../images/huanxing.gif'
 
-import ZabbixScreenTable from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/zabbixTable.js"
-import CheckScreenTable from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/checkTable.js"
-import ClusterScreenTable from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/clusterTable.js"
-import ServerScreenChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/serverChart.js"
-import SlowQueryChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/slowQueryChart.js"
-import ServerSourceChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/serverSourceChart.js"
-import ClusterSourceChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/clusterSourceChart.js"
-import ClusterTypeChart from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/clusterTypeChart.js"
-import Arealarge from "/Users/gaochao/gaochao-git/gaochao_repo/devpos/react_front/src/scripts/bigScreen/slider_line.js"
+import ZabbixScreenTable from "./zabbixTable"
+import CheckScreenTable from "./checkTable"
+import ClusterScreenTable from "./clusterTable"
+import ServerScreenChart from "./serverChart"
+import SlowQueryChart from "./slowQueryChart"
+import ServerSourceChart from "./serverSourceChart"
+import ClusterSourceChart from "./clusterSourceChart"
+import ClusterTypeChart from "./clusterTypeChart"
+import Arealarge from "./slider_line"
 
 
 
