@@ -189,11 +189,10 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
 
   // 获取分析结果
   useEffect(() => {
-    if (visible && content) {
+    if (visible && content && !streamContent) {
       setIsStreaming(true);
       setStreamContent('');
       
-      // 模拟调用 dify 接口
       fetch(difyApiUrl, {
         method: 'POST',
         headers: {
@@ -463,7 +462,7 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
               lineHeight: '1.6',
               color: 'white'
             }}>
-              {isStreaming ? streamContent : content}
+              {streamContent || content}
               {isStreaming && (
                 <span style={{ display: 'inline-block', marginLeft: '4px' }}>
                   <span className="loading-dots">...</span>
