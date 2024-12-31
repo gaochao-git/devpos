@@ -142,11 +142,16 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
   const handleStream = async (response) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    let fullContent = ''; // 用于收集完整的响应内容
+
     const parser = createParser((data) => {
       if (data.conversation_id && !conversationId) {
         setConversationId(data.conversation_id);
       }
-      setStreamContent(prev => prev + (data.answer || ''));
+      if (data.answer) {
+        fullContent += data.answer; // 累积响应内容
+        setStreamContent(fullContent); // 更新流式内容
+      }
     });
 
     try {
@@ -156,6 +161,17 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
         const chunk = decoder.decode(value, { stream: true });
         parser.feed(chunk);
       }
+
+      // 流结束后，添加消息到历史记录
+      setMessages(prev => [
+        ...prev,
+        {
+          type: 'assistant',
+          content: fullContent,
+          timestamp: new Date().toLocaleTimeString()
+        }
+      ]);
+      setStreamContent(''); // 清空流式内容
     } catch (error) {
       console.error('Stream processing error:', error);
       throw error;
@@ -345,9 +361,49 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
   // 修改发送消息的处理
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isStreaming) return;
-    
-    await sendFollowUpQuestion(inputValue);
-    setInputValue(''); // 清空输入框
+
+    const userMessage = inputValue.trim();
+    setIsStreaming(true);
+
+    // 立即添加用户消息到历史记录
+    setMessages(prev => [
+      ...prev,
+      {
+        type: 'user',
+        content: userMessage,
+        timestamp: new Date().toLocaleTimeString()
+      }
+    ]);
+
+    // 清空输入框
+    setInputValue('');
+
+    try {
+      const response = await fetch(difyApiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': difyApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: { "mode": "故障定位" },
+          query: userMessage,
+          response_mode: 'streaming',
+          conversation_id: conversationId,
+          user: 'system'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      await handleStream(response);
+    } catch (error) {
+      console.error('Send message error:', error);
+      message.error('发送消息失败，请重试');
+      setIsStreaming(false);
+    }
   };
 
   return (
