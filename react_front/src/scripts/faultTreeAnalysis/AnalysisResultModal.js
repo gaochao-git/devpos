@@ -1,7 +1,7 @@
 // react_front/src/scripts/faultTreeAnalysis/components/AnalysisResultModal.js
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, message } from 'antd';
+import { Modal, Button, message, Input } from 'antd';
 import robotGif from '../../images/robot.gif';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -456,15 +456,54 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
             <div style={{
               fontSize: '14px',
               lineHeight: '1.6',
-              color: 'white'
+              color: 'white',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
             }}>
-              <ReactMarkdown components={renderers}>
-                {streamContent || content}
-              </ReactMarkdown>
-              {isStreaming && (
-                <span style={{ display: 'inline-block', marginLeft: '4px' }}>
-                  <span className="loading-dots">...</span>
-                </span>
+              {/* 用户提示内容 */}
+              {content && (
+                <div style={{
+                  background: 'rgba(37, 99, 235, 0.3)',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  marginBottom: '8px'
+                }}>
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>故障提示：</div>
+                  <Input.TextArea 
+                    value={content}
+                    autoSize={{ minRows: 3 }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'white',
+                      fontSize: '14px',
+                      lineHeight: '1.6',
+                      padding: '0',
+                      resize: 'none'
+                    }}
+                    readOnly
+                  />
+                </div>
+              )}
+
+              {/* AI 分析结果 */}
+              {(streamContent) && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  padding: '12px',
+                  borderRadius: '8px'
+                }}>
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>分析结果：</div>
+                  <ReactMarkdown components={renderers}>
+                    {streamContent || content}
+                  </ReactMarkdown>
+                  {isStreaming && (
+                    <span style={{ display: 'inline-block', marginLeft: '4px' }}>
+                      <span className="loading-dots">...</span>
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </div>
