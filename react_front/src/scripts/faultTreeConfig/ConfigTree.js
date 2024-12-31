@@ -98,11 +98,11 @@ class ConfigTreeComponent extends React.Component {
                         onChange={(value) => this.handleRuleChange(index, 'timeWindow', value)}
                         style={{ width: '100%' }}
                     >
-                        <Option value={60}>1分钟</Option>
-                        <Option value={300}>5分钟</Option>
-                        <Option value={600}>10分钟</Option>
-                        <Option value={1800}>30分钟</Option>
-                        <Option value={3600}>1小时</Option>
+                        <Option value={60}>60S</Option>
+                        <Option value={300}>300S</Option>
+                        <Option value={600}>600S</Option>
+                        <Option value={1800}>1800S</Option>
+                        <Option value={3600}>3600S</Option>
                     </Select>
                 ) : null
             )
