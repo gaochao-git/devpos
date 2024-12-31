@@ -1,7 +1,7 @@
 // react_front/src/scripts/faultTreeAnalysis/components/AnalysisResultModal.js
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, message, Input } from 'antd';
+import { Modal, Button, message, Input, Icon } from 'antd';
 import robotGif from '../../images/robot.gif';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -104,7 +104,10 @@ const StatBox = ({ title, stats }) => (
 const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
   const [streamContent, setStreamContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  
+  const [conversationId, setConversationId] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+
   // 创建解析器
   const createParser = (onEvent) => {
     return {
@@ -121,7 +124,7 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
               try {
                 const jsonData = JSON.parse(jsonStr);
                 if (jsonData.answer) {
-                  onEvent(jsonData.answer);
+                  onEvent(jsonData);
                 }
               } catch (jsonError) {
                 console.error('JSON parse error:', jsonError);
@@ -139,8 +142,11 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
   const handleStream = async (response) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    const parser = createParser((text) => {
-      setStreamContent(prev => prev + text);
+    const parser = createParser((data) => {
+      if (data.conversation_id && !conversationId) {
+        setConversationId(data.conversation_id);
+      }
+      setStreamContent(prev => prev + (data.answer || ''));
     });
 
     try {
@@ -174,8 +180,8 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
           inputs: { "mode": "故障定位" },
           query: content,
           response_mode: 'streaming',
-          conversation_id: '', // 如果需要保持会话上下文，可以传入会话ID
-          user: 'system' // 用户标识
+          conversation_id: conversationId,
+          user: 'system'
         })
       });
 
@@ -184,10 +190,65 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
       }
 
       await handleStream(response);
+      
+      setMessages(prev => [...prev, {
+        type: 'user',
+        content: content,
+        timestamp: new Date().toLocaleTimeString()
+      }, {
+        type: 'assistant',
+        content: streamContent,
+        timestamp: new Date().toLocaleTimeString()
+      }]);
+
     } catch (error) {
       console.error('Generate report error:', error);
       setIsStreaming(false);
       message.error('生成报告失败，请重试');
+    }
+  };
+
+  // 添加发送后续问题的函数
+  const sendFollowUpQuestion = async (question) => {
+    try {
+      setIsStreaming(true);
+      setStreamContent('');
+      
+      const response = await fetch(difyApiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': difyApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: { "mode": "故障定位" },
+          query: question,
+          response_mode: 'streaming',
+          conversation_id: conversationId,
+          user: 'system'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      await handleStream(response);
+      
+      setMessages(prev => [...prev, {
+        type: 'user',
+        content: question,
+        timestamp: new Date().toLocaleTimeString()
+      }, {
+        type: 'assistant',
+        content: streamContent,
+        timestamp: new Date().toLocaleTimeString()
+      }]);
+
+    } catch (error) {
+      console.error('Send question error:', error);
+      setIsStreaming(false);
+      message.error('发送问题失败，请重试');
     }
   };
 
@@ -272,6 +333,21 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
       ) : (<code className={className} {...props}>{children}</code>);
     },
     pre: ({ children }) => <div style={{ overflow: 'auto' }}>{children}</div>,
+  };
+
+  // 组件挂载时初始化输入框内容
+  useEffect(() => {
+    if (content) {
+      setInputValue(content);
+    }
+  }, [content]);
+
+  // 修改发送消息的处理
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || isStreaming) return;
+    
+    await sendFollowUpQuestion(inputValue);
+    setInputValue(''); // 清空输入框
   };
 
   return (
@@ -461,52 +537,109 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
               flexDirection: 'column',
               gap: '16px'
             }}>
-              {/* 用户提示内容 */}
-              {content && (
-                <div style={{
-                  background: 'rgba(37, 99, 235, 0.3)',
+              {/* 显示消息历史 */}
+              {messages.map((msg, index) => (
+                <div key={index} style={{
+                  background: msg.type === 'user' ? 'rgba(37, 99, 235, 0.3)' : 'rgba(255, 255, 255, 0.1)',
                   padding: '12px',
                   borderRadius: '8px',
                   marginBottom: '8px'
                 }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>故障提示：</div>
-                  <Input.TextArea 
-                    value={content}
-                    autoSize={{ minRows: 3 }}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'white',
-                      fontSize: '14px',
-                      lineHeight: '1.6',
-                      padding: '0',
-                      resize: 'none'
-                    }}
-                    readOnly
-                  />
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                    {msg.type === 'user' ? '用户提问' : '系统回答'}：[{msg.timestamp}]
+                  </div>
+                  {msg.type === 'user' ? (
+                    <Input.TextArea
+                      value={msg.content}
+                      autoSize={{ minRows: 2 }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'white',
+                        fontSize: '14px',
+                        lineHeight: '1.6',
+                        padding: '0',
+                        resize: 'none'
+                      }}
+                      readOnly
+                    />
+                  ) : (
+                    <ReactMarkdown components={renderers}>
+                      {msg.content}
+                    </ReactMarkdown>
+                  )}
                 </div>
-              )}
-
-              {/* AI 分析结果 */}
-              {(streamContent) && (
+              ))}
+              
+              {/* 当前输出内容 */}
+              {isStreaming && (
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.1)',
                   padding: '12px',
                   borderRadius: '8px'
                 }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>分析结果：</div>
                   <ReactMarkdown components={renderers}>
-                    {streamContent || content}
+                    {streamContent}
                   </ReactMarkdown>
-                  {isStreaming && (
-                    <span style={{ display: 'inline-block', marginLeft: '4px' }}>
-                      <span className="loading-dots">...</span>
-                    </span>
-                  )}
+                  <span className="loading-dots">...</span>
                 </div>
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* 修改输入框部分 */}
+      <div style={{ marginTop: '20px' }}>
+        <div style={{ 
+          display: 'flex',
+          width: '100%'
+        }}>
+          <Input.TextArea
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="输入你的问题..."
+            autoSize={{ minRows: 2, maxRows: 6 }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '8px 0 0 8px',
+              color: 'white',
+              fontSize: '14px',
+              padding: '8px 12px',
+              flex: 1, // 让输入框占据剩余空间
+            }}
+          />
+          <Button
+            type="primary"
+            onClick={handleSendMessage}
+            disabled={isStreaming || !inputValue.trim()}
+            style={{
+              height: 'auto',
+              borderRadius: '0 8px 8px 0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 24px',
+              background: isStreaming ? '#1d4ed8' : '#2563eb',
+              borderColor: isStreaming ? '#1d4ed8' : '#2563eb',
+            }}
+          >
+            {isStreaming ? (
+              <>
+                发送中
+                <span className="loading-dots">...</span>
+              </>
+            ) : (
+              <Icon type="enter" />
+            )}
+          </Button>
         </div>
       </div>
     </Modal>
