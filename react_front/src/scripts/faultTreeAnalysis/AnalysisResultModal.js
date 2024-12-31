@@ -307,12 +307,13 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
             <Button
               type="primary"
               onClick={generateAnalysisReport}
+              disabled={isStreaming}
               style={{
-                background: '#2563eb',
-                borderColor: '#2563eb',
+                cursor: isStreaming ? 'not-allowed' : 'pointer',
+                opacity: isStreaming ? 0.7 : 1,
               }}
             >
-              生成分析报告
+              {isStreaming ? '输出中...' : '生成分析报告'}
             </Button>
             <div style={{ 
               background: '#2563eb',
