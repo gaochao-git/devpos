@@ -479,13 +479,9 @@ class AnalyzeRootCause(BaseView):
 4. 预防措施：如何预防类似问题再次发生
 
 请用专业的角度进行分析，并给出详细的说明。"""
-
-            # TODO: 调用实际的大模型API
-            # response = call_llm_api(prompt)
             print(prompt)
             # 模大模型响应
             analysis_result = f"{prompt}"
-
             return self.my_response({
                 "status": "ok",
                 "message": "success",
@@ -507,50 +503,44 @@ class AnalyzeRootCause(BaseView):
         def recursive_find_abnormal(node):
             """递归查找异常节点"""
             # 检查节点是否异常且有指标信息
-            if (node.get('node_status') in ['warning','error', 'critical'] and 
-                node.get('metric_name')):
-                node_info = {
-                    'key': node.get('key'),  # 存储完整路径
-                    'name': node.get('name', 'Unknown'),
-                    'metric_name': node.get('metric_name'),
-                    'description': node.get('description', ''),
-                }
-                
-                # 添加指标详细信息
-                if node.get('metric_extra_info'):
-                    metric_info = node['metric_extra_info']
-                    node_info.update({
-                        'metric_value': metric_info.get('metric_value', ''),
-                        'rule_condition_format': metric_info.get('rule_condition_format', ''),
-                        'metric_time': metric_info.get('metric_time', ''),
-                        'impact_analysis': metric_info.get('impact_analysis', '未提供影响分析'),
-                        'suggestion': metric_info.get('suggestion', '未提供处理建议')
-                    })
-                
-                abnormal_nodes.append(node_info)
-            
+            if (node.get('node_status') in ['warning','error', 'critical'] and node.get('metric_name')):
+                abnormal_nodes.append(node)
             # 递归处理子节点
             for child in node.get('children', []):
                 recursive_find_abnormal(child)
-        
         # 开始递归查找
         recursive_find_abnormal(tree_data)
         return abnormal_nodes
 
     def _format_context_for_llm(self, cluster_name, fault_case, abnormal_nodes):
         """将故障信息格式化为结构化上下文"""
-        context = f"""群 {cluster_name} 出现了 "{fault_case}" 场景的异常。
-
-发现以下异常指标：
-
-"""
+        context = f"""集群 {cluster_name} 出现了 "{fault_case}" 场景的异常。\n发现以下异常指标：\n"""
+        
         for idx, node in enumerate(abnormal_nodes, 1):
             context += f"{idx}. {node['key']}\n"  # 显示完整路径
             context += f"   • 指标名称: {node['metric_name']}\n"
-            if node.get('metric_value'):
-                context += f"   • 当前值: {node['metric_value']}\n"
-            if node.get('metric_time'):
-                context += f"   • 触发时间: {node['metric_time']}\n"
+            if node.get('metric_extra_info'):
+                extra_info = node['metric_extra_info']
+                # 如果是变化率指标，添加变化率信息
+                if extra_info.get('is_rate_change') and extra_info.get('rate_change_details'):
+                    rate_details = extra_info['rate_change_details']
+                    context += f"   • 变化率: {extra_info['metric_value_units_human']}\n"
+                    context += f"   • 变化率信息:\n"
+                    context += f"     - 前值时间: {rate_details['prev_time']}\n"
+                    context += f"     - 前值: {rate_details['prev_value']}%\n"
+                    context += f"     - 后值时间: {rate_details['next_time']}\n"
+                    context += f"     - 后值: {rate_details['next_value']}%\n"
+                    context += f"     - 时间窗口: {rate_details['time_window']}秒\n"
+                else:
+                    # 添加当前值和单位
+                    context += f"   • 最大值: {extra_info['metric_value_units_human']}\n"
+                    # 添加触发时间
+                    context += f"   • 触发时间: {extra_info['metric_time']}\n"
+                
+                # # 添加规则条件
+                # if extra_info.get('rule_condition_format_human'):
+                #     context += f"   • 触发条件: {extra_info['rule_condition_format_human']}\n"
+            
             context += "\n"
         
         return context
