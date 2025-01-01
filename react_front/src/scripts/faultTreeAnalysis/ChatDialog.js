@@ -275,17 +275,18 @@ const ChatDialog = ({
       const responseData = await response.json();
 
       if (!response.ok) {
-        // 显示错误提示，但不抛出错误
         Modal.error({
           title: '执行失败',
           content: responseData.detail || '未知错误'
         });
-        return;  // 直接返回，不继续处理
+        return;
       }
 
       if (responseData.success) {
+        // 将结果格式化为 Markdown 代码块
+        const formattedResult = `\`\`\`bash\n${responseData.result}\n\`\`\``;
         setAssistantResult({
-          content: responseData.result,
+          content: formattedResult,
           command: command,
           assistant: '助手'
         });
@@ -301,12 +302,10 @@ const ChatDialog = ({
 
     } catch (error) {
       console.error('执行命令失败:', error);
-      // 显示友好的错误提示
       Modal.error({
         title: '执行失败',
         content: '连接服务器失败，请检查网络连接'
       });
-      // 不抛出错误，让程序继续运行
       return {
         success: false,
         result: error.message
@@ -529,16 +528,16 @@ const ChatDialog = ({
             {assistantResult?.command}
           </span>
         </div>
-        <pre style={{ 
+        <div style={{ 
           background: 'rgba(0,0,0,0.05)',
-          padding: '12px',
           borderRadius: '4px',
           maxHeight: '400px',
-          overflowY: 'auto',
-          whiteSpace: 'pre-wrap'
+          overflowY: 'auto'
         }}>
-          {assistantResult?.content}
-        </pre>
+          <ReactMarkdown components={markdownRenderers}>
+            {assistantResult?.content || ''}
+          </ReactMarkdown>
+        </div>
       </Modal>
     </>
   );
