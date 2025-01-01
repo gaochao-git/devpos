@@ -25,6 +25,78 @@ const markdownRenderers = {
   }
 };
 
+// 定义助手配置
+const DEFAULT_ASSISTANTS = [
+  {
+    id: 'ssh',
+    name: 'SSH助手',
+    description: '执行SSH连接、权限配置、日志查看等操作',
+    mode: 'ssh_assistant',
+    examples: [
+      '@SSH助手 连接到 192.168.1.100',
+      '@SSH助手 查看 /var/log/mysql/error.log',
+      '@SSH助手 检查 mysql 进程状态'
+    ],
+    commands: {
+      connect: 'ssh {username}@{host}',
+      checkLogs: 'tail -f {logPath}',
+      checkProcess: 'ps -ef | grep {processName}',
+      checkPermission: 'ls -l {path}'
+    }
+  },
+  {
+    id: 'mysql',
+    name: 'MySQL助手',
+    description: '执行MySQL连接、状态查看、性能分析等操作',
+    mode: 'mysql_assistant',
+    examples: [
+      '@MySQL助手 查看当前连接数',
+      '@MySQL助手 检查慢查询日志',
+      '@MySQL助手 显示主从状态'
+    ],
+    commands: {
+      showProcesslist: 'show processlist',
+      showSlaveStatus: 'show slave status\\G',
+      showVariables: 'show variables like "{pattern}"',
+      showStatus: 'show status like "{pattern}"'
+    }
+  },
+  {
+    id: 'zabbix',
+    name: 'Zabbix助手',
+    description: '查看监控数据、告警信息、性能图表等',
+    mode: 'zabbix_assistant',
+    examples: [
+      '@Zabbix助手 显示最近告警',
+      '@Zabbix助手 查看主机 CPU 使用率',
+      '@Zabbix助手 检查磁盘空间'
+    ],
+    features: {
+      alerts: '查看最近告警信息',
+      metrics: '查看性能指标数据',
+      graphs: '显示性能趋势图表',
+      hosts: '管理监控主机配置'
+    }
+  },
+  {
+    id: 'diagnostic',
+    name: '诊断助手',
+    description: '系统诊断、性能分析、故障排查等',
+    mode: 'diagnostic_assistant',
+    examples: [
+      '@诊断助手 分析系统负载高的原因',
+      '@诊断助手 检查网络连接状态',
+      '@诊断助手 诊断数据库性能问题'
+    ],
+    tools: {
+      top: '系统资源使用情况',
+      netstat: '网络连接状态',
+      iostat: '磁盘IO性能',
+      vmstat: '虚拟内存统计'
+    }
+  }
+];
+
 // 单条消息组件
 const ChatMessage = ({ message }) => {
   if (!message) return null;  // 添加空值检查
@@ -81,28 +153,74 @@ const ChatDialog = ({
   messages = [], 
   streamContent = '', 
   isStreaming = false,
-  inputValue = '',
-  onInputChange,
   onSendMessage,
-  showAssistants = false,
-  assistants = [],
-  onSelectAssistant,
-  disabled = false,
-  placeholder = "输入你的问题...",
-  height = '600px',  // 默认高度
-  width = '100%',    // 默认宽度
   style,
   className
 }) => {
+  // 内部状态管理
+  const [inputValue, setInputValue] = React.useState('');
+  const [selectedAssistant, setSelectedAssistant] = React.useState(null);
+  const [atPosition, setAtPosition] = React.useState(null);
+  const [filteredAssistants, setFilteredAssistants] = React.useState(DEFAULT_ASSISTANTS);
+
+  // 处理输入变化
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setInputValue(value);
+    
+    const lastAtPos = value.lastIndexOf('@');
+    if (lastAtPos !== -1) {
+      const searchText = value.slice(lastAtPos + 1).toLowerCase();
+      setAtPosition(lastAtPos);
+      
+      // 过滤助手列表
+      const filtered = DEFAULT_ASSISTANTS.filter(assistant => 
+        assistant.name.toLowerCase().includes(searchText) ||
+        assistant.description.toLowerCase().includes(searchText)
+      );
+      setFilteredAssistants(filtered);
+    } else {
+      setAtPosition(null);
+      setFilteredAssistants(DEFAULT_ASSISTANTS);
+    }
+  };
+
+  // 处理助手选择
+  const handleAssistantSelect = (assistant, command) => {
+    if (!assistant) {
+      setAtPosition(null);
+      return;
+    }
+    
+    setSelectedAssistant(assistant);
+    setAtPosition(null);
+    
+    // 如果有选择具体命令
+    if (command) {
+      setInputValue(prev => `@${assistant.name} ${command.command} `);
+    } else {
+      // 只选择助手
+      setInputValue(prev => `@${assistant.name} `);
+    }
+  };
+
+  // 处理消息发送
+  const handleSendMessage = () => {
+    if (!inputValue.trim() || isStreaming) return;
+    onSendMessage(inputValue, selectedAssistant);
+    setInputValue('');
+    setSelectedAssistant(null);
+  };
+
   return (
     <div 
-      className={className}
+      className={className} 
       style={{ 
         display: 'flex', 
         flexDirection: 'column',
-        height,  // 使用传入的高度
-        width,   // 使用传入的宽度
         gap: '20px',
+        height: '100%',
+        width: '100%',
         ...style
       }}
     >
@@ -121,12 +239,10 @@ const ChatDialog = ({
           flexDirection: 'column',
           gap: '16px'
         }}>
-          {/* 历史消息 */}
           {messages.map((msg, index) => (
             <ChatMessage key={index} message={msg} />
           ))}
           
-          {/* 流式输出 */}
           {isStreaming && streamContent && (
             <div style={{
               background: 'rgba(255, 255, 255, 0.1)',
@@ -150,35 +266,73 @@ const ChatDialog = ({
         flexShrink: 0
       }}>
         {/* 助手选择器 */}
-        {showAssistants && (
+        {atPosition !== null && (
           <div style={{
             position: 'absolute',
             bottom: '100%',
             left: 0,
-            width: '300px',
+            width: '320px',
             background: '#1e40af',
             borderRadius: '8px',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
             padding: '8px',
             marginBottom: '8px',
-            zIndex: 1000
+            zIndex: 1000,
+            maxHeight: '400px',
+            overflowY: 'auto'
           }}>
-            {assistants.map(assistant => (
+            {filteredAssistants.map(assistant => (
               <div
                 key={assistant.id}
-                onClick={() => onSelectAssistant(assistant)}
+                onClick={() => handleAssistantSelect(assistant)}
                 style={{
-                  padding: '8px 12px',
+                  padding: '12px',
                   cursor: 'pointer',
                   borderRadius: '4px',
-                  ':hover': {
-                    background: 'rgba(255, 255, 255, 0.1)'
+                  marginBottom: '8px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  '&:hover': {
+                    background: 'rgba(255, 255, 255, 0.2)'
                   }
                 }}
               >
-                <div style={{ fontWeight: 'bold', color: 'white' }}>{assistant.name}</div>
-                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>
+                <div style={{ fontWeight: 'bold', color: 'white', marginBottom: '4px' }}>
+                  {assistant.name}
+                </div>
+                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '8px' }}>
                   {assistant.description}
+                </div>
+                {assistant.quickCommands && (
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '4px' }}>
+                      快捷命令:
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {assistant.quickCommands.map((cmd, index) => (
+                        <div
+                          key={index}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAssistantSelect(assistant, cmd);
+                          }}
+                          style={{
+                            fontSize: '12px',
+                            padding: '4px 8px',
+                            background: 'rgba(255, 255, 255, 0.15)',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            color: 'white'
+                          }}
+                          title={cmd.description}
+                        >
+                          {cmd.name}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                  示例: {assistant.examples[0]}
                 </div>
               </div>
             ))}
@@ -187,9 +341,19 @@ const ChatDialog = ({
 
         <Input.TextArea
           value={inputValue}
-          onChange={onInputChange}
-          placeholder={placeholder}
-          disabled={disabled}
+          onChange={handleInputChange}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && atPosition !== null) {
+              setAtPosition(null);
+              return;
+            }
+            if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
+              e.preventDefault();
+              handleSendMessage();
+            }
+          }}
+          placeholder="输入你的问题... 按 @ 键选择专业助手"
+          disabled={isStreaming}
           autoSize={{ minRows: 2, maxRows: 6 }}
           style={{
             background: 'rgba(255, 255, 255, 0.1)',
@@ -201,10 +365,11 @@ const ChatDialog = ({
             flex: 1,
           }}
         />
+
         <Button
           type="primary"
-          onClick={onSendMessage}
-          disabled={disabled || !inputValue.trim()}
+          onClick={handleSendMessage}
+          disabled={isStreaming || !inputValue.trim()}
           style={{
             height: 'auto',
             borderRadius: '0 8px 8px 0',
@@ -212,11 +377,11 @@ const ChatDialog = ({
             alignItems: 'center',
             justifyContent: 'center',
             padding: '0 24px',
-            background: disabled ? '#1d4ed8' : '#2563eb',
-            borderColor: disabled ? '#1d4ed8' : '#2563eb',
+            background: isStreaming ? '#1d4ed8' : '#2563eb',
+            borderColor: isStreaming ? '#1d4ed8' : '#2563eb',
           }}
         >
-          {disabled ? (
+          {isStreaming ? (
             <>
               发送中
               <span className="loading-dots">...</span>
