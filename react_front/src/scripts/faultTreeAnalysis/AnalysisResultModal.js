@@ -108,6 +108,32 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
 
+  // 添加助手列表
+  const assistants = [
+    {
+      id: 'ssh',
+      name: 'SSH助手',
+      description: '可以帮助处理SSH连接、权限和配置问题',
+      mode: 'ssh诊断'
+    },
+    {
+      id: 'mysql',
+      name: 'MySQL助手',
+      description: '可以帮助查看MySQL状态、性能和配置信息',
+      mode: 'mysql诊断'
+    },
+    {
+      id: 'zabbix',
+      name: 'Zabbix助手',
+      description: '可以帮助查看监控指标和告警信息',
+      mode: 'zabbix诊断'
+    }
+  ];
+
+  // 添加助手选择状态
+  const [showAssistants, setShowAssistants] = useState(false);
+  const [selectedAssistant, setSelectedAssistant] = useState(null);
+
   // 创建解析器
   const createParser = (onEvent) => {
     return {
@@ -358,25 +384,29 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
     }
   }, [content]);
 
-  // 修改发送消息的处理
+  // 修改发送消息函数，添加mode参数
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isStreaming) return;
 
     const userMessage = inputValue.trim();
     setIsStreaming(true);
 
-    // 立即添加用户消息到历史记录
+    // 获取当前选中的助手模式
+    const mode = selectedAssistant ? selectedAssistant.mode : "故障定位";
+
     setMessages(prev => [
       ...prev,
       {
         type: 'user',
         content: userMessage,
-        timestamp: new Date().toLocaleTimeString()
+        timestamp: new Date().toLocaleTimeString(),
+        assistant: selectedAssistant?.name // 记录使用的助手
       }
     ]);
 
-    // 清空输入框
     setInputValue('');
+    setShowAssistants(false); // 关闭助手选择框
+    setSelectedAssistant(null); // 清空选中的助手
 
     try {
       const response = await fetch(difyApiUrl, {
@@ -386,7 +416,7 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          inputs: { "mode": "故障定位" },
+          inputs: { "mode": mode },
           query: userMessage,
           response_mode: 'streaming',
           conversation_id: conversationId,
@@ -405,6 +435,46 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
       setIsStreaming(false);
     }
   };
+
+  // 添加助手选择框组件
+  const AssistantSelector = () => (
+    <div style={{
+      position: 'absolute',
+      bottom: '100%',
+      left: 0,
+      width: '300px',
+      background: '#1e40af',
+      borderRadius: '8px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+      padding: '8px',
+      marginBottom: '8px',
+      zIndex: 1000
+    }}>
+      {assistants.map(assistant => (
+        <div
+          key={assistant.id}
+          onClick={() => {
+            setSelectedAssistant(assistant);
+            setShowAssistants(false);
+            setInputValue(prev => `@${assistant.name} ${prev}`);
+          }}
+          style={{
+            padding: '8px 12px',
+            cursor: 'pointer',
+            borderRadius: '4px',
+            ':hover': {
+              background: 'rgba(255, 255, 255, 0.1)'
+            }
+          }}
+        >
+          <div style={{ fontWeight: 'bold', color: 'white' }}>{assistant.name}</div>
+          <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>
+            {assistant.description}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <Modal
@@ -649,17 +719,24 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
       <div style={{ marginTop: '20px' }}>
         <div style={{ 
           display: 'flex',
-          width: '100%'
+          width: '100%',
+          position: 'relative' // 添加相对定位
         }}>
+          {showAssistants && <AssistantSelector />}
           <Input.TextArea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="输入你的问题..."
+            placeholder="输入你的问题... 按 @ 键选择专业助手"
             autoSize={{ minRows: 2, maxRows: 6 }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
+              if (e.key === '@') {
+                e.preventDefault();
+                setShowAssistants(true);
+              } else if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
                 e.preventDefault();
                 handleSendMessage();
+              } else if (e.key === 'Escape') {
+                setShowAssistants(false);
               }
             }}
             style={{
@@ -669,7 +746,7 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
               color: 'white',
               fontSize: '14px',
               padding: '8px 12px',
-              flex: 1, // 让输入框占据剩余空间
+              flex: 1,
             }}
           />
           <Button
