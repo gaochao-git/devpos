@@ -102,10 +102,10 @@ const StatBox = ({ title, stats }) => (
 );
 
 const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
+  const [messages, setMessages] = useState([]);
   const [streamContent, setStreamContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [conversationId, setConversationId] = useState('');
-  const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
 
   // 添加助手列表
@@ -476,6 +476,14 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
     </div>
   );
 
+  // 当弹窗打开时，只设置输入框的默认内容
+  useEffect(() => {
+    if (visible && content) {
+      setInputValue(content);  // 设置输入框的默认内容
+      setMessages([]); // 清空消息历史
+    }
+  }, [visible, content]);
+
   return (
     <Modal
       visible={visible}
@@ -651,7 +659,11 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
               messages={messages}
               streamContent={streamContent}
               isStreaming={isStreaming}
+              inputValue={inputValue}
+              onInputChange={(e) => setInputValue(e.target.value)}
               onSendMessage={handleSendMessage}
+              disabled={isStreaming}
+              placeholder="输入你的问题... 按 @ 键选择专业助手"
               style={{
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '8px',

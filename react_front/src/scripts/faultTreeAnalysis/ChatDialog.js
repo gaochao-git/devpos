@@ -153,12 +153,13 @@ const ChatDialog = ({
   messages = [], 
   streamContent = '', 
   isStreaming = false,
+  inputValue = '',
+  onInputChange,
   onSendMessage,
   style,
   className
 }) => {
   // 内部状态管理
-  const [inputValue, setInputValue] = React.useState('');
   const [selectedAssistant, setSelectedAssistant] = React.useState(null);
   const [atPosition, setAtPosition] = React.useState(null);
   const [filteredAssistants, setFilteredAssistants] = React.useState(DEFAULT_ASSISTANTS);
@@ -166,7 +167,6 @@ const ChatDialog = ({
   // 处理输入变化
   const handleInputChange = (e) => {
     const value = e.target.value;
-    setInputValue(value);
     
     const lastAtPos = value.lastIndexOf('@');
     if (lastAtPos !== -1) {
@@ -183,6 +183,9 @@ const ChatDialog = ({
       setAtPosition(null);
       setFilteredAssistants(DEFAULT_ASSISTANTS);
     }
+
+    // 调用父组件的 onChange
+    onInputChange(e);
   };
 
   // 处理助手选择
@@ -195,20 +198,26 @@ const ChatDialog = ({
     setSelectedAssistant(assistant);
     setAtPosition(null);
     
-    // 如果有选择具体命令
+    // 使用 onInputChange 更新输入值
     if (command) {
-      setInputValue(prev => `@${assistant.name} ${command.command} `);
+      onInputChange({ 
+        target: { 
+          value: `@${assistant.name} ${command.command} `
+        } 
+      });
     } else {
-      // 只选择助手
-      setInputValue(prev => `@${assistant.name} `);
+      onInputChange({ 
+        target: { 
+          value: `@${assistant.name} `
+        } 
+      });
     }
   };
 
   // 处理消息发送
   const handleSendMessage = () => {
     if (!inputValue.trim() || isStreaming) return;
-    onSendMessage(inputValue, selectedAssistant);
-    setInputValue('');
+    onSendMessage();
     setSelectedAssistant(null);
   };
 
