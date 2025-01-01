@@ -263,26 +263,29 @@ const ChatDialog = ({
         command: command
       };
 
-      console.log('Sending request:', requestBody);  // 调试日志
-
       const response = await fetch('http://localhost:8001/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify(requestBody)  // 确保正确序列化
+        body: JSON.stringify(requestBody)
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        // 显示错误提示，但不抛出错误
+        Modal.error({
+          title: '执行失败',
+          content: responseData.detail || '未知错误'
+        });
+        return;  // 直接返回，不继续处理
       }
 
-      const result = await response.json();
-      if (result.success) {
+      if (responseData.success) {
         setAssistantResult({
-          content: result.result,
+          content: responseData.result,
           command: command,
           assistant: '助手'
         });
@@ -290,18 +293,24 @@ const ChatDialog = ({
       } else {
         Modal.error({
           title: '执行失败',
-          content: result.result || '未知错误'
+          content: responseData.result || '未知错误'
         });
       }
       
-      return result;
+      return responseData;
+
     } catch (error) {
       console.error('执行命令失败:', error);
+      // 显示友好的错误提示
       Modal.error({
         title: '执行失败',
-        content: error.message || '未知错误'
+        content: '连接服务器失败，请检查网络连接'
       });
-      throw error;
+      // 不抛出错误，让程序继续运行
+      return {
+        success: false,
+        result: error.message
+      };
     }
   };
 

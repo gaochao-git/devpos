@@ -1,96 +1,99 @@
 # -*- coding: UTF-8 -*-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-import paramiko
-import os
-from typing import Dict, Optional
 from fastapi.middleware.cors import CORSMiddleware
+import paramiko
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 允许所有来源，生产环境应该限制具体域名
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 class CommandRequest(BaseModel):
-    command: str = Field(..., description="The command to execute")  # 添加字段验证
+    command: str = Field(..., description="The command to execute")
 
-def execute_ssh_command(host: str, command: str, username: str, key_path: str, port: int = 22) -> Dict:
-    """执行SSH命令的核心函数"""
-    client = None
+def execute_ssh_command(host: str, command: str) -> str:
+    """执行SSH命令"""
     try:
-        # 展开用户目录路径（比如 ~/）
-        key_path = os.path.expanduser(key_path)
-        print(command)
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        # 创建SSH客户端
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         
-        # 加载私钥
-        key = paramiko.RSAKey.from_private_key_file(key_path)
-        
-        # 使用密钥连接
-        client.connect(
+        # 连接服务器（这里使用密钥认证）
+        ssh.connect(
             hostname=host,
-            port=port,
-            username=username,
-            pkey=key
+            username='root',  # 使用实际的用户名
+            # password='your_password',  # 如果使用密码认证
+            # key_filename='/path/to/your/private/key'  # 如果使用密钥文件
         )
         
         # 执行命令
-        stdin, stdout, stderr = client.exec_command(command)
+        stdin, stdout, stderr = ssh.exec_command(command)
         
         # 获取输出
-        output = stdout.read().decode()
+        result = stdout.read().decode()
         error = stderr.read().decode()
         
-        return {
-            "result": output if not error else f"Error: {error}",
-            "success": not error,
-            "command": command,
-            "host": host
-        }
-        
+        if error:
+            raise Exception(f"Command error: {error}")
+            
+        return result
+    
     except Exception as e:
-        raise Exception(f"SSH执行错误: {str(e)}")
-        
+        logger.error(f"SSH execution error: {str(e)}")
+        raise
     finally:
-        if client:
-            client.close()
+        ssh.close()
 
 @app.post("/execute")
 async def execute_command(command_request: CommandRequest):
     """执行远程命令的API接口"""
     try:
         command = command_request.command
-        # 从命令中解析助手类型和实际命令
-        parts = command.split(None, 2)  # 最多分割2次
-        if len(parts) < 2 or not parts[0].startswith('@') or not parts[0].endswith('助手'):
-            raise HTTPException(status_code=400, detail="命令格式错误: 需要'@XXX助手 命令'格式")
-            
-        assistant_type = parts[0][1:-2].lower()  # 移除@和助手，转小写
-        command = parts[1] if len(parts) == 2 else parts[1] + ' ' + parts[2]
-        
+        logger.info(f"Received command: {command}")
+
+        # 解析命令
+        parts = command.split(None, 2)
+        if len(parts) < 3 or not parts[0].startswith('@') or not parts[0].endswith('助手'):
+            raise HTTPException(
+                status_code=400,
+                detail="命令格式错误: 需要'@SSH助手 主机 命令'格式"
+            )
+
+        assistant_type = parts[0][1:-2].lower()
         if assistant_type != "ssh":
-            raise HTTPException(status_code=400, detail="目前只支持SSH助手")
-            
-        # 这里处理实际的SSH命令执行
-        # ... 其他SSH执行代码 ...
-        
+            raise HTTPException(
+                status_code=400,
+                detail=f"目前只支持SSH助手，收到的是: {assistant_type}助手"
+            )
+
+        host = parts[1]
+        actual_command = parts[2]
+
+        # 执行SSH命令
+        result = execute_ssh_command(host, actual_command)
+
         return {
             "success": True,
-            "result": f"执行成功: {command}"  # 临时返回，实际应该返回SSH执行结果
+            "result": result
         }
-        
+
     except HTTPException as he:
         raise he
     except Exception as e:
+        logger.error(f"Execution error: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=str(e)
+            detail=f"执行出错: {str(e)}"
         )
 
 @app.get("/health")
