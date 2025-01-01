@@ -88,17 +88,31 @@ const ChatDialog = ({
   assistants = [],
   onSelectAssistant,
   disabled = false,
-  placeholder = "输入你的问题..."
+  placeholder = "输入你的问题...",
+  height = '600px',  // 默认高度
+  width = '100%',    // 默认宽度
+  style,
+  className
 }) => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div 
+      className={className}
+      style={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        height,  // 使用传入的高度
+        width,   // 使用传入的宽度
+        gap: '20px',
+        ...style
+      }}
+    >
       {/* 对话历史区域 */}
       <div style={{
         flex: 1,
+        minHeight: 0,
         background: 'rgba(255,255,255,0.1)',
         padding: '20px',
         borderRadius: '8px',
-        height: '512px',
         overflowY: 'auto',
         border: '3px solid rgba(255,255,255,0.1)'
       }}>
@@ -132,7 +146,8 @@ const ChatDialog = ({
       <div style={{ 
         display: 'flex',
         width: '100%',
-        position: 'relative'
+        position: 'relative',
+        flexShrink: 0
       }}>
         {/* 助手选择器 */}
         {showAssistants && (

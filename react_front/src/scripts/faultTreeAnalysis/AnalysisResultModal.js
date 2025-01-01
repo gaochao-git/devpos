@@ -663,6 +663,12 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
               }}
               disabled={isStreaming}
               placeholder="输入你的问题... 按 @ 键选择专业助手"
+              height="512px"
+              width="100%"
+              style={{
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px'
+              }}
             />
           </div>
         </div>
