@@ -4,6 +4,9 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+// 添加 mock 模式常量
+const USE_MOCK = false;  // 设置为 true 使用模拟数据，false 使用真实 API
+
 // 定义 Markdown 渲染器配置
 const markdownRenderers = {
   code: ({ node, inline, className, children, ...props }) => {
@@ -232,19 +235,48 @@ const ChatDialog = ({
 
   // 实际的API调用
   const executeCommand = async (command) => {
+    if (USE_MOCK) {
+      // 使用模拟数据
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const result = {
+            success: true,
+            result: "模拟执行结果:\n" +
+                   "Command: " + command + "\n" +
+                   "Time: " + new Date().toISOString()
+          };
+          
+          setAssistantResult({
+            content: result.result,
+            command: command,
+            assistant: '助手'
+          });
+          setIsResultModalVisible(true);
+          
+          resolve(result);
+        }, 1000);
+      });
+    }
+
     try {
+      const requestBody = {
+        command: command
+      };
+
+      console.log('Sending request:', requestBody);  // 调试日志
+
       const response = await fetch('http://localhost:8001/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          command: command  // 只传递用户的完整输入
-        })
+        body: JSON.stringify(requestBody)  // 确保正确序列化
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
@@ -252,14 +284,23 @@ const ChatDialog = ({
         setAssistantResult({
           content: result.result,
           command: command,
-          assistant: '助手'  // 可以根据需要修改或移除
+          assistant: '助手'
         });
         setIsResultModalVisible(true);
+      } else {
+        Modal.error({
+          title: '执行失败',
+          content: result.result || '未知错误'
+        });
       }
       
       return result;
     } catch (error) {
       console.error('执行命令失败:', error);
+      Modal.error({
+        title: '执行失败',
+        content: error.message || '未知错误'
+      });
       throw error;
     }
   };
