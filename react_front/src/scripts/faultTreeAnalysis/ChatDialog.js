@@ -7,6 +7,30 @@ import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 // 添加 mock 模式常量
 const USE_MOCK = false;  // 设置为 true 使用模拟数据，false 使用真实 API
 
+// 在文件开头添加快速选择配置
+const QUICK_SELECT_CONFIG = {
+  servers: [
+    { ip: '192.168.1.100', name: 'DB-Master' },
+    { ip: '192.168.1.101', name: 'DB-Slave1' },
+    { ip: '192.168.1.102', name: 'DB-Slave2' },
+    { ip: '192.168.1.103', name: 'Proxy1' },
+    { ip: '192.168.1.104', name: 'Proxy2' },
+  ],
+  commands: {
+    ssh: [
+      { cmd: 'ls -l', desc: '列出文件' },
+      { cmd: 'df -h', desc: '查看磁盘空间' },
+      { cmd: 'free -m', desc: '查看内存使用' },
+      { cmd: 'top', desc: '查看系统负载' },
+    ],
+    mysql: [
+      { cmd: 'show processlist', desc: '查看连接状态' },
+      { cmd: 'show slave status\\G', desc: '查看从库状态' },
+      { cmd: 'show master status\\G', desc: '查看主库状态' },
+    ],
+  }
+};
+
 // 定义 Markdown 渲染器配置
 const markdownRenderers = {
   code: ({ node, inline, className, children, ...props }) => {
@@ -168,6 +192,9 @@ const ChatDialog = ({
   const [filteredAssistants, setFilteredAssistants] = React.useState(DEFAULT_ASSISTANTS);
   const [assistantResult, setAssistantResult] = React.useState(null);
   const [isResultModalVisible, setIsResultModalVisible] = React.useState(false);
+  const [quickSelectMode, setQuickSelectMode] = React.useState(null);
+  const [quickSelectItems, setQuickSelectItems] = React.useState([]);
+  const [selectedIndex, setSelectedIndex] = React.useState(0);
 
   // 处理输入变化
   const handleInputChange = (e) => {
@@ -326,6 +353,108 @@ const ChatDialog = ({
     }
   };
 
+  // 修改 handleKeyDown 函数
+  const handleKeyDown = React.useCallback((e) => {
+    console.log('Key pressed:', e.key); // 调试日志
+    
+    if (e.key === 'Tab') {
+      e.preventDefault(); // 阻止默认的 Tab 行为
+      
+      // 检查是否已经选择了助手
+      const hasSelectedAssistant = inputValue.includes('@') && 
+        (inputValue.toLowerCase().includes('@ssh') || 
+         inputValue.toLowerCase().includes('@mysql'));
+
+      if (!hasSelectedAssistant) {
+        return; // 如果没有选择助手，不显示服务器列表
+      }
+      
+      if (!quickSelectMode) {
+        console.log('Activating server mode'); // 调试日志
+        setQuickSelectMode('server');
+        setQuickSelectItems(QUICK_SELECT_CONFIG.servers);
+        setSelectedIndex(0);
+      } else if (quickSelectMode === 'server') {
+        // 根据输入内容判断当前助手类型
+        let assistantType = 'ssh'; // 默认为 ssh
+        if (inputValue.toLowerCase().includes('@mysql')) {
+          assistantType = 'mysql';
+        }
+        
+        const commands = QUICK_SELECT_CONFIG.commands[assistantType];
+        if (commands) {
+          console.log('Activating command mode'); // 调试日志
+          setQuickSelectMode('command');
+          setQuickSelectItems(commands);
+          setSelectedIndex(0);
+        }
+      } else if (quickSelectMode === 'command') {
+        // 从命令模式返回到服务器模式
+        console.log('Back to server mode'); // 调试日志
+        setQuickSelectMode('server');
+        setQuickSelectItems(QUICK_SELECT_CONFIG.servers);
+        setSelectedIndex(0);
+      }
+    } else if (e.key === '@') {
+      // 显示助手选择
+      const atPosition = e.target.selectionStart;
+      setAtPosition(atPosition);
+      setFilteredAssistants(DEFAULT_ASSISTANTS);
+    } else if (e.key === 'Enter' && !e.shiftKey) {
+      if (quickSelectMode) {
+        e.preventDefault();
+        const selected = quickSelectItems[selectedIndex];
+        if (quickSelectMode === 'server') {
+          // 在当前光标位置插入服务器 IP
+          const cursorPosition = e.target.selectionStart;
+          const textBeforeCursor = inputValue.slice(0, cursorPosition);
+          const textAfterCursor = inputValue.slice(cursorPosition);
+          const newValue = textBeforeCursor + selected.ip + textAfterCursor;
+          onInputChange({ target: { value: newValue } });
+        } else {
+          const newValue = `${inputValue} ${selected.cmd}`;
+          onInputChange({ target: { value: newValue } });
+        }
+        setQuickSelectMode(null);
+        setQuickSelectItems([]);
+      } else if (!isStreaming) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    } else if (e.key === 'ArrowUp' && quickSelectMode) {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev > 0 ? prev - 1 : quickSelectItems.length - 1));
+    } else if (e.key === 'ArrowDown' && quickSelectMode) {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev < quickSelectItems.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'Escape' && quickSelectMode) {
+      e.preventDefault();
+      setQuickSelectMode(null);
+      setQuickSelectItems([]);
+    }
+  }, [quickSelectMode, quickSelectItems, selectedIndex, inputValue, isStreaming]);
+
+  // 添加点击外部关闭弹窗的处理函数
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      // 检查点击是否在弹窗外部
+      const dropdown = document.querySelector('.quick-select-dropdown');
+      if (dropdown && !dropdown.contains(event.target) && 
+          !event.target.closest('textarea')) {
+        setQuickSelectMode(null);
+        setQuickSelectItems([]);
+      }
+    };
+
+    // 添加全局点击事件监听
+    document.addEventListener('mousedown', handleClickOutside);
+
+    // 清理函数
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
     <>
       <div 
@@ -380,7 +509,7 @@ const ChatDialog = ({
           position: 'relative',
           flexShrink: 0
         }}>
-          {/* 助手选择器 */}
+          {/* 助手选择弹窗 */}
           {atPosition !== null && (
             <div style={{
               position: 'absolute',
@@ -396,59 +525,99 @@ const ChatDialog = ({
               maxHeight: '400px',
               overflowY: 'auto'
             }}>
-              {filteredAssistants.map(assistant => (
+              {filteredAssistants.map((assistant, index) => (
                 <div
                   key={assistant.id}
                   onClick={() => handleAssistantSelect(assistant)}
                   style={{
-                    padding: '12px',
+                    padding: '8px 12px',
                     cursor: 'pointer',
                     borderRadius: '4px',
-                    marginBottom: '8px',
-                    background: 'rgba(255, 255, 255, 0.1)',
+                    background: 'transparent',
                     '&:hover': {
-                      background: 'rgba(255, 255, 255, 0.2)'
+                      background: 'rgba(255, 255, 255, 0.1)'
                     }
                   }}
                 >
-                  <div style={{ fontWeight: 'bold', color: 'white', marginBottom: '4px' }}>
-                    {assistant.name}
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: 'bold', color: 'white' }}>{assistant.name}</div>
+                  <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>
                     {assistant.description}
                   </div>
-                  {assistant.quickCommands && (
-                    <div style={{ marginBottom: '8px' }}>
-                      <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '4px' }}>
-                        快捷命令:
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {assistant.quickCommands.map((cmd, index) => (
-                          <div
-                            key={index}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAssistantSelect(assistant, cmd);
-                            }}
-                            style={{
-                              fontSize: '12px',
-                              padding: '4px 8px',
-                              background: 'rgba(255, 255, 255, 0.15)',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              color: 'white'
-                            }}
-                            title={cmd.description}
-                          >
-                            {cmd.name}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 快速选择下拉框 */}
+          {quickSelectMode && (
+            <div 
+              className="quick-select-dropdown"  // 添加类名用于识别弹窗
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: 0,
+                width: '320px',
+                background: '#1e40af',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                padding: '8px',
+                marginBottom: '8px',
+                zIndex: 1000,
+                maxHeight: '400px',
+                overflowY: 'auto'
+              }}
+            >
+              {quickSelectItems.map((item, index) => (
+                <div
+                  key={index}
+                  onClick={() => {
+                    if (quickSelectMode === 'server') {
+                      // 在当前光标位置插入服务器 IP
+                      const cursorPosition = document.querySelector('textarea').selectionStart;
+                      const textBeforeCursor = inputValue.slice(0, cursorPosition);
+                      const textAfterCursor = inputValue.slice(cursorPosition);
+                      const newValue = textBeforeCursor + item.ip + textAfterCursor;
+                      onInputChange({ target: { value: newValue } });
+                    } else {
+                      // 在当前输入内容后追加命令
+                      const newValue = `${inputValue} ${item.cmd}`;
+                      onInputChange({ target: { value: newValue } });
+                    }
+                    setQuickSelectMode(null);
+                    setQuickSelectItems([]);
+                  }}
+                  onMouseEnter={() => setSelectedIndex(index)}  // 添加鼠标悬停时更新选中项
+                  style={{
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    borderRadius: '4px',
+                    background: index === selectedIndex ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                    transition: 'background-color 0.2s'  // 添加过渡效果
+                  }}
+                  onMouseOver={(e) => {  // 修改这里，使用参数 e 代替全局 event
+                    // 鼠标悬停时改变背景色
+                    const element = e.currentTarget;
+                    element.style.background = 'rgba(255, 255, 255, 0.1)';
+                  }}
+                  onMouseOut={(e) => {   // 修改这里，使用参数 e 代替全局 event
+                    // 鼠标移出时恢复原来的背景色
+                    const element = e.currentTarget;
+                    element.style.background = index === selectedIndex ? 
+                      'rgba(255, 255, 255, 0.2)' : 
+                      'transparent';
+                  }}
+                >
+                  {quickSelectMode === 'server' ? (
+                    <>
+                      <div style={{ fontWeight: 'bold', color: 'white' }}>{item.name}</div>
+                      <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>{item.ip}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontWeight: 'bold', color: 'white' }}>{item.cmd}</div>
+                      <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>{item.desc}</div>
+                    </>
                   )}
-                  <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)' }}>
-                    示例: {assistant.examples[0]}
-                  </div>
                 </div>
               ))}
             </div>
@@ -457,17 +626,8 @@ const ChatDialog = ({
           <Input.TextArea
             value={inputValue}
             onChange={handleInputChange}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape' && atPosition !== null) {
-                setAtPosition(null);
-                return;
-              }
-              if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-            placeholder="输入你的问题... 按 @ 键选择专业助手"
+            onKeyDown={handleKeyDown}
+            placeholder="输入你的问题... 按 @ 键选择专业助手，按 Tab 键快速选择服务器"
             disabled={isStreaming}
             autoSize={{ minRows: 2, maxRows: 6 }}
             style={{
