@@ -206,50 +206,6 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
     }
   };
 
-  // 生成分析报告
-  const generateAnalysisReport = async () => {
-    try {
-      setIsStreaming(true);
-      setStreamContent('');
-      
-      const response = await fetch(difyApiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': difyApiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          inputs: { "mode": "故障定位" },
-          query: content,
-          response_mode: 'streaming',
-          conversation_id: conversationId,
-          user: 'system'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      await handleStream(response);
-      
-      setMessages(prev => [...prev, {
-        type: 'user',
-        content: content,
-        timestamp: new Date().toLocaleTimeString()
-      }, {
-        type: 'assistant',
-        content: streamContent,
-        timestamp: new Date().toLocaleTimeString()
-      }]);
-
-    } catch (error) {
-      console.error('Generate report error:', error);
-      setIsStreaming(false);
-      message.error('生成报告失败，请重试');
-    }
-  };
-
   // 添加发送后续问题的函数
   const sendFollowUpQuestion = async (question) => {
     try {
@@ -514,17 +470,6 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
             故障根因分析报告
           </div>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <Button
-              type="primary"
-              onClick={generateAnalysisReport}
-              disabled={isStreaming}
-              style={{
-                cursor: isStreaming ? 'not-allowed' : 'pointer',
-                opacity: isStreaming ? 0.7 : 1,
-              }}
-            >
-              {isStreaming ? '输出中...' : '生成分析报告'}
-            </Button>
             <div style={{ 
               background: '#2563eb',
               padding: '4px 12px',

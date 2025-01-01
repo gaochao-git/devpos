@@ -216,38 +216,51 @@ const ChatDialog = ({
     }
   };
 
-  // 模拟API调用
-  const mockExecuteCommand = async (assistant, command) => {
-    // 模拟API响应
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          result: "Filesystem      Size  Used Avail Use% Mounted on\n" +
-                 "/dev/vda1        40G   23G   15G  61% /\n" +
-                 "tmpfs           7.8G     0  7.8G   0% /dev/shm",
-          command: command,
-          host: "47.95.3.120"
-        });
-      }, 1000);
-    });
+  // 修改发送消息处理
+  const handleSendMessage = () => {
+    if (!inputValue.trim() || isStreaming) return;
+    
+    // 检查是否是助手命令
+    if (inputValue.includes('@') && inputValue.includes('助手')) {
+      executeCommand(inputValue);
+      return;
+    }
+    
+    onSendMessage();
+    setSelectedAssistant(null);
   };
 
-  // 处理助手命令执行
-  const handleAssistantCommand = async (assistant, command) => {
+  // 实际的API调用
+  const executeCommand = async (command) => {
     try {
-      const result = await mockExecuteCommand(assistant, command);
-      
+      const response = await fetch('http://localhost:8001/execute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          command: command  // 只传递用户的完整输入
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
       if (result.success) {
         setAssistantResult({
           content: result.result,
           command: command,
-          assistant: assistant
+          assistant: '助手'  // 可以根据需要修改或移除
         });
-        setIsResultModalVisible(true);  // 显示弹窗
+        setIsResultModalVisible(true);
       }
+      
+      return result;
     } catch (error) {
-      console.error('执行助手命令失败:', error);
+      console.error('执行命令失败:', error);
+      throw error;
     }
   };
 
@@ -262,22 +275,6 @@ const ChatDialog = ({
       setIsResultModalVisible(false);
       setAssistantResult(null);
     }
-  };
-
-  // 修改发送消息处理
-  const handleSendMessage = () => {
-    if (!inputValue.trim() || isStreaming) return;
-    
-    // 检查是否是助手命令
-    const assistantMatch = inputValue.match(/@(\w+)助手\s+(.*)/);
-    if (assistantMatch) {
-      const [_, assistantName, command] = assistantMatch;
-      handleAssistantCommand(assistantName.toLowerCase(), command);
-      return;
-    }
-    
-    onSendMessage();
-    setSelectedAssistant(null);
   };
 
   return (
