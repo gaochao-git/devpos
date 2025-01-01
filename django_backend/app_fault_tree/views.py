@@ -518,6 +518,7 @@ class AnalyzeRootCause(BaseView):
         
         for idx, node in enumerate(abnormal_nodes, 1):
             context += f"{idx}. {node['key']}\n"  # 显示完整路径
+            context += f"   • ip_port: {node['ip_port']}\n"
             context += f"   • 指标名称: {node['metric_name']}\n"
             if node.get('metric_extra_info'):
                 extra_info = node['metric_extra_info']
