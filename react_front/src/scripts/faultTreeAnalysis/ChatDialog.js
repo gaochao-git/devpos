@@ -312,47 +312,6 @@ const ChatDialog = ({
               <ChatMessage key={index} message={msg} />
             ))}
             
-            {/* 添加助手结果显示 */}
-            {assistantResult && (
-              <div style={{
-                background: 'rgba(37, 99, 235, 0.1)',
-                padding: '12px',
-                borderRadius: '8px',
-                marginBottom: '8px'
-              }}>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '8px'
-                }}>
-                  <div>
-                    <span style={{ fontWeight: 'bold' }}>
-                      {assistantResult.assistant}助手执行结果
-                    </span>
-                    <span style={{ marginLeft: '8px', opacity: 0.7 }}>
-                      {assistantResult.command}
-                    </span>
-                  </div>
-                  <Button
-                    type="primary"
-                    size="small"
-                    onClick={handleConfirmResult}
-                  >
-                    确认使用
-                  </Button>
-                </div>
-                <pre style={{ 
-                  background: 'rgba(0,0,0,0.1)',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  whiteSpace: 'pre-wrap'
-                }}>
-                  {assistantResult.content}
-                </pre>
-              </div>
-            )}
-            
             {isStreaming && streamContent && (
               <div style={{
                 background: 'rgba(255, 255, 255, 0.1)',
