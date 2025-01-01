@@ -195,6 +195,23 @@ const ChatDialog = ({
   const [quickSelectMode, setQuickSelectMode] = React.useState(null);
   const [quickSelectItems, setQuickSelectItems] = React.useState([]);
   const [selectedIndex, setSelectedIndex] = React.useState(0);
+  const [searchText, setSearchText] = React.useState('');
+
+  // 添加过滤函数
+  const getFilteredItems = React.useCallback(() => {
+    if (!searchText) return quickSelectItems;
+    
+    const search = searchText.toLowerCase();
+    return quickSelectItems.filter(item => {
+      if (quickSelectMode === 'server') {
+        return item.name.toLowerCase().includes(search) || 
+               item.ip.toLowerCase().includes(search);
+      } else {
+        return item.cmd.toLowerCase().includes(search) || 
+               item.desc.toLowerCase().includes(search);
+      }
+    });
+  }, [quickSelectItems, quickSelectMode, searchText]);
 
   // 处理输入变化
   const handleInputChange = (e) => {
@@ -551,7 +568,7 @@ const ChatDialog = ({
           {/* 快速选择下拉框 */}
           {quickSelectMode && (
             <div 
-              className="quick-select-dropdown"  // 添加类名用于识别弹窗
+              className="quick-select-dropdown"
               style={{
                 position: 'absolute',
                 bottom: '100%',
@@ -567,40 +584,60 @@ const ChatDialog = ({
                 overflowY: 'auto'
               }}
             >
-              {quickSelectItems.map((item, index) => (
+              {/* 添加搜索输入框 */}
+              <div style={{ marginBottom: '8px', padding: '0 4px' }}>
+                <Input
+                  placeholder={quickSelectMode === 'server' ? "搜索服务器..." : "搜索命令..."}
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '4px',
+                    color: 'white',
+                  }}
+                  onKeyDown={(e) => {
+                    // 防止 Tab 键关闭弹窗
+                    if (e.key === 'Tab') {
+                      e.stopPropagation();
+                    }
+                  }}
+                  autoFocus  // 自动聚焦搜索框
+                />
+              </div>
+
+              {/* 显示过滤后的列表 */}
+              {getFilteredItems().map((item, index) => (
                 <div
                   key={index}
                   onClick={() => {
                     if (quickSelectMode === 'server') {
-                      // 在当前光标位置插入服务器 IP
                       const cursorPosition = document.querySelector('textarea').selectionStart;
                       const textBeforeCursor = inputValue.slice(0, cursorPosition);
                       const textAfterCursor = inputValue.slice(cursorPosition);
                       const newValue = textBeforeCursor + item.ip + textAfterCursor;
                       onInputChange({ target: { value: newValue } });
                     } else {
-                      // 在当前输入内容后追加命令
                       const newValue = `${inputValue} ${item.cmd}`;
                       onInputChange({ target: { value: newValue } });
                     }
                     setQuickSelectMode(null);
                     setQuickSelectItems([]);
+                    setSearchText('');  // 清空搜索文本
                   }}
-                  onMouseEnter={() => setSelectedIndex(index)}  // 添加鼠标悬停时更新选中项
+                  onMouseEnter={() => setSelectedIndex(index)}
                   style={{
                     padding: '8px 12px',
                     cursor: 'pointer',
                     borderRadius: '4px',
                     background: index === selectedIndex ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-                    transition: 'background-color 0.2s'  // 添加过渡效果
+                    transition: 'background-color 0.2s'
                   }}
-                  onMouseOver={(e) => {  // 修改这里，使用参数 e 代替全局 event
-                    // 鼠标悬停时改变背景色
+                  onMouseOver={(e) => {
                     const element = e.currentTarget;
                     element.style.background = 'rgba(255, 255, 255, 0.1)';
                   }}
-                  onMouseOut={(e) => {   // 修改这里，使用参数 e 代替全局 event
-                    // 鼠标移出时恢复原来的背景色
+                  onMouseOut={(e) => {
                     const element = e.currentTarget;
                     element.style.background = index === selectedIndex ? 
                       'rgba(255, 255, 255, 0.2)' : 
@@ -620,6 +657,17 @@ const ChatDialog = ({
                   )}
                 </div>
               ))}
+              
+              {/* 显示无结果提示 */}
+              {getFilteredItems().length === 0 && (
+                <div style={{ 
+                  padding: '8px 12px', 
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  textAlign: 'center' 
+                }}>
+                  未找到匹配结果
+                </div>
+              )}
             </div>
           )}
 
