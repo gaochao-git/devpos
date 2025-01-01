@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
-
+import ChatDialog from './ChatDialog';
 const difyApiUrl = 'http://127.0.0.1/v1/chat-messages';
 const difyApiKey = 'Bearer app-Wyp6uFhaeygmRNJJjTquB1ZO';
 // StatBox 子组件
@@ -645,134 +645,26 @@ const AnalysisResultModal = ({ visible, content, treeData, onClose }) => {
             />
           </div>
 
-          {/* 右侧分析结果 */}
-          <div style={{ 
-            flex: 1,
-            background: 'rgba(255,255,255,0.1)',
-            padding: '20px',
-            borderRadius: '8px',
-            height: '512px',
-            overflowY: 'auto',
-            border: '3px solid rgba(255,255,255,0.1)'
-          }}>
-            <div style={{
-              fontSize: '14px',
-              lineHeight: '1.6',
-              color: 'white',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px'
-            }}>
-              {/* 显示消息历史 */}
-              {messages.map((msg, index) => (
-                <div key={index} style={{
-                  background: msg.type === 'user' ? 'rgba(37, 99, 235, 0.3)' : 'rgba(255, 255, 255, 0.1)',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  marginBottom: '8px'
-                }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                    {msg.type === 'user' ? '用户提问' : '系统回答'}：[{msg.timestamp}]
-                  </div>
-                  {msg.type === 'user' ? (
-                    <Input.TextArea
-                      value={msg.content}
-                      autoSize={{ minRows: 2 }}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'white',
-                        fontSize: '14px',
-                        lineHeight: '1.6',
-                        padding: '0',
-                        resize: 'none'
-                      }}
-                      readOnly
-                    />
-                  ) : (
-                    <ReactMarkdown components={renderers}>
-                      {msg.content}
-                    </ReactMarkdown>
-                  )}
-                </div>
-              ))}
-              
-              {/* 当前输出内容 */}
-              {isStreaming && (
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  padding: '12px',
-                  borderRadius: '8px'
-                }}>
-                  <ReactMarkdown components={renderers}>
-                    {streamContent}
-                  </ReactMarkdown>
-                  <span className="loading-dots">...</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 修改输入框部分 */}
-      <div style={{ marginTop: '20px' }}>
-        <div style={{ 
-          display: 'flex',
-          width: '100%',
-          position: 'relative' // 添加相对定位
-        }}>
-          {showAssistants && <AssistantSelector />}
-          <Input.TextArea
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="输入你的问题... 按 @ 键选择专业助手"
-            autoSize={{ minRows: 2, maxRows: 6 }}
-            onKeyDown={(e) => {
-              if (e.key === '@') {
-                e.preventDefault();
-                setShowAssistants(true);
-              } else if (e.key === 'Enter' && !e.shiftKey && !isStreaming) {
-                e.preventDefault();
-                handleSendMessage();
-              } else if (e.key === 'Escape') {
+          {/* 右侧分析结果 - 使用 ChatDialog 组件替换 */}
+          <div style={{ flex: 1 }}>
+            <ChatDialog 
+              messages={messages}
+              streamContent={streamContent}
+              isStreaming={isStreaming}
+              inputValue={inputValue}
+              onInputChange={(e) => setInputValue(e.target.value)}
+              onSendMessage={handleSendMessage}
+              showAssistants={showAssistants}
+              assistants={assistants}
+              onSelectAssistant={(assistant) => {
+                setSelectedAssistant(assistant);
                 setShowAssistants(false);
-              }
-            }}
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '8px 0 0 8px',
-              color: 'white',
-              fontSize: '14px',
-              padding: '8px 12px',
-              flex: 1,
-            }}
-          />
-          <Button
-            type="primary"
-            onClick={handleSendMessage}
-            disabled={isStreaming || !inputValue.trim()}
-            style={{
-              height: 'auto',
-              borderRadius: '0 8px 8px 0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 24px',
-              background: isStreaming ? '#1d4ed8' : '#2563eb',
-              borderColor: isStreaming ? '#1d4ed8' : '#2563eb',
-            }}
-          >
-            {isStreaming ? (
-              <>
-                发送中
-                <span className="loading-dots">...</span>
-              </>
-            ) : (
-              <Icon type="enter" />
-            )}
-          </Button>
+                setInputValue(prev => `@${assistant.name} ${prev}`);
+              }}
+              disabled={isStreaming}
+              placeholder="输入你的问题... 按 @ 键选择专业助手"
+            />
+          </div>
         </div>
       </div>
     </Modal>
