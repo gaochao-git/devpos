@@ -62,3 +62,19 @@
 .info-item .value {
   color: #333;
 }
+
+.react-resizable {
+    position: relative;
+}
+
+.react-resizable-handle {
+    position: absolute;
+    width: 10px;
+    height: 100%;
+    background-color: transparent;
+    cursor: col-resize;
+}
+
+.react-resizable-handle-w {
+    left: -5px;
+}

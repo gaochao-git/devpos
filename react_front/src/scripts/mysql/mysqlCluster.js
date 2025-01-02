@@ -1,7 +1,7 @@
 import React,{Component} from 'react';
 import axios from 'axios'
 import MyAxios from "../common/interface"
-import {Table, Input, Badge, Tabs, Card, Col, Row, Button,message,Modal} from "antd";
+import {Table, Input, Badge, Tabs, Card, Col, Row, Button,message,Modal, Drawer} from "antd";
 import { Link } from 'react-router-dom';
 import "antd/dist/antd.css";
 import "../../styles/index.scss"
@@ -663,34 +663,26 @@ export default class mysqlCluster extends Component  {
                         Content of Tab Pane 3
                     </TabPane>
               </Tabs>
-              <Modal visible={this.state.MysqlInstanceVisible}
-                  onCancel={() => this.setState({MysqlInstanceVisible:false})}
-                  title={this.state.current_cluster}
-                  footer={false}
-                  width={1200}
-              >
-                  <Table
-                      rowKey={(row ,index) => index}
-                      dataSource={this.state.cluster_instance_info}
-                      columns={mysql_cluster_instance_columns}
-                      scroll={{ x: true }}
-                      pagination={false}
-                      size="small"
-                  />
-              </Modal>
-              <Modal
+              <Drawer
                   title="故障分析"
                   visible={this.state.faultAnalysisNewVisible}
-                  onCancel={() => {
+                  onClose={() => {
                       this.setState({
                           faultAnalysisNewVisible: false,
                           modalNewReady: false
                       });
                   }}
                   width={1200}
-                  style={{ top: 20 }}
-                  footer={null}
+                  placement="left"
                   destroyOnClose={true}
+                  style={{
+                      position: 'absolute'
+                  }}
+                  bodyStyle={{
+                      padding: 0,
+                      height: '100%',
+                      overflow: 'auto'
+                  }}
               >
                   {this.state.modalNewReady && (
                       <FaultTreeIndex
@@ -698,7 +690,7 @@ export default class mysqlCluster extends Component  {
                           key={`fault-tree-new-${this.state.faultTreeKey}`}
                       />
                   )}
-              </Modal>
+              </Drawer>
             </div>
         )
     }

@@ -6,6 +6,9 @@ import './index.css';
 import G6Tree from "./G6Tree";
 import aiGif from '../../images/AI.gif';
 import AnalysisResultModal from './AnalysisResultModal';
+import { ResizableBox } from 'react-resizable';
+import 'react-resizable/css/styles.css';
+import ChatRca from './ChatRca';
 
 
 const { Content } = Layout;
@@ -23,6 +26,8 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
     const [analysisModalVisible, setAnalysisModalVisible] = useState(false);
     const [analysisContent, setAnalysisContent] = useState(null);
     const [enableStream, setEnableStream] = useState(false);
+    const [isChatCollapsed, setIsChatCollapsed] = useState(false);
+    const [chatWidth, setChatWidth] = useState(400);
 
     // 更新时间范围的通用函数
     const updateTimeRange = (value) => {
@@ -361,18 +366,80 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                         </div>
                     </div>
 
-                    {/* 故障树展示区域 */}
+                    {/* 故障树和对话助手区域 */}
                     <div style={{ 
                         background: 'white',
                         borderRadius: '12px',
                         padding: '24px',
                         minHeight: 'calc(100vh - 280px)',
+                        display: 'flex',
+                        position: 'relative',
+                        overflow: 'hidden'
                     }}>
                         {treeData && (
-                            <G6Tree 
-                                data={treeData} 
-                                initialTimeRange={timeRange}
-                            />
+                            <>
+                                {/* 故障树区域 */}
+                                <div style={{
+                                    width: `calc(100% - ${isChatCollapsed ? 40 : chatWidth}px)`,
+                                    height: 'calc(100vh - 328px)',
+                                    overflow: 'hidden'
+                                }}>
+                                    <G6Tree 
+                                        data={treeData} 
+                                        initialTimeRange={timeRange}
+                                    />
+                                </div>
+
+                                {/* 对话助手区域 */}
+                                <ResizableBox
+                                    width={isChatCollapsed ? 40 : chatWidth}
+                                    height={'calc(100vh - 328px)'}
+                                    minConstraints={[40, 100]}
+                                    maxConstraints={[800, 1000]}
+                                    axis="x"
+                                    resizeHandles={['w']}
+                                    onResize={(e, { size }) => {
+                                        setChatWidth(size.width);
+                                    }}
+                                    style={{
+                                        transition: isChatCollapsed ? 'width 0.3s' : 'none',
+                                        position: 'relative'
+                                    }}
+                                >
+                                    <div style={{
+                                        height: '100%',
+                                        background: 'white',
+                                        borderRadius: '8px',
+                                        border: '1px solid #e5e7eb',
+                                        borderLeft: '4px solid #e5e7eb',
+                                        overflow: 'hidden',
+                                        position: 'relative'
+                                    }}>
+                                        {/* 收缩按钮 */}
+                                        <Button
+                                            type="text"
+                                            icon={<Icon type={isChatCollapsed ? "left" : "right"} />}
+                                            onClick={() => setIsChatCollapsed(!isChatCollapsed)}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '50%',
+                                                left: '-12px',
+                                                transform: 'translateY(-50%)',
+                                                width: '24px',
+                                                height: '24px',
+                                                padding: 0,
+                                                borderRadius: '50%',
+                                                border: '1px solid #e5e7eb',
+                                                zIndex: 1,
+                                                background: 'white'
+                                            }}
+                                        />
+                                        {!isChatCollapsed && (
+                                            <ChatRca />
+                                        )}
+                                    </div>
+                                </ResizableBox>
+                            </>
                         )}
                     </div>
                 </Card>
