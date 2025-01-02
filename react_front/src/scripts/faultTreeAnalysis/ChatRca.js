@@ -137,7 +137,7 @@ const ChatRca = ({ treeData, style }) => {
     // 是否正在流式响应
     const [isStreaming, setIsStreaming] = useState(false);
     // 选中的上下文类型
-    const [selectedContext, setSelectedContext] = useState(['tree']);
+    const [selectedContext, setSelectedContext] = useState([]);
     // 会话ID
     const [conversationId, setConversationId] = useState('');
     // 新增状态
