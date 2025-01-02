@@ -36,7 +36,7 @@ const difyApiKey = 'Bearer app-ivi5AcOq9e90X20EpcNamjDj';
 const CONTEXT_TYPES = [
     { key: 'tree', label: '故障树数据', icon: 'cluster', 
       description: '使用故障树结构和关联信息' },
-    { key: 'zabbix', label: 'Zabbix监控', icon: 'line-chart', 
+    { key: 'zabbix', label: 'Zabbix可用指标列表', icon: 'line-chart', 
       description: '包含系统性能和状态指标' }
 ];
 
@@ -172,9 +172,9 @@ const ChatRca = ({ treeData, style }) => {
             contextData.push(`故障树数据：${JSON.stringify(treeData)}`);
         }
 
-        // 添加Zabbix监控数据
+        // 添加Zabbix可用指标列表数据
         if (selectedContext.includes('zabbix')) {
-            contextData.push(`Zabbix监控指标列表：${JSON.stringify(ZABBIX_METRICS.map(metric => ({
+            contextData.push(`Zabbix可用指标列表：${JSON.stringify(ZABBIX_METRICS.map(metric => ({
                 key: metric.key,
                 label: metric.label
             })))}`);
@@ -329,7 +329,7 @@ const ChatRca = ({ treeData, style }) => {
                         trigger="click"
                     >
                         <Button 
-                            icon={<Icon type="plus" />}
+                            icon="plus"
                             size="small"
                         />
                     </Popover>
