@@ -415,7 +415,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                         overflow: 'hidden',
                                         position: 'relative'
                                     }}>
-                                        <ChatRca />
+                                        <ChatRca treeData={treeData}/>
                                     </div>
                                 </ResizableBox>
                             </>
