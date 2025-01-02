@@ -674,14 +674,81 @@ const ChatRca = ({ treeData, style }) => {
                         }}>
                             {msg.type === 'user' ? (
                                 <div>
-                                    <div className="context-tags">
+                                    <div className="context-tags" style={{ marginBottom: '8px' }}>
                                         {msg.contexts?.map(ctx => (
                                             <Tag key={ctx.key} icon={<Icon type={ctx.icon} />}>
                                                 {ctx.label}
                                             </Tag>
                                         ))}
                                     </div>
-                                    <div>{msg.content}</div>
+                                    <div style={{ 
+                                        '& code': { 
+                                            background: 'rgba(255,255,255,0.1)',
+                                            padding: '2px 4px',
+                                            borderRadius: '3px'
+                                        }
+                                    }}>
+                                        <ReactMarkdown 
+                                            components={{
+                                                ...markdownRenderers,
+                                                // 为用户消息自定义样式
+                                                code: ({node, inline, className, children, ...props}) => {
+                                                    const match = /language-(\w+)/.exec(className || '');
+                                                    return !inline && match ? (
+                                                        <SyntaxHighlighter
+                                                            style={nightOwl}
+                                                            language={match[1]}
+                                                            PreTag="div"
+                                                            {...props}
+                                                            customStyle={{
+                                                                background: 'rgba(0,0,0,0.2)',
+                                                                margin: '8px 0'
+                                                            }}
+                                                        >
+                                                            {String(children).replace(/\n$/, '')}
+                                                        </SyntaxHighlighter>
+                                                    ) : (
+                                                        <code 
+                                                            className={className} 
+                                                            {...props}
+                                                            style={{
+                                                                background: 'rgba(255,255,255,0.1)',
+                                                                padding: '2px 4px',
+                                                                borderRadius: '3px'
+                                                            }}
+                                                        >
+                                                            {children}
+                                                        </code>
+                                                    );
+                                                },
+                                                // 自定义段落样式
+                                                p: ({children}) => (
+                                                    <p style={{ 
+                                                        color: '#fff',
+                                                        margin: '8px 0'
+                                                    }}>
+                                                        {children}
+                                                    </p>
+                                                ),
+                                                // 自定义链接样式
+                                                a: ({children, href}) => (
+                                                    <a 
+                                                        href={href}
+                                                        style={{
+                                                            color: '#91caff',
+                                                            textDecoration: 'underline'
+                                                        }}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        {children}
+                                                    </a>
+                                                )
+                                            }}
+                                        >
+                                            {msg.content}
+                                        </ReactMarkdown>
+                                    </div>
                                 </div>
                             ) : (
                                 <ReactMarkdown components={markdownRenderers}>
