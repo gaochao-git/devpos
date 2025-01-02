@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Input, Button, message, Select, Tooltip, Tag, Popover } from 'antd';
 import { Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
@@ -65,6 +65,65 @@ const ZABBIX_METRICS = [
     // ... 其他 Zabbix 指标
 ];
 
+// 定义助手列表
+const DEFAULT_ASSISTANTS = [
+    {
+        id: 'ssh',
+        name: 'SSH助手',
+        description: '执行SSH连接、权限配置、日志查看等操作',
+        mode: 'ssh_assistant',
+        examples: [
+            '@SSH助手 连接到 192.168.1.100',
+            '@SSH助手 查看 /var/log/mysql/error.log',
+            '@SSH助手 检查 mysql 进程状态'
+        ]
+    },
+    {
+        id: 'mysql',
+        name: 'MySQL助手',
+        description: '执行MySQL连接、状态查看、性能分析等操作',
+        mode: 'mysql_assistant',
+        examples: [
+            '@MySQL助手 查看当前连接数',
+            '@MySQL助手 检查慢查询日志',
+            '@MySQL助手 显示主从状态'
+        ]
+    },
+    {
+        id: 'zabbix',
+        name: 'Zabbix助手',
+        description: '查看监控数据、告警信息、性能图表等',
+        mode: 'zabbix_assistant',
+        examples: [
+            '@Zabbix助手 显示最近告警',
+            '@Zabbix助手 查看主机 CPU 使用率',
+            '@Zabbix助手 检查磁盘空间'
+        ]
+    }
+];
+
+// 定义快速选择配置
+const QUICK_SELECT_CONFIG = {
+    servers: [
+        { ip: '192.168.1.100', name: 'DB-Master' },
+        { ip: '192.168.1.101', name: 'DB-Slave1' },
+        { ip: '192.168.1.102', name: 'DB-Slave2' },
+        { ip: '192.168.1.103', name: 'Proxy1' },
+        { ip: '192.168.1.104', name: 'Proxy2' }
+    ],
+    commands: {
+        ssh: [
+            { cmd: 'ls -l', desc: '列出文件' },
+            { cmd: 'df -h', desc: '查看磁盘空间' },
+            { cmd: 'free -m', desc: '查看内存使用' }
+        ],
+        mysql: [
+            { cmd: 'show processlist', desc: '查看连接状态' },
+            { cmd: 'show slave status\\G', desc: '查看从库状态' }
+        ]
+    }
+};
+
 const ChatRca = ({ treeData, style }) => {
     // 消息列表状态
     const [messages, setMessages] = useState([]);
@@ -78,6 +137,13 @@ const ChatRca = ({ treeData, style }) => {
     const [selectedContext, setSelectedContext] = useState(['tree']);
     // 会话ID
     const [conversationId, setConversationId] = useState('');
+    // 新增状态
+    const [atPosition, setAtPosition] = useState(null);
+    const [filteredAssistants, setFilteredAssistants] = useState(DEFAULT_ASSISTANTS);
+    const [quickSelectMode, setQuickSelectMode] = useState(null);
+    const [quickSelectItems, setQuickSelectItems] = useState([]);
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [searchText, setSearchText] = useState('');
 
     // 创建解析器
     const createParser = (onEvent) => {
@@ -219,6 +285,139 @@ const ChatRca = ({ treeData, style }) => {
         }
     };
 
+    // 处理输入变化
+    const handleInputChange = (e) => {
+        const value = e.target.value;
+        setInputValue(value);
+        
+        const lastAtPos = value.lastIndexOf('@');
+        if (lastAtPos !== -1) {
+            const searchText = value.slice(lastAtPos + 1).toLowerCase();
+            setAtPosition(lastAtPos);
+            
+            // 过滤助手列表
+            const filtered = DEFAULT_ASSISTANTS.filter(assistant => 
+                assistant.name.toLowerCase().includes(searchText) ||
+                assistant.description.toLowerCase().includes(searchText)
+            );
+            setFilteredAssistants(filtered);
+        } else {
+            setAtPosition(null);
+            setFilteredAssistants(DEFAULT_ASSISTANTS);
+        }
+    };
+
+    // 处理助手选择
+    const handleAssistantSelect = (assistant) => {
+        if (!assistant) {
+            setAtPosition(null);
+            return;
+        }
+        
+        // 使用 onInputChange 更新输入值
+        const textBeforeCursor = inputValue.slice(0, atPosition);
+        const textAfterCursor = inputValue.slice(atPosition + 1);
+        setInputValue(textBeforeCursor + '@' + assistant.name + ' ' + textAfterCursor);
+        setAtPosition(null);
+    };
+
+    // 处理键盘事件
+    const handleKeyDown = (e) => {
+        // Tab 键处理
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            if (!quickSelectMode) {
+                setQuickSelectMode('server');
+                setQuickSelectItems(QUICK_SELECT_CONFIG.servers);
+            } else if (quickSelectMode === 'server') {
+                setQuickSelectMode('command');
+                setQuickSelectItems(QUICK_SELECT_CONFIG.commands.ssh);
+            } else {
+                setQuickSelectMode(null);
+                setQuickSelectItems([]);
+            }
+            setSearchText('');
+            setSelectedIndex(0);
+            return;
+        }
+
+        // Enter 键处理
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (quickSelectMode) {
+                // 处理快速选择
+                const items = getFilteredItems();
+                if (items.length > 0) {
+                    const selectedItem = items[selectedIndex];
+                    handleQuickSelect(selectedItem);
+                }
+                return;
+            }
+            handleSend();
+        }
+
+        // 上下键处理
+        if (quickSelectMode && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+            e.preventDefault();
+            const items = getFilteredItems();
+            if (items.length === 0) return;
+
+            setSelectedIndex(prevIndex => {
+                if (e.key === 'ArrowUp') {
+                    return prevIndex > 0 ? prevIndex - 1 : items.length - 1;
+                } else {
+                    return prevIndex < items.length - 1 ? prevIndex + 1 : 0;
+                }
+            });
+        }
+
+        // Escape 键处理
+        if (e.key === 'Escape') {
+            setQuickSelectMode(null);
+            setQuickSelectItems([]);
+            setSearchText('');
+            setSelectedIndex(0);
+        }
+    };
+
+    // 获取过滤后的项目
+    const getFilteredItems = useCallback(() => {
+        if (!searchText) return quickSelectItems;
+        
+        const search = searchText.toLowerCase();
+        return quickSelectItems.filter(item => {
+            if (quickSelectMode === 'server') {
+                return item.name.toLowerCase().includes(search) || 
+                       item.ip.toLowerCase().includes(search);
+            } else {
+                return item.cmd.toLowerCase().includes(search) || 
+                       item.desc.toLowerCase().includes(search);
+            }
+        });
+    }, [quickSelectItems, quickSelectMode, searchText]);
+
+    // 处理快速选择
+    const handleQuickSelect = (item) => {
+        if (!item) return;
+        
+        const cursorPosition = document.querySelector('textarea').selectionStart;
+        const textBeforeCursor = inputValue.slice(0, cursorPosition);
+        const textAfterCursor = inputValue.slice(cursorPosition);
+        
+        let newValue;
+        if (quickSelectMode === 'server') {
+            newValue = textBeforeCursor + item.ip + textAfterCursor;
+        } else {
+            newValue = textBeforeCursor + item.cmd + textAfterCursor;
+        }
+        
+        setInputValue(newValue);
+        setQuickSelectMode(null);
+        setQuickSelectItems([]);
+        setSearchText('');
+        setSelectedIndex(0);
+    };
+
     return (
         <div style={{ 
             display: 'flex',
@@ -300,9 +499,8 @@ const ChatRca = ({ treeData, style }) => {
                     gap: '8px',
                     marginBottom: '8px'
                 }}>
-                    {/* + 按钮 */}
                     <Popover
-                        placement="topLeft"
+                        placement="bottomLeft"
                         content={
                             <div>
                                 {CONTEXT_TYPES.map(type => (
@@ -361,27 +559,116 @@ const ChatRca = ({ treeData, style }) => {
                 {/* 输入框和发送按钮 */}
                 <div style={{ 
                     display: 'flex',
-                    gap: '8px'
+                    gap: '8px',
+                    position: 'relative'  // 添加相对定位
                 }}>
-                    <Input.TextArea
-                        value={inputValue}
-                        onChange={e => setInputValue(e.target.value)}
-                        onPressEnter={e => {
-                            if (!e.shiftKey) {
-                                e.preventDefault();
-                                handleSend();
-                            }
-                        }}
-                        placeholder="输入问题..."
-                        disabled={isStreaming}
-                        autoSize={{ minRows: 1, maxRows: 4 }}
-                        style={{ flex: 1 }}
-                    />
+                    <div style={{ position: 'relative', flex: 1 }}>  {/* 包装容器 */}
+                        <Input.TextArea
+                            value={inputValue}
+                            onChange={handleInputChange}
+                            onKeyDown={handleKeyDown}
+                            placeholder="输入问题... 按 @ 键选择专业助手，按 Tab 键快速选择服务器"
+                            disabled={isStreaming}
+                            autoSize={{ minRows: 1, maxRows: 4 }}
+                            style={{ width: '100%' }}
+                        />
+
+                        {/* @ 助手选择弹窗 */}
+                        {atPosition !== null && (
+                            <div style={{
+                                position: 'absolute',
+                                bottom: '100%',
+                                left: 0,
+                                width: '320px',
+                                background: '#1e40af',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                                padding: '8px',
+                                marginBottom: '8px',
+                                zIndex: 1000,
+                                maxHeight: '400px',
+                                overflowY: 'auto'
+                            }}>
+                                {filteredAssistants.map((assistant) => (
+                                    <div
+                                        key={assistant.id}
+                                        onClick={() => handleAssistantSelect(assistant)}
+                                        style={{
+                                            padding: '8px 12px',
+                                            cursor: 'pointer',
+                                            borderRadius: '4px',
+                                            background: 'transparent',
+                                            '&:hover': {
+                                                background: 'rgba(255, 255, 255, 0.1)'
+                                            }
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: 'bold', color: 'white' }}>
+                                            {assistant.name}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>
+                                            {assistant.description}
+                                        </div>
+                                        {/* 添加示例 */}
+                                        <div style={{ 
+                                            marginTop: '8px',
+                                            fontSize: '12px',
+                                            color: 'rgba(255, 255, 255, 0.5)'
+                                        }}>
+                                            {assistant.examples[0]}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* 快速选择弹窗 */}
+                        {quickSelectMode && (
+                            <div style={{
+                                position: 'absolute',
+                                bottom: '100%',
+                                left: 0,
+                                width: '320px',
+                                background: '#1e40af',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                                padding: '8px',
+                                marginBottom: '8px',
+                                zIndex: 1000,
+                                maxHeight: '400px',
+                                overflowY: 'auto'
+                            }}>
+                                {quickSelectItems.map((item, index) => (
+                                    <div
+                                        key={index}
+                                        onClick={() => handleQuickSelect(item)}
+                                        style={{
+                                            padding: '8px 12px',
+                                            cursor: 'pointer',
+                                            borderRadius: '4px',
+                                            background: 'transparent',
+                                            '&:hover': {
+                                                background: 'rgba(255, 255, 255, 0.1)'
+                                            }
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: 'bold', color: 'white' }}>
+                                            {quickSelectMode === 'server' ? item.name : item.cmd}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>
+                                            {quickSelectMode === 'server' ? item.ip : item.desc}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <Button
                         type="primary"
                         onClick={handleSend}
                         loading={isStreaming}
-                        icon={<Icon type="message" />}
+                        icon="message"
                     >
                         发送
                     </Button>
