@@ -327,7 +327,11 @@ const ChatRca = ({ treeData, style }) => {
         
         // 选择后重新获取输入框焦点
         setTimeout(() => {
-            document.querySelector('.chat-input').focus();
+            const input = document.querySelector('.chat-input');
+            input.focus();
+            // 将光标位置设置到空格后
+            const newCursorPosition = textBeforeCursor.length + assistant.name.length + 2; // +2 是因为有 @ 和空格
+            input.setSelectionRange(newCursorPosition, newCursorPosition);
         }, 0);
     };
 
@@ -439,13 +443,14 @@ const ChatRca = ({ treeData, style }) => {
         const textBeforeCursor = inputValue.slice(0, cursorPosition);
         const textAfterCursor = inputValue.slice(cursorPosition);
         
-        let newValue;
+        let insertText;
         if (quickSelectMode === 'server') {
-            newValue = textBeforeCursor + item.ip + textAfterCursor;
+            insertText = item.ip + ' '; // 添加空格
         } else {
-            newValue = textBeforeCursor + item.cmd + textAfterCursor;
+            insertText = item.cmd + ' '; // 添加空格
         }
         
+        const newValue = textBeforeCursor + insertText + textAfterCursor;
         setInputValue(newValue);
         setQuickSelectMode(null);
         setQuickSelectItems([]);
@@ -456,8 +461,8 @@ const ChatRca = ({ treeData, style }) => {
         setTimeout(() => {
             const input = document.querySelector('.chat-input');
             input.focus();
-            // 将光标位置设置到新插入内容的末尾
-            const newCursorPosition = textBeforeCursor.length + (quickSelectMode === 'server' ? item.ip.length : item.cmd.length);
+            // 将光标位置设置到空格后
+            const newCursorPosition = textBeforeCursor.length + insertText.length;
             input.setSelectionRange(newCursorPosition, newCursorPosition);
         }, 0);
     };
@@ -680,23 +685,20 @@ const ChatRca = ({ treeData, style }) => {
 
                         {/* 快速选择弹窗 */}
                         {quickSelectMode && (
-                            <div 
-                                className="quick-select-popup"
-                                style={{
-                                    position: 'absolute',
-                                    bottom: '100%',
-                                    left: 0,
-                                    width: '320px',
-                                    background: '#1e40af',
-                                    borderRadius: '8px',
-                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                                    padding: '8px',
-                                    marginBottom: '8px',
-                                    zIndex: 1000,
-                                    maxHeight: '400px',
-                                    overflowY: 'auto'
-                                }}
-                            >
+                            <div className="quick-select-popup" style={{
+                                position: 'absolute',
+                                bottom: '100%',
+                                left: 0,
+                                width: '320px',
+                                background: '#1e40af',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                                padding: '8px',
+                                marginBottom: '8px',
+                                zIndex: 1000,
+                                maxHeight: '400px',
+                                overflowY: 'auto'
+                            }}>
                                 <div style={{
                                     display: 'flex',
                                     alignItems: 'center',
@@ -710,22 +712,20 @@ const ChatRca = ({ treeData, style }) => {
                                         value={searchText}
                                         onChange={(e) => {
                                             setSearchText(e.target.value);
-                                            setSelectedIndex(0); // 重置选中项
+                                            setSelectedIndex(0);
                                         }}
                                         style={{
                                             background: 'rgba(255, 255, 255, 0.1)',
                                             border: '1px solid rgba(255, 255, 255, 0.2)',
                                             borderRadius: '4px',
                                             color: 'white',
-                                            width: 'calc(100% - 28px)' // 为关闭按钮留出空间
+                                            width: 'calc(100% - 28px)'
                                         }}
                                         onKeyDown={(e) => {
-                                            // 防止 Tab 键关闭弹窗
                                             if (e.key === 'Tab') {
                                                 e.stopPropagation();
                                             }
                                         }}
-                                        autoFocus
                                     />
                                     {/* 关闭按钮 */}
                                     <Icon 
