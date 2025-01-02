@@ -668,53 +668,90 @@ const ChatRca = ({ treeData, style }) => {
                                 overflowY: 'auto'
                             }}>
                                 <div style={{
-                                    position: 'absolute',
-                                    right: '8px',
-                                    top: '8px',
-                                    cursor: 'pointer',
-                                    color: 'rgba(255, 255, 255, 0.7)'
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    marginBottom: '8px',
+                                    padding: '0 4px'
                                 }}>
+                                    {/* 搜索框 */}
+                                    <Input
+                                        placeholder={quickSelectMode === 'server' ? "搜索服务器..." : "搜索命令..."}
+                                        value={searchText}
+                                        onChange={(e) => {
+                                            setSearchText(e.target.value);
+                                            setSelectedIndex(0); // 重置选中项
+                                        }}
+                                        style={{
+                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                                            borderRadius: '4px',
+                                            color: 'white',
+                                            width: 'calc(100% - 28px)' // 为关闭按钮留出空间
+                                        }}
+                                        onKeyDown={(e) => {
+                                            // 防止 Tab 键关闭弹窗
+                                            if (e.key === 'Tab') {
+                                                e.stopPropagation();
+                                            }
+                                        }}
+                                        autoFocus
+                                    />
+                                    {/* 关闭按钮 */}
                                     <Icon 
                                         type="close" 
                                         onClick={() => {
                                             setQuickSelectMode(null);
                                             setQuickSelectItems([]);
                                             setSearchText('');
-                                        }} 
+                                        }}
+                                        style={{
+                                            cursor: 'pointer',
+                                            color: 'rgba(255, 255, 255, 0.7)',
+                                            fontSize: '16px',
+                                            padding: '4px'
+                                        }}
                                     />
                                 </div>
 
-                                <div style={{ marginBottom: '8px', padding: '0 4px' }}>
-                                    <Input
-                                        value={searchText}
-                                        onChange={(e) => setSearchText(e.target.value)}
-                                        placeholder="搜索..."
-                                        style={{ width: '100%' }}
-                                    />
-                                </div>
-
-                                {quickSelectItems.map((item, index) => (
+                                {/* 显示过滤后的列表 */}
+                                {getFilteredItems().map((item, index) => (
                                     <div
-                                        key={index}
+                                        key={quickSelectMode === 'server' ? item.ip : item.cmd}
                                         onClick={() => handleQuickSelect(item)}
+                                        onMouseEnter={() => setSelectedIndex(index)}
                                         style={{
                                             padding: '8px 12px',
                                             cursor: 'pointer',
                                             borderRadius: '4px',
-                                            background: 'transparent',
-                                            '&:hover': {
-                                                background: 'rgba(255, 255, 255, 0.1)'
-                                            }
+                                            background: index === selectedIndex ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                                            transition: 'background-color 0.2s'
                                         }}
                                     >
-                                        <div style={{ fontWeight: 'bold', color: 'white' }}>
-                                            {quickSelectMode === 'server' ? item.name : item.cmd}
-                                        </div>
-                                        <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>
-                                            {quickSelectMode === 'server' ? item.ip : item.desc}
-                                        </div>
+                                        {quickSelectMode === 'server' ? (
+                                            <>
+                                                <div style={{ fontWeight: 'bold', color: 'white' }}>{item.name}</div>
+                                                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>{item.ip}</div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div style={{ fontWeight: 'bold', color: 'white' }}>{item.cmd}</div>
+                                                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>{item.desc}</div>
+                                            </>
+                                        )}
                                     </div>
                                 ))}
+                                
+                                {/* 显示无结果提示 */}
+                                {getFilteredItems().length === 0 && (
+                                    <div style={{ 
+                                        padding: '8px 12px', 
+                                        color: 'rgba(255, 255, 255, 0.7)',
+                                        textAlign: 'center' 
+                                    }}>
+                                        未找到匹配结果
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
