@@ -39,7 +39,7 @@ const CONTEXT_TYPES = [
       description: '包含系统性能和状态指标' }
 ];
 
-const ChatRca = ({ treeData }) => {
+const ChatRca = ({ treeData, style }) => {
     const [messages, setMessages] = useState([]);
     const [streamContent, setStreamContent] = useState('');
     const [inputValue, setInputValue] = useState('');
@@ -204,10 +204,10 @@ const ChatRca = ({ treeData }) => {
 
     return (
         <div style={{ 
-            height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            background: '#f5f5f5'
+            background: '#f5f5f5',
+            ...style  // 应用从父组件传递的样式
         }}>
             {/* 顶部工具栏 */}
             <div style={{

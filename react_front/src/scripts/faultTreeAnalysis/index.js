@@ -407,15 +407,24 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                     }}
                                 >
                                     <div style={{
-                                        height: '100%',
+                                        height: 'calc(100vh - 328px)',
                                         background: 'white',
                                         borderRadius: '8px',
                                         border: '1px solid #e5e7eb',
                                         borderLeft: '4px solid #e5e7eb',
                                         overflow: 'hidden',
-                                        position: 'relative'
+                                        position: 'relative',
+                                        display: 'flex',
+                                        flexDirection: 'column'
                                     }}>
-                                        <ChatRca treeData={treeData}/>
+                                        <ChatRca 
+                                            treeData={treeData}
+                                            style={{
+                                                flex: 1,
+                                                minHeight: 0,
+                                                overflow: 'hidden'
+                                            }}
+                                        />
                                     </div>
                                 </ResizableBox>
                             </>
