@@ -9,7 +9,7 @@ import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import ChatDialog from './ChatDialog';
 const difyApiUrl = 'http://127.0.0.1/v1/chat-messages';
-const difyApiKey = 'Bearer app-Wyp6uFhaeygmRNJJjTquB1ZO';
+const difyApiKey = 'Bearer app-ivi5AcOq9e90X20EpcNamjDj';
 // StatBox 子组件
 const StatBox = ({ title, stats }) => (
   <div style={{
