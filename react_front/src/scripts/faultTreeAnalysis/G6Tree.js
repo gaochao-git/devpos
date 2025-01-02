@@ -60,13 +60,16 @@ const FaultTree = ({ data, initialTimeRange }) => {
     };
   }, [isDataReady, data]);
 
-  // 添加居中方法
+  // 添加 handleFitView 函数
   const handleFitView = () => {
     if (graphRef.current) {
-      graphRef.current.fitView([100, 260, 100, 100]);
+        // 使用较小的边距值，让树图最大化填充空间
+        graphRef.current.fitView([0, 20, 20, 20]);
+        
+        // 可选：如果需要确保完全适配，可以添加自动缩放
+        graphRef.current.fitCenter();
     }
   };
-
 
   // 获取历史监控数据
   const handleGetHistoryData = async (nodeInfo) => {
@@ -618,7 +621,7 @@ const FaultTree = ({ data, initialTimeRange }) => {
       // 直接使用转换好的数据
       graphRef.current.data(data);
       graphRef.current.render();
-      graphRef.current.fitView([100, 260, 100, 100]);
+      handleFitView(); // 使用统一的 handleFitView
     }
 
     return () => {
@@ -667,7 +670,7 @@ const FaultTree = ({ data, initialTimeRange }) => {
 
     // 重新布局
     graph.layout();
-    graph.fitView([100, 260, 100, 100]);
+    handleFitView(); // 使用统一的 handleFitView
 
   }, [data]);
 
@@ -746,6 +749,28 @@ const FaultTree = ({ data, initialTimeRange }) => {
       scrollToResult(searchResults[newIndex]);
     }
   };
+
+  // 需要添加容器大小变化的监听
+  useEffect(() => {
+    const container = ref.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+            const { width, height } = entry.contentRect;
+            if (graphRef.current) {
+                graphRef.current.changeSize(width, height);
+                handleFitView(); // 使用统一的 handleFitView
+            }
+        }
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+        resizeObserver.disconnect();
+    };
+  }, []);
 
   return (
     <div style={{ position: 'relative' }}>

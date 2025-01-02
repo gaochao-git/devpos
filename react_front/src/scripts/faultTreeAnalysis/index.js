@@ -415,28 +415,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                         overflow: 'hidden',
                                         position: 'relative'
                                     }}>
-                                        {/* 收缩按钮 */}
-                                        <Button
-                                            type="text"
-                                            icon={<Icon type={isChatCollapsed ? "left" : "right"} />}
-                                            onClick={() => setIsChatCollapsed(!isChatCollapsed)}
-                                            style={{
-                                                position: 'absolute',
-                                                top: '50%',
-                                                left: '-12px',
-                                                transform: 'translateY(-50%)',
-                                                width: '24px',
-                                                height: '24px',
-                                                padding: 0,
-                                                borderRadius: '50%',
-                                                border: '1px solid #e5e7eb',
-                                                zIndex: 1,
-                                                background: 'white'
-                                            }}
-                                        />
-                                        {!isChatCollapsed && (
-                                            <ChatRca />
-                                        )}
+                                        <ChatRca />
                                     </div>
                                 </ResizableBox>
                             </>
