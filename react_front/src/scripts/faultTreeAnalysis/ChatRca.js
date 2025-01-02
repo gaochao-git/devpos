@@ -174,8 +174,8 @@ const ChatRca = ({ treeData, style }) => {
         }
     };
 
-    // 创建解析器
-    const createParser = (onEvent) => {
+    // 修改 createParser 函数来处理错误事件
+    const createParser = (onEvent, onError) => {
         return {
             feed(chunk) {
                 try {
@@ -185,7 +185,11 @@ const ChatRca = ({ treeData, style }) => {
                             const jsonStr = line.slice(6);
                             try {
                                 const jsonData = JSON.parse(jsonStr);
-                                if (jsonData.answer) {
+                                if (jsonData.event === 'error') {
+                                    // 处理错误事件
+                                    onError(jsonData);
+                                } else if (jsonData.answer) {
+                                    // 处理正常响应
                                     onEvent(jsonData);
                                 }
                             } catch (jsonError) {
@@ -200,21 +204,36 @@ const ChatRca = ({ treeData, style }) => {
         };
     };
 
-    // 处理流式响应
+    // 修改 handleStream 函数来处理错误
     const handleStream = async (response) => {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullContent = '';
 
-        const parser = createParser((data) => {
-            if (data.conversation_id && !conversationId) {
-                setConversationId(data.conversation_id);
+        const parser = createParser(
+            // 处理正常响应
+            (data) => {
+                if (data.conversation_id && !conversationId) {
+                    setConversationId(data.conversation_id);
+                }
+                if (data.answer) {
+                    fullContent += data.answer;
+                    setStreamContent(fullContent);
+                }
+            },
+            // 处理错误响应
+            (errorData) => {
+                // 格式化错误消息
+                const errorMessage = `调用失败: ${errorData.message}`;
+                setMessages(prev => [...prev, {
+                    type: 'assistant',
+                    content: errorMessage,
+                    timestamp: new Date().toLocaleTimeString(),
+                    isError: true
+                }]);
+                throw new Error(errorData.message);
             }
-            if (data.answer) {
-                fullContent += data.answer;
-                setStreamContent(fullContent);
-            }
-        });
+        );
 
         try {
             while (true) {
@@ -224,14 +243,16 @@ const ChatRca = ({ treeData, style }) => {
                 parser.feed(chunk);
             }
 
-            setMessages(prev => [
-                ...prev,
-                {
-                    type: 'assistant',
-                    content: fullContent,
-                    timestamp: new Date().toLocaleTimeString()
-                }
-            ]);
+            if (fullContent) {
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        type: 'assistant',
+                        content: fullContent,
+                        timestamp: new Date().toLocaleTimeString()
+                    }
+                ]);
+            }
             setStreamContent('');
         } catch (error) {
             console.error('Stream processing error:', error);
@@ -243,7 +264,12 @@ const ChatRca = ({ treeData, style }) => {
 
     const handleSend = async () => {
         if (!inputValue.trim() || isStreaming) return;
-        
+
+        // 检查是否是助手命令
+        const isAssistantCommand = DEFAULT_ASSISTANTS.some(assistant => 
+            inputValue.includes('@' + assistant.name)
+        );
+
         // 构建消息对象，包含上下文信息
         const userMessage = {
             type: 'user',
@@ -257,58 +283,89 @@ const ChatRca = ({ treeData, style }) => {
         setMessages(prev => [...prev, userMessage]);
         setInputValue('');
         setIsStreaming(true);
-        
-        // 构建完整查询，包含所有选中的上下文数据
-        let fullQuery = '';
-        const contextData = [];
 
-        // 添加故障树数据
-        if (selectedContext.includes('tree') && treeData) {
-            contextData.push(`故障树数据：${JSON.stringify(treeData)}`);
-        }
-
-        // 添加Zabbix可用指标列表数据
-        if (selectedContext.includes('zabbix')) {
-            contextData.push(`Zabbix可用指标列表：${JSON.stringify(ZABBIX_METRICS.map(metric => ({
-                key: metric.key,
-                label: metric.label
-            })))}`);
-        }
-
-        // 组合查询
-        if (contextData.length > 0) {
-            fullQuery = `${contextData.join('\n\n')}\n\n问题：${inputValue}`;
-        } else {
-            fullQuery = inputValue;
-        }
-        
         try {
-            const response = await fetch(difyApiUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': difyApiKey,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    inputs: { "mode": "故障定位" },
-                    query: fullQuery,
-                    response_mode: 'streaming',
-                    conversation_id: conversationId,
-                    user: 'system'
-                })
-            });
+            if (isAssistantCommand) {
+                // 调用助手命令接口
+                await executeCommand(inputValue);
+            } else {
+                // 调用大模型接口
+                try {
+                    // 构建完整查询，包含所有选中的上下文数据
+                    let fullQuery = '';
+                    const contextData = [];
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                    // 添加故障树数据
+                    if (selectedContext.includes('tree') && treeData) {
+                        contextData.push(`故障树数据：${JSON.stringify(treeData)}`);
+                    }
+
+                    // 添加Zabbix可用指标列表数据
+                    if (selectedContext.includes('zabbix')) {
+                        contextData.push(`Zabbix可用指标列表：${JSON.stringify(ZABBIX_METRICS.map(metric => ({
+                            key: metric.key,
+                            label: metric.label
+                        })))}`);
+                    }
+
+                    // 组合查询
+                    if (contextData.length > 0) {
+                        fullQuery = `${contextData.join('\n\n')}\n\n问题：${inputValue}`;
+                    } else {
+                        fullQuery = inputValue;
+                    }
+
+                    const response = await fetch(difyApiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': difyApiKey,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            inputs: { "mode": "故障定位" },
+                            query: fullQuery,
+                            response_mode: 'streaming',
+                            conversation_id: conversationId,
+                            user: 'system'
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    }
+
+                    await handleStream(response);
+                    
+                    // 清空已选择的上下文
+                    setSelectedContext([]);
+                } catch (modelError) {
+                    console.error('大模型调用错误:', modelError);
+                    // 添加错误消息到对话列表
+                    setMessages(prev => [...prev, {
+                        type: 'assistant',
+                        content: `调用失败: ${modelError.message}`,
+                        timestamp: new Date().toLocaleTimeString(),
+                        isError: true
+                    }]);
+                    message.error('大模型调用失败：' + modelError.message);
+                    throw modelError; // 继续抛出错误以触发外层错误处理
+                }
             }
-
-            await handleStream(response);
-            
-            // 清空已选择的上下文
-            setSelectedContext([]);
         } catch (error) {
-            console.error('发送失败:', error);
-            message.error('发送消息失败，请稍后重试');
+            console.error('Error:', error);
+            if (!isAssistantCommand) {
+                // 如果不是助手命令的错误，且还没有添加错误消息到对话列表
+                if (!error.handled) {
+                    setMessages(prev => [...prev, {
+                        type: 'assistant',
+                        content: '发送消息失败，请稍后重试',
+                        timestamp: new Date().toLocaleTimeString(),
+                        isError: true
+                    }]);
+                }
+            }
+            message.error(isAssistantCommand ? '执行命令失败' : '发送消息失败，请稍后重试');
         } finally {
             setIsStreaming(false);
         }
@@ -498,6 +555,56 @@ const ChatRca = ({ treeData, style }) => {
             const newCursorPosition = textBeforeCursor.length + insertText.length;
             input.setSelectionRange(newCursorPosition, newCursorPosition);
         }, 0);
+    };
+
+    // 添加 executeCommand 函数定义
+    const executeCommand = async (command) => {
+        try {
+            const response = await fetch('http://localhost:8001/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    command: command
+                })
+            });
+
+            const responseData = await response.json();
+
+            if (!response.ok) {
+                throw new Error(responseData.detail || '未知错误');
+            }
+
+            if (responseData.success) {
+                // 将结果格式化为 Markdown 代码块
+                const formattedResult = `\`\`\`bash\n${responseData.result}\n\`\`\``;
+                // 添加助手响应到消息列表
+                setMessages(prev => [...prev, {
+                    type: 'assistant',
+                    content: formattedResult,
+                    command: command,
+                    timestamp: new Date().toLocaleTimeString()
+                }]);
+            } else {
+                throw new Error(responseData.result || '执行失败');
+            }
+            
+            return responseData;
+
+        } catch (error) {
+            console.error('执行命令失败:', error);
+            // 添加错误消息到对话列表
+            setMessages(prev => [...prev, {
+                type: 'assistant',
+                content: `执行失败: ${error.message}`,
+                command: command,
+                timestamp: new Date().toLocaleTimeString(),
+                isError: true
+            }]);
+            throw error;
+        }
     };
 
     return (
