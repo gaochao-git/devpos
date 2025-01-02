@@ -120,7 +120,7 @@ const ChatRca = ({ treeData }) => {
         setIsStreaming(true);
         setStreamContent('');
 
-        // 添加用户消息
+        // 添加用户消息（只显示用户输入的问题）
         const userMessage = {
             type: 'user',
             content: inputValue,
@@ -130,15 +130,14 @@ const ChatRca = ({ treeData }) => {
         setInputValue('');
 
         try {
-            // 构建 inputs，包含模式和上下文数据
-            const inputs = {
-                "mode": "故障定位",
-            };
+            // 构建完整的查询文本，包含上下文信息
+            let fullQuery = inputValue;
             
-            // 根据选择的上下文添加数据
+            // 添加故障树上下文
             if (selectedContext.includes('tree') && treeData) {
-                inputs.tree_data = treeData;
+                fullQuery = `故障树数据：${JSON.stringify(treeData)}\n\n问题：${inputValue}`;
             }
+
             const response = await fetch(difyApiUrl, {
                 method: 'POST',
                 headers: {
@@ -146,8 +145,8 @@ const ChatRca = ({ treeData }) => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    inputs: inputs,
-                    query: inputValue,
+                    inputs: { "mode": "故障定位" },
+                    query: fullQuery,  // 发送包含上下文的完整查询
                     response_mode: 'streaming',
                     conversation_id: conversationId,
                     user: 'system'
