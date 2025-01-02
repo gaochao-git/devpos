@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Input, Button, message, Select, Tooltip, Tag, Popover } from 'antd';
+import { Input, Button, message, Select, Tooltip, Tag, Popover, Checkbox } from 'antd';
 import { Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -152,6 +152,7 @@ const ChatRca = ({ treeData, style }) => {
     const [quickSelectItems, setQuickSelectItems] = useState([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [searchText, setSearchText] = useState('');
+    const [selectedResults, setSelectedResults] = useState(new Set());
 
     // 将 QUICK_SELECT_CONFIG 移到组件内部
     const QUICK_SELECT_CONFIG = {
@@ -270,10 +271,21 @@ const ChatRca = ({ treeData, style }) => {
             inputValue.includes('@' + assistant.name)
         );
 
+        // 获取选中的内容
+        const selectedContent = messages
+            .filter(msg => selectedResults.has(msg.timestamp) && msg.command)
+            .map(msg => msg.content)
+            .join('\n\n');
+
+        // 构建完整的消息内容
+        const fullContent = selectedContent 
+            ? `${inputValue}\n\n选中的执行结果：\n${selectedContent}`
+            : inputValue;
+
         // 构建消息对象，包含上下文信息
         const userMessage = {
             type: 'user',
-            content: inputValue,
+            content: fullContent,
             contexts: selectedContext.map(key => 
                 CONTEXT_TYPES.find(t => t.key === key)
             ),
@@ -310,9 +322,9 @@ const ChatRca = ({ treeData, style }) => {
 
                     // 组合查询
                     if (contextData.length > 0) {
-                        fullQuery = `${contextData.join('\n\n')}\n\n问题：${inputValue}`;
+                        fullQuery = `${contextData.join('\n\n')}\n\n问题：${fullContent}`;
                     } else {
-                        fullQuery = inputValue;
+                        fullQuery = fullContent;
                     }
 
                     const response = await fetch(difyApiUrl, {
@@ -337,11 +349,11 @@ const ChatRca = ({ treeData, style }) => {
 
                     await handleStream(response);
                     
-                    // 清空已选择的上下文
+                    // 清空已选择的上下文和选中的结果
                     setSelectedContext([]);
+                    setSelectedResults(new Set());
                 } catch (modelError) {
                     console.error('大模型调用错误:', modelError);
-                    // 添加错误消息到对话列表
                     setMessages(prev => [...prev, {
                         type: 'assistant',
                         content: `调用失败: ${modelError.message}`,
@@ -349,13 +361,12 @@ const ChatRca = ({ treeData, style }) => {
                         isError: true
                     }]);
                     message.error('大模型调用失败：' + modelError.message);
-                    throw modelError; // 继续抛出错误以触发外层错误处理
+                    throw modelError;
                 }
             }
         } catch (error) {
             console.error('Error:', error);
             if (!isAssistantCommand) {
-                // 如果不是助手命令的错误，且还没有添加错误消息到对话列表
                 if (!error.handled) {
                     setMessages(prev => [...prev, {
                         type: 'assistant',
@@ -607,6 +618,15 @@ const ChatRca = ({ treeData, style }) => {
         }
     };
 
+    // 处理结果选择
+    const handleResultSelect = (timestamp) => {
+        setSelectedResults(prev => {
+            const newResults = new Set(prev);
+            newResults.add(timestamp);
+            return newResults;
+        });
+    };
+
     return (
         <div style={{ 
             display: 'flex',
@@ -624,19 +644,38 @@ const ChatRca = ({ treeData, style }) => {
                     <div key={index} style={{
                         marginBottom: '16px',
                         display: 'flex',
-                        flexDirection: msg.type === 'user' ? 'row-reverse' : 'row'
+                        flexDirection: msg.type === 'user' ? 'row-reverse' : 'row',
+                        alignItems: 'flex-start',
+                        gap: '8px'
                     }}>
+                        {/* 为工具命令返回的消息添加选择框 */}
+                        {msg.type === 'assistant' && msg.command && (
+                            <div style={{ 
+                                padding: '12px 4px',
+                                display: 'flex',
+                                alignItems: 'flex-start'
+                            }}>
+                                <Checkbox
+                                    checked={selectedResults.has(msg.timestamp)}
+                                    onChange={() => handleResultSelect(msg.timestamp)}
+                                />
+                            </div>
+                        )}
+                        
                         <div style={{
-                            maxWidth: '80%',
+                            flex: 1,
+                            maxWidth: msg.type === 'user' ? '80%' : 
+                                     (msg.command ? 'calc(80% - 32px)' : '80%'),
                             padding: '12px',
                             borderRadius: '8px',
                             background: msg.type === 'user' ? '#1890ff' : '#fff',
-                            color: msg.type === 'user' ? '#fff' : '#333'
+                            color: msg.type === 'user' ? '#fff' : '#333',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                         }}>
                             {msg.type === 'user' ? (
                                 <div>
                                     <div className="context-tags">
-                                        {msg.contexts.map(ctx => (
+                                        {msg.contexts?.map(ctx => (
                                             <Tag key={ctx.key} icon={<Icon type={ctx.icon} />}>
                                                 {ctx.label}
                                             </Tag>
@@ -649,7 +688,13 @@ const ChatRca = ({ treeData, style }) => {
                                     {msg.content}
                                 </ReactMarkdown>
                             )}
-                            <div className="message-time">{msg.timestamp}</div>
+                            <div className="message-time" style={{
+                                fontSize: '12px',
+                                color: msg.type === 'user' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.45)',
+                                marginTop: '4px'
+                            }}>
+                                {msg.timestamp}
+                            </div>
                         </div>
                     </div>
                 ))}
