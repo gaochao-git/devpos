@@ -295,10 +295,13 @@ const ChatRca = ({ treeData, style }) => {
         
         const lastAtPos = value.lastIndexOf('@');
         if (lastAtPos !== -1) {
+            // 先关闭快速选择窗口
+            setQuickSelectMode(null);
+            setQuickSelectItems([]);
+            
             const searchText = value.slice(lastAtPos + 1).toLowerCase();
             setAtPosition(lastAtPos);
             
-            // 过滤助手列表
             const filtered = DEFAULT_ASSISTANTS.filter(assistant => 
                 assistant.name.toLowerCase().includes(searchText) ||
                 assistant.description.toLowerCase().includes(searchText)
@@ -331,7 +334,9 @@ const ChatRca = ({ treeData, style }) => {
         if (e.key === 'Tab') {
             e.preventDefault();
             
-            // 检查当前输入中的助手
+            // 先关闭 @ 窗口
+            setAtPosition(null);
+            
             const currentAssistant = DEFAULT_ASSISTANTS.find(assistant => 
                 inputValue.includes('@' + assistant.name)
             );
@@ -341,10 +346,9 @@ const ChatRca = ({ treeData, style }) => {
                 setQuickSelectItems(QUICK_SELECT_CONFIG.servers);
             } else if (quickSelectMode === 'server') {
                 setQuickSelectMode('command');
-                // 根据当前助手选择对应的命令列表
                 const commands = currentAssistant 
                     ? QUICK_SELECT_CONFIG.commands[currentAssistant.name] 
-                    : QUICK_SELECT_CONFIG.commands['SSH助手']; // 默认显示 SSH 命令
+                    : QUICK_SELECT_CONFIG.commands['SSH助手'];
                 setQuickSelectItems(commands);
             } else {
                 setQuickSelectMode(null);
@@ -604,6 +608,16 @@ const ChatRca = ({ treeData, style }) => {
                                 maxHeight: '400px',
                                 overflowY: 'auto'
                             }}>
+                                <div style={{
+                                    position: 'absolute',
+                                    right: '8px',
+                                    top: '8px',
+                                    cursor: 'pointer',
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                }}>
+                                    <Icon type="close" onClick={() => setAtPosition(null)} />
+                                </div>
+                                
                                 {filteredAssistants.map((assistant) => (
                                     <div
                                         key={assistant.id}
@@ -653,6 +667,32 @@ const ChatRca = ({ treeData, style }) => {
                                 maxHeight: '400px',
                                 overflowY: 'auto'
                             }}>
+                                <div style={{
+                                    position: 'absolute',
+                                    right: '8px',
+                                    top: '8px',
+                                    cursor: 'pointer',
+                                    color: 'rgba(255, 255, 255, 0.7)'
+                                }}>
+                                    <Icon 
+                                        type="close" 
+                                        onClick={() => {
+                                            setQuickSelectMode(null);
+                                            setQuickSelectItems([]);
+                                            setSearchText('');
+                                        }} 
+                                    />
+                                </div>
+
+                                <div style={{ marginBottom: '8px', padding: '0 4px' }}>
+                                    <Input
+                                        value={searchText}
+                                        onChange={(e) => setSearchText(e.target.value)}
+                                        placeholder="搜索..."
+                                        style={{ width: '100%' }}
+                                    />
+                                </div>
+
                                 {quickSelectItems.map((item, index) => (
                                     <div
                                         key={index}
