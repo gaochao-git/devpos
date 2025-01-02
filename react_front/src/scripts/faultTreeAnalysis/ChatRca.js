@@ -102,29 +102,34 @@ const DEFAULT_ASSISTANTS = [
     }
 ];
 
-// 定义快速选择配置
-const QUICK_SELECT_CONFIG = {
-    servers: [
-        { ip: '192.168.1.100', name: 'DB-Master' },
-        { ip: '192.168.1.101', name: 'DB-Slave1' },
-        { ip: '192.168.1.102', name: 'DB-Slave2' }
-    ],
-    commands: {
-        'SSH助手': [
-            { cmd: 'ls -l', desc: '列出文件' },
-            { cmd: 'df -h', desc: '查看磁盘空间' },
-            { cmd: 'free -m', desc: '查看内存使用' }
-        ],
-        'MySQL助手': [
-            { cmd: 'show processlist', desc: '查看连接状态' },
-            { cmd: 'show slave status\\G', desc: '查看从库状态' },
-            { cmd: 'show master status\\G', desc: '查看主库状态' }
-        ],
-        'Zabbix助手': [
-            { cmd: 'zabbix_get -s host -k key', desc: '获取监控项数据' },
-            { cmd: 'zabbix_sender -z server -s host -k key -o value', desc: '发送数据' }
-        ]
-    }
+// 从 treeData 中提取服务器信息的函数
+const extractServersFromTree = (treeData) => {
+    const servers = [];
+    const existingIpPorts = new Set(); // 用于记录已存在的 IP:port 组合
+    
+    const traverse = (node) => {
+        if (node.ip_port && node.ip_port.ip) {
+            // 创建唯一标识符
+            const ipPortKey = `${node.ip_port.ip}:${node.ip_port.port || ''}`;
+            
+            // 如果这个 IP:port 组合还没有被记录过
+            if (!existingIpPorts.has(ipPortKey)) {
+                existingIpPorts.add(ipPortKey); // 记录这个组合
+                servers.push({
+                    ip: node.ip_port.ip,
+                    port: node.ip_port.port,
+                    name: node.key || node.ip_port.ip
+                });
+            }
+        }
+        // 继续遍历子节点
+        if (node.children) {
+            node.children.forEach(traverse);
+        }
+    };
+    
+    traverse(treeData);
+    return servers;
 };
 
 const ChatRca = ({ treeData, style }) => {
@@ -147,6 +152,27 @@ const ChatRca = ({ treeData, style }) => {
     const [quickSelectItems, setQuickSelectItems] = useState([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [searchText, setSearchText] = useState('');
+
+    // 将 QUICK_SELECT_CONFIG 移到组件内部
+    const QUICK_SELECT_CONFIG = {
+        servers: extractServersFromTree(treeData),
+        commands: {
+            'SSH助手': [
+                { cmd: 'ls -l', desc: '列出文件' },
+                { cmd: 'df -h', desc: '查看磁盘空间' },
+                { cmd: 'free -m', desc: '查看内存使用' }
+            ],
+            'MySQL助手': [
+                { cmd: 'show processlist', desc: '查看连接状态' },
+                { cmd: 'show slave status\\G', desc: '查看从库状态' },
+                { cmd: 'show master status\\G', desc: '查看主库状态' }
+            ],
+            'Zabbix助手': [
+                { cmd: 'zabbix_get -s host -k key', desc: '获取监控项数据' },
+                { cmd: 'zabbix_sender -z server -s host -k key -o value', desc: '发送数据' }
+            ]
+        }
+    };
 
     // 创建解析器
     const createParser = (onEvent) => {
@@ -445,9 +471,17 @@ const ChatRca = ({ treeData, style }) => {
         
         let insertText;
         if (quickSelectMode === 'server') {
-            insertText = item.ip + ' '; // 添加空格
+            // 检查当前输入中的助手类型
+            const isMySQLAssistant = inputValue.includes('@MySQL助手');
+            
+            // 根据助手类型格式化 IP 和端口
+            if (isMySQLAssistant && item.port) {
+                insertText = `${item.ip} -P ${item.port} `; // MySQL 格式：ip -P port
+            } else {
+                insertText = item.ip + ' '; // SSH 格式：只有 ip
+            }
         } else {
-            insertText = item.cmd + ' '; // 添加空格
+            insertText = item.cmd + ' ';
         }
         
         const newValue = textBeforeCursor + insertText + textAfterCursor;
@@ -461,7 +495,6 @@ const ChatRca = ({ treeData, style }) => {
         setTimeout(() => {
             const input = document.querySelector('.chat-input');
             input.focus();
-            // 将光标位置设置到空格后
             const newCursorPosition = textBeforeCursor.length + insertText.length;
             input.setSelectionRange(newCursorPosition, newCursorPosition);
         }, 0);
