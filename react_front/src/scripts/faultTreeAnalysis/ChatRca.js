@@ -332,7 +332,7 @@ const ChatRca = ({ treeData, style }) => {
         console.log('Key pressed:', e.key);
 
         if (e.key === 'Tab') {
-            e.preventDefault();
+            e.preventDefault(); // 阻止默认的 Tab 行为
             
             // 先关闭 @ 窗口
             setAtPosition(null);
@@ -351,12 +351,16 @@ const ChatRca = ({ treeData, style }) => {
                     : QUICK_SELECT_CONFIG.commands['SSH助手'];
                 setQuickSelectItems(commands);
             } else {
-                setQuickSelectMode(null);
-                setQuickSelectItems([]);
+                // 当关闭快速选择窗口时，不改变模式，而是重新开始循环
+                setQuickSelectMode('server');
+                setQuickSelectItems(QUICK_SELECT_CONFIG.servers);
             }
             
             setSearchText('');
             setSelectedIndex(0);
+
+            // 确保输入框保持焦点
+            e.target.focus();
             return;
         }
 
@@ -396,6 +400,14 @@ const ChatRca = ({ treeData, style }) => {
             setQuickSelectItems([]);
             setSearchText('');
             setSelectedIndex(0);
+        }
+    };
+
+    // 在搜索框的 onBlur 事件中检查是否应该保持焦点
+    const handleSearchBlur = (e) => {
+        // 如果快速选择窗口是打开的，且不是点击了窗口内的元素，则重新获取焦点
+        if (quickSelectMode && !e.relatedTarget?.closest('.quick-select-popup')) {
+            e.target.focus();
         }
     };
 
@@ -586,6 +598,8 @@ const ChatRca = ({ treeData, style }) => {
                             value={inputValue}
                             onChange={handleInputChange}
                             onKeyDown={handleKeyDown}
+                            onBlur={handleSearchBlur}
+                            className="chat-input"  // 添加类名以便于样式控制
                             placeholder="输入问题... 按 @ 键选择专业助手，按 Tab 键快速选择服务器"
                             disabled={isStreaming}
                             autoSize={{ minRows: 1, maxRows: 4 }}
@@ -653,20 +667,23 @@ const ChatRca = ({ treeData, style }) => {
 
                         {/* 快速选择弹窗 */}
                         {quickSelectMode && (
-                            <div style={{
-                                position: 'absolute',
-                                bottom: '100%',
-                                left: 0,
-                                width: '320px',
-                                background: '#1e40af',
-                                borderRadius: '8px',
-                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                                padding: '8px',
-                                marginBottom: '8px',
-                                zIndex: 1000,
-                                maxHeight: '400px',
-                                overflowY: 'auto'
-                            }}>
+                            <div 
+                                className="quick-select-popup"
+                                style={{
+                                    position: 'absolute',
+                                    bottom: '100%',
+                                    left: 0,
+                                    width: '320px',
+                                    background: '#1e40af',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                                    padding: '8px',
+                                    marginBottom: '8px',
+                                    zIndex: 1000,
+                                    maxHeight: '400px',
+                                    overflowY: 'auto'
+                                }}
+                            >
                                 <div style={{
                                     display: 'flex',
                                     alignItems: 'center',
