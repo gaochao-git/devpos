@@ -1,9 +1,35 @@
 import React, { useState } from 'react';
 import { Input, Button, message, Select, Tooltip } from 'antd';
 import { Icon } from 'antd';
-import MyAxios from "../common/interface";
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 const { Option } = Select;
+
+// 定义 Markdown 渲染器配置
+const markdownRenderers = {
+    code: ({ node, inline, className, children, ...props }) => {
+        const match = /language-(\w+)/.exec(className || '');
+        return !inline && match ? (
+            <SyntaxHighlighter
+                style={nightOwl}
+                language={match[1]}
+                PreTag="div"
+                {...props}
+            >
+                {String(children).replace(/\n$/, '')}
+            </SyntaxHighlighter>
+        ) : (
+            <code className={className} {...props}>
+                {children}
+            </code>
+        );
+    }
+};
+
+const difyApiUrl = 'http://127.0.0.1/v1/chat-messages';
+const difyApiKey = 'Bearer app-ivi5AcOq9e90X20EpcNamjDj';
 
 // 定义上下文类型
 const CONTEXT_TYPES = [
@@ -15,65 +41,159 @@ const CONTEXT_TYPES = [
 
 const ChatRca = ({ treeData }) => {
     const [messages, setMessages] = useState([]);
+    const [streamContent, setStreamContent] = useState('');
     const [inputValue, setInputValue] = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
-    const [selectedContext, setSelectedContext] = useState(['tree']); // 默认选择故障树数据
+    const [selectedContext, setSelectedContext] = useState(['tree']);
+    const [conversationId, setConversationId] = useState('');
 
-    // 获取选中上下文的数据
-    const getContextData = async () => {
-        const contextData = {};
-        
-        if (selectedContext.includes('tree') && treeData) {
-            contextData.tree_data = treeData;
-        }
-        
-        if (selectedContext.includes('zabbix')) {
-            try {
-                // 获取Zabbix监控数据
-                const response = await MyAxios.get('/zabbix/v1/metrics/');
-                if (response.data.status === 'ok') {
-                    contextData.zabbix_data = response.data.data;
+    // 创建解析器
+    const createParser = (onEvent) => {
+        return {
+            feed(chunk) {
+                try {
+                    const lines = chunk.split('\n').filter(line => line.trim());
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const jsonStr = line.slice(6);
+                            try {
+                                const jsonData = JSON.parse(jsonStr);
+                                if (jsonData.answer) {
+                                    onEvent(jsonData);
+                                }
+                            } catch (jsonError) {
+                                console.error('JSON parse error:', jsonError);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Parse error:', e, 'Chunk:', chunk);
                 }
-            } catch (error) {
-                console.error('获取Zabbix数据失败:', error);
-                message.warning('Zabbix监控数据获取失败');
             }
+        };
+    };
+
+    // 处理流式响应
+    const handleStream = async (response) => {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullContent = '';
+
+        const parser = createParser((data) => {
+            if (data.conversation_id && !conversationId) {
+                setConversationId(data.conversation_id);
+            }
+            if (data.answer) {
+                fullContent += data.answer;
+                setStreamContent(fullContent);
+            }
+        });
+
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value, { stream: true });
+                parser.feed(chunk);
+            }
+
+            setMessages(prev => [
+                ...prev,
+                {
+                    type: 'assistant',
+                    content: fullContent,
+                    timestamp: new Date().toLocaleTimeString()
+                }
+            ]);
+            setStreamContent('');
+        } catch (error) {
+            console.error('Stream processing error:', error);
+            throw error;
+        } finally {
+            setIsStreaming(false);
         }
-        
-        return contextData;
     };
 
     const handleSend = async () => {
         if (!inputValue.trim() || isStreaming) return;
 
+        setIsStreaming(true);
+        setStreamContent('');
+
+        // 添加用户消息
         const userMessage = {
             type: 'user',
             content: inputValue,
             timestamp: new Date().toLocaleTimeString()
         };
-
         setMessages(prev => [...prev, userMessage]);
         setInputValue('');
-        setIsStreaming(true);
 
         try {
-            // 获取上下文数据
-            const contextData = await getContextData();
+            // 构建 inputs，包含模式和上下文数据
+            const inputs = {
+                "mode": "故障定位",
+            };
             
-            const response = await MyAxios.post('/ai/v1/chat/', {
-                message: inputValue,
-                context: contextData
+            // 根据选择的上下文添加数据
+            if (selectedContext.includes('tree') && treeData) {
+                inputs.tree_data = treeData;
+            }
+            const response = await fetch(difyApiUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': difyApiKey,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    inputs: inputs,
+                    query: inputValue,
+                    response_mode: 'streaming',
+                    conversation_id: conversationId,
+                    user: 'system'
+                })
             });
 
-            if (response.data.status === 'ok') {
-                const responseMessage = {
-                    type: 'system',
-                    content: response.data.reply || '分析完成',
-                    timestamp: new Date().toLocaleTimeString()
-                };
-                setMessages(prev => [...prev, responseMessage]);
-            } else {
-                message.error(response.data.message || '发送失败');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // 处理流式响应
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullContent = '';
+
+            const parser = createParser((data) => {
+                if (data.conversation_id && !conversationId) {
+                    setConversationId(data.conversation_id);
+                }
+                if (data.answer) {
+                    fullContent += data.answer;
+                    setStreamContent(fullContent); // 实时显示流式内容
+                }
+            });
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    parser.feed(chunk);
+                }
+
+                // 流结束后，添加完整消息
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        type: 'assistant',
+                        content: fullContent,
+                        timestamp: new Date().toLocaleTimeString()
+                    }
+                ]);
+                setStreamContent(''); // 清空流式内容
+            } catch (error) {
+                console.error('Stream processing error:', error);
+                throw error;
             }
         } catch (error) {
             console.error('发送失败:', error);
@@ -134,14 +254,11 @@ const ChatRca = ({ treeData }) => {
                 padding: '16px'
             }}>
                 {messages.map((msg, index) => (
-                    <div
-                        key={index}
-                        style={{
-                            marginBottom: '16px',
-                            display: 'flex',
-                            flexDirection: msg.type === 'user' ? 'row-reverse' : 'row'
-                        }}
-                    >
+                    <div key={index} style={{
+                        marginBottom: '16px',
+                        display: 'flex',
+                        flexDirection: msg.type === 'user' ? 'row-reverse' : 'row'
+                    }}>
                         <div style={{
                             maxWidth: '80%',
                             padding: '12px',
@@ -150,7 +267,13 @@ const ChatRca = ({ treeData }) => {
                             color: msg.type === 'user' ? '#fff' : '#333',
                             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                         }}>
-                            <div>{msg.content}</div>
+                            {msg.type === 'user' ? (
+                                <div>{msg.content}</div>
+                            ) : (
+                                <ReactMarkdown components={markdownRenderers}>
+                                    {msg.content}
+                                </ReactMarkdown>
+                            )}
                             <div style={{
                                 fontSize: '12px',
                                 color: msg.type === 'user' ? '#e6f7ff' : '#999',
@@ -161,6 +284,27 @@ const ChatRca = ({ treeData }) => {
                         </div>
                     </div>
                 ))}
+                {/* 显示流式内容 */}
+                {streamContent && (
+                    <div style={{
+                        marginBottom: '16px',
+                        display: 'flex',
+                        flexDirection: 'row'
+                    }}>
+                        <div style={{
+                            maxWidth: '80%',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            background: '#fff',
+                            color: '#333',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}>
+                            <ReactMarkdown components={markdownRenderers}>
+                                {streamContent}
+                            </ReactMarkdown>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* 输入区域 */}
