@@ -208,6 +208,9 @@ const ChatRca = ({ treeData, style }) => {
             }
 
             await handleStream(response);
+            
+            // 清空已选择的上下文
+            setSelectedContext([]);
         } catch (error) {
             console.error('发送失败:', error);
             message.error('发送消息失败，请稍后重试');
