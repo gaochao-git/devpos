@@ -320,11 +320,15 @@ const ChatRca = ({ treeData, style }) => {
             return;
         }
         
-        // 使用 onInputChange 更新输入值
         const textBeforeCursor = inputValue.slice(0, atPosition);
         const textAfterCursor = inputValue.slice(atPosition + 1);
         setInputValue(textBeforeCursor + '@' + assistant.name + ' ' + textAfterCursor);
         setAtPosition(null);
+        
+        // 选择后重新获取输入框焦点
+        setTimeout(() => {
+            document.querySelector('.chat-input').focus();
+        }, 0);
     };
 
     // 处理键盘事件
@@ -431,7 +435,7 @@ const ChatRca = ({ treeData, style }) => {
     const handleQuickSelect = (item) => {
         if (!item) return;
         
-        const cursorPosition = document.querySelector('textarea').selectionStart;
+        const cursorPosition = document.querySelector('.chat-input').selectionStart;
         const textBeforeCursor = inputValue.slice(0, cursorPosition);
         const textAfterCursor = inputValue.slice(cursorPosition);
         
@@ -447,6 +451,15 @@ const ChatRca = ({ treeData, style }) => {
         setQuickSelectItems([]);
         setSearchText('');
         setSelectedIndex(0);
+        
+        // 选择后重新获取输入框焦点
+        setTimeout(() => {
+            const input = document.querySelector('.chat-input');
+            input.focus();
+            // 将光标位置设置到新插入内容的末尾
+            const newCursorPosition = textBeforeCursor.length + (quickSelectMode === 'server' ? item.ip.length : item.cmd.length);
+            input.setSelectionRange(newCursorPosition, newCursorPosition);
+        }, 0);
     };
 
     return (
