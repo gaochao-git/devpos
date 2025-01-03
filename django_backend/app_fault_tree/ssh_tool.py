@@ -6,6 +6,12 @@ import paramiko
 import logging
 import pymysql
 import socket
+import select
+import threading
+from threading import Event
+import time
+import signal
+from typing import Dict, Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,42 +33,167 @@ class CommandRequest(BaseModel):
 COMMAND_TIMEOUT = 30
 CONNECT_TIMEOUT = 2  # 连接超时设置为2秒
 
-def execute_ssh_command(host: str, command: str) -> str:
-    """执行SSH命令"""
-    try:
-        print(host, command)
-        # 创建SSH客户端
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+class CommandExecutor:
+    def __init__(self):
+        self.running_processes: Dict[str, dict] = {}
+        self.cleanup_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
+        self.cleanup_thread.start()
+
+    def _cleanup_loop(self):
+        """后台清理循环，检查并终止超时的命令"""
+        while True:
+            try:
+                current_time = time.time()
+                to_remove = []
+                
+                # 检查所有运行中的进程
+                for process_id, process_info in self.running_processes.items():
+                    # 如果进程运行时间超过超时时间
+                    if current_time - process_info['start_time'] > COMMAND_TIMEOUT:
+                        logger.warning(f"Command timeout, auto terminating: {process_info['command']} on {process_info['host']}")
+                        # 尝试终止进程
+                        self.terminate_process(process_id)
+                        to_remove.append(process_id)
+                
+                # 清理已终止的进程
+                for process_id in to_remove:
+                    self.running_processes.pop(process_id, None)
+                
+                # 休眠5秒后继续下一轮检查
+                time.sleep(5)
+            except Exception as e:
+                logger.error(f"Cleanup loop error: {str(e)}")
+                time.sleep(5)  # 发生错误时也要休眠，避免CPU过载
+
+    def execute_command(self, host: str, command: str) -> str:
+        """执行命令并返回结果"""
+        ssh = None
+        channel = None
+        stop_event = Event()
+        output = []
         
-        # 连接服务器，设置连接超时为2秒
-        ssh.connect(
-            hostname=host,
-            username='root',
-            timeout=CONNECT_TIMEOUT  # 连接超时2秒
-            # password='your_password',
-            # key_filename='/path/to/your/private/key'
-        )
-        
-        # 执行命令，设置命令超时30秒
-        stdin, stdout, stderr = ssh.exec_command(command, timeout=COMMAND_TIMEOUT)
-        
-        # 获取输出
-        result = stdout.read().decode()
-        error = stderr.read().decode()
-        
-        if error:
-            raise Exception(f"Command error: {error}")
+        try:
+            # 建立 SSH 连接
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(hostname=host, username='root', timeout=CONNECT_TIMEOUT)
             
-        return result
-    
-    except socket.timeout:
-        raise Exception(f"SSH命令执行超时（{COMMAND_TIMEOUT}秒）")
-    except Exception as e:
-        logger.error(f"SSH execution error: {str(e)}")
-        raise
-    finally:
-        ssh.close()
+            # 获取 channel 并请求 PTY
+            channel = ssh.get_transport().open_session()
+            channel.get_pty()
+            channel.exec_command(command)
+            
+            # 生成进程 ID 并记录
+            process_id = f"{host}_{command}_{id(channel)}"
+            self.running_processes[process_id] = {
+                'channel': channel,
+                'ssh': ssh,
+                'host': host,
+                'command': command,
+                'start_time': time.time(),
+                'stop_event': stop_event
+            }
+            
+            # 使用 select 来读取输出
+            while not stop_event.is_set():
+                if channel.exit_status_ready():
+                    break
+                    
+                r, w, e = select.select([channel], [], [], 0.1)
+                if channel in r:
+                    try:
+                        data = channel.recv(4096)
+                        if not data:
+                            break
+                        output.append(data.decode())
+                    except socket.timeout:
+                        continue
+                
+                # 检查错误输出
+                if channel.recv_stderr_ready():
+                    error_data = channel.recv_stderr(4096).decode()
+                    if error_data:
+                        raise Exception(f"Command error: {error_data}")
+                
+                # 检查是否超时
+                if time.time() - self.running_processes[process_id]['start_time'] > COMMAND_TIMEOUT:
+                    raise TimeoutError(f"命令执行超时（{COMMAND_TIMEOUT}秒）")
+            
+            return ''.join(output)
+            
+        except Exception as e:
+            logger.error(f"Command execution error: {str(e)}")
+            raise
+        finally:
+            # 清理资源
+            if process_id in self.running_processes:
+                self.terminate_process(process_id)
+            if channel:
+                channel.close()
+            if ssh:
+                ssh.close()
+
+    def terminate_process(self, process_id: str) -> bool:
+        """终止指定的进程"""
+        try:
+            if process_id in self.running_processes:
+                process_info = self.running_processes[process_id]
+                channel = process_info['channel']
+                ssh = process_info['ssh']
+                host = process_info['host']
+                command = process_info['command']
+                stop_event = process_info['stop_event']
+                
+                # 设置停止标志
+                stop_event.set()
+                
+                # 1. 尝试通过 channel 关闭
+                try:
+                    channel.send('\x03')  # 发送 Ctrl+C
+                    time.sleep(0.1)
+                    channel.send('\x04')  # 发送 Ctrl+D
+                    time.sleep(0.1)
+                except:
+                    pass
+
+                # 2. 强制关闭 channel
+                try:
+                    channel.close()
+                except:
+                    pass
+
+                # 3. 使用新的 SSH 连接清理残留进程
+                cleanup_ssh = None
+                try:
+                    cleanup_ssh = paramiko.SSHClient()
+                    cleanup_ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                    cleanup_ssh.connect(hostname=host, username='root', timeout=CONNECT_TIMEOUT)
+                    
+                    # 查找并终止进程
+                    cleanup_channel = cleanup_ssh.get_transport().open_session()
+                    cleanup_channel.exec_command(f"pkill -f '{command}' && pkill -9 -f '{command}'")
+                    cleanup_channel.close()
+                    
+                except Exception as e:
+                    logger.error(f"Cleanup connection error: {str(e)}")
+                finally:
+                    if cleanup_ssh:
+                        cleanup_ssh.close()
+
+                # 从跟踪列表中移除
+                self.running_processes.pop(process_id, None)
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error terminating process {process_id}: {str(e)}")
+        return False
+
+# 创建全局执行器实例
+command_executor = CommandExecutor()
+
+def execute_ssh_command(host: str, command: str) -> str:
+    """执行SSH命令的入口函数"""
+    return command_executor.execute_command(host, command)
 
 def parse_mysql_command(command: str) -> tuple:
     """解析MySQL命令参数"""
