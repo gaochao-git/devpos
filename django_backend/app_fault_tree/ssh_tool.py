@@ -30,6 +30,7 @@ CONNECT_TIMEOUT = 2  # 连接超时设置为2秒
 def execute_ssh_command(host: str, command: str) -> str:
     """执行SSH命令"""
     try:
+        print(host, command)
         # 创建SSH客户端
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())

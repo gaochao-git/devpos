@@ -115,7 +115,7 @@ const ASSISTANT_CONFIGS = {
     'SSH助手': {
         prefix: 'ssh>',
         serverFormat: (ip) => ip,
-        commandFormat: (ip, _, command) => `${ip} "${command}"`,
+        commandFormat: (ip, _, command) => `${ip} ${command}`,
         commonCommands: [
             { label: 'df -h', value: 'df -h' },
             { label: 'free -m', value: 'free -m' },
