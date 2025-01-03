@@ -103,7 +103,7 @@ const DEFAULT_ASSISTANTS = [
 // 定义助手配置
 const ASSISTANT_CONFIGS = {
     'MySQL助手': {
-        prefix: 'mysql>',
+        prefix: 'mysql> ',
         serverFormat: (ip, port) => `${ip}:${port || '3306'}`,
         commandFormat: (ip, port, command) => `${ip} -P ${port} -e "${command}"`,
         commonCommands: [
@@ -113,7 +113,7 @@ const ASSISTANT_CONFIGS = {
         ]
     },
     'SSH助手': {
-        prefix: 'ssh>',
+        prefix: 'ssh> ',
         serverFormat: (ip) => ip,
         commandFormat: (ip, _, command) => `${ip} ${command}`,
         commonCommands: [
@@ -123,7 +123,7 @@ const ASSISTANT_CONFIGS = {
         ]
     },
     'Zabbix助手': {
-        prefix: 'zabbix>',
+        prefix: 'zabbix> ',
         serverFormat: (ip) => ip,
         commandFormat: (ip, _, command) => `${ip} "${command}"`,
         commonCommands: [
@@ -918,6 +918,13 @@ const ChatRca = ({ treeData, style }) => {
                                         }}
                                         addonBefore={
                                             <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                <span style={{ 
+                                                    color: '#ff4d4f',
+                                                    fontFamily: 'monospace',
+                                                    marginLeft: '8px'
+                                                }}>
+                                                    {config.prefix}
+                                                </span>
                                                 <Select
                                                     style={{ width: 160 }}
                                                     placeholder="选择服务器"
@@ -943,13 +950,7 @@ const ChatRca = ({ treeData, style }) => {
                                                         </Select.Option>
                                                     ))}
                                                 </Select>
-                                                <span style={{ 
-                                                    color: '#ff4d4f',
-                                                    fontFamily: 'monospace',
-                                                    marginLeft: '8px'
-                                                }}>
-                                                    {config.prefix}
-                                                </span>
+                                                
                                             </div>
                                         }
                                         addonAfter={
