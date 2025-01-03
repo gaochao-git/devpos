@@ -4,6 +4,7 @@ import { Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { debounce } from 'lodash';
 
 // 定义 Markdown 渲染器配置
 const markdownRenderers = {
@@ -206,41 +207,49 @@ const ChatRca = ({ treeData, style }) => {
     const handleStream = async (response) => {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let buffer = '';  // 用于累积不完整的JSON
         let fullContent = '';
-
-        const parser = createParser(
-            // 处理正常响应
-            (data) => {
-                if (data.conversation_id && !conversationId) {
-                    setConversationId(data.conversation_id);
-                }
-                if (data.answer) {
-                    fullContent += data.answer;
-                    setStreamContent(fullContent);
-                }
-            },
-            // 处理错误响应
-            (errorData) => {
-                // 格式化错误消息
-                const errorMessage = `调用失败: ${errorData.message}`;
-                setMessages(prev => [...prev, {
-                    type: 'assistant',
-                    content: errorMessage,
-                    timestamp: new Date().toLocaleTimeString(),
-                    isError: true
-                }]);
-                throw new Error(errorData.message);
-            }
-        );
 
         try {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
+
+                // 解码新的数据块
                 const chunk = decoder.decode(value, { stream: true });
-                parser.feed(chunk);
+                buffer += chunk;
+
+                // 处理缓冲区中的完整消息
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ''; // 保留最后一个不完整的行
+
+                for (const line of lines) {
+                    if (line.trim() === '') continue;
+                    if (!line.startsWith('data: ')) continue;
+
+                    try {
+                        const jsonStr = line.slice(6); // 移除 'data: ' 前缀
+                        const data = JSON.parse(jsonStr);
+
+                        // 处理会话ID
+                        if (data.conversation_id && !conversationId) {
+                            setConversationId(data.conversation_id);
+                        }
+
+                        // 处理回答内容
+                        if (data.answer) {
+                            fullContent += data.answer;
+                            // 使用防抖更新流式内容
+                            debounceSetStreamContent(fullContent);
+                        }
+                    } catch (e) {
+                        console.warn('JSON parse error:', e);
+                        continue;
+                    }
+                }
             }
 
+            // 处理完成后，添加到消息列表
             if (fullContent) {
                 setMessages(prev => [
                     ...prev,
@@ -251,14 +260,22 @@ const ChatRca = ({ treeData, style }) => {
                     }
                 ]);
             }
-            setStreamContent('');
         } catch (error) {
             console.error('Stream processing error:', error);
             throw error;
         } finally {
+            setStreamContent('');
             setIsStreaming(false);
         }
     };
+
+    // 添加防抖函数
+    const debounceSetStreamContent = useCallback(
+        debounce((content) => {
+            setStreamContent(content);
+        }, 100),  // 100ms 的防抖延迟
+        []
+    );
 
     // 调用大模型的方法
     const handleModelQuery = async (fullContent) => {
@@ -329,7 +346,7 @@ const ChatRca = ({ treeData, style }) => {
 
         // 获取选中的内容
         const selectedContent = messages
-            .filter(msg => selectedResults.has(msg.timestamp) && msg.command)
+            .filter(msg => selectedResults.has(msg.timestamp))
             .map(msg => msg.content)
             .join('\n\n');
 
@@ -680,27 +697,11 @@ const ChatRca = ({ treeData, style }) => {
                                 }}>
                                     {msg.timestamp}
                                 </div>
-                                {/* 为助手命令和助手返回内容添加勾选框 */}
-                                {((msg.type === 'assistant' && msg.command) || 
-                                  (msg.type === 'user' && DEFAULT_ASSISTANTS.some(assistant => 
-                                    msg.content.includes('@' + assistant.name)))) && (
+                                {/* 只在助手返回的命令结果上显示勾选框 */}
+                                {msg.type === 'assistant' && msg.command && (
                                     <Checkbox
                                         checked={selectedResults.has(msg.timestamp)}
                                         onChange={() => handleResultSelect(msg.timestamp)}
-                                        style={{
-                                            marginLeft: '4px',
-                                            '& .ant-checkbox-inner': {
-                                                backgroundColor: msg.type === 'user' ? 'transparent' : '#fff',
-                                                borderColor: msg.type === 'user' ? '#fff' : '#d9d9d9'
-                                            },
-                                            '& .ant-checkbox-checked .ant-checkbox-inner': {
-                                                backgroundColor: msg.type === 'user' ? '#fff' : '#1890ff',
-                                                borderColor: msg.type === 'user' ? '#fff' : '#1890ff'
-                                            },
-                                            '& .ant-checkbox-inner::after': {
-                                                borderColor: msg.type === 'user' ? '#1890ff' : '#fff'
-                                            }
-                                        }}
                                     />
                                 )}
                             </div>
