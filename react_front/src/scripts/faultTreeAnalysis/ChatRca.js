@@ -869,8 +869,8 @@ const ChatRca = ({ treeData, style }) => {
                             const config = ASSISTANT_CONFIGS[assistantName];
                             if (!config) return null;
                             
-                            // 添加助手命令发送处理函数
-                            const handleAssistantSend = () => {
+                            // 修改助手命令发送处理函数
+                            const handleAssistantSend = async () => {
                                 const command = assistantInputs.get(assistantName)?.trim();
                                 if (command) {
                                     const assistantConfig = assistantConfigs.get(assistantName);
@@ -883,12 +883,18 @@ const ChatRca = ({ treeData, style }) => {
                                         assistantConfig.port,
                                         command
                                     )}`;
-                                    setInputValue(fullCommand);
-                                    handleSend();
-                                    // 清空输入但保持配置
-                                    setAssistantInputs(prev => 
-                                        new Map(prev).set(assistantName, '')
-                                    );
+                                    
+                                    try {
+                                        // 直接调用执行命令接口
+                                        await executeCommand(fullCommand);
+                                        // 清空输入但保持配置
+                                        setAssistantInputs(prev => 
+                                            new Map(prev).set(assistantName, '')
+                                        );
+                                    } catch (error) {
+                                        // 错误已在 executeCommand 中处理
+                                        console.error('执行命令失败:', error);
+                                    }
                                 }
                             };
                             
