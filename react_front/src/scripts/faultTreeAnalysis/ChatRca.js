@@ -260,6 +260,65 @@ const ChatRca = ({ treeData, style }) => {
         }
     };
 
+    // 调用大模型的方法
+    const handleModelQuery = async (fullContent) => {
+        try {
+            // 构建上下文数据
+            const contextData = [];
+            if (selectedContext.includes('tree') && treeData) {
+                contextData.push(`故障树数据：${JSON.stringify(treeData)}`);
+            }
+            if (selectedContext.includes('zabbix')) {
+                contextData.push(`Zabbix可用指标列表：${JSON.stringify(ZABBIX_METRICS.map(metric => ({
+                    key: metric.key,
+                    label: metric.label
+                })))}`);
+            }
+
+            // 组合查询
+            const fullQuery = contextData.length > 0
+                ? `${contextData.join('\n\n')}\n\n问题：${fullContent}`
+                : fullContent;
+
+            const response = await fetch(difyApiUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': difyApiKey,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    inputs: { "mode": "故障定位" },
+                    query: fullQuery,
+                    response_mode: 'streaming',
+                    conversation_id: conversationId,
+                    user: 'system'
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+
+            await handleStream(response);
+            
+            // 清空已选择的上下文和选中的结果
+            setSelectedContext([]);
+            setSelectedResults(new Set());
+        } catch (modelError) {
+            console.error('大模型调用错误:', modelError);
+            setMessages(prev => [...prev, {
+                type: 'assistant',
+                content: `调用失败: ${modelError.message}`,
+                timestamp: new Date().toLocaleTimeString(),
+                isError: true
+            }]);
+            message.error('大模型调用失败：' + modelError.message);
+            throw modelError;
+        }
+    };
+
+    // 主发送函数
     const handleSend = async () => {
         if (!inputValue.trim() || isStreaming) return;
 
@@ -279,7 +338,7 @@ const ChatRca = ({ treeData, style }) => {
             ? `${inputValue}\n\n选中的执行结果：\n${selectedContent}`
             : inputValue;
 
-        // 构建消息对象，包含上下文信息
+        // 构建消息对象
         const userMessage = {
             type: 'user',
             content: fullContent,
@@ -295,83 +354,19 @@ const ChatRca = ({ treeData, style }) => {
 
         try {
             if (isAssistantCommand) {
-                // 调用助手命令接口
                 await executeCommand(inputValue);
             } else {
-                // 调用大模型接口
-                try {
-                    // 构建完整查询，包含所有选中的上下文数据
-                    let fullQuery = '';
-                    const contextData = [];
-
-                    // 添加故障树数据
-                    if (selectedContext.includes('tree') && treeData) {
-                        contextData.push(`故障树数据：${JSON.stringify(treeData)}`);
-                    }
-
-                    // 添加Zabbix可用指标列表数据
-                    if (selectedContext.includes('zabbix')) {
-                        contextData.push(`Zabbix可用指标列表：${JSON.stringify(ZABBIX_METRICS.map(metric => ({
-                            key: metric.key,
-                            label: metric.label
-                        })))}`);
-                    }
-
-                    // 组合查询
-                    if (contextData.length > 0) {
-                        fullQuery = `${contextData.join('\n\n')}\n\n问题：${fullContent}`;
-                    } else {
-                        fullQuery = fullContent;
-                    }
-
-                    const response = await fetch(difyApiUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': difyApiKey,
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            inputs: { "mode": "故障定位" },
-                            query: fullQuery,
-                            response_mode: 'streaming',
-                            conversation_id: conversationId,
-                            user: 'system'
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-                    }
-
-                    await handleStream(response);
-                    
-                    // 清空已选择的上下文和选中的结果
-                    setSelectedContext([]);
-                    setSelectedResults(new Set());
-                } catch (modelError) {
-                    console.error('大模型调用错误:', modelError);
-                    setMessages(prev => [...prev, {
-                        type: 'assistant',
-                        content: `调用失败: ${modelError.message}`,
-                        timestamp: new Date().toLocaleTimeString(),
-                        isError: true
-                    }]);
-                    message.error('大模型调用失败：' + modelError.message);
-                    throw modelError;
-                }
+                await handleModelQuery(fullContent);
             }
         } catch (error) {
             console.error('Error:', error);
-            if (!isAssistantCommand) {
-                if (!error.handled) {
-                    setMessages(prev => [...prev, {
-                        type: 'assistant',
-                        content: '发送消息失败，请稍后重试',
-                        timestamp: new Date().toLocaleTimeString(),
-                        isError: true
-                    }]);
-                }
+            if (!isAssistantCommand && !error.handled) {
+                setMessages(prev => [...prev, {
+                    type: 'assistant',
+                    content: '发送消息失败，请稍后重试',
+                    timestamp: new Date().toLocaleTimeString(),
+                    isError: true
+                }]);
             }
             message.error(isAssistantCommand ? '执行命令失败' : '发送消息失败，请稍后重试');
         } finally {
