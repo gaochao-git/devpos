@@ -28,7 +28,7 @@ const markdownRenderers = {
 };
 
 const difyApiUrl = 'http://127.0.0.1/v1/chat-messages';
-const difyApiKey = 'Bearer app-ivi5AcOq9e90X20EpcNamjDj';
+const difyApiKey = 'Bearer app-Wyp6uFhaeygmRNJJjTquB1ZO';
 
 // 定义上下文类型
 const CONTEXT_TYPES = [
