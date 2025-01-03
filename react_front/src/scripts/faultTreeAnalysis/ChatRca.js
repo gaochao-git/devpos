@@ -666,7 +666,7 @@ const ChatRca = ({ treeData, style }) => {
                                     borderRadius: '4px',
                                     fontSize: '12px',
                                     color: '#fff',
-                                    background: msg.type === 'user' ? '#1890ff' : 
+                                    background: msg.type === 'user' ? '#fa8c16' : 
                                                (msg.command ? '#52c41a' : '#722ed1'),
                                 }}>
                                     {msg.type === 'user' ? '用户' : 
@@ -688,8 +688,15 @@ const ChatRca = ({ treeData, style }) => {
                                         style={{
                                             marginLeft: '4px',
                                             '& .ant-checkbox-inner': {
-                                                backgroundColor: msg.type === 'user' ? '#1890ff' : '#fff',
-                                                borderColor: msg.type === 'user' ? '#1890ff' : '#d9d9d9'
+                                                backgroundColor: msg.type === 'user' ? 'transparent' : '#fff',
+                                                borderColor: msg.type === 'user' ? '#fff' : '#d9d9d9'
+                                            },
+                                            '& .ant-checkbox-checked .ant-checkbox-inner': {
+                                                backgroundColor: msg.type === 'user' ? '#fff' : '#1890ff',
+                                                borderColor: msg.type === 'user' ? '#fff' : '#1890ff'
+                                            },
+                                            '& .ant-checkbox-inner::after': {
+                                                borderColor: msg.type === 'user' ? '#1890ff' : '#fff'
                                             }
                                         }}
                                     />
