@@ -610,12 +610,16 @@ const ChatRca = ({ treeData, style }) => {
         }
     };
 
-    // 处理结果选择
+    // 恢复原来的选择处理函数
     const handleResultSelect = (timestamp) => {
         setSelectedResults(prev => {
-            const newResults = new Set(prev);
-            newResults.add(timestamp);
-            return newResults;
+            const newSet = new Set(prev);
+            if (newSet.has(timestamp)) {
+                newSet.delete(timestamp);
+            } else {
+                newSet.add(timestamp);
+            }
+            return newSet;
         });
     };
 
@@ -640,30 +644,59 @@ const ChatRca = ({ treeData, style }) => {
                         alignItems: 'flex-start',
                         gap: '8px'
                     }}>
-                        {/* 为工具命令返回的消息添加选择框 */}
-                        {msg.type === 'assistant' && msg.command && (
-                            <div style={{ 
-                                padding: '12px 4px',
-                                display: 'flex',
-                                alignItems: 'flex-start'
-                            }}>
-                                <Checkbox
-                                    checked={selectedResults.has(msg.timestamp)}
-                                    onChange={() => handleResultSelect(msg.timestamp)}
-                                />
-                            </div>
-                        )}
-                        
                         <div style={{
                             flex: 1,
-                            maxWidth: msg.type === 'user' ? '80%' : 
-                                     (msg.command ? 'calc(80% - 32px)' : '80%'),
+                            maxWidth: '80%',
                             padding: '12px',
                             borderRadius: '8px',
                             background: msg.type === 'user' ? '#1890ff' : '#fff',
                             color: msg.type === 'user' ? '#fff' : '#333',
                             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                         }}>
+                            {/* 角色、时间和勾选框放在一行 */}
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start',
+                                alignItems: 'center',
+                                marginBottom: '8px',
+                                gap: '8px'
+                            }}>
+                                <div style={{
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    color: '#fff',
+                                    background: msg.type === 'user' ? '#1890ff' : 
+                                               (msg.command ? '#52c41a' : '#722ed1'),
+                                }}>
+                                    {msg.type === 'user' ? '用户' : 
+                                     (msg.command ? '助手' : '大模型')}
+                                </div>
+                                <div style={{
+                                    fontSize: '12px',
+                                    color: msg.type === 'user' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.45)',
+                                }}>
+                                    {msg.timestamp}
+                                </div>
+                                {/* 为助手命令和助手返回内容添加勾选框 */}
+                                {((msg.type === 'assistant' && msg.command) || 
+                                  (msg.type === 'user' && DEFAULT_ASSISTANTS.some(assistant => 
+                                    msg.content.includes('@' + assistant.name)))) && (
+                                    <Checkbox
+                                        checked={selectedResults.has(msg.timestamp)}
+                                        onChange={() => handleResultSelect(msg.timestamp)}
+                                        style={{
+                                            marginLeft: '4px',
+                                            '& .ant-checkbox-inner': {
+                                                backgroundColor: msg.type === 'user' ? '#1890ff' : '#fff',
+                                                borderColor: msg.type === 'user' ? '#1890ff' : '#d9d9d9'
+                                            }
+                                        }}
+                                    />
+                                )}
+                            </div>
+
+                            {/* 消息内容 */}
                             {msg.type === 'user' ? (
                                 <div>
                                     <div className="context-tags" style={{ marginBottom: '8px' }}>
@@ -673,87 +706,15 @@ const ChatRca = ({ treeData, style }) => {
                                             </Tag>
                                         ))}
                                     </div>
-                                    <div style={{ 
-                                        '& code': { 
-                                            background: 'rgba(255,255,255,0.1)',
-                                            padding: '2px 4px',
-                                            borderRadius: '3px'
-                                        }
-                                    }}>
-                                        <ReactMarkdown 
-                                            components={{
-                                                ...markdownRenderers,
-                                                // 为用户消息自定义样式
-                                                code: ({node, inline, className, children, ...props}) => {
-                                                    const match = /language-(\w+)/.exec(className || '');
-                                                    return !inline && match ? (
-                                                        <SyntaxHighlighter
-                                                            style={nightOwl}
-                                                            language={match[1]}
-                                                            PreTag="div"
-                                                            {...props}
-                                                            customStyle={{
-                                                                background: 'rgba(0,0,0,0.2)',
-                                                                margin: '8px 0'
-                                                            }}
-                                                        >
-                                                            {String(children).replace(/\n$/, '')}
-                                                        </SyntaxHighlighter>
-                                                    ) : (
-                                                        <code 
-                                                            className={className} 
-                                                            {...props}
-                                                            style={{
-                                                                background: 'rgba(255,255,255,0.1)',
-                                                                padding: '2px 4px',
-                                                                borderRadius: '3px'
-                                                            }}
-                                                        >
-                                                            {children}
-                                                        </code>
-                                                    );
-                                                },
-                                                // 自定义段落样式
-                                                p: ({children}) => (
-                                                    <p style={{ 
-                                                        color: '#fff',
-                                                        margin: '8px 0'
-                                                    }}>
-                                                        {children}
-                                                    </p>
-                                                ),
-                                                // 自定义链接样式
-                                                a: ({children, href}) => (
-                                                    <a 
-                                                        href={href}
-                                                        style={{
-                                                            color: '#91caff',
-                                                            textDecoration: 'underline'
-                                                        }}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                    >
-                                                        {children}
-                                                    </a>
-                                                )
-                                            }}
-                                        >
-                                            {msg.content}
-                                        </ReactMarkdown>
-                                    </div>
+                                    <ReactMarkdown components={markdownRenderers}>
+                                        {msg.content}
+                                    </ReactMarkdown>
                                 </div>
                             ) : (
                                 <ReactMarkdown components={markdownRenderers}>
                                     {msg.content}
                                 </ReactMarkdown>
                             )}
-                            <div className="message-time" style={{
-                                fontSize: '12px',
-                                color: msg.type === 'user' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.45)',
-                                marginTop: '4px'
-                            }}>
-                                {msg.timestamp}
-                            </div>
                         </div>
                     </div>
                 ))}
