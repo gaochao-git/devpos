@@ -379,14 +379,14 @@ const ChatRca = ({ treeData, style }) => {
         const value = e.target.value;
         setInputValue(value);
         
-        const lastAtPos = value.lastIndexOf('@');
-        if (lastAtPos !== -1) {
+        // 检查是否以@开头（忽略前面的空格）
+        if (value.trim().startsWith('@')) {
             // 先关闭快速选择窗口
             setQuickSelectMode(null);
             setQuickSelectItems([]);
             
-            const searchText = value.slice(lastAtPos + 1).toLowerCase();
-            setAtPosition(lastAtPos);
+            const searchText = value.trim().slice(1).toLowerCase();
+            setAtPosition(0);
             
             const filtered = DEFAULT_ASSISTANTS.filter(assistant => 
                 assistant.name.toLowerCase().includes(searchText) ||
