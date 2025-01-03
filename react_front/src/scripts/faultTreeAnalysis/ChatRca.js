@@ -193,6 +193,8 @@ const ChatRca = ({ treeData, style }) => {
     const inputRefs = useRef(new Map());
     // 添加状态来存储每个助手的输入值
     const [assistantInputs, setAssistantInputs] = useState(new Map());
+    // 添加新的状态
+    const [showContextSelector, setShowContextSelector] = useState(false);
 
     // 将 QUICK_SELECT_CONFIG 移到组件内部
     const QUICK_SELECT_CONFIG = {
@@ -825,46 +827,13 @@ const ChatRca = ({ treeData, style }) => {
                 background: '#fff',
                 borderTop: '1px solid #e8e8e8'
             }}>
+                {/* 上下文标签区域 */}
                 <div style={{ 
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
                     marginBottom: '8px'
                 }}>
-                    <Popover
-                        placement="topLeft"
-                        content={
-                            <div>
-                                {CONTEXT_TYPES.map(type => (
-                                    <div
-                                        key={type.key}
-                                        onClick={() => {
-                                            if (!selectedContext.includes(type.key)) {
-                                                setSelectedContext(prev => [...prev, type.key]);
-                                            }
-                                        }}
-                                        style={{
-                                            padding: '8px',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px'
-                                        }}
-                                    >
-                                        <Icon type={type.icon} /> {type.label}
-                                    </div>
-                                ))}
-                            </div>
-                        }
-                        trigger="click"
-                    >
-                        <Button 
-                            icon="plus"
-                            size="small"
-                        />
-                    </Popover>
-
-                    {/* 已选上下文标签 */}
                     {selectedContext.map(key => {
                         const contextType = CONTEXT_TYPES.find(t => t.key === key);
                         return (
@@ -892,9 +861,9 @@ const ChatRca = ({ treeData, style }) => {
                 <div style={{ 
                     display: 'flex',
                     gap: '8px',
-                    position: 'relative'  // 添加相对定位
+                    position: 'relative'
                 }}>
-                    <div style={{ position: 'relative', flex: 1 }}>  {/* 包装容器 */}
+                    <div style={{ position: 'relative', flex: 1 }}>
                         {/* 助手输入框区域 */}
                         {Array.from(activeAssistants.keys()).map(assistantName => {
                             const config = ASSISTANT_CONFIGS[assistantName];
@@ -952,9 +921,7 @@ const ChatRca = ({ treeData, style }) => {
                                         addonAfter={
                                             <Icon 
                                                 type="close" 
-                                                style={{ 
-                                                    cursor: 'pointer'
-                                                }}
+                                                style={{ cursor: 'pointer' }}
                                                 onClick={() => handleCloseAssistant(assistantName)}
                                             />
                                         }
@@ -1022,7 +989,6 @@ const ChatRca = ({ treeData, style }) => {
                                                         e.currentTarget.style.backgroundColor = '#fff';
                                                     }}
                                                     onClick={() => {
-                                                        // 设置对应助手的输入值
                                                         setAssistantInputs(prev => {
                                                             const newMap = new Map(prev);
                                                             newMap.set(assistantName, cmd.value);
@@ -1040,8 +1006,8 @@ const ChatRca = ({ treeData, style }) => {
                             );
                         })}
 
-                        {/* 原有的输入框 */}
-                        <Input.TextArea
+                        {/* 主输入框 */}
+                        <Input
                             value={inputValue}
                             onChange={handleInputChange}
                             onKeyDown={handleKeyDown}
@@ -1049,8 +1015,60 @@ const ChatRca = ({ treeData, style }) => {
                             className="chat-input"
                             placeholder="输入问题... 按 @ 键选择专业助手，按 Tab 键快速选择服务器"
                             disabled={isStreaming}
-                            autoSize={{ minRows: 1, maxRows: 4 }}
-                            style={{ width: '100%' }}
+                            addonBefore={
+                                <Popover
+                                    placement="topLeft"
+                                    content={
+                                        <div>
+                                            {CONTEXT_TYPES.map(type => (
+                                                <div
+                                                    key={type.key}
+                                                    onClick={() => {
+                                                        if (!selectedContext.includes(type.key)) {
+                                                            setSelectedContext(prev => [...prev, type.key]);
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        padding: '8px',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px'
+                                                    }}
+                                                >
+                                                    <Icon type={type.icon} /> {type.label}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    }
+                                    trigger="click"
+                                >
+                                    <Icon 
+                                        type="plus" 
+                                        style={{ 
+                                            cursor: 'pointer',
+                                            fontSize: '16px'
+                                        }}
+                                    />
+                                </Popover>
+                            }
+                            addonAfter={
+                                <div 
+                                    style={{ 
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        color: '#1890ff'
+                                    }}
+                                    onClick={handleSend}
+                                >
+                                    <Icon type="message" style={{ marginRight: '4px' }} />
+                                    发送
+                                </div>
+                            }
+                            style={{
+                                width: '100%'
+                            }}
                         />
 
                         {/* @ 助手选择弹窗 */}
@@ -1069,16 +1087,7 @@ const ChatRca = ({ treeData, style }) => {
                                 maxHeight: '400px',
                                 overflowY: 'auto'
                             }}>
-                                <div style={{
-                                    position: 'absolute',
-                                    right: '8px',
-                                    top: '8px',
-                                    cursor: 'pointer',
-                                    color: 'rgba(255, 255, 255, 0.7)'
-                                }}>
-                                    <Icon type="close" onClick={() => setAtPosition(null)} />
-                                </div>
-                                
+                                {/* @ 助手选择弹窗内容 */}
                                 {filteredAssistants.map((assistant) => (
                                     <div
                                         key={assistant.id}
@@ -1099,7 +1108,6 @@ const ChatRca = ({ treeData, style }) => {
                                         <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>
                                             {assistant.description}
                                         </div>
-                                        {/* 添加示例 */}
                                         <div style={{ 
                                             marginTop: '8px',
                                             fontSize: '12px',
