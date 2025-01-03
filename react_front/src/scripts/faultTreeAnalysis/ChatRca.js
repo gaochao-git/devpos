@@ -1258,15 +1258,6 @@ const ChatRca = ({ treeData, style }) => {
                             </div>
                         )}
                     </div>
-
-                    <Button
-                        type="primary"
-                        onClick={handleSend}
-                        loading={isStreaming}
-                        icon="message"
-                    >
-                        发送
-                    </Button>
                 </div>
             </div>
         </div>
