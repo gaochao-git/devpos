@@ -249,12 +249,21 @@ const ChatRca = ({ treeData, style }) => {
         };
     };
 
+    // 重新添加 debounceSetStreamContent，但使用较小的延迟时间
+    const debounceSetStreamContent = useCallback(
+        debounce((content) => {
+            setStreamContent(content);
+        }, 50),  // 将延迟时间从 100ms 减少到 50ms，提高响应性
+        []
+    );
+
     // 修改 handleStream 函数
     const handleStream = async (response) => {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
         let fullContent = '';
+        let lastUpdateTime = Date.now();
 
         try {
             while (true) {
@@ -280,13 +289,22 @@ const ChatRca = ({ treeData, style }) => {
 
                         if (data.answer) {
                             fullContent += data.answer;
-                            setStreamContent(fullContent); // 移除防抖，直接更新
+                            
+                            // 使用时间阈值来控制更新频率
+                            const currentTime = Date.now();
+                            if (currentTime - lastUpdateTime > 100) { // 每 100ms 至少更新一次
+                                debounceSetStreamContent(fullContent);
+                                lastUpdateTime = currentTime;
+                            }
                         }
                     } catch (e) {
                         console.warn('JSON parse error:', e);
                     }
                 }
             }
+
+            // 确保最后一次更新能立即显示
+            setStreamContent(fullContent);
 
             // 流式响应完成后，添加完整消息到列表
             if (fullContent) {
