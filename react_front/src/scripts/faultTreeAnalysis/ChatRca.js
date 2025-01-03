@@ -582,11 +582,13 @@ const ChatRca = ({ treeData, style }) => {
 
             if (responseData.success) {
                 // 将结果格式化为 Markdown 代码块
+                const formattedCommand = `> ${command}`;
                 const formattedResult = `\`\`\`bash\n${responseData.result}\n\`\`\``;
+                const formatMessage = `${formattedCommand}\n${formattedResult}`;
                 // 添加助手响应到消息列表
                 setMessages(prev => [...prev, {
                     type: 'assistant',
-                    content: formattedResult,
+                    content: formatMessage,
                     command: command,
                     timestamp: new Date().toLocaleTimeString()
                 }]);
