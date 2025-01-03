@@ -335,7 +335,7 @@ const ChatRca = ({ treeData, style }) => {
 
         // 构建完整的消息内容
         const fullContent = selectedContent 
-            ? `${inputValue}\n\n选中的执行结果：\n${selectedContent}`
+            ? `${selectedContent}\n${inputValue}`
             : inputValue;
 
         // 构建消息对象
@@ -649,8 +649,8 @@ const ChatRca = ({ treeData, style }) => {
                             maxWidth: '80%',
                             padding: '12px',
                             borderRadius: '8px',
-                            background: msg.type === 'user' ? '#1890ff' : '#fff',
-                            color: msg.type === 'user' ? '#fff' : '#333',
+                            background: msg.type === 'user' ? '#91d5ff' : '#fff',
+                            color: msg.type === 'user' ? '#333' : '#333',
                             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                         }}>
                             {/* 角色、时间和勾选框放在一行 */}
