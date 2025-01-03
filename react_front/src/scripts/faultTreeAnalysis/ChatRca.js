@@ -195,6 +195,8 @@ const ChatRca = ({ treeData, style }) => {
     const [assistantInputs, setAssistantInputs] = useState(new Map());
     // 添加新的状态
     const [showContextSelector, setShowContextSelector] = useState(false);
+    // 添加新的状态来跟踪每个助手的执行状态
+    const [executingAssistants, setExecutingAssistants] = useState(new Set());
 
     // 将 QUICK_SELECT_CONFIG 移到组件内部
     const QUICK_SELECT_CONFIG = {
@@ -884,16 +886,21 @@ const ChatRca = ({ treeData, style }) => {
                                         command
                                     )}`;
                                     
+                                    setExecutingAssistants(prev => new Set(prev).add(assistantName)); // 设置该助手的执行状态
                                     try {
-                                        // 直接调用执行命令接口
                                         await executeCommand(fullCommand);
                                         // 清空输入但保持配置
                                         setAssistantInputs(prev => 
                                             new Map(prev).set(assistantName, '')
                                         );
                                     } catch (error) {
-                                        // 错误已在 executeCommand 中处理
                                         console.error('执行命令失败:', error);
+                                    } finally {
+                                        setExecutingAssistants(prev => {
+                                            const newSet = new Set(prev);
+                                            newSet.delete(assistantName);
+                                            return newSet;
+                                        }); // 清除该助手的执行状态
                                     }
                                 }
                             };
@@ -961,22 +968,26 @@ const ChatRca = ({ treeData, style }) => {
                                                     <Icon type="message" style={{ marginRight: '4px' }} />
                                                     发送
                                                 </div>
+                                                {executingAssistants.has(assistantName) && (
+                                                    <Icon 
+                                                        type="close-circle" 
+                                                        style={{ 
+                                                            cursor: 'pointer',
+                                                            color: '#ff4d4f'
+                                                        }}
+                                                        onClick={() => {
+                                                            setExecutingAssistants(prev => {
+                                                                const newSet = new Set(prev);
+                                                                newSet.delete(assistantName);
+                                                                return newSet;
+                                                            });
+                                                        }}
+                                                    />
+                                                )}
                                                 <Icon 
                                                     type="close" 
                                                     style={{ cursor: 'pointer' }}
-                                                    onClick={() => {
-                                                        handleCloseAssistant(assistantName);
-                                                        setAssistantInputs(prev => {
-                                                            const newMap = new Map(prev);
-                                                            newMap.delete(assistantName);
-                                                            return newMap;
-                                                        });
-                                                        setAssistantConfigs(prev => {
-                                                            const newMap = new Map(prev);
-                                                            newMap.delete(assistantName);
-                                                            return newMap;
-                                                        });
-                                                    }}
+                                                    onClick={() => handleCloseAssistant(assistantName)}
                                                 />
                                             </div>
                                         }
@@ -1089,17 +1100,29 @@ const ChatRca = ({ treeData, style }) => {
                                 </Popover>
                             }
                             addonAfter={
-                                <div 
-                                    style={{ 
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        color: '#1890ff'
-                                    }}
-                                    onClick={handleSend}
-                                >
-                                    <Icon type="message" style={{ marginRight: '4px' }} />
-                                    发送
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div 
+                                        style={{ 
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            color: '#1890ff'
+                                        }}
+                                        onClick={handleSend}
+                                    >
+                                        <Icon type="message" style={{ marginRight: '4px' }} />
+                                        发送
+                                    </div>
+                                    {isStreaming && (
+                                        <Icon 
+                                            type="close-circle" 
+                                            style={{ 
+                                                cursor: 'pointer',
+                                                color: '#ff4d4f'
+                                            }}
+                                            onClick={() => setIsStreaming(false)}
+                                        />
+                                    )}
                                 </div>
                             }
                             style={{
