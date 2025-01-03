@@ -249,11 +249,11 @@ const ChatRca = ({ treeData, style }) => {
         };
     };
 
-    // 修改 handleStream 函数来处理错误
+    // 修改 handleStream 函数
     const handleStream = async (response) => {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let buffer = '';  // 用于累积不完整的JSON
+        let buffer = '';
         let fullContent = '';
 
         try {
@@ -261,67 +261,49 @@ const ChatRca = ({ treeData, style }) => {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                // 解码新的数据块
                 const chunk = decoder.decode(value, { stream: true });
                 buffer += chunk;
 
-                // 处理缓冲区中的完整消息
                 const lines = buffer.split('\n');
-                buffer = lines.pop() || ''; // 保留最后一个不完整的行
+                buffer = lines.pop() || '';
 
                 for (const line of lines) {
-                    if (line.trim() === '') continue;
-                    if (!line.startsWith('data: ')) continue;
+                    if (line.trim() === '' || !line.startsWith('data: ')) continue;
 
                     try {
-                        const jsonStr = line.slice(6); // 移除 'data: ' 前缀
+                        const jsonStr = line.slice(6);
                         const data = JSON.parse(jsonStr);
 
-                        // 处理会话ID
                         if (data.conversation_id && !conversationId) {
                             setConversationId(data.conversation_id);
                         }
 
-                        // 处理回答内容
                         if (data.answer) {
                             fullContent += data.answer;
-                            // 使用防抖更新流式内容
-                            debounceSetStreamContent(fullContent);
+                            setStreamContent(fullContent); // 移除防抖，直接更新
                         }
                     } catch (e) {
                         console.warn('JSON parse error:', e);
-                        continue;
                     }
                 }
             }
 
-            // 处理完成后，添加到消息列表
+            // 流式响应完成后，添加完整消息到列表
             if (fullContent) {
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        type: 'assistant',
-                        content: fullContent,
-                        timestamp: new Date().toLocaleTimeString()
-                    }
-                ]);
+                setMessages(prev => [...prev, {
+                    type: 'assistant',
+                    content: fullContent,
+                    timestamp: new Date().toLocaleTimeString()
+                }]);
+                setStreamContent(''); // 清空流式内容
             }
         } catch (error) {
             console.error('Stream processing error:', error);
             throw error;
         } finally {
-            setStreamContent('');
             setIsStreaming(false);
         }
     };
-
-    // 添加防抖函数
-    const debounceSetStreamContent = useCallback(
-        debounce((content) => {
-            setStreamContent(content);
-        }, 100),  // 100ms 的防抖延迟
-        []
-    );
 
     // 调用大模型的方法
     const handleModelQuery = async (fullContent) => {
@@ -381,11 +363,10 @@ const ChatRca = ({ treeData, style }) => {
         }
     };
 
-    // 主发送函数
+    // 修改 handleSend 函数
     const handleSend = async () => {
         if (!inputValue.trim() || isStreaming) return;
 
-        // 检查是否是助手命令
         const isAssistantCommand = DEFAULT_ASSISTANTS.some(assistant => 
             inputValue.includes('@' + assistant.name)
         );
@@ -401,7 +382,7 @@ const ChatRca = ({ treeData, style }) => {
             ? `${selectedContent}\n${inputValue}`
             : inputValue;
 
-        // 构建消息对象
+        // 先添加用户消息
         const userMessage = {
             type: 'user',
             content: fullContent,
@@ -414,6 +395,7 @@ const ChatRca = ({ treeData, style }) => {
         setMessages(prev => [...prev, userMessage]);
         setInputValue('');
         setIsStreaming(true);
+        setStreamContent(''); // 确保在新消息开始时清空流式内容
 
         try {
             if (isAssistantCommand) {
@@ -432,8 +414,6 @@ const ChatRca = ({ treeData, style }) => {
                 }]);
             }
             message.error(isAssistantCommand ? '执行命令失败' : '发送消息失败，请稍后重试');
-        } finally {
-            setIsStreaming(false);
         }
     };
 
