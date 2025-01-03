@@ -869,16 +869,41 @@ const ChatRca = ({ treeData, style }) => {
                             const config = ASSISTANT_CONFIGS[assistantName];
                             if (!config) return null;
                             
+                            // 添加助手命令发送处理函数
+                            const handleAssistantSend = () => {
+                                const command = assistantInputs.get(assistantName)?.trim();
+                                if (command) {
+                                    const assistantConfig = assistantConfigs.get(assistantName);
+                                    if (!assistantConfig?.ip) {
+                                        message.warning('请先选择服务器');
+                                        return;
+                                    }
+                                    const fullCommand = `@${assistantName} ${config.commandFormat(
+                                        assistantConfig.ip,
+                                        assistantConfig.port,
+                                        command
+                                    )}`;
+                                    setInputValue(fullCommand);
+                                    handleSend();
+                                    // 清空输入但保持配置
+                                    setAssistantInputs(prev => 
+                                        new Map(prev).set(assistantName, '')
+                                    );
+                                }
+                            };
+                            
                             return (
                                 <div key={assistantName} style={{ marginBottom: '8px', position: 'relative' }}>
                                     <Input
+                                        ref={el => {
+                                            if (el) {
+                                                inputRefs.current.set(assistantName, el);
+                                            }
+                                        }}
                                         value={assistantInputs.get(assistantName) || ''}
                                         onChange={e => {
-                                            setAssistantInputs(prev => {
-                                                const newMap = new Map(prev);
-                                                newMap.set(assistantName, e.target.value);
-                                                return newMap;
-                                            });
+                                            const newValue = e.target.value;
+                                            setAssistantInputs(prev => new Map(prev).set(assistantName, newValue));
                                         }}
                                         addonBefore={
                                             <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -892,12 +917,10 @@ const ChatRca = ({ treeData, style }) => {
                                                         ) : undefined
                                                     }
                                                     onChange={value => {
-                                                        setAssistantConfigs(prev => {
-                                                            const newMap = new Map(prev);
-                                                            const [ip, port] = value.split(':');
-                                                            newMap.set(assistantName, { ip, port: port || '3306' });
-                                                            return newMap;
-                                                        });
+                                                        const [ip, port] = value.split(':');
+                                                        setAssistantConfigs(prev => 
+                                                            new Map(prev).set(assistantName, { ip, port: port || '3306' })
+                                                        );
                                                     }}
                                                 >
                                                     {QUICK_SELECT_CONFIG.servers.map(server => (
@@ -919,11 +942,37 @@ const ChatRca = ({ treeData, style }) => {
                                             </div>
                                         }
                                         addonAfter={
-                                            <Icon 
-                                                type="close" 
-                                                style={{ cursor: 'pointer' }}
-                                                onClick={() => handleCloseAssistant(assistantName)}
-                                            />
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div 
+                                                    style={{ 
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        color: '#1890ff'
+                                                    }}
+                                                    onClick={handleAssistantSend}
+                                                >
+                                                    <Icon type="message" style={{ marginRight: '4px' }} />
+                                                    发送
+                                                </div>
+                                                <Icon 
+                                                    type="close" 
+                                                    style={{ cursor: 'pointer' }}
+                                                    onClick={() => {
+                                                        handleCloseAssistant(assistantName);
+                                                        setAssistantInputs(prev => {
+                                                            const newMap = new Map(prev);
+                                                            newMap.delete(assistantName);
+                                                            return newMap;
+                                                        });
+                                                        setAssistantConfigs(prev => {
+                                                            const newMap = new Map(prev);
+                                                            newMap.delete(assistantName);
+                                                            return newMap;
+                                                        });
+                                                    }}
+                                                />
+                                            </div>
                                         }
                                         placeholder={`输入命令... (按 Tab 键查看常用命令)`}
                                         onKeyDown={e => {
@@ -932,26 +981,7 @@ const ChatRca = ({ treeData, style }) => {
                                                 setShowQuickCommands(assistantName);
                                             } else if (e.key === 'Enter' && !e.shiftKey) {
                                                 e.preventDefault();
-                                                const command = assistantInputs.get(assistantName)?.trim();
-                                                if (command) {
-                                                    const assistantConfig = assistantConfigs.get(assistantName);
-                                                    if (!assistantConfig?.ip) {
-                                                        message.warning('请先选择服务器');
-                                                        return;
-                                                    }
-                                                    const fullCommand = `@${assistantName} ${config.commandFormat(
-                                                        assistantConfig.ip,
-                                                        assistantConfig.port,
-                                                        command
-                                                    )}`;
-                                                    setInputValue(fullCommand);
-                                                    handleSend();
-                                                    setAssistantInputs(prev => {
-                                                        const newMap = new Map(prev);
-                                                        newMap.set(assistantName, '');
-                                                        return newMap;
-                                                    });
-                                                }
+                                                handleAssistantSend();
                                             }
                                         }}
                                     />
