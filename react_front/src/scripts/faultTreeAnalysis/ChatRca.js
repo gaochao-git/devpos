@@ -4,9 +4,6 @@ import { Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { PlusOutlined, SendOutlined } from '@ant-design/icons';
-
-const { Option } = Select;
 
 // 定义 Markdown 渲染器配置
 const markdownRenderers = {
@@ -801,7 +798,7 @@ const ChatRca = ({ treeData, style }) => {
                     marginBottom: '8px'
                 }}>
                     <Popover
-                        placement="bottomLeft"
+                        placement="topLeft"
                         content={
                             <div>
                                 {CONTEXT_TYPES.map(type => (
