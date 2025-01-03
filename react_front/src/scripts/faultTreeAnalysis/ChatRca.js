@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Input, Button, message, Select, Tooltip, Tag, Popover, Checkbox } from 'antd';
 import { Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
@@ -100,6 +100,40 @@ const DEFAULT_ASSISTANTS = [
     }
 ];
 
+// 定义助手配置
+const ASSISTANT_CONFIGS = {
+    'MySQL助手': {
+        prefix: 'mysql>',
+        serverFormat: (ip, port) => `${ip}:${port || '3306'}`,
+        commandFormat: (ip, port, command) => `${ip} -P ${port} -e "${command}"`,
+        commonCommands: [
+            { label: 'show processlist', value: 'show processlist' },
+            { label: 'show tables', value: 'show tables' },
+            { label: 'show status', value: 'show status' }
+        ]
+    },
+    'SSH助手': {
+        prefix: 'ssh>',
+        serverFormat: (ip) => ip,
+        commandFormat: (ip, _, command) => `${ip} "${command}"`,
+        commonCommands: [
+            { label: 'df -h', value: 'df -h' },
+            { label: 'free -m', value: 'free -m' },
+            { label: 'top -n 1', value: 'top -n 1' }
+        ]
+    },
+    'Zabbix助手': {
+        prefix: 'zabbix>',
+        serverFormat: (ip) => ip,
+        commandFormat: (ip, _, command) => `${ip} "${command}"`,
+        commonCommands: [
+            { label: '主机列表', value: 'host.get' },
+            { label: '监控项', value: 'item.get' },
+            { label: '告警历史', value: 'alert.get' }
+        ]
+    }
+};
+
 // 从 treeData 中提取服务器信息的函数
 const extractServersFromTree = (treeData) => {
     const servers = [];
@@ -151,6 +185,14 @@ const ChatRca = ({ treeData, style }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [searchText, setSearchText] = useState('');
     const [selectedResults, setSelectedResults] = useState(new Set());
+    const [activeAssistants, setActiveAssistants] = useState(new Map());
+    const [assistantConfigs, setAssistantConfigs] = useState(new Map());
+    // 添加状态来控制快捷命令弹出框
+    const [showQuickCommands, setShowQuickCommands] = useState(null); // 存储当前显示快捷命令的助手名称
+    // 添加 ref 来存储每个助手的输入框引用
+    const inputRefs = useRef(new Map());
+    // 添加状态来存储每个助手的输入值
+    const [assistantInputs, setAssistantInputs] = useState(new Map());
 
     // 将 QUICK_SELECT_CONFIG 移到组件内部
     const QUICK_SELECT_CONFIG = {
@@ -423,19 +465,31 @@ const ChatRca = ({ treeData, style }) => {
             return;
         }
         
-        const textBeforeCursor = inputValue.slice(0, atPosition);
-        const textAfterCursor = inputValue.slice(atPosition + 1);
-        setInputValue(textBeforeCursor + '@' + assistant.name + ' ' + textAfterCursor);
-        setAtPosition(null);
+        // 添加新的助手输入框
+        setActiveAssistants(prev => {
+            const newMap = new Map(prev);
+            newMap.set(assistant.name, true);
+            return newMap;
+        });
         
-        // 选择后重新获取输入框焦点
-        setTimeout(() => {
-            const input = document.querySelector('.chat-input');
-            input.focus();
-            // 将光标位置设置到空格后
-            const newCursorPosition = textBeforeCursor.length + assistant.name.length + 2; // +2 是因为有 @ 和空格
-            input.setSelectionRange(newCursorPosition, newCursorPosition);
-        }, 0);
+        // 初始化助手配置
+        setAssistantConfigs(prev => {
+            const newMap = new Map(prev);
+            newMap.set(assistant.name, { ip: '', port: '' });
+            return newMap;
+        });
+        
+        setAtPosition(null);
+        setInputValue('');
+    };
+
+    // 添加关闭助手输入框的函数
+    const handleCloseAssistant = (assistantName) => {
+        setActiveAssistants(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(assistantName);
+            return newMap;
+        });
     };
 
     // 处理键盘事件
@@ -642,6 +696,20 @@ const ChatRca = ({ treeData, style }) => {
         });
     };
 
+    // 添加 useEffect 处理点击外部关闭
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showQuickCommands && !event.target.closest('.assistant-input-container')) {
+                setShowQuickCommands(null);
+            }
+        };
+
+        document.addEventListener('click', handleClickOutside);
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [showQuickCommands]);
+
     return (
         <div style={{ 
             display: 'flex',
@@ -827,12 +895,158 @@ const ChatRca = ({ treeData, style }) => {
                     position: 'relative'  // 添加相对定位
                 }}>
                     <div style={{ position: 'relative', flex: 1 }}>  {/* 包装容器 */}
+                        {/* 助手输入框区域 */}
+                        {Array.from(activeAssistants.keys()).map(assistantName => {
+                            const config = ASSISTANT_CONFIGS[assistantName];
+                            if (!config) return null;
+                            
+                            return (
+                                <div key={assistantName} style={{ marginBottom: '8px', position: 'relative' }}>
+                                    <Input
+                                        value={assistantInputs.get(assistantName) || ''}
+                                        onChange={e => {
+                                            setAssistantInputs(prev => {
+                                                const newMap = new Map(prev);
+                                                newMap.set(assistantName, e.target.value);
+                                                return newMap;
+                                            });
+                                        }}
+                                        addonBefore={
+                                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                <Select
+                                                    style={{ width: 160 }}
+                                                    placeholder="选择服务器"
+                                                    value={assistantConfigs.get(assistantName)?.ip ? 
+                                                        config.serverFormat(
+                                                            assistantConfigs.get(assistantName).ip,
+                                                            assistantConfigs.get(assistantName).port
+                                                        ) : undefined
+                                                    }
+                                                    onChange={value => {
+                                                        setAssistantConfigs(prev => {
+                                                            const newMap = new Map(prev);
+                                                            const [ip, port] = value.split(':');
+                                                            newMap.set(assistantName, { ip, port: port || '3306' });
+                                                            return newMap;
+                                                        });
+                                                    }}
+                                                >
+                                                    {QUICK_SELECT_CONFIG.servers.map(server => (
+                                                        <Select.Option 
+                                                            key={server.ip} 
+                                                            value={config.serverFormat(server.ip, server.port)}
+                                                        >
+                                                            {config.serverFormat(server.ip, server.port)}
+                                                        </Select.Option>
+                                                    ))}
+                                                </Select>
+                                                <span style={{ 
+                                                    color: '#ff4d4f',
+                                                    fontFamily: 'monospace',
+                                                    marginLeft: '8px'
+                                                }}>
+                                                    {config.prefix}
+                                                </span>
+                                            </div>
+                                        }
+                                        addonAfter={
+                                            <Icon 
+                                                type="close" 
+                                                style={{ 
+                                                    cursor: 'pointer'
+                                                }}
+                                                onClick={() => handleCloseAssistant(assistantName)}
+                                            />
+                                        }
+                                        placeholder={`输入命令... (按 Tab 键查看常用命令)`}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Tab') {
+                                                e.preventDefault();
+                                                setShowQuickCommands(assistantName);
+                                            } else if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                const command = assistantInputs.get(assistantName)?.trim();
+                                                if (command) {
+                                                    const assistantConfig = assistantConfigs.get(assistantName);
+                                                    if (!assistantConfig?.ip) {
+                                                        message.warning('请先选择服务器');
+                                                        return;
+                                                    }
+                                                    const fullCommand = `@${assistantName} ${config.commandFormat(
+                                                        assistantConfig.ip,
+                                                        assistantConfig.port,
+                                                        command
+                                                    )}`;
+                                                    setInputValue(fullCommand);
+                                                    handleSend();
+                                                    setAssistantInputs(prev => {
+                                                        const newMap = new Map(prev);
+                                                        newMap.set(assistantName, '');
+                                                        return newMap;
+                                                    });
+                                                }
+                                            }
+                                        }}
+                                    />
+                                    
+                                    {/* 快捷命令弹出框 */}
+                                    {showQuickCommands === assistantName && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: '100%',
+                                            left: 0,
+                                            right: 0,
+                                            background: '#fff',
+                                            border: '1px solid #d9d9d9',
+                                            borderRadius: '4px',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                            zIndex: 1000,
+                                            marginBottom: '4px',
+                                            maxHeight: '200px',
+                                            overflowY: 'auto'
+                                        }}>
+                                            {config.commonCommands.map(cmd => (
+                                                <div
+                                                    key={cmd.value}
+                                                    style={{
+                                                        padding: '8px 12px',
+                                                        cursor: 'pointer',
+                                                        hover: {
+                                                            backgroundColor: '#f5f5f5'
+                                                        }
+                                                    }}
+                                                    onMouseEnter={e => {
+                                                        e.currentTarget.style.backgroundColor = '#f5f5f5';
+                                                    }}
+                                                    onMouseLeave={e => {
+                                                        e.currentTarget.style.backgroundColor = '#fff';
+                                                    }}
+                                                    onClick={() => {
+                                                        // 设置对应助手的输入值
+                                                        setAssistantInputs(prev => {
+                                                            const newMap = new Map(prev);
+                                                            newMap.set(assistantName, cmd.value);
+                                                            return newMap;
+                                                        });
+                                                        setShowQuickCommands(null);
+                                                    }}
+                                                >
+                                                    {cmd.label}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+
+                        {/* 原有的输入框 */}
                         <Input.TextArea
                             value={inputValue}
                             onChange={handleInputChange}
                             onKeyDown={handleKeyDown}
                             onBlur={handleSearchBlur}
-                            className="chat-input"  // 添加类名以便于样式控制
+                            className="chat-input"
                             placeholder="输入问题... 按 @ 键选择专业助手，按 Tab 键快速选择服务器"
                             disabled={isStreaming}
                             autoSize={{ minRows: 1, maxRows: 4 }}
