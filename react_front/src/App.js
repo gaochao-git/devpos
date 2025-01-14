@@ -191,7 +191,7 @@ class App extends Component {
                                     {this.state.current_nav === "管理"? <NavManage/>:null}
                                 </Sider>
                                 <Content style={{background: '#fff',minHeight: 280}}>
-                                    {this.state.waterText.length!==0 && <WaterMark content={this.state.waterText} rotate={16} globalAlpha={0.2}>
+                                    {this.state.waterText.length!==0 && <WaterMark content={this.state.waterText} rotate={16} globalAlpha={0.1}>
                                         <Route exact path="/" component={() => {return <HomeDbaInfo/>}}/>
                                         <Route exact path="/home" component={Login} />
                                         <Route exact path="/homeDbaInfo" component={HomeDbaInfo} />

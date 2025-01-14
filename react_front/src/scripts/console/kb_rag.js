@@ -89,9 +89,29 @@ export default class KbRag extends Component {
             searchKeyword: "",
             promptTemplate: "default",
             promptText: "",
-            streaming: false
+            streaming: false,
+            metadata: null,
+            selectedDbs: [], // 选中的数据库
+            dbOptions: [     // 数据库选项
+                { value: 'shentong', label: '神通数据库' },
+                { value: 'gaussdb', label: 'GaussDB' },
+                { value: 'ob', label: 'OceanBase' },
+                { value: 'gbase', label: 'GBase' },
+                { value: 'tdsql', label: 'TDSQL' },
+                { value: 'polardb', label: 'PolarDB' },
+                { value: 'tidb', label: 'TiDB' },
+                { value: 'mysql', label: 'MySQL' },
+                { value: 'dm', label: '达梦' },
+                { value: 'xugu', label: '虚谷' },
+                { value: 'goldendb', label: 'GoldenDB' }
+            ]
         };
     }
+
+    // 处理数据库选择变化
+    handleDbChange = (value) => {
+        this.setState({ selectedDbs: value });
+    };
 
     render() {
         return (
@@ -119,20 +139,71 @@ export default class KbRag extends Component {
 
                     {/* 下部分 - 搜索配置 */}
                     <Card title="搜索配置">
-                        <Select
-                            style={{ width: '100%', marginBottom: '10px' }}
-                            value={this.state.algorithm}
-                            onChange={(value) => this.setState({ algorithm: value })}
-                        >
-                            <Option value="vector">向量搜索</Option>
-                            <Option value="es">ES搜索</Option>
-                            <Option value="hybrid">混合搜索</Option>
-                        </Select>
-                        <Input
-                            placeholder="搜索关键词"
-                            value={this.state.searchKeyword}
-                            onChange={e => this.setState({ searchKeyword: e.target.value })}
-                        />
+                        <div style={{ marginBottom: '15px' }}>
+                            <div style={{ marginBottom: '5px' }}>搜索类型</div>
+                            <Select
+                                style={{ width: '100%' }}
+                                value={this.state.algorithm}
+                                onChange={(value) => this.setState({ algorithm: value })}
+                            >
+                                <Option value="vector">向量搜索</Option>
+                                <Option value="es">ES搜索</Option>
+                                <Option value="hybrid">混合搜索</Option>
+                            </Select>
+                        </div>
+
+                        <div style={{ marginBottom: '15px' }}>
+                            <div style={{ marginBottom: '5px' }}>选择数据库</div>
+                            <Select
+                                mode="multiple"
+                                style={{ width: '100%' }}
+                                placeholder="请选择数据库（可多选）"
+                                value={this.state.selectedDbs}
+                                onChange={this.handleDbChange}
+                                maxTagCount={3}
+                                maxTagTextLength={10}
+                                allowClear
+                                dropdownRender={menu => (
+                                    <div>
+                                        {menu}
+                                        <div
+                                            style={{
+                                                padding: '8px',
+                                                borderTop: '1px solid #e8e8e8',
+                                            }}
+                                        >
+                                            <a
+                                                style={{ cursor: 'pointer' }}
+                                                onClick={() => this.handleDbChange(this.state.dbOptions.map(db => db.value))}
+                                            >
+                                                <Icon type="check-square" /> 选择所有
+                                            </a>
+                                            <span style={{ float: 'right' }}>
+                                                <a
+                                                    style={{ cursor: 'pointer' }}
+                                                    onClick={() => this.handleDbChange([])}
+                                                >
+                                                    <Icon type="close-square" /> 清空
+                                                </a>
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            >
+                                {this.state.dbOptions.map(db => (
+                                    <Option key={db.value} value={db.value}>{db.label}</Option>
+                                ))}
+                            </Select>
+                        </div>
+
+                        <div style={{ marginBottom: '15px' }}>
+                            <div style={{ marginBottom: '5px' }}>搜索关键词</div>
+                            <Input
+                                placeholder="搜索关键词（可选）"
+                                value={this.state.searchKeyword}
+                                onChange={e => this.setState({ searchKeyword: e.target.value })}
+                            />
+                        </div>
                     </Card>
                 </div>
 
@@ -212,7 +283,8 @@ export default class KbRag extends Component {
                 body: JSON.stringify({
                     question: this.state.question,
                     algorithm: this.state.algorithm,
-                    search_keyword: this.state.searchKeyword
+                    search_keyword: this.state.searchKeyword,
+                    db_types: this.state.selectedDbs.length > 0 ? this.state.selectedDbs : undefined // 如果没有选择则不传此参数
                 })
             });
 
