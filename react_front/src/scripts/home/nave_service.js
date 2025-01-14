@@ -56,6 +56,9 @@ class NavService extends Component {
                     <Menu.Item key="tableDesign">
                         <Link to="/service/console/tableDesign">MySQL表结构设计</Link>
                     </Menu.Item>
+                    <Menu.Item key="知识库">
+                        <Link to="/service/console/rag">知识库问答</Link>
+                    </Menu.Item>
                 </SubMenu>
             </Menu>
         )

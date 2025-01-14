@@ -38,6 +38,7 @@ import JksJobConfig from './scripts/configManage/jksJobConfig'
 import JksCommonJob from './scripts/jks/jksCommonJob'
 import { backendServerApiRoot } from "./scripts/common/util";
 import FaultTreeConfig from  "./scripts/faultTreeConfig/index"
+import KbRag from './scripts/console/kb_rag'
 
 
 const { Header, Footer, Sider, Content } = Layout;
@@ -217,6 +218,7 @@ class App extends Component {
                                         <Route exact path="/service/console/tableDesign" component={TableDesign} />
                                         <Route exact path="/ops/deploy/jksCommonJob" component={JksCommonJob} />
                                         <Route exact path="/manage/config/faultTreeConfig" component={FaultTreeConfig} />
+                                        <Route exact path="/service/console/rag" component={KbRag} />
                                     </WaterMark>}
                                 </Content>
                             </Layout>
