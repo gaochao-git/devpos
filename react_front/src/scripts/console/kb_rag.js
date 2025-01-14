@@ -113,7 +113,9 @@ export default class KbRag extends Component {
                 { value: 'dm', label: '达梦' },
                 { value: 'xugu', label: '虚谷' },
                 { value: 'goldendb', label: 'GoldenDB' }
-            ]
+            ],
+            messages: [], // 存储对话历史
+            conversationId: null,  // 添加会话ID状态
         };
     }
 
@@ -166,10 +168,16 @@ export default class KbRag extends Component {
         
         return (
             <div style={{ display: 'flex', height: 'calc(100vh - 64px)', padding: '20px' }}>
-                {/* 左侧面板 - 增加宽度到 30% */}
-                <div style={{ width: '30%', marginRight: '20px', display: 'flex', flexDirection: 'column' }}>
-                    {/* 上部分 - 提示词模版 */}
-                    <Card title="提示词模版" style={{ marginBottom: '20px' }}>
+                {/* 左侧面板 */}
+                <div style={{ 
+                    width: '30%', 
+                    marginRight: '20px', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    height: '100%'  // 确保高度填满
+                }}>
+                    {/* 提示词模版 */}
+                    <Card title="提示词模版" style={{ marginBottom: '20px', flex: '0 0 auto' }}>
                         <div style={{ marginBottom: '10px' }}>
                             <Select
                                 style={{ width: '100%' }}
@@ -192,8 +200,8 @@ export default class KbRag extends Component {
                         />
                     </Card>
 
-                    {/* 下部分 - 搜索配置 */}
-                    <Card title="搜索配置">
+                    {/* 搜索配置 */}
+                    <Card title="搜索配置" style={{ flex: '1 1 auto', overflow: 'auto' }}>
                         <div style={{ marginBottom: '15px' }}>
                             <div style={{ marginBottom: '5px' }}>搜索类型</div>
                             <Select
@@ -247,54 +255,93 @@ export default class KbRag extends Component {
                     </Card>
                 </div>
 
-                {/* 右侧面板 - 减少宽度到 70% */}
-                <div style={{ width: '70%', display: 'flex', flexDirection: 'column' }}>
-                    {/* 上部分 - 回答区域 */}
+                {/* 右侧面板 */}
+                <div style={{ 
+                    width: '70%', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    height: '100%'  // 确保高度填满
+                }}>
+                    {/* 对话历史区域 */}
                     <div style={{ 
-                        flex: 1, 
+                        flex: '1 1 auto',
                         marginBottom: '20px', 
                         border: '1px solid #d9d9d9',
                         borderRadius: '4px',
                         backgroundColor: '#fff',
-                        overflow: 'auto'
+                        overflow: 'auto',
+                        padding: '20px'
                     }}>
-                        <div style={{ 
-                            padding: '20px',
-                            minHeight: '100%'
-                        }}>
-                            {this.state.streaming && (
-                                <div style={{ marginBottom: '10px' }}>
-                                    <Spin /> 正在生成回答...
+                        {this.state.messages.map((msg, index) => (
+                            <div key={index} style={{
+                                marginBottom: '20px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: msg.type === 'user' ? 'flex-end' : 'flex-start'
+                            }}>
+                                {/* 时间戳 */}
+                                <div style={{
+                                    fontSize: '12px',
+                                    color: '#999',
+                                    marginBottom: '4px'
+                                }}>
+                                    {msg.time}
                                 </div>
-                            )}
-                            {this.state.answer ? (
-                                <ReactMarkdown 
-                                    remarkPlugins={[remarkGfm]}
-                                    components={markdownComponents}
-                                    children={this.state.answer}
-                                />
-                            ) : (
-                                <div style={{ color: '#999' }}>等待回答...</div>
-                            )}
-                        </div>
+                                
+                                {/* 消息内容 */}
+                                <div style={{
+                                    maxWidth: '80%',
+                                    padding: '12px 16px',
+                                    borderRadius: '8px',
+                                    backgroundColor: msg.type === 'user' ? '#1890ff' : '#f5f5f5',
+                                    color: msg.type === 'user' ? '#fff' : '#000'
+                                }}>
+                                    {msg.type === 'user' ? (
+                                        <div>{msg.content}</div>
+                                    ) : (
+                                        <div>
+                                            {/* 系统消息（搜索状态） */}
+                                            {msg.searchStatus && msg.searchStatus.map((status, idx) => (
+                                                <div key={idx} style={{ 
+                                                    marginBottom: '8px', 
+                                                    color: '#666',
+                                                    fontSize: '12px',
+                                                    fontStyle: 'italic'
+                                                }}>
+                                                    {status}
+                                                </div>
+                                            ))}
+                                            {/* AI 回答内容 */}
+                                            <ReactMarkdown 
+                                                remarkPlugins={[remarkGfm]}
+                                                components={markdownComponents}
+                                                children={msg.content}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
                     </div>
 
-                    {/* 下部分 - 问题输入区域 */}
-                    <div style={{ height: '150px', display: 'flex', flexDirection: 'column' }}>
-                        <TextArea
-                            style={{ flex: 1, marginBottom: '10px' }}
+                    {/* 输入区域 */}
+                    <div style={{ flex: '0 0 auto' }}>
+                        <Input.Search
                             value={this.state.question}
                             onChange={e => this.setState({ question: e.target.value })}
+                            onSearch={this.handleStream}
                             placeholder="请输入您的问题..."
+                            enterButton={
+                                <Button 
+                                    type="primary" 
+                                    loading={this.state.streaming}
+                                >
+                                    <Icon type="search" />
+                                    提交问题
+                                </Button>
+                            }
+                            disabled={this.state.streaming}
                         />
-                        <Button 
-                            type="primary"
-                            onClick={this.handleStream}
-                            loading={this.state.streaming}
-                            icon={<Icon type="search" />}
-                        >
-                            提交问题
-                        </Button>
                     </div>
                 </div>
             </div>
@@ -307,12 +354,20 @@ export default class KbRag extends Component {
             return;
         }
 
-        this.setState({ 
-            streaming: true, 
-            answer: "### 搜索进度\n\n", 
+        // 添加用户问题到对话历史
+        const userMessage = {
+            type: 'user',
+            content: this.state.question,
+            time: new Date().toLocaleTimeString()
+        };
+
+        this.setState(prevState => ({
+            streaming: true,
+            messages: [...prevState.messages, userMessage],
+            answer: "",
             searchStatus: [],
             metadata: null
-        });
+        }));
 
         try {
             const response = await fetch('http://127.0.0.1:8001/api/db/qa/stream', {
@@ -325,7 +380,8 @@ export default class KbRag extends Component {
                     algorithm: this.state.algorithm,
                     search_keyword: this.state.searchKeyword,
                     db_types: this.state.selectedDbs.length > 0 ? this.state.selectedDbs : undefined,
-                    prompt: this.state.promptText
+                    prompt: this.state.promptText,
+                    conversation_id: this.state.conversationId  // 添加会话ID
                 })
             });
 
@@ -337,91 +393,74 @@ export default class KbRag extends Component {
             const decoder = new TextDecoder();
             let buffer = '';
 
+            // 添加 AI 回答到对话历史
+            const aiMessage = {
+                type: 'assistant',
+                content: '',
+                searchStatus: [],
+                time: new Date().toLocaleTimeString()
+            };
+
+            this.setState(prevState => ({
+                messages: [...prevState.messages, aiMessage]
+            }));
+
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
                 buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n\n');
+                const lines = buffer.split('\n');
                 buffer = lines.pop() || '';
 
                 for (const line of lines) {
                     if (line.trim() && line.startsWith('data: ')) {
                         const data = line.slice(5).trim();
-                        this.handleSSEMessage(data);
+                        try {
+                            const parsedData = JSON.parse(data);
+                            const { event, answer, conversation_id } = parsedData;  // 解析会话ID
+
+                            // 如果收到会话ID且与当前不同，则更新
+                            if (conversation_id && conversation_id !== this.state.conversationId) {
+                                this.setState({ conversationId: conversation_id });
+                            }
+
+                            this.setState(prevState => {
+                                const messages = [...prevState.messages];
+                                const lastMessage = messages[messages.length - 1];
+                                
+                                if (lastMessage && lastMessage.type === 'assistant') {
+                                    if (event === 'message') {
+                                        if (answer.startsWith('正在')) {
+                                            lastMessage.searchStatus = [...(lastMessage.searchStatus || []), answer];
+                                        } else {
+                                            lastMessage.content = (lastMessage.content || '') + answer;
+                                        }
+                                    } else if (event === 'message_end' && parsedData.metadata?.usage) {
+                                        const usage = parsedData.metadata.usage;
+                                        const statsText = "\n\n---\n\n**统计信息**:\n" +
+                                            "- 总Token数: " + usage.total_tokens + "\n" +
+                                            "- 延迟: " + usage.latency.toFixed(2) + "s\n";
+                                        lastMessage.content += statsText;
+                                    }
+                                }
+                                return { messages };
+                            });
+                        } catch (error) {
+                            console.error('Error parsing SSE data:', error);
+                        }
                     }
                 }
             }
+
+            this.setState({ 
+                streaming: false,
+                question: "" // 清空输入框
+            });
 
         } catch (error) {
             message.error("请求失败: " + error.message);
             this.setState({ streaming: false });
         }
     };
-
-    handleSSEMessage = (data) => {
-        try {
-            const {
-                event,
-                answer,
-                conversation_id,
-                message_id,
-                task_id,
-                metadata
-            } = JSON.parse(data);
-            
-            switch (event) {
-                case 'message':
-                    if (answer.startsWith('正在搜索')) {
-                        // 搜索状态信息
-                        this.setState(prevState => ({
-                            searchStatus: [...prevState.searchStatus, answer],
-                            answer: prevState.answer + "- " + answer + "\n"
-                        }));
-                    } else {
-                        // 答案内容
-                        this.setState(prevState => ({
-                            answer: prevState.answer + answer
-                        }));
-                    }
-                    break;
-
-                case 'message_end':
-                    this.setState({ 
-                        streaming: false,
-                        searchStatus: [...this.state.searchStatus, "回答完成"],
-                        // 如果需要显示统计信息
-                        metadata: metadata
-                    });
-                    
-                    // 如果需要显示token统计，可以添加到答案末尾
-                    if (metadata?.usage) {
-                        const usage = metadata.usage;
-                        const statsText = `\n\n---\n\n**统计信息**:\n` +
-                            `- 总Token数: ${usage.total_tokens}\n` +
-                            `- 延迟: ${usage.latency.toFixed(2)}s\n` +
-                            `- 总费用: ${usage.total_price} ${usage.currency}\n`;
-                        
-                        this.setState(prevState => ({
-                            answer: prevState.answer + statsText
-                        }));
-                    }
-                    break;
-
-                case 'error':
-                    message.error(answer);
-                    this.setState({ 
-                        streaming: false,
-                        searchStatus: [...this.state.searchStatus, `错误: ${answer}`]
-                    });
-                    break;
-
-                default:
-                    console.log('Unknown event type:', event);
-            }
-        } catch (e) {
-            console.error('Error parsing SSE message:', e);
-            message.error('处理响应时出错');
-        }
-    };
-} 
+}
