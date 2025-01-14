@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { Input, Button, message, Spin, Icon, Card, Select } from 'antd';
+import { Input, Button, message, Spin, Icon, Card, Select, Divider, Checkbox } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -108,16 +108,49 @@ export default class KbRag extends Component {
         };
     }
 
-    // 处理数据库选择变化
+    // 修改处理全选的方法
+    handleSelectAll = (e) => {
+        message.success(11111)
+        if (e) {
+            e.preventDefault();  // 阻止默认行为
+            e.stopPropagation(); // 阻止冒泡
+        }
+        
+        // 直接调用 Select 的 onChange
+        const allValues = this.state.dbOptions.map(db => db.value);
+        this.handleDbChange(allValues);
+    };
+
+    // 修改数据库选择变化的处理方法
     handleDbChange = (value) => {
-        this.setState({ selectedDbs: value });
+        this.setState({
+            selectedDbs: value
+        });
+    };
+
+    // 处理清空
+    handleClear = () => {
+        this.setState({
+            selectedDbs: []
+        });
+    };
+
+    // 处理 Checkbox 变化
+    handleCheckboxChange = (e) => {
+        const checked = e.target.checked;
+        const allValues = this.state.dbOptions.map(db => db.value);
+        this.setState({
+            selectedDbs: checked ? allValues : []
+        });
     };
 
     render() {
+        const allSelected = this.state.selectedDbs.length === this.state.dbOptions.length;
+        
         return (
             <div style={{ display: 'flex', height: 'calc(100vh - 64px)', padding: '20px' }}>
-                {/* 左侧面板 - 20% */}
-                <div style={{ width: '20%', marginRight: '20px', display: 'flex', flexDirection: 'column' }}>
+                {/* 左侧面板 - 增加宽度到 30% */}
+                <div style={{ width: '30%', marginRight: '20px', display: 'flex', flexDirection: 'column' }}>
                     {/* 上部分 - 提示词模版 */}
                     <Card title="提示词模版" style={{ marginBottom: '20px' }}>
                         <Select
@@ -153,42 +186,27 @@ export default class KbRag extends Component {
                         </div>
 
                         <div style={{ marginBottom: '15px' }}>
-                            <div style={{ marginBottom: '5px' }}>选择数据库</div>
+                            <div style={{ 
+                                marginBottom: '5px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                            }}>
+                                <span>选择数据库</span>
+                                <Checkbox 
+                                    checked={allSelected}
+                                    onChange={this.handleCheckboxChange}
+                                >
+                                    全选
+                                </Checkbox>
+                            </div>
                             <Select
                                 mode="multiple"
                                 style={{ width: '100%' }}
                                 placeholder="请选择数据库（可多选）"
                                 value={this.state.selectedDbs}
                                 onChange={this.handleDbChange}
-                                maxTagCount={3}
-                                maxTagTextLength={10}
                                 allowClear
-                                dropdownRender={menu => (
-                                    <div>
-                                        {menu}
-                                        <div
-                                            style={{
-                                                padding: '8px',
-                                                borderTop: '1px solid #e8e8e8',
-                                            }}
-                                        >
-                                            <a
-                                                style={{ cursor: 'pointer' }}
-                                                onClick={() => this.handleDbChange(this.state.dbOptions.map(db => db.value))}
-                                            >
-                                                <Icon type="check-square" /> 选择所有
-                                            </a>
-                                            <span style={{ float: 'right' }}>
-                                                <a
-                                                    style={{ cursor: 'pointer' }}
-                                                    onClick={() => this.handleDbChange([])}
-                                                >
-                                                    <Icon type="close-square" /> 清空
-                                                </a>
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
                             >
                                 {this.state.dbOptions.map(db => (
                                     <Option key={db.value} value={db.value}>{db.label}</Option>
@@ -207,8 +225,8 @@ export default class KbRag extends Component {
                     </Card>
                 </div>
 
-                {/* 右侧面板 - 80% */}
-                <div style={{ width: '80%', display: 'flex', flexDirection: 'column' }}>
+                {/* 右侧面板 - 减少宽度到 70% */}
+                <div style={{ width: '70%', display: 'flex', flexDirection: 'column' }}>
                     {/* 上部分 - 回答区域 */}
                     <div style={{ 
                         flex: 1, 
