@@ -7,7 +7,16 @@ import remarkGfm from 'remark-gfm';
 
 const { TextArea } = Input;
 const { Option } = Select;
-
+const promptTemplate = {
+    default: {
+        label: "默认模版",
+        text: "请回答以下问题：\n\n上下文信息：\n{context}\n\n问题：{question}\n\n请基于上下文信息回答问题。"
+    },
+    feature_compare: {
+        label: "功能对比分析",
+        text: "你是一个专业的数据库功能对比分析专家。本次需要分析的数据库包括：{db_types}。请基于以下规则回答问题：\n\n1. 只使用上下文中提供的信息进行分析和对比\n2. 必须对上述列出的所有数据库进行分析，使用表格形式清晰展示各个数据库对所查询功能的支持情况：\n   - ✓ 表示支持\n   - ✗ 表示不支持\n   - ? 表示上下文中未提及\n3. 明确指出哪些数据库在上下文中完全没有相关信息\n4. 给出信息来源，包括文档名称和页码\n5. 不要推测或编造未在上下文中明确提到的信息\n6. 即使某些数据库在上下文中没有找到相关信息，也要在表格中列出并标记为 ?\n\n上下文信息：\n{context}\n\n问题：{question}\n\n请按照上述规则进行分析和对比。如果是功能对比，请务必使用表格形式展示结果，并确保包含所有指定的数据库。"
+    }
+};
 // Markdown 渲染配置
 const markdownComponents = {
     // 代码块渲染
@@ -87,8 +96,8 @@ export default class KbRag extends Component {
             answer: "",
             algorithm: "es",
             searchKeyword: "",
-            promptTemplate: "default",
-            promptText: "",
+            selectedTemplate: 'default',
+            promptText: promptTemplate.default.text,
             streaming: false,
             metadata: null,
             selectedDbs: [], // 选中的数据库
@@ -144,6 +153,14 @@ export default class KbRag extends Component {
         });
     };
 
+    // 处理模版变化
+    handleTemplateChange = (value) => {
+        this.setState({
+            selectedTemplate: value,
+            promptText: promptTemplate[value].text
+        });
+    };
+
     render() {
         const allSelected = this.state.selectedDbs.length === this.state.dbOptions.length;
         
@@ -153,17 +170,22 @@ export default class KbRag extends Component {
                 <div style={{ width: '30%', marginRight: '20px', display: 'flex', flexDirection: 'column' }}>
                     {/* 上部分 - 提示词模版 */}
                     <Card title="提示词模版" style={{ marginBottom: '20px' }}>
-                        <Select
-                            style={{ width: '100%', marginBottom: '10px' }}
-                            value={this.state.promptTemplate}
-                            onChange={(value) => this.setState({ promptTemplate: value })}
-                        >
-                            <Option value="default">默认模版</Option>
-                            <Option value="template1">模版1</Option>
-                            <Option value="template2">模版2</Option>
-                        </Select>
+                        <div style={{ marginBottom: '10px' }}>
+                            <Select
+                                style={{ width: '100%' }}
+                                value={this.state.selectedTemplate}
+                                onChange={this.handleTemplateChange}
+                                placeholder="选择提示词模版"
+                            >
+                                {Object.entries(promptTemplate).map(([key, value]) => (
+                                    <Option key={key} value={key}>
+                                        {value.label}
+                                    </Option>
+                                ))}
+                            </Select>
+                        </div>
                         <TextArea
-                            rows={4}
+                            rows={6}
                             value={this.state.promptText}
                             onChange={e => this.setState({ promptText: e.target.value })}
                             placeholder="提示词内容..."
@@ -302,7 +324,8 @@ export default class KbRag extends Component {
                     question: this.state.question,
                     algorithm: this.state.algorithm,
                     search_keyword: this.state.searchKeyword,
-                    db_types: this.state.selectedDbs.length > 0 ? this.state.selectedDbs : undefined // 如果没有选择则不传此参数
+                    db_types: this.state.selectedDbs.length > 0 ? this.state.selectedDbs : undefined,
+                    prompt: this.state.promptText
                 })
             });
 
