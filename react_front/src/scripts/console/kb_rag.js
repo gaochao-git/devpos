@@ -118,7 +118,7 @@ export default class KbRag extends Component {
                 enabled: false,
                 algorithm: "es",
                 db_types: [],
-                searchKeyword: ""
+                search_keyword: ""
             }
         };
     }
@@ -179,6 +179,15 @@ export default class KbRag extends Component {
             ragConfig: {
                 ...prevState.ragConfig,
                 enabled: e.target.checked
+            }
+        }));
+    };
+
+    updateRagConfig = (updates) => {
+        this.setState(prevState => ({
+            ragConfig: {
+                ...prevState.ragConfig,
+                ...updates
             }
         }));
     };
@@ -284,8 +293,14 @@ export default class KbRag extends Component {
                                     <div style={{ marginBottom: '5px' }}>搜索关键词</div>
                                     <Input
                                         placeholder="搜索关键词（可选）"
-                                        value={ragConfig.searchKeyword}
-                                        onChange={e => this.updateRagConfig({ searchKeyword: e.target.value })}
+                                        value={ragConfig.search_keyword}
+                                        onChange={(event) => {
+                                            if (event && event.target) {
+                                                this.updateRagConfig({ 
+                                                    search_keyword: event.target.value 
+                                                });
+                                            }
+                                        }}
                                     />
                                 </div>
                             </>
