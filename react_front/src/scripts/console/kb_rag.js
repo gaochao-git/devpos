@@ -88,34 +88,38 @@ const markdownComponents = {
     )
 };
 
+// 常量配置
+const DB_OPTIONS = [
+    { value: 'shentong', label: '神通数据库' },
+    { value: 'gaussdb', label: 'GaussDB' },
+    { value: 'ob', label: 'OceanBase' },
+    { value: 'gbase', label: 'GBase' },
+    { value: 'tdsql', label: 'TDSQL' },
+    { value: 'polardb', label: 'PolarDB' },
+    { value: 'tidb', label: 'TiDB' },
+    { value: 'mysql', label: 'MySQL' },
+    { value: 'dm', label: '达梦' },
+    { value: 'xugu', label: '虚谷' },
+    { value: 'goldendb', label: 'GoldenDB' }
+];
+
 export default class KbRag extends Component {
     constructor(props) {
         super(props);
         this.state = {
             question: "",
-            answer: "",
-            algorithm: "es",
-            searchKeyword: "",
-            selectedTemplate: 'default',
+            messages: [],
+            conversationId: null,
             promptText: promptTemplate.default.text,
+            selectedTemplate: 'default',
             streaming: false,
-            metadata: null,
-            selectedDbs: [], // 选中的数据库
-            dbOptions: [     // 数据库选项
-                { value: 'shentong', label: '神通数据库' },
-                { value: 'gaussdb', label: 'GaussDB' },
-                { value: 'ob', label: 'OceanBase' },
-                { value: 'gbase', label: 'GBase' },
-                { value: 'tdsql', label: 'TDSQL' },
-                { value: 'polardb', label: 'PolarDB' },
-                { value: 'tidb', label: 'TiDB' },
-                { value: 'mysql', label: 'MySQL' },
-                { value: 'dm', label: '达梦' },
-                { value: 'xugu', label: '虚谷' },
-                { value: 'goldendb', label: 'GoldenDB' }
-            ],
-            messages: [], // 存储对话历史
-            conversationId: null,  // 添加会话ID状态
+            // RAG 配置统一管理
+            ragConfig: {
+                enabled: false,
+                algorithm: "es",
+                db_types: [],
+                searchKeyword: ""
+            }
         };
     }
 
@@ -134,25 +138,31 @@ export default class KbRag extends Component {
 
     // 修改数据库选择变化的处理方法
     handleDbChange = (value) => {
-        this.setState({
-            selectedDbs: value
-        });
+        this.setState(prevState => ({
+            ragConfig: {
+                ...prevState.ragConfig,
+                db_types: value
+            }
+        }));
     };
 
     // 处理清空
     handleClear = () => {
         this.setState({
-            selectedDbs: []
+            db_types: []
         });
     };
 
     // 处理 Checkbox 变化
     handleCheckboxChange = (e) => {
         const checked = e.target.checked;
-        const allValues = this.state.dbOptions.map(db => db.value);
-        this.setState({
-            selectedDbs: checked ? allValues : []
-        });
+        const allValues = DB_OPTIONS.map(db => db.value);
+        this.setState(prevState => ({
+            ragConfig: {
+                ...prevState.ragConfig,
+                db_types: checked ? allValues : []
+            }
+        }));
     };
 
     // 处理模版变化
@@ -163,8 +173,19 @@ export default class KbRag extends Component {
         });
     };
 
+    // 处理 RAG 启用状态变化
+    handleRagEnableChange = (e) => {
+        this.setState(prevState => ({
+            ragConfig: {
+                ...prevState.ragConfig,
+                enabled: e.target.checked
+            }
+        }));
+    };
+
     render() {
-        const allSelected = this.state.selectedDbs.length === this.state.dbOptions.length;
+        const { ragConfig } = this.state;
+        const allSelected = ragConfig.db_types.length === DB_OPTIONS.length;
         
         return (
             <div style={{ display: 'flex', height: 'calc(100vh - 64px)', padding: '20px' }}>
@@ -174,9 +195,9 @@ export default class KbRag extends Component {
                     marginRight: '20px', 
                     display: 'flex', 
                     flexDirection: 'column',
-                    height: '100%'  // 确保高度填满
+                    height: '100%'
                 }}>
-                    {/* 提示词模版 */}
+                    {/* 提示词模版 Card */}
                     <Card title="提示词模版" style={{ marginBottom: '20px', flex: '0 0 auto' }}>
                         <div style={{ marginBottom: '10px' }}>
                             <Select
@@ -200,58 +221,79 @@ export default class KbRag extends Component {
                         />
                     </Card>
 
-                    {/* 搜索配置 */}
-                    <Card title="搜索配置" style={{ flex: '1 1 auto', overflow: 'auto' }}>
-                        <div style={{ marginBottom: '15px' }}>
-                            <div style={{ marginBottom: '5px' }}>搜索类型</div>
-                            <Select
-                                style={{ width: '100%' }}
-                                value={this.state.algorithm}
-                                onChange={(value) => this.setState({ algorithm: value })}
-                            >
-                                <Option value="vector">向量搜索</Option>
-                                <Option value="es">ES搜索</Option>
-                                <Option value="hybrid">混合搜索</Option>
-                            </Select>
-                        </div>
-
-                        <div style={{ marginBottom: '15px' }}>
-                            <div style={{ 
-                                marginBottom: '5px',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center'
-                            }}>
-                                <span>选择数据库</span>
+                    {/* RAG配置 Card */}
+                    <Card 
+                        title={
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <span>RAG配置</span>
                                 <Checkbox 
-                                    checked={allSelected}
-                                    onChange={this.handleCheckboxChange}
+                                    checked={ragConfig.enabled}
+                                    onChange={this.handleRagEnableChange}
                                 >
-                                    全选
+                                    启用RAG
                                 </Checkbox>
                             </div>
-                            <Select
-                                mode="multiple"
-                                style={{ width: '100%' }}
-                                placeholder="请选择数据库（可多选）"
-                                value={this.state.selectedDbs}
-                                onChange={this.handleDbChange}
-                                allowClear
-                            >
-                                {this.state.dbOptions.map(db => (
-                                    <Option key={db.value} value={db.value}>{db.label}</Option>
-                                ))}
-                            </Select>
-                        </div>
+                        } 
+                        style={{ flex: '1 1 auto', overflow: 'auto' }}
+                    >
+                        {ragConfig.enabled ? (
+                            <>
+                                <div style={{ marginBottom: '15px' }}>
+                                    <div style={{ marginBottom: '5px' }}>搜索类型</div>
+                                    <Select
+                                        style={{ width: '100%' }}
+                                        value={ragConfig.algorithm}
+                                        onChange={(value) => this.updateRagConfig({ algorithm: value })}
+                                    >
+                                        <Option value="vector">向量搜索</Option>
+                                        <Option value="es">ES搜索</Option>
+                                        <Option value="hybrid">混合搜索</Option>
+                                    </Select>
+                                </div>
 
-                        <div style={{ marginBottom: '15px' }}>
-                            <div style={{ marginBottom: '5px' }}>搜索关键词</div>
-                            <Input
-                                placeholder="搜索关键词（可选）"
-                                value={this.state.searchKeyword}
-                                onChange={e => this.setState({ searchKeyword: e.target.value })}
-                            />
-                        </div>
+                                <div style={{ marginBottom: '15px' }}>
+                                    <div style={{ 
+                                        marginBottom: '5px',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <span>选择数据库</span>
+                                        <Checkbox 
+                                            checked={allSelected}
+                                            onChange={this.handleCheckboxChange}
+                                        >
+                                            全选
+                                        </Checkbox>
+                                    </div>
+                                    <Select
+                                        mode="multiple"
+                                        style={{ width: '100%' }}
+                                        placeholder="请选择数据库（可多选）"
+                                        value={ragConfig.db_types}
+                                        onChange={this.handleDbChange}
+                                        allowClear
+                                    >
+                                        {DB_OPTIONS.map(db => (
+                                            <Option key={db.value} value={db.value}>{db.label}</Option>
+                                        ))}
+                                    </Select>
+                                </div>
+
+                                <div style={{ marginBottom: '15px' }}>
+                                    <div style={{ marginBottom: '5px' }}>搜索关键词</div>
+                                    <Input
+                                        placeholder="搜索关键词（可选）"
+                                        value={ragConfig.searchKeyword}
+                                        onChange={e => this.updateRagConfig({ searchKeyword: e.target.value })}
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
+                                请启用 RAG 以配置搜索选项
+                            </div>
+                        )}
                     </Card>
                 </div>
 
@@ -370,19 +412,22 @@ export default class KbRag extends Component {
         }));
 
         try {
+            const { ragConfig } = this.state;
+            
+            // 构建请求体，直接使用 ragConfig
+            const requestBody = {
+                question: this.state.question,
+                prompt: this.state.promptText,
+                conversation_id: this.state.conversationId,
+                rag_config: ragConfig
+            };
+
             const response = await fetch('http://127.0.0.1:8001/api/db/qa/stream', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    question: this.state.question,
-                    algorithm: this.state.algorithm,
-                    search_keyword: this.state.searchKeyword,
-                    db_types: this.state.selectedDbs.length > 0 ? this.state.selectedDbs : undefined,
-                    prompt: this.state.promptText,
-                    conversation_id: this.state.conversationId  // 添加会话ID
-                })
+                body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {
