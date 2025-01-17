@@ -248,19 +248,6 @@ export default class KbRag extends Component {
                         {ragConfig.enabled ? (
                             <>
                                 <div style={{ marginBottom: '15px' }}>
-                                    <div style={{ marginBottom: '5px' }}>搜索类型</div>
-                                    <Select
-                                        style={{ width: '100%' }}
-                                        value={ragConfig.algorithm}
-                                        onChange={(value) => this.updateRagConfig({ algorithm: value })}
-                                    >
-                                        <Option value="vector">向量搜索</Option>
-                                        <Option value="es">ES搜索</Option>
-                                        <Option value="hybrid">混合搜索</Option>
-                                    </Select>
-                                </div>
-
-                                <div style={{ marginBottom: '15px' }}>
                                     <div style={{ 
                                         marginBottom: '5px',
                                         display: 'flex',
@@ -286,6 +273,19 @@ export default class KbRag extends Component {
                                         {DB_OPTIONS.map(db => (
                                             <Option key={db.value} value={db.value}>{db.label}</Option>
                                         ))}
+                                    </Select>
+                                </div>
+
+                                <div style={{ marginBottom: '15px' }}>
+                                    <div style={{ marginBottom: '5px' }}>搜索类型</div>
+                                    <Select
+                                        style={{ width: '100%' }}
+                                        value={ragConfig.algorithm}
+                                        onChange={(value) => this.updateRagConfig({ algorithm: value })}
+                                    >
+                                        <Option value="vector">向量搜索</Option>
+                                        <Option value="es">ES搜索</Option>
+                                        <Option value="hybrid">混合搜索</Option>
                                     </Select>
                                 </div>
 
