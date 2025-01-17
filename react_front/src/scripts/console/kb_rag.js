@@ -348,8 +348,10 @@ export default class KbRag extends Component {
                                     maxWidth: '80%',
                                     padding: '12px 16px',
                                     borderRadius: '8px',
-                                    backgroundColor: msg.type === 'user' ? '#1890ff' : '#f5f5f5',
-                                    color: msg.type === 'user' ? '#fff' : '#000'
+                                    backgroundColor: msg.type === 'user' ? '#73f0be' : '#f9f9f9',
+                                    color: '#000',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                    border: '1px solid #e0e0e0'
                                 }}>
                                     {msg.type === 'user' ? (
                                         <div>{msg.content}</div>
