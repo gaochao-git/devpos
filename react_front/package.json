@@ -31,7 +31,7 @@
     "diff-match-patch": "^1.0.5",
     "dotenv": "8.2.0",
     "dotenv-expand": "5.1.0",
-    "dumi": "^1.1.48",
+    "dumi": "^2.4.17",
     "echarts": "^5.5.1",
     "echarts-for-react": "^3.0.2",
     "eslint": "^6.6.0",
