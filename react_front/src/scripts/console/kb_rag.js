@@ -116,16 +116,15 @@ export default class KbRag extends Component {
             // RAG 配置统一管理
             ragConfig: {
                 enabled: false,
-                algorithm: "es",
                 db_types: [],
-                search_keyword: ""
+                vectorQuery: "",
+                scalarQuery: ""
             }
         };
     }
 
     // 修改处理全选的方法
     handleSelectAll = (e) => {
-        message.success(11111)
         if (e) {
             e.preventDefault();  // 阻止默认行为
             e.stopPropagation(); // 阻止冒泡
@@ -157,12 +156,9 @@ export default class KbRag extends Component {
     handleCheckboxChange = (e) => {
         const checked = e.target.checked;
         const allValues = DB_OPTIONS.map(db => db.value);
-        this.setState(prevState => ({
-            ragConfig: {
-                ...prevState.ragConfig,
-                db_types: checked ? allValues : []
-            }
-        }));
+        this.updateRagConfig({ 
+            db_types: checked ? allValues : [] 
+        });
     };
 
     // 处理模版变化
@@ -267,7 +263,7 @@ export default class KbRag extends Component {
                                         style={{ width: '100%' }}
                                         placeholder="请选择数据库（可多选）"
                                         value={ragConfig.db_types}
-                                        onChange={this.handleDbChange}
+                                        onChange={value => this.updateRagConfig({ db_types: value })}
                                         allowClear
                                     >
                                         {DB_OPTIONS.map(db => (
@@ -277,27 +273,29 @@ export default class KbRag extends Component {
                                 </div>
 
                                 <div style={{ marginBottom: '15px' }}>
-                                    <div style={{ marginBottom: '5px' }}>搜索类型</div>
-                                    <Select
-                                        style={{ width: '100%' }}
-                                        value={ragConfig.algorithm}
-                                        onChange={(value) => this.updateRagConfig({ algorithm: value })}
-                                    >
-                                        <Option value="vector">向量搜索</Option>
-                                        <Option value="es">ES搜索</Option>
-                                        <Option value="hybrid">混合搜索</Option>
-                                    </Select>
-                                </div>
-
-                                <div style={{ marginBottom: '15px' }}>
-                                    <div style={{ marginBottom: '5px' }}>搜索关键词</div>
+                                    <div style={{ marginBottom: '5px' }}>矢量搜索</div>
                                     <Input
-                                        placeholder="搜索关键词（可选）"
-                                        value={ragConfig.search_keyword}
+                                        placeholder="输入自然语言描述，用于语义相似度搜索"
+                                        value={ragConfig.vectorQuery}
                                         onChange={(event) => {
                                             if (event && event.target) {
                                                 this.updateRagConfig({ 
-                                                    search_keyword: event.target.value 
+                                                    vectorQuery: event.target.value 
+                                                });
+                                            }
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ marginBottom: '15px' }}>
+                                    <div style={{ marginBottom: '5px' }}>标量搜索</div>
+                                    <Input
+                                        placeholder="输入关键词，用于精确/模糊匹配搜索"
+                                        value={ragConfig.scalarQuery}
+                                        onChange={(event) => {
+                                            if (event && event.target) {
+                                                this.updateRagConfig({ 
+                                                    scalarQuery: event.target.value 
                                                 });
                                             }
                                         }}
