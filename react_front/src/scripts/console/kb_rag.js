@@ -120,8 +120,53 @@ export default class KbRag extends Component {
                 db_types: [],
                 vectorQuery: "",
                 scalarQuery: ""
-            }
+            },
+            isUserScrolling: false // 添加用户是否在滚动的状态
         };
+        this.messagesEndRef = React.createRef(); // 添加 ref 用于滚动
+    }
+
+    // 添加自动滚动方法
+    scrollToBottom = () => {
+        if (this.messagesEndRef.current && !this.state.isUserScrolling) {
+            const container = this.messagesEndRef.current.parentElement;
+            const isScrolledToBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+            
+            if (isScrolledToBottom || !this.state.isUserScrolling) {
+                this.messagesEndRef.current.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'end'
+                });
+            }
+        }
+    }
+
+    // 添加鼠标进入处理
+    handleMouseEnter = () => {
+        this.setState({ isUserScrolling: true });
+    }
+
+    // 添加鼠标离开处理
+    handleMouseLeave = () => {
+        this.setState({ isUserScrolling: false });
+        this.scrollToBottom();
+    }
+
+    // 在组件更新后执行滚动
+    componentDidUpdate(prevProps, prevState) {
+        const messagesChanged = prevState.messages.length !== this.state.messages.length;
+        const lastMessageChanged = prevState.messages.length > 0 && 
+            this.state.messages.length > 0 && 
+            prevState.messages[prevState.messages.length - 1].content !== 
+            this.state.messages[this.state.messages.length - 1].content;
+        const searchStatusChanged = prevState.messages.length > 0 && 
+            this.state.messages.length > 0 && 
+            JSON.stringify(prevState.messages[prevState.messages.length - 1].searchStatus) !== 
+            JSON.stringify(this.state.messages[this.state.messages.length - 1].searchStatus);
+
+        if (messagesChanged || lastMessageChanged || searchStatusChanged) {
+            this.scrollToBottom();
+        }
     }
 
     // 修改处理全选的方法
@@ -316,18 +361,22 @@ export default class KbRag extends Component {
                     width: '70%', 
                     display: 'flex', 
                     flexDirection: 'column',
-                    height: '100%'  // 确保高度填满
+                    height: '100%'
                 }}>
                     {/* 对话历史区域 */}
-                    <div style={{ 
-                        flex: '1 1 auto',
-                        marginBottom: '20px', 
-                        border: '1px solid #d9d9d9',
-                        borderRadius: '4px',
-                        backgroundColor: '#fff',
-                        overflow: 'auto',
-                        padding: '20px'
-                    }}>
+                    <div 
+                        style={{ 
+                            flex: '1 1 auto',
+                            marginBottom: '20px', 
+                            border: '1px solid #d9d9d9',
+                            borderRadius: '4px',
+                            backgroundColor: '#fff',
+                            overflow: 'auto',
+                            padding: '20px'
+                        }}
+                        onMouseEnter={this.handleMouseEnter}
+                        onMouseLeave={this.handleMouseLeave}
+                    >
                         {this.state.messages.map((msg, index) => (
                             <div key={index} style={{
                                 marginBottom: '20px',
@@ -380,6 +429,7 @@ export default class KbRag extends Component {
                                 </div>
                             </div>
                         ))}
+                        <div ref={this.messagesEndRef} /> {/* 添加用于滚动的空div */}
                     </div>
 
                     {/* 输入区域 */}
@@ -483,9 +533,8 @@ export default class KbRag extends Component {
                         const data = line.slice(5).trim();
                         try {
                             const parsedData = JSON.parse(data);
-                            const { event, answer, conversation_id } = parsedData;  // 解析会话ID
+                            const { event, answer, conversation_id } = parsedData;
 
-                            // 如果收到会话ID且与当前不同，则更新
                             if (conversation_id && conversation_id !== this.state.conversationId) {
                                 this.setState({ conversationId: conversation_id });
                             }
@@ -510,6 +559,9 @@ export default class KbRag extends Component {
                                     }
                                 }
                                 return { messages };
+                            }, () => {
+                                // 在状态更新完成后触发滚动
+                                this.scrollToBottom();
                             });
                         } catch (error) {
                             console.error('Error parsing SSE data:', error);
