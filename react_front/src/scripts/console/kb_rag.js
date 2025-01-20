@@ -384,10 +384,14 @@ export default class KbRag extends Component {
                     {/* 输入区域 */}
                     <div style={{ flex: '0 0 auto' }}>
                         <Input.Search
-                            value={this.state.question}
-                            onChange={e => this.setState({ question: e.target.value })}
-                            onSearch={this.handleStream}
                             placeholder="请输入您的问题..."
+                            onSearch={(value) => {
+                                this.setState({ 
+                                    question: value  // 在发送时更新问题状态
+                                }, () => {
+                                    this.handleStream();  // 状态更新后调用处理方法
+                                });
+                            }}
                             enterButton={
                                 <Button 
                                     type="primary" 
