@@ -100,7 +100,8 @@ const DB_OPTIONS = [
     { value: 'mysql', label: 'MySQL' },
     { value: 'dm', label: '达梦' },
     { value: 'xugu', label: '虚谷' },
-    { value: 'goldendb', label: 'GoldenDB' }
+    { value: 'goldendb', label: 'GoldenDB' },
+    { value: 'kadb', label: 'KADB' }
 ];
 
 export default class KbRag extends Component {
