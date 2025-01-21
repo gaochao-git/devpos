@@ -194,9 +194,11 @@ const ChatRca = ({ treeData, style }) => {
     // 添加状态来存储每个助手的输入值
     const [assistantInputs, setAssistantInputs] = useState(new Map());
     // 添加新的状态
-    const [showContextSelector, setShowContextSelector] = useState(false);
     // 添加新的状态来跟踪每个助手的执行状态
     const [executingAssistants, setExecutingAssistants] = useState(new Set());
+    const [isUserScrolling, setIsUserScrolling] = useState(false);
+    const messagesContainerRef = useRef(null);
+    const lastScrollTop = useRef(0);
 
     // 将 QUICK_SELECT_CONFIG 移到组件内部
     const QUICK_SELECT_CONFIG = {
@@ -389,9 +391,39 @@ const ChatRca = ({ treeData, style }) => {
         }
     };
 
+    // 处理用户滚动
+    const handleScroll = () => {
+        if (!messagesContainerRef.current) return;
+        
+        const container = messagesContainerRef.current;
+        const currentScrollTop = container.scrollTop;
+        
+        // 检测向上滚动
+        if (currentScrollTop < lastScrollTop.current) {
+            setIsUserScrolling(true);
+        }
+        
+        lastScrollTop.current = currentScrollTop;
+    };
+
+    // 自动滚动函数
+    const scrollToBottom = useCallback(() => {
+        if (!isUserScrolling && messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+    }, [isUserScrolling]);
+
+    // 监听消息更新，处理自动滚动
+    useEffect(() => {
+        if (messages.length > 0 && !isUserScrolling) {
+            scrollToBottom();
+        }
+    }, [messages, scrollToBottom, isUserScrolling]);
+
     // 修改 handleSend 函数
     const handleSend = async () => {
         if (!inputValue.trim() || isStreaming) return;
+        setIsUserScrolling(false);
 
         const isAssistantCommand = DEFAULT_ASSISTANTS.some(assistant => 
             inputValue.includes('@' + assistant.name)
@@ -725,14 +757,19 @@ const ChatRca = ({ treeData, style }) => {
             display: 'flex',
             flexDirection: 'column',
             background: '#f5f5f5',
-            ...style  // 应用从父组件传递的样式
+            ...style
         }}>
-            {/* 消息列表 */}
-            <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: '16px'
-            }}>
+            <div 
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
+                style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    padding: '16px',
+                    maxHeight: '500px',
+                    scrollBehavior: 'smooth'
+                }}
+            >
                 {messages.map((msg, index) => (
                     <div key={index} style={{
                         marginBottom: '16px',
@@ -808,7 +845,6 @@ const ChatRca = ({ treeData, style }) => {
                 ))}
             </div>
 
-            {/* 输入区域 */}
             <div style={{
                 padding: '16px',
                 background: '#fff',
@@ -951,7 +987,6 @@ const ChatRca = ({ treeData, style }) => {
                                                     }}
                                                     onClick={handleAssistantSend}
                                                 >
-                                                    <Icon type="message" style={{ marginRight: '4px' }} />
                                                     发送
                                                 </div>
                                                 {executingAssistants.has(assistantName) && (
