@@ -264,6 +264,13 @@ const ChatRca = ({ treeData, style }) => {
         let buffer = '';
         let fullContent = '';
         let lastUpdateTime = Date.now();
+        
+        // 先添加一个空的助手消息，只显示标签
+        setMessages(prev => [...prev, {
+            type: 'assistant',
+            content: '',
+            timestamp: new Date().toLocaleTimeString()
+        }]);
 
         try {
             while (true) {
@@ -292,8 +299,13 @@ const ChatRca = ({ treeData, style }) => {
                             
                             // 使用时间阈值来控制更新频率
                             const currentTime = Date.now();
-                            if (currentTime - lastUpdateTime > 100) { // 每 100ms 至少更新一次
-                                debounceSetStreamContent(fullContent);
+                            if (currentTime - lastUpdateTime > 100) {
+                                // 更新最后一条消息的内容
+                                setMessages(prev => {
+                                    const newMessages = [...prev];
+                                    newMessages[newMessages.length - 1].content = fullContent;
+                                    return newMessages;
+                                });
                                 lastUpdateTime = currentTime;
                             }
                         }
@@ -304,17 +316,13 @@ const ChatRca = ({ treeData, style }) => {
             }
 
             // 确保最后一次更新能立即显示
-            setStreamContent(fullContent);
+            setMessages(prev => {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1].content = fullContent;
+                return newMessages;
+            });
+            setStreamContent(''); // 清空流式内容
 
-            // 流式响应完成后，添加完整消息到列表
-            if (fullContent) {
-                setMessages(prev => [...prev, {
-                    type: 'assistant',
-                    content: fullContent,
-                    timestamp: new Date().toLocaleTimeString()
-                }]);
-                setStreamContent(''); // 清空流式内容
-            }
         } catch (error) {
             console.error('Stream processing error:', error);
             throw error;
@@ -798,27 +806,6 @@ const ChatRca = ({ treeData, style }) => {
                         </div>
                     </div>
                 ))}
-                {/* 显示流式内容 */}
-                {streamContent && (
-                    <div style={{
-                        marginBottom: '16px',
-                        display: 'flex',
-                        flexDirection: 'row'
-                    }}>
-                        <div style={{
-                            maxWidth: '80%',
-                            padding: '12px',
-                            borderRadius: '8px',
-                            background: '#fff',
-                            color: '#333',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                        }}>
-                            <ReactMarkdown components={markdownRenderers}>
-                                {streamContent}
-                            </ReactMarkdown>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* 输入区域 */}
