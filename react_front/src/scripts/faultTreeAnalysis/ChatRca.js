@@ -772,7 +772,7 @@ const ChatRca = ({ treeData, style }) => {
                                     key={conversation.id} 
                                     style={{ 
                                         marginBottom: '8px',
-                                        padding: '8px',
+                                        padding: '12px',
                                         border: '1px solid #e8e8e8',
                                         borderRadius: '4px',
                                         cursor: 'pointer',
@@ -781,11 +781,23 @@ const ChatRca = ({ treeData, style }) => {
                                     onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f5f5'}
                                     onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                                 >
-                                    <div style={{ fontSize: '14px', color: '#1890ff' }}>
-                                        会话 ID: {conversation.id}
+                                    <div style={{ 
+                                        fontSize: '15px', 
+                                        color: '#333',
+                                        fontWeight: 500,
+                                        marginBottom: '8px'
+                                    }}>
+                                        {conversation.name || '未命名会话'}
                                     </div>
-                                    <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
-                                        创建时间: {new Date(conversation.created_at * 1000).toLocaleString()}
+                                    <div style={{ 
+                                        fontSize: '13px', 
+                                        color: '#666',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <span>ID: {conversation.id}</span>
+                                        <span>{new Date(conversation.created_at * 1000).toLocaleString()}</span>
                                     </div>
                                 </div>
                             ))}
