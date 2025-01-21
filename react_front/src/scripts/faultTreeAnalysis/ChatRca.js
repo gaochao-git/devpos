@@ -4,7 +4,6 @@ import { Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { debounce } from 'lodash';
 
 const difyApiUrl = 'http://127.0.0.1/v1/chat-messages';
 const difyApiKey = 'Bearer app-0awR0muTJbJAISBjgHYli4Dv';
@@ -222,43 +221,6 @@ const ChatRca = ({ treeData, style }) => {
         }
     };
 
-    // 修改 createParser 函数来处理错误事件
-    const createParser = (onEvent, onError) => {
-        return {
-            feed(chunk) {
-                try {
-                    const lines = chunk.split('\n').filter(line => line.trim());
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const jsonStr = line.slice(6);
-                            try {
-                                const jsonData = JSON.parse(jsonStr);
-                                if (jsonData.event === 'error') {
-                                    // 处理错误事件
-                                    onError(jsonData);
-                                } else if (jsonData.answer) {
-                                    // 处理正常响应
-                                    onEvent(jsonData);
-                                }
-                            } catch (jsonError) {
-                                console.error('JSON parse error:', jsonError);
-                            }
-                        }
-                    }
-                } catch (e) {
-                    console.error('Parse error:', e, 'Chunk:', chunk);
-                }
-            }
-        };
-    };
-
-    // 重新添加 debounceSetStreamContent，但使用较小的延迟时间
-    const debounceSetStreamContent = useCallback(
-        debounce((content) => {
-            setStreamContent(content);
-        }, 50),  // 将延迟时间从 100ms 减少到 50ms，提高响应性
-        []
-    );
 
     // 修改 handleStream 函数
     const handleStream = async (response) => {
