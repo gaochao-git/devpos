@@ -6,6 +6,9 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { debounce } from 'lodash';
 
+const difyApiUrl = 'http://127.0.0.1/v1/chat-messages';
+const difyApiKey = 'Bearer app-0awR0muTJbJAISBjgHYli4Dv';
+
 // 定义 Markdown 渲染器配置
 const markdownRenderers = {
     code: ({ node, inline, className, children, ...props }) => {
@@ -27,8 +30,6 @@ const markdownRenderers = {
     }
 };
 
-const difyApiUrl = 'http://127.0.0.1/v1/chat-messages';
-const difyApiKey = 'Bearer app-0awR0muTJbJAISBjgHYli4Dv';
 
 // 定义上下文类型
 const CONTEXT_TYPES = [
