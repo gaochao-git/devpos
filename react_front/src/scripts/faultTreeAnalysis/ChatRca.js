@@ -7,9 +7,11 @@ import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 // API 地址常量
 const DIFY_BASE_URL = 'http://127.0.0.1/v1';
+const DIFY_API_KEY = 'Bearer app-0awR0muTJbJAISBjgHYli4Dv';
 const DIFY_CHAT_URL = `${DIFY_BASE_URL}/chat-messages`;
 const DIFY_CONVERSATIONS_URL = `${DIFY_BASE_URL}/conversations`;
-const DIFY_API_KEY = 'Bearer app-0awR0muTJbJAISBjgHYli4Dv';
+
+
 
 // 定义 Markdown 渲染器配置
 const markdownRenderers = {
