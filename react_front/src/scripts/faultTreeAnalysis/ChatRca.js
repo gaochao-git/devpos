@@ -199,6 +199,7 @@ const ChatRca = ({ treeData, style }) => {
     const [isUserScrolling, setIsUserScrolling] = useState(false);
     const messagesContainerRef = useRef(null);
     const lastScrollTop = useRef(0);
+    const abortControllerRef = useRef(null);
 
     // 将 QUICK_SELECT_CONFIG 移到组件内部
     const QUICK_SELECT_CONFIG = {
@@ -221,6 +222,12 @@ const ChatRca = ({ treeData, style }) => {
         }
     };
 
+    // 中断处理
+    const handleInterrupt = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+    };
 
     // 修改 handleStream 函数
     const handleStream = async (response) => {
@@ -328,7 +335,8 @@ const ChatRca = ({ treeData, style }) => {
                     response_mode: 'streaming',
                     conversation_id: conversationId,
                     user: 'system'
-                })
+                }),
+                signal: abortControllerRef.current?.signal
             });
 
             if (!response.ok) {
@@ -417,6 +425,7 @@ const ChatRca = ({ treeData, style }) => {
         setInputValue('');
         setIsStreaming(true);
         setStreamContent(''); // 确保在新消息开始时清空流式内容
+        abortControllerRef.current = new AbortController();
 
         try {
             if (isAssistantCommand) {
@@ -425,16 +434,19 @@ const ChatRca = ({ treeData, style }) => {
                 await handleModelQuery(fullContent);
             }
         } catch (error) {
-            console.error('Error:', error);
-            if (!isAssistantCommand && !error.handled) {
+            if (error.name !== 'AbortError') {
+                console.error('Error:', error);
                 setMessages(prev => [...prev, {
                     type: 'assistant',
-                    content: '发送消息失败，请稍后重试',
+                    content: `调用失败: ${error.message}`,
                     timestamp: new Date().toLocaleTimeString(),
                     isError: true
                 }]);
             }
             message.error(isAssistantCommand ? '执行命令失败' : '发送消息失败，请稍后重试');
+        } finally {
+            setIsStreaming(false);
+            abortControllerRef.current = null;
         }
     };
 
@@ -1106,7 +1118,7 @@ const ChatRca = ({ treeData, style }) => {
                                                 fontSize: '16px',
                                                 color: '#ff4d4f'
                                             }}
-                                            onClick={() => setIsStreaming(false)}
+                                            onClick={handleInterrupt}
                                         />
                                     )}
                                 </div>
