@@ -672,7 +672,7 @@ export default class mysqlCluster extends Component  {
                           modalNewReady: false
                       });
                   }}
-                  width={1200}
+                  width='90%'
                   placement="left"
                   destroyOnClose={true}
                   style={{

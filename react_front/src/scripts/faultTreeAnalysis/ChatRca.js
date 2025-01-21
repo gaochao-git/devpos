@@ -757,6 +757,7 @@ const ChatRca = ({ treeData, style }) => {
         <div style={{ 
             display: 'flex',
             flexDirection: 'column',
+            height: '100%',
             background: '#f5f5f5',
             ...style
         }}>
@@ -767,7 +768,7 @@ const ChatRca = ({ treeData, style }) => {
                     flex: 1,
                     overflowY: 'auto',
                     padding: '16px',
-                    maxHeight: '500px',
+                    height: 'calc(100% - 80px)',
                     scrollBehavior: 'smooth'
                 }}
             >
@@ -849,7 +850,8 @@ const ChatRca = ({ treeData, style }) => {
             <div style={{
                 padding: '16px',
                 background: '#fff',
-                borderTop: '1px solid #e8e8e8'
+                borderTop: '1px solid #e8e8e8',
+                height: '80px'
             }}>
                 {/* 上下文标签区域 */}
                 <div style={{ 
@@ -1132,7 +1134,6 @@ const ChatRca = ({ treeData, style }) => {
                                         }}
                                         onClick={handleSend}
                                     >
-                                        <Icon type="message" style={{ marginRight: '4px' }} />
                                         发送
                                     </div>
                                     {isStreaming && (
