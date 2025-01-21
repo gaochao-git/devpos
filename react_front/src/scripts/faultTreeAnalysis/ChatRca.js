@@ -28,7 +28,7 @@ const markdownRenderers = {
 };
 
 const difyApiUrl = 'http://127.0.0.1/v1/chat-messages';
-const difyApiKey = 'Bearer app-Wyp6uFhaeygmRNJJjTquB1ZO';
+const difyApiKey = 'Bearer app-0awR0muTJbJAISBjgHYli4Dv';
 
 // 定义上下文类型
 const CONTEXT_TYPES = [
@@ -636,7 +636,7 @@ const ChatRca = ({ treeData, style }) => {
     // 添加 executeCommand 函数定义
     const executeCommand = async (command) => {
         try {
-            const response = await fetch('http://localhost:8001/execute', {
+            const response = await fetch('http://localhost:8002/execute', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
