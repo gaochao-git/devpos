@@ -727,6 +727,22 @@ const ChatRca = ({ treeData, style }) => {
         };
     }, [showQuickCommands]);
 
+    // 处理新开会话
+    const handleNewChat = () => {
+        setMessages([]);
+        setConversationId('');
+        setInputValue('');
+        setIsStreaming(false);
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+    };
+
+    // 处理查看历史
+    const handleViewHistory = () => {
+        message.info('历史会话功能开发中');
+    };
+
     return (
         <div style={{ 
             display: 'flex',
@@ -735,6 +751,39 @@ const ChatRca = ({ treeData, style }) => {
             background: '#f5f5f5',
             ...style
         }}>
+            {/* 添加顶部工具栏 */}
+            <div style={{
+                padding: '8px 16px',
+                borderBottom: '1px solid #e8e8e8',
+                background: '#fff',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '16px'
+            }}>
+                <Tooltip title="新开会话">
+                    <Icon 
+                        type="plus-circle" 
+                        style={{ 
+                            fontSize: '18px',
+                            cursor: 'pointer',
+                            color: '#1890ff'
+                        }}
+                        onClick={handleNewChat}
+                    />
+                </Tooltip>
+                <Tooltip title="历史会话">
+                    <Icon 
+                        type="history" 
+                        style={{ 
+                            fontSize: '18px',
+                            cursor: 'pointer',
+                            color: '#1890ff'
+                        }}
+                        onClick={handleViewHistory}
+                    />
+                </Tooltip>
+            </div>
+
             <div 
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
@@ -742,7 +791,7 @@ const ChatRca = ({ treeData, style }) => {
                     flex: 1,
                     overflowY: 'auto',
                     padding: '16px',
-                    height: 'calc(100% - 80px)',
+                    height: 'calc(100% - 80px - 37px)', // 减去输入框和顶部工具栏的高度
                     scrollBehavior: 'smooth'
                 }}
             >
