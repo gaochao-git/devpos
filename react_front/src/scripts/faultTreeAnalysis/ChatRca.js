@@ -1,12 +1,15 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Input, Button, message, Select, Tooltip, Tag, Popover, Checkbox } from 'antd';
+import { Input, Button, message, Select, Tooltip, Tag, Popover, Checkbox, Modal, Divider } from 'antd';
 import { Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-const difyApiUrl = 'http://127.0.0.1/v1/chat-messages';
-const difyApiKey = 'Bearer app-0awR0muTJbJAISBjgHYli4Dv';
+// API 地址常量
+const DIFY_BASE_URL = 'http://127.0.0.1/v1';
+const DIFY_CHAT_URL = `${DIFY_BASE_URL}/chat-messages`;
+const DIFY_CONVERSATIONS_URL = `${DIFY_BASE_URL}/conversations`;
+const DIFY_API_KEY = 'Bearer app-0awR0muTJbJAISBjgHYli4Dv';
 
 // 定义 Markdown 渲染器配置
 const markdownRenderers = {
@@ -200,6 +203,7 @@ const ChatRca = ({ treeData, style }) => {
     const messagesContainerRef = useRef(null);
     const lastScrollTop = useRef(0);
     const abortControllerRef = useRef(null);
+    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
     // 将 QUICK_SELECT_CONFIG 移到组件内部
     const QUICK_SELECT_CONFIG = {
@@ -323,10 +327,10 @@ const ChatRca = ({ treeData, style }) => {
                 ? `${contextData.join('\n\n')}\n\n问题：${fullContent}`
                 : fullContent;
 
-            const response = await fetch(difyApiUrl, {
+            const response = await fetch(DIFY_CHAT_URL, {
                 method: 'POST',
                 headers: {
-                    'Authorization': difyApiKey,
+                    'Authorization': DIFY_API_KEY,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -739,8 +743,66 @@ const ChatRca = ({ treeData, style }) => {
     };
 
     // 处理查看历史
-    const handleViewHistory = () => {
-        message.info('历史会话功能开发中');
+    const handleViewHistory = async () => {
+        setIsHistoryLoading(true);
+        try {
+            const response = await fetch(`${DIFY_CONVERSATIONS_URL}?user=system&limit=20`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': DIFY_API_KEY,
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.data && data.data.length > 0) {
+                Modal.info({
+                    title: '历史会话列表',
+                    content: (
+                        <div style={{ 
+                            maxHeight: '400px', 
+                            overflowY: 'auto',
+                            paddingRight: '10px'
+                        }}>
+                            {data.data.map(conversation => (
+                                <div 
+                                    key={conversation.id} 
+                                    style={{ 
+                                        marginBottom: '8px',
+                                        padding: '8px',
+                                        border: '1px solid #e8e8e8',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.3s'
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                    <div style={{ fontSize: '14px', color: '#1890ff' }}>
+                                        会话 ID: {conversation.id}
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+                                        创建时间: {new Date(conversation.created_at * 1000).toLocaleString()}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ),
+                    width: 500,
+                    maskClosable: true
+                });
+            } else {
+                message.info('暂无历史会话记录');
+            }
+        } catch (error) {
+            console.error('获取历史记录失败:', error);
+            message.error('获取历史记录失败，请稍后重试');
+        } finally {
+            setIsHistoryLoading(false);
+        }
     };
 
     return (
@@ -773,13 +835,13 @@ const ChatRca = ({ treeData, style }) => {
                 </Tooltip>
                 <Tooltip title="历史会话">
                     <Icon 
-                        type="history" 
+                        type={isHistoryLoading ? "loading" : "history"}
                         style={{ 
                             fontSize: '18px',
-                            cursor: 'pointer',
+                            cursor: isHistoryLoading ? 'not-allowed' : 'pointer',
                             color: '#1890ff'
                         }}
-                        onClick={handleViewHistory}
+                        onClick={!isHistoryLoading ? handleViewHistory : undefined}
                     />
                 </Tooltip>
             </div>
