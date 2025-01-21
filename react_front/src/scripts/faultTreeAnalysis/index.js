@@ -5,7 +5,6 @@ import MyAxios from "../common/interface"
 import './index.css';
 import G6Tree from "./G6Tree";
 import aiGif from '../../images/AI.gif';
-import AnalysisResultModal from './AnalysisResultModal';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import ChatRca from './ChatRca';
@@ -22,9 +21,6 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
     const [currentCluster, setCurrentCluster] = useState(cluster_name);
     const [timeRange, setTimeRange] = useState(null);
     const [timeMode, setTimeMode] = useState('realtime');
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [analysisModalVisible, setAnalysisModalVisible] = useState(false);
-    const [analysisContent, setAnalysisContent] = useState(null);
     const [enableStream, setEnableStream] = useState(false);
     const [isChatCollapsed, setIsChatCollapsed] = useState(false);
     const [chatWidth, setChatWidth] = useState(400);
@@ -166,41 +162,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
         // handleCaseChange(value, timeRange);
     };
 
-    // 添加根因分析处理函数
-    const handleRootCauseAnalysis = async () => {
-        if (!treeData) {
-            message.warning('暂无故障树数据');
-            return;
-        }
 
-        setIsAnalyzing(true);
-        try {
-            const response = await MyAxios.post('/fault_tree/v1/analyze_root_cause/', {
-                cluster_name: cluster_name,
-                fault_case: selectedCase,
-                tree_data: treeData
-            });
-
-            if (response.data.status === 'ok') {
-                // 直接设置后端返回的数据
-                setAnalysisContent(response.data.data);
-                setAnalysisModalVisible(true);
-            } else {
-                message.error(response.data.msg || '分析失败');
-            }
-        } catch (error) {
-            console.error('Root cause analysis failed:', error);
-            message.error('分析失败，请稍后重试');
-        } finally {
-            setIsAnalyzing(false);
-        }
-    };
-
-    // 处理弹窗关闭
-    const handleModalClose = () => {
-        setAnalysisModalVisible(false);
-        setAnalysisContent(null);
-    };
 
     // 展开所有节点
     const handleExpandAll = () => {
@@ -260,7 +222,6 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                         overflow: 'hidden',
                                         cursor: 'pointer'
                                       }}
-                                      onClick={handleRootCauseAnalysis}
                                     >
                                       <img 
                                         src={aiGif} 
@@ -431,14 +392,6 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                         )}
                     </div>
                 </Card>
-
-                {/* 分析结果弹窗 */}
-              <AnalysisResultModal
-                visible={analysisModalVisible}
-                content={analysisContent}
-                treeData={treeData}
-                onClose={handleModalClose}
-              />
             </Content>
         </Layout>
     );
