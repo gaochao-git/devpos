@@ -1125,22 +1125,23 @@ const ChatRca = ({ treeData, style }) => {
                             }
                             addonAfter={
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <div 
-                                        style={{ 
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            color: '#1890ff'
-                                        }}
-                                        onClick={handleSend}
-                                    >
-                                        发送
-                                    </div>
-                                    {isStreaming && (
+                                    {!isStreaming && (
                                         <Icon 
-                                            type="close-circle" 
+                                            type="arrow-right"
                                             style={{ 
                                                 cursor: 'pointer',
+                                                fontSize: '16px',
+                                                color: '#1890ff'
+                                            }}
+                                            onClick={handleSend}
+                                        />
+                                    )}
+                                    {isStreaming && (
+                                        <Icon 
+                                            type="pause-circle" 
+                                            style={{ 
+                                                cursor: 'pointer',
+                                                fontSize: '16px',
                                                 color: '#ff4d4f'
                                             }}
                                             onClick={() => setIsStreaming(false)}
