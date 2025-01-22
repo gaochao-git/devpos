@@ -905,6 +905,9 @@ const ChatRca = ({ treeData, style }) => {
     // 修改 executeCommand 函数
     const executeCommand = async (command) => {
         try {
+            // 创建新的 AbortController
+            abortControllerRef.current = new AbortController();
+
             const response = await fetch(COMMAND_EXECUTE_URL, {
                 method: 'POST',
                 headers: {
@@ -913,12 +916,12 @@ const ChatRca = ({ treeData, style }) => {
                 },
                 body: JSON.stringify({
                     command: command
-                })
+                }),
+                signal: abortControllerRef.current.signal  // 添加 signal
             });
 
             const responseData = await response.json();
 
-            // 添加错误消息到对话列表
             if (!response.ok) {
                 const errorMessage = responseData.detail || '未知错误';
                 setMessages(prev => [...prev, {
@@ -928,15 +931,13 @@ const ChatRca = ({ treeData, style }) => {
                     timestamp: new Date().toLocaleTimeString(),
                     isError: true
                 }]);
-                return; // 不抛出错误，而是直接返回
+                return;
             }
 
             if (responseData.success) {
-                // 将结果格式化为 Markdown 代码块
                 const formattedCommand = `> ${command}`;
                 const formattedResult = `\`\`\`bash\n${responseData.result}\n\`\`\``;
                 const formatMessage = `${formattedCommand}\n${formattedResult}`;
-                // 添加助手响应到消息列表
                 setMessages(prev => [...prev, {
                     type: 'assistant',
                     content: formatMessage,
@@ -944,7 +945,6 @@ const ChatRca = ({ treeData, style }) => {
                     timestamp: new Date().toLocaleTimeString()
                 }]);
             } else {
-                // 处理业务逻辑错误
                 setMessages(prev => [...prev, {
                     type: 'assistant',
                     content: `执行失败: ${responseData.result || '未知错误'}`,
@@ -957,7 +957,12 @@ const ChatRca = ({ treeData, style }) => {
             return responseData;
 
         } catch (error) {
-            // 处理网络错误等其他错误
+            // 判断是否是中断错误
+            if (error.name === 'AbortError') {
+                console.log('请求被中断');
+                return;
+            }
+
             console.error('执行命令失败:', error);
             setMessages(prev => [...prev, {
                 type: 'assistant',
@@ -966,6 +971,8 @@ const ChatRca = ({ treeData, style }) => {
                 timestamp: new Date().toLocaleTimeString(),
                 isError: true
             }]);
+        } finally {
+            abortControllerRef.current = null;
         }
     };
 
@@ -1423,8 +1430,29 @@ const ChatRca = ({ treeData, style }) => {
                                             whiteSpace: 'nowrap'
                                         }}>
                                             <div 
-                                                style={{ cursor: 'pointer', color: '#1890ff' }}
+                                                style={{ 
+                                                    cursor: 'pointer', 
+                                                    color: '#1890ff',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px'
+                                                }}
                                                 onClick={() => {
+                                                    const isExecuting = executingAssistants.has(assistantName);
+                                                    
+                                                    if (isExecuting) {
+                                                        // 实现暂停逻辑
+                                                        if (abortControllerRef.current) {
+                                                            abortControllerRef.current.abort();  // 中断请求
+                                                        }
+                                                        setExecutingAssistants(prev => {
+                                                            const next = new Set(prev);
+                                                            next.delete(assistantName);
+                                                            return next;
+                                                        });
+                                                        return;
+                                                    }
+
                                                     const value = assistantInputs.get(assistantName);
                                                     const serverConfig = assistantConfigs.get(assistantName);
                                                     
@@ -1437,6 +1465,9 @@ const ChatRca = ({ treeData, style }) => {
                                                         return;
                                                     }
 
+                                                    // 设置执行状态
+                                                    setExecutingAssistants(prev => new Set(prev).add(assistantName));
+
                                                     let fullCommand;
                                                     if (assistantName === 'MySQL助手') {
                                                         fullCommand = `@${assistantName} ${serverConfig.ip} -P ${serverConfig.port || '3306'} -e "${value}"`;
@@ -1444,11 +1475,28 @@ const ChatRca = ({ treeData, style }) => {
                                                         fullCommand = `@${assistantName} ${serverConfig.ip} ${value}`;
                                                     }
 
-                                                    executeCommand(fullCommand);
+                                                    executeCommand(fullCommand).finally(() => {
+                                                        // 执行完成后清除状态
+                                                        setExecutingAssistants(prev => {
+                                                            const next = new Set(prev);
+                                                            next.delete(assistantName);
+                                                            return next;
+                                                        });
+                                                    });
                                                     setAssistantInputs(prev => new Map(prev).set(assistantName, ''));
                                                 }}
                                             >
-                                                执行
+                                                {executingAssistants.has(assistantName) ? (
+                                                    <>
+                                                        <Icon type="pause-circle" />
+                                                        暂停
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Icon type="arrow-right" />
+                                                        执行
+                                                    </>
+                                                )}
                                             </div>
                                             <Icon 
                                                 type="close" 
