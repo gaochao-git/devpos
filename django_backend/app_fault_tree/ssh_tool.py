@@ -282,12 +282,25 @@ def execute_mysql_command(host: str, port: int, sql: str) -> str:
                 else:
                     # 表格格式输出
                     columns = list(result[0].keys())
-                    output = []
-                    output.append(" | ".join(columns))
-                    output.append("-" * (len(" | ".join(columns))))
                     
+                    # 计算每列的最大宽度
+                    col_widths = {col: len(str(col)) for col in columns}
                     for row in result:
-                        output.append(" | ".join(str(row[col]) for col in columns))
+                        for col in columns:
+                            col_widths[col] = max(col_widths[col], len(str(row[col])))
+                    
+                    # 构建表格
+                    output = []
+                    # 表头
+                    header = " | ".join(str(col).ljust(col_widths[col]) for col in columns)
+                    output.append(header)
+                    # 分隔线
+                    separator = "-+-".join("-" * width for width in col_widths.values())
+                    output.append(separator)
+                    # 数据行
+                    for row in result:
+                        formatted_row = " | ".join(str(row[col]).ljust(col_widths[col]) for col in columns)
+                        output.append(formatted_row)
                     
                     return "\n".join(output)
                 
