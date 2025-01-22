@@ -1339,7 +1339,7 @@ const ChatRca = ({ treeData, style }) => {
 
                             const isPresetAssistant = assistantName === 'MySQL助手' || 
                                                      assistantName === 'SSH助手' ||
-                                                     assistantName === 'Zabbix助手';  // 添加 Zabbix 助手
+                                                     assistantName === 'Zabbix助手';
 
                             if (isPresetAssistant) {
                                 return (
@@ -1350,17 +1350,19 @@ const ChatRca = ({ treeData, style }) => {
                                         padding: '4px 11px',
                                         border: '1px solid #d9d9d9',
                                         borderRadius: '4px',
-                                        background: '#fff'
+                                        background: '#fff',
+                                        width: '100%'
                                     }}>
                                         <span style={{ 
                                             color: '#ff4d4f',
                                             fontFamily: 'monospace',
-                                            marginRight: '12px'
+                                            marginRight: '12px',
+                                            whiteSpace: 'nowrap'
                                         }}>
                                             {config.prefix}
                                         </span>
                                         <Select
-                                            style={{ width: 160, marginRight: '12px' }}
+                                            style={{ width: '30%', marginRight: '12px' }}
                                             placeholder="选择服务器"
                                             value={assistantConfigs.get(assistantName)?.ip ? 
                                                 config.serverFormat(
@@ -1385,7 +1387,7 @@ const ChatRca = ({ treeData, style }) => {
                                             ))}
                                         </Select>
                                         <Select
-                                            style={{ width: 300, marginRight: '12px' }}
+                                            style={{ flex: 1, marginRight: '12px' }}
                                             placeholder="选择命令"
                                             showSearch
                                             value={assistantInputs.get(assistantName) || undefined}
@@ -1414,40 +1416,46 @@ const ChatRca = ({ treeData, style }) => {
                                                 </Select.Option>
                                             ))}
                                         </Select>
-                                        <div 
-                                            style={{ cursor: 'pointer', color: '#1890ff', marginRight: '12px' }}
-                                            onClick={() => {
-                                                const value = assistantInputs.get(assistantName);
-                                                const serverConfig = assistantConfigs.get(assistantName);
-                                                
-                                                if (!value) {
-                                                    message.warning('请选择要执行的命令');
-                                                    return;
-                                                }
-                                                if (!serverConfig?.ip) {
-                                                    message.warning('请先选择服务器');
-                                                    return;
-                                                }
+                                        <div style={{ 
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            <div 
+                                                style={{ cursor: 'pointer', color: '#1890ff' }}
+                                                onClick={() => {
+                                                    const value = assistantInputs.get(assistantName);
+                                                    const serverConfig = assistantConfigs.get(assistantName);
+                                                    
+                                                    if (!value) {
+                                                        message.warning('请选择要执行的命令');
+                                                        return;
+                                                    }
+                                                    if (!serverConfig?.ip) {
+                                                        message.warning('请先选择服务器');
+                                                        return;
+                                                    }
 
-                                                // 根据助手类型构建不同的命令
-                                                let fullCommand;
-                                                if (assistantName === 'MySQL助手') {
-                                                    fullCommand = `@${assistantName} ${serverConfig.ip} -P ${serverConfig.port || '3306'} -e "${value}"`;
-                                                } else {
-                                                    fullCommand = `@${assistantName} ${serverConfig.ip} ${value}`;
-                                                }
+                                                    let fullCommand;
+                                                    if (assistantName === 'MySQL助手') {
+                                                        fullCommand = `@${assistantName} ${serverConfig.ip} -P ${serverConfig.port || '3306'} -e "${value}"`;
+                                                    } else {
+                                                        fullCommand = `@${assistantName} ${serverConfig.ip} ${value}`;
+                                                    }
 
-                                                executeCommand(fullCommand);
-                                                setAssistantInputs(prev => new Map(prev).set(assistantName, ''));
-                                            }}
-                                        >
-                                            执行
+                                                    executeCommand(fullCommand);
+                                                    setAssistantInputs(prev => new Map(prev).set(assistantName, ''));
+                                                }}
+                                            >
+                                                执行
+                                            </div>
+                                            <Icon 
+                                                type="close" 
+                                                style={{ cursor: 'pointer' }}
+                                                onClick={() => handleCloseAssistant(assistantName)}
+                                            />
                                         </div>
-                                        <Icon 
-                                            type="close" 
-                                            style={{ cursor: 'pointer' }}
-                                            onClick={() => handleCloseAssistant(assistantName)}
-                                        />
                                     </div>
                                 );
                             }
