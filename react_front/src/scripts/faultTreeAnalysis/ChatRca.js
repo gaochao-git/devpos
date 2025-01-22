@@ -110,9 +110,11 @@ const ASSISTANT_CONFIGS = {
         serverFormat: (ip, port) => `${ip}:${port || '3306'}`,
         commandFormat: (ip, port, command) => `${ip} -P ${port} -e "${command}"`,
         commonCommands: [
-            { label: 'show processlist', value: 'show processlist', desc: '显示当前所有连接会话' },
-            { label: 'show tables', value: 'show tables', desc: '显示所有数据表' },
-            { label: 'show status', value: 'show status', desc: '显示服务器状态变量' }
+            { label: 'show processlist（查看进程列表）', value: 'show processlist' },
+            { label: 'show slave status\\G（查看主从状态）', value: 'show slave status\\G' },
+            { label: 'show master status\\G（查看主库状态）', value: 'show master status\\G' },
+            { label: 'show status like "%Threads_connected%"（查看连接数）', value: 'show status like "%Threads_connected%"' },
+            { label: 'show engine innodb status\G（查看事务状态）', value: 'show engine innodb status\\G' }
         ]
     },
     'SSH助手': {
@@ -120,9 +122,11 @@ const ASSISTANT_CONFIGS = {
         serverFormat: (ip) => ip,
         commandFormat: (ip, _, command) => `${ip} ${command}`,
         commonCommands: [
-            { label: 'df -h', value: 'df -h', desc: '查看磁盘使用情况' },
-            { label: 'free -m', value: 'free -m', desc: '查看内存使用情况' },
-            { label: 'top -n 1', value: 'top -n 1', desc: '查看系统负载和进程' }
+            { label: 'df -h（查看磁盘使用情况）', value: 'df -h' },
+            { label: 'free -m（查看内存使用情况）', value: 'free -m' },
+            { label: 'top -n 1（查看系统负载）', value: 'top -n 1' },
+            { label: 'netstat -ant（查看网络连接）', value: 'netstat -ant' },
+            { label: 'ps aux（查看进程状态）', value: 'ps aux' }
         ]
     },
     'Zabbix助手': {
@@ -1280,43 +1284,111 @@ const ChatRca = ({ treeData, style }) => {
                         {Array.from(activeAssistants.keys()).map(assistantName => {
                             const config = ASSISTANT_CONFIGS[assistantName];
                             if (!config) return null;
-                            
-                            // 修改助手命令发送处理函数
-                            const handleAssistantSend = async () => {
-                                const command = assistantInputs.get(assistantName)?.trim();
-                                if (command) {
-                                    const assistantConfig = assistantConfigs.get(assistantName);
-                                    if (!assistantConfig?.ip) {
-                                        message.warning('请先选择服务器');
-                                        return;
-                                    }
-                                    const fullCommand = `@${assistantName} ${config.commandFormat(
-                                        assistantConfig.ip,
-                                        assistantConfig.port,
-                                        command
-                                    )}`;
-                                    
-                                    setExecutingAssistants(prev => new Set(prev).add(assistantName)); // 设置该助手的执行状态
-                                    try {
-                                        await executeCommand(fullCommand);
-                                        // 清空输入但保持配置
-                                        setAssistantInputs(prev => 
-                                            new Map(prev).set(assistantName, '')
-                                        );
-                                    } catch (error) {
-                                        console.error('执行命令失败:', error);
-                                    } finally {
-                                        setExecutingAssistants(prev => {
-                                            const newSet = new Set(prev);
-                                            newSet.delete(assistantName);
-                                            return newSet;
-                                        }); // 清除该助手的执行状态
-                                    }
-                                }
-                            };
-                            
+
+                            const isPresetAssistant = assistantName === 'MySQL助手' || assistantName === 'SSH助手';
+
+                            if (isPresetAssistant) {
+                                return (
+                                    <div key={assistantName} style={{ 
+                                        marginBottom: '8px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '4px 11px',
+                                        border: '1px solid #d9d9d9',
+                                        borderRadius: '4px',
+                                        background: '#fff'
+                                    }}>
+                                        <span style={{ 
+                                            color: '#ff4d4f',
+                                            fontFamily: 'monospace',
+                                            marginRight: '12px'
+                                        }}>
+                                            {config.prefix}
+                                        </span>
+                                        <Select
+                                            style={{ width: 160, marginRight: '12px' }}
+                                            placeholder="选择服务器"
+                                            value={assistantConfigs.get(assistantName)?.ip ? 
+                                                config.serverFormat(
+                                                    assistantConfigs.get(assistantName).ip,
+                                                    assistantConfigs.get(assistantName).port
+                                                ) : undefined
+                                            }
+                                            onChange={value => {
+                                                const [ip, port] = value.split(':');
+                                                setAssistantConfigs(prev => 
+                                                    new Map(prev).set(assistantName, { ip, port: port || '3306' })
+                                                );
+                                            }}
+                                        >
+                                            {QUICK_SELECT_CONFIG.servers.map(server => (
+                                                <Select.Option 
+                                                    key={server.ip} 
+                                                    value={config.serverFormat(server.ip, server.port)}
+                                                >
+                                                    {config.serverFormat(server.ip, server.port)}
+                                                </Select.Option>
+                                            ))}
+                                        </Select>
+                                        <Select
+                                            style={{ width: 300, marginRight: '12px' }}
+                                            placeholder="选择命令"
+                                            showSearch
+                                            value={assistantInputs.get(assistantName) || undefined}
+                                            onChange={value => {
+                                                setAssistantInputs(prev => new Map(prev).set(assistantName, value));
+                                            }}
+                                            filterOption={(input, option) =>
+                                                option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                            }
+                                        >
+                                            {config.commonCommands.map(cmd => (
+                                                <Select.Option 
+                                                    key={cmd.value} 
+                                                    value={cmd.value}
+                                                >
+                                                    {cmd.label}
+                                                </Select.Option>
+                                            ))}
+                                        </Select>
+                                        <div 
+                                            style={{ cursor: 'pointer', color: '#1890ff', marginRight: '12px' }}
+                                            onClick={() => {
+                                                const value = assistantInputs.get(assistantName);
+                                                const serverConfig = assistantConfigs.get(assistantName);
+                                                
+                                                if (!value) {
+                                                    message.warning('请选择要执行的命令');
+                                                    return;
+                                                }
+                                                if (!serverConfig?.ip) {
+                                                    message.warning('请先选择服务器');
+                                                    return;
+                                                }
+
+                                                // 构造完整命令，使用正确的格式
+                                                const fullCommand = assistantName === 'MySQL助手' 
+                                                    ? `@${assistantName} ${serverConfig.ip} -P ${serverConfig.port} -e "${value}"`
+                                                    : `@${assistantName} ${serverConfig.ip} ${value}`;
+                                                
+                                                executeCommand(fullCommand);
+                                                setAssistantInputs(prev => new Map(prev).set(assistantName, ''));
+                                            }}
+                                        >
+                                            执行
+                                        </div>
+                                        <Icon 
+                                            type="close" 
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={() => handleCloseAssistant(assistantName)}
+                                        />
+                                    </div>
+                                );
+                            }
+
+                            // 其他助手保持原有的输入框形式
                             return (
-                                <div key={assistantName} style={{ marginBottom: '8px', position: 'relative' }}>
+                                <div key={assistantName} style={{ marginBottom: '8px' }}>
                                     <Input
                                         ref={el => {
                                             if (el) {
@@ -1328,72 +1400,34 @@ const ChatRca = ({ treeData, style }) => {
                                             const newValue = e.target.value;
                                             setAssistantInputs(prev => new Map(prev).set(assistantName, newValue));
                                         }}
-                                        addonBefore={
-                                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                                                <span style={{ 
-                                                    color: '#ff4d4f',
-                                                    fontFamily: 'monospace',
-                                                    marginLeft: '8px'
-                                                }}>
-                                                    {config.prefix}
-                                                </span>
-                                                <Select
-                                                    style={{ width: 160 }}
-                                                    placeholder="选择服务器"
-                                                    value={assistantConfigs.get(assistantName)?.ip ? 
-                                                        config.serverFormat(
-                                                            assistantConfigs.get(assistantName).ip,
-                                                            assistantConfigs.get(assistantName).port
-                                                        ) : undefined
-                                                    }
-                                                    onChange={value => {
-                                                        const [ip, port] = value.split(':');
-                                                        setAssistantConfigs(prev => 
-                                                            new Map(prev).set(assistantName, { ip, port: port || '3306' })
-                                                        );
-                                                    }}
-                                                >
-                                                    {QUICK_SELECT_CONFIG.servers.map(server => (
-                                                        <Select.Option 
-                                                            key={server.ip} 
-                                                            value={config.serverFormat(server.ip, server.port)}
-                                                        >
-                                                            {config.serverFormat(server.ip, server.port)}
-                                                        </Select.Option>
-                                                    ))}
-                                                </Select>
-                                                
-                                            </div>
-                                        }
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                const value = assistantInputs.get(assistantName);
+                                                if (value) {
+                                                    const fullCommand = `@${assistantName} ${value}`;
+                                                    executeCommand(fullCommand);
+                                                    setAssistantInputs(prev => new Map(prev).set(assistantName, ''));
+                                                }
+                                            }
+                                        }}
+                                        placeholder="输入命令..."
+                                        addonBefore={config.prefix}
                                         addonAfter={
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <div 
-                                                    style={{ 
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        color: '#1890ff'
+                                                    style={{ cursor: 'pointer', color: '#1890ff' }}
+                                                    onClick={() => {
+                                                        const value = assistantInputs.get(assistantName);
+                                                        if (value) {
+                                                            const fullCommand = `@${assistantName} ${value}`;
+                                                            executeCommand(fullCommand);
+                                                            setAssistantInputs(prev => new Map(prev).set(assistantName, ''));
+                                                        }
                                                     }}
-                                                    onClick={handleAssistantSend}
                                                 >
                                                     发送
                                                 </div>
-                                                {executingAssistants.has(assistantName) && (
-                                                    <Icon 
-                                                        type="close-circle" 
-                                                        style={{ 
-                                                            cursor: 'pointer',
-                                                            color: '#ff4d4f'
-                                                        }}
-                                                        onClick={() => {
-                                                            setExecutingAssistants(prev => {
-                                                                const newSet = new Set(prev);
-                                                                newSet.delete(assistantName);
-                                                                return newSet;
-                                                            });
-                                                        }}
-                                                    />
-                                                )}
                                                 <Icon 
                                                     type="close" 
                                                     style={{ cursor: 'pointer' }}
@@ -1401,65 +1435,7 @@ const ChatRca = ({ treeData, style }) => {
                                                 />
                                             </div>
                                         }
-                                        placeholder={`输入命令... (按 Tab 键查看常用命令)`}
-                                        onKeyDown={e => {
-                                            if (e.key === 'Tab') {
-                                                e.preventDefault();
-                                                setShowQuickCommands(assistantName);
-                                            } else if (e.key === 'Enter' && !e.shiftKey) {
-                                                e.preventDefault();
-                                                handleAssistantSend();
-                                            }
-                                        }}
                                     />
-                                    
-                                    {/* 快捷命令弹出框 */}
-                                    {showQuickCommands === assistantName && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            bottom: '100%',
-                                            left: 0,
-                                            right: 0,
-                                            background: '#fff',
-                                            border: '1px solid #d9d9d9',
-                                            borderRadius: '4px',
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                                            zIndex: 1000,
-                                            marginBottom: '4px',
-                                            maxHeight: '200px',
-                                            overflowY: 'auto'
-                                        }}>
-                                            {config.commonCommands.map(cmd => (
-                                                <div
-                                                    key={cmd.value}
-                                                    style={{
-                                                        padding: '8px 12px',
-                                                        cursor: 'pointer',
-                                                        hover: {
-                                                            backgroundColor: '#f5f5f5'
-                                                        }
-                                                    }}
-                                                    onMouseEnter={e => {
-                                                        e.currentTarget.style.backgroundColor = '#f5f5f5';
-                                                    }}
-                                                    onMouseLeave={e => {
-                                                        e.currentTarget.style.backgroundColor = '#fff';
-                                                    }}
-                                                    onClick={() => {
-                                                        setAssistantInputs(prev => {
-                                                            const newMap = new Map(prev);
-                                                            newMap.set(assistantName, cmd.value);
-                                                            return newMap;
-                                                        });
-                                                        setShowQuickCommands(null);
-                                                    }}
-                                                >
-                                                    <div style={{ fontWeight: 'bold' }}>{cmd.label}</div>
-                                                    <div style={{ fontSize: '12px', color: '#666' }}>{cmd.desc}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
                                 </div>
                             );
                         })}

@@ -251,32 +251,45 @@ def execute_mysql_command(host: str, port: int, sql: str) -> str:
             password='fffjjj',
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor,
-            connect_timeout=CONNECT_TIMEOUT,  # 连接超时2秒
-            read_timeout=COMMAND_TIMEOUT,     # 读取超时30秒
-            write_timeout=COMMAND_TIMEOUT     # 写入超时30秒
+            connect_timeout=CONNECT_TIMEOUT,
+            read_timeout=COMMAND_TIMEOUT,
+            write_timeout=COMMAND_TIMEOUT
         )
-        
+        print(f"MySQL连接成功: {host}:{port},执行命令: {sql}")
         try:
             with connection.cursor() as cursor:
+                # 检查是否使用 \G 格式，并转换SQL
+                use_g_format = sql.strip().endswith('\\G')
+                if use_g_format:
+                    sql = sql.strip()[:-2] + ';'  # 移除 \G 并添加分号
+                
                 cursor.execute(sql)
                 result = cursor.fetchall()
                 
                 # 格式化输出结果
                 if not result:
                     return "Query executed successfully. No results to display."
-                
-                # 获取列名
-                columns = list(result[0].keys())
-                
-                # 构建表格输出
-                output = []
-                output.append(" | ".join(columns))
-                output.append("-" * (len(" | ".join(columns))))
-                
-                for row in result:
-                    output.append(" | ".join(str(row[col]) for col in columns))
-                
-                return "\n".join(output)
+
+                if use_g_format:
+                    # \G 格式输出
+                    output = []
+                    for row_num, row in enumerate(result, 1):
+                        output.append(f"*************************** {row_num}. row ***************************")
+                        for key, value in row.items():
+                            output.append(f"{key}: {value}")
+                        output.append("")  # 空行分隔每条记录
+                    return "\n".join(output)
+                else:
+                    # 表格格式输出
+                    columns = list(result[0].keys())
+                    output = []
+                    output.append(" | ".join(columns))
+                    output.append("-" * (len(" | ".join(columns))))
+                    
+                    for row in result:
+                        output.append(" | ".join(str(row[col]) for col in columns))
+                    
+                    return "\n".join(output)
                 
         finally:
             connection.close()
@@ -306,7 +319,6 @@ async def execute_command(command_request: CommandRequest):
 
         assistant_type = parts[0][1:-2].lower()
         command_body = parts[1]
-
         # 根据助手类型选择执行方式
         if assistant_type == 'ssh':
             # SSH命令保持原有逻辑
