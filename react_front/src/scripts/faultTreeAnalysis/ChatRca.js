@@ -1548,16 +1548,16 @@ const ChatRca = ({ treeData, style }) => {
                                 bottom: '100%',
                                 left: 0,
                                 width: '320px',
-                                background: '#1e40af',
+                                background: '#f8fafc',
                                 borderRadius: '8px',
-                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
                                 padding: '8px',
                                 marginBottom: '8px',
                                 zIndex: 1000,
                                 maxHeight: '400px',
-                                overflowY: 'auto'
+                                overflowY: 'auto',
+                                border: '1px solid #e2e8f0'
                             }}>
-                                {/* @ 助手选择弹窗内容 */}
                                 {filteredAssistants.map((assistant) => (
                                     <div
                                         key={assistant.id}
@@ -1568,20 +1568,20 @@ const ChatRca = ({ treeData, style }) => {
                                             borderRadius: '4px',
                                             background: 'transparent',
                                             '&:hover': {
-                                                background: 'rgba(255, 255, 255, 0.1)'
+                                                background: '#f1f5f9'
                                             }
                                         }}
                                     >
-                                        <div style={{ fontWeight: 'bold', color: 'white' }}>
+                                        <div style={{ fontWeight: 'bold', color: '#334155' }}>
                                             {assistant.name}
                                         </div>
-                                        <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>
+                                        <div style={{ fontSize: '12px', color: '#64748b' }}>
                                             {assistant.description}
                                         </div>
                                         <div style={{ 
                                             marginTop: '8px',
                                             fontSize: '12px',
-                                            color: 'rgba(255, 255, 255, 0.5)'
+                                            color: '#94a3b8'
                                         }}>
                                             {assistant.examples[0]}
                                         </div>
@@ -1597,14 +1597,15 @@ const ChatRca = ({ treeData, style }) => {
                                 bottom: '100%',
                                 left: 0,
                                 width: '320px',
-                                background: '#1e40af',
+                                background: '#f8fafc',
                                 borderRadius: '8px',
-                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
                                 padding: '8px',
                                 marginBottom: '8px',
                                 zIndex: 1000,
                                 maxHeight: '400px',
-                                overflowY: 'auto'
+                                overflowY: 'auto',
+                                border: '1px solid #e2e8f0'
                             }}>
                                 <div style={{
                                     display: 'flex',
@@ -1661,19 +1662,19 @@ const ChatRca = ({ treeData, style }) => {
                                             padding: '8px 12px',
                                             cursor: 'pointer',
                                             borderRadius: '4px',
-                                            background: index === selectedIndex ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                                            background: index === selectedIndex ? '#e2e8f0' : 'transparent',
                                             transition: 'background-color 0.2s'
                                         }}
                                     >
                                         {quickSelectMode === 'server' ? (
                                             <>
-                                                <div style={{ fontWeight: 'bold', color: 'white' }}>{item.name}</div>
-                                                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>{item.ip}</div>
+                                                <div style={{ fontWeight: 'bold', color: '#334155' }}>{item.name}</div>
+                                                <div style={{ fontSize: '12px', color: '#64748b' }}>{item.ip}</div>
                                             </>
                                         ) : (
                                             <>
-                                                <div style={{ fontWeight: 'bold', color: 'white' }}>{item.cmd}</div>
-                                                <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>{item.desc}</div>
+                                                <div style={{ fontWeight: 'bold', color: '#334155' }}>{item.cmd}</div>
+                                                <div style={{ fontSize: '12px', color: '#64748b' }}>{item.desc}</div>
                                             </>
                                         )}
                                     </div>
@@ -1683,7 +1684,7 @@ const ChatRca = ({ treeData, style }) => {
                                 {getFilteredItems().length === 0 && (
                                     <div style={{ 
                                         padding: '8px 12px', 
-                                        color: 'rgba(255, 255, 255, 0.7)',
+                                        color: '#64748b',
                                         textAlign: 'center' 
                                     }}>
                                         未找到匹配结果
