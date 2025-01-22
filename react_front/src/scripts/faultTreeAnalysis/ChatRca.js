@@ -819,6 +819,22 @@ const ChatRca = ({ treeData, style }) => {
         }
     };
 
+    // 计算输入区域的总高度
+    const getInputAreaHeight = () => {
+        const baseHeight = 80; // 基础输入框高度
+        return baseHeight; // 保持输入框高度固定
+    };
+
+    // 计算助手区域的总高度
+    const getAssistantsHeight = () => {
+        const assistantHeight = 56; // 每个助手框的高度
+        const activeAssistantsCount = Array.from(activeAssistants.keys()).length;
+        return activeAssistantsCount * assistantHeight;
+    };
+
+    const inputAreaHeight = getInputAreaHeight();
+    const assistantsHeight = getAssistantsHeight();
+
     return (
         <div style={{ 
             display: 'flex',
@@ -867,7 +883,7 @@ const ChatRca = ({ treeData, style }) => {
                     flex: 1,
                     overflowY: 'auto',
                     padding: '16px',
-                    height: 'calc(100% - 80px - 37px)', // 减去输入框和顶部工具栏的高度
+                    height: `calc(100% - ${inputAreaHeight + assistantsHeight}px - 37px)`,
                     scrollBehavior: 'smooth'
                 }}
             >
@@ -950,7 +966,7 @@ const ChatRca = ({ treeData, style }) => {
                 padding: '16px',
                 background: '#fff',
                 borderTop: '1px solid #e8e8e8',
-                height: '80px'
+                height: `${inputAreaHeight + assistantsHeight}px`
             }}>
                 {/* 上下文标签区域 */}
                 <div style={{ 
