@@ -881,8 +881,17 @@ const ChatRca = ({ treeData, style }) => {
 
             const responseData = await response.json();
 
+            // 添加错误消息到对话列表
             if (!response.ok) {
-                throw new Error(responseData.detail || '未知错误');
+                const errorMessage = responseData.detail || '未知错误';
+                setMessages(prev => [...prev, {
+                    type: 'assistant',
+                    content: `执行失败: ${errorMessage}`,
+                    command: command,
+                    timestamp: new Date().toLocaleTimeString(),
+                    isError: true
+                }]);
+                return; // 不抛出错误，而是直接返回
             }
 
             if (responseData.success) {
@@ -898,14 +907,21 @@ const ChatRca = ({ treeData, style }) => {
                     timestamp: new Date().toLocaleTimeString()
                 }]);
             } else {
-                throw new Error(responseData.result || '执行失败');
+                // 处理业务逻辑错误
+                setMessages(prev => [...prev, {
+                    type: 'assistant',
+                    content: `执行失败: ${responseData.result || '未知错误'}`,
+                    command: command,
+                    timestamp: new Date().toLocaleTimeString(),
+                    isError: true
+                }]);
             }
             
             return responseData;
 
         } catch (error) {
+            // 处理网络错误等其他错误
             console.error('执行命令失败:', error);
-            // 添加错误消息到对话列表
             setMessages(prev => [...prev, {
                 type: 'assistant',
                 content: `执行失败: ${error.message}`,
@@ -913,7 +929,6 @@ const ChatRca = ({ treeData, style }) => {
                 timestamp: new Date().toLocaleTimeString(),
                 isError: true
             }]);
-            throw error;
         }
     };
 
