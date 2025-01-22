@@ -15,6 +15,9 @@ from typing import Dict, Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+ssh_user = 'root'
+mysql_user = 'gaochao'
+mysql_password = 'fffjjj'
 
 app = FastAPI()
 
@@ -76,7 +79,7 @@ class CommandExecutor:
             # 建立 SSH 连接
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(hostname=host, username='root', timeout=CONNECT_TIMEOUT)
+            ssh.connect(hostname=host, username=ssh_user, timeout=CONNECT_TIMEOUT)
             
             # 获取 channel 并请求 PTY
             channel = ssh.get_transport().open_session()
@@ -247,8 +250,8 @@ def execute_mysql_command(host: str, port: int, sql: str) -> str:
         connection = pymysql.connect(
             host=host,
             port=port,
-            user='gaochao',
-            password='fffjjj',
+            user=mysql_user,
+            password=mysql_password,
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor,
             connect_timeout=CONNECT_TIMEOUT,
