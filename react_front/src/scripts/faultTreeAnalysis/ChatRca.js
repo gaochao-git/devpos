@@ -441,7 +441,6 @@ const ChatRca = ({ treeData, style }) => {
             }
         } catch (error) {
             if (error.name !== 'AbortError') {
-                console.error('Error:', error);
                 setMessages(prev => [...prev, {
                     type: 'assistant',
                     content: `调用失败: ${error.message}`,
@@ -449,7 +448,6 @@ const ChatRca = ({ treeData, style }) => {
                     isError: true
                 }]);
             }
-            message.error(isAssistantCommand ? '执行命令失败' : '发送消息失败，请稍后重试');
         } finally {
             setIsStreaming(false);
             abortControllerRef.current = null;
@@ -841,6 +839,8 @@ const ChatRca = ({ treeData, style }) => {
             flexDirection: 'column',
             height: '100%',
             background: '#f5f5f5',
+            position: 'relative',
+            overflow: 'hidden',
             ...style
         }}>
             {/* 添加顶部工具栏 */}
@@ -883,8 +883,7 @@ const ChatRca = ({ treeData, style }) => {
                     flex: 1,
                     overflowY: 'auto',
                     padding: '16px',
-                    height: `calc(100% - ${inputAreaHeight + assistantsHeight}px - 37px)`,
-                    scrollBehavior: 'smooth'
+                    paddingBottom: `${inputAreaHeight + assistantsHeight}px`,
                 }}
             >
                 {messages.map((msg, index) => (
@@ -966,7 +965,11 @@ const ChatRca = ({ treeData, style }) => {
                 padding: '16px',
                 background: '#fff',
                 borderTop: '1px solid #e8e8e8',
-                height: `${inputAreaHeight + assistantsHeight}px`
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                zIndex: 1000,
             }}>
                 {/* 上下文标签区域 */}
                 <div style={{ 
