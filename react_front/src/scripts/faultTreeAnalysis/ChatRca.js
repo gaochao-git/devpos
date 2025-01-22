@@ -110,9 +110,9 @@ const ASSISTANT_CONFIGS = {
         serverFormat: (ip, port) => `${ip}:${port || '3306'}`,
         commandFormat: (ip, port, command) => `${ip} -P ${port} -e "${command}"`,
         commonCommands: [
-            { label: 'show processlist', value: 'show processlist' },
-            { label: 'show tables', value: 'show tables' },
-            { label: 'show status', value: 'show status' }
+            { label: 'show processlist', value: 'show processlist', desc: '显示当前所有连接会话' },
+            { label: 'show tables', value: 'show tables', desc: '显示所有数据表' },
+            { label: 'show status', value: 'show status', desc: '显示服务器状态变量' }
         ]
     },
     'SSH助手': {
@@ -120,9 +120,9 @@ const ASSISTANT_CONFIGS = {
         serverFormat: (ip) => ip,
         commandFormat: (ip, _, command) => `${ip} ${command}`,
         commonCommands: [
-            { label: 'df -h', value: 'df -h' },
-            { label: 'free -m', value: 'free -m' },
-            { label: 'top -n 1', value: 'top -n 1' }
+            { label: 'df -h', value: 'df -h', desc: '查看磁盘使用情况' },
+            { label: 'free -m', value: 'free -m', desc: '查看内存使用情况' },
+            { label: 'top -n 1', value: 'top -n 1', desc: '查看系统负载和进程' }
         ]
     },
     'Zabbix助手': {
@@ -130,9 +130,9 @@ const ASSISTANT_CONFIGS = {
         serverFormat: (ip) => ip,
         commandFormat: (ip, _, command) => `${ip} "${command}"`,
         commonCommands: [
-            { label: '主机列表', value: 'host.get' },
-            { label: '监控项', value: 'item.get' },
-            { label: '告警历史', value: 'alert.get' }
+            { label: '主机列表', value: 'host.get', desc: '获取所有监控主机列表' },
+            { label: '监控项', value: 'item.get', desc: '获取监控项配置' },
+            { label: '告警历史', value: 'alert.get', desc: '获取历史告警记录' }
         ]
     }
 };
@@ -1454,7 +1454,8 @@ const ChatRca = ({ treeData, style }) => {
                                                         setShowQuickCommands(null);
                                                     }}
                                                 >
-                                                    {cmd.label}
+                                                    <div style={{ fontWeight: 'bold' }}>{cmd.label}</div>
+                                                    <div style={{ fontSize: '12px', color: '#666' }}>{cmd.desc}</div>
                                                 </div>
                                             ))}
                                         </div>
