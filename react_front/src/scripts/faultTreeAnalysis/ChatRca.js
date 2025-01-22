@@ -1558,6 +1558,34 @@ const ChatRca = ({ treeData, style }) => {
                                 overflowY: 'auto',
                                 border: '1px solid #e2e8f0'
                             }}>
+                                {/* 添加关闭按钮 */}
+                                <div 
+                                    onClick={() => setAtPosition(null)}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '8px',
+                                        top: '8px',
+                                        width: '24px',
+                                        height: '24px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        borderRadius: '50%',
+                                        color: '#64748b',
+                                        transition: 'background-color 0.2s',
+                                        '&:hover': {
+                                            background: '#e2e8f0'
+                                        }
+                                    }}
+                                >
+                                    <span style={{
+                                        fontSize: '18px',
+                                        lineHeight: 1,
+                                        fontFamily: 'Arial'
+                                    }}>×</span>
+                                </div>
+
                                 {filteredAssistants.map((assistant) => (
                                     <div
                                         key={assistant.id}
