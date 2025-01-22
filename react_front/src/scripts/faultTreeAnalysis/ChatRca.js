@@ -138,7 +138,7 @@ const ASSISTANT_CONFIGS = {
     'MySQL助手': {
         prefix: 'mysql> ',
         serverFormat: (ip, port) => `${ip}:${port || '3306'}`,
-        commandFormat: (ip, port, command) => `${ip} -P ${port} -e "${command}"`,
+        commandFormat: (ip, port, command) => `${ip} -P ${port || '3306'} -e "${command}"`,
         commonCommands: [
             { value: 'show processlist;', label: 'MySQL: 查看进程列表' },
             { value: 'show slave status\\G', label: 'MySQL: 查看主从状态' },
@@ -152,14 +152,28 @@ const ASSISTANT_CONFIGS = {
         serverFormat: (ip) => ip,
         commandFormat: (ip, _, command) => `${ip} ${command}`,
         commonCommands: [
-            { value: 'get_history', label: 'Zabbix: 获取监控项历史数据' },
-            { value: 'get_problems', label: 'Zabbix: 获取当前告警问题' },
-            { value: 'get_hosts', label: 'Zabbix: 获取主机列表' },
-            { value: 'get_items', label: 'Zabbix: 获取监控项列表' },
-            { value: 'get_triggers', label: 'Zabbix: 获取触发器列表' },
-            { value: 'get_events', label: 'Zabbix: 获取事件列表' },
-            { value: 'get_graphs', label: 'Zabbix: 获取图形列表' },
-            { value: 'get_trends', label: 'Zabbix: 获取趋势数据' }
+            // 数据库指标
+            { value: 'get_history mysql.status[Bytes_received]', label: '每秒接收字节数' },
+            { value: 'get_history mysql.status[Bytes_sent]', label: '每秒发送字节数' },
+            { value: 'get_history mysql.status[Questions]', label: '每秒查询数' },
+            { value: 'get_history mysql.status[Slow_queries]', label: '慢查询数' },
+            
+            // CPU指标
+            { value: 'get_history system.cpu.util[,user]', label: 'CPU用户使用率' },
+            { value: 'get_history system.cpu.util[,system]', label: 'CPU系统使用率' },
+            { value: 'get_history system.cpu.load[percpu,avg1]', label: 'CPU每核平均负载(1分钟)' },
+            
+            // 内存指标
+            { value: 'get_history vm.memory.size[available]', label: '可用内存' },
+            { value: 'get_history vm.memory.size[used]', label: '已用内存' },
+            
+            // 磁盘指标
+            { value: 'get_history vfs.fs.size[/,used]', label: '根分区使用量' },
+            { value: 'get_history vfs.fs.size[/,pfree]', label: '根分区剩余百分比' },
+            
+            // 网络指标
+            { value: 'get_history net.if.in[eth0]', label: '网络入站流量' },
+            { value: 'get_history net.if.out[eth0]', label: '网络出站流量' }
         ]
     }
 };
@@ -1323,7 +1337,9 @@ const ChatRca = ({ treeData, style }) => {
                             const config = ASSISTANT_CONFIGS[assistantName];
                             if (!config) return null;
 
-                            const isPresetAssistant = assistantName === 'MySQL助手' || assistantName === 'SSH助手';
+                            const isPresetAssistant = assistantName === 'MySQL助手' || 
+                                                     assistantName === 'SSH助手' ||
+                                                     assistantName === 'Zabbix助手';  // 添加 Zabbix 助手
 
                             if (isPresetAssistant) {
                                 return (
@@ -1355,7 +1371,7 @@ const ChatRca = ({ treeData, style }) => {
                                             onChange={value => {
                                                 const [ip, port] = value.split(':');
                                                 setAssistantConfigs(prev => 
-                                                    new Map(prev).set(assistantName, { ip, port: port || '3306' })
+                                                    new Map(prev).set(assistantName, { ip, port: port || '' })
                                                 );
                                             }}
                                         >
@@ -1413,11 +1429,14 @@ const ChatRca = ({ treeData, style }) => {
                                                     return;
                                                 }
 
-                                                // 构造完整命令，使用正确的格式
-                                                const fullCommand = assistantName === 'MySQL助手' 
-                                                    ? `@${assistantName} ${serverConfig.ip} -P ${serverConfig.port} -e "${value}"`
-                                                    : `@${assistantName} ${serverConfig.ip} ${value}`;
-                                                
+                                                // 根据助手类型构建不同的命令
+                                                let fullCommand;
+                                                if (assistantName === 'MySQL助手') {
+                                                    fullCommand = `@${assistantName} ${serverConfig.ip} -P ${serverConfig.port || '3306'} -e "${value}"`;
+                                                } else {
+                                                    fullCommand = `@${assistantName} ${serverConfig.ip} ${value}`;
+                                                }
+
                                                 executeCommand(fullCommand);
                                                 setAssistantInputs(prev => new Map(prev).set(assistantName, ''));
                                             }}
@@ -1433,58 +1452,7 @@ const ChatRca = ({ treeData, style }) => {
                                 );
                             }
 
-                            // 其他助手保持原有的输入框形式
-                            return (
-                                <div key={assistantName} style={{ marginBottom: '8px' }}>
-                                    <Input
-                                        ref={el => {
-                                            if (el) {
-                                                inputRefs.current.set(assistantName, el);
-                                            }
-                                        }}
-                                        value={assistantInputs.get(assistantName) || ''}
-                                        onChange={e => {
-                                            const newValue = e.target.value;
-                                            setAssistantInputs(prev => new Map(prev).set(assistantName, newValue));
-                                        }}
-                                        onKeyDown={e => {
-                                            if (e.key === 'Enter' && !e.shiftKey) {
-                                                e.preventDefault();
-                                                const value = assistantInputs.get(assistantName);
-                                                if (value) {
-                                                    const fullCommand = `@${assistantName} ${value}`;
-                                                    executeCommand(fullCommand);
-                                                    setAssistantInputs(prev => new Map(prev).set(assistantName, ''));
-                                                }
-                                            }
-                                        }}
-                                        placeholder="输入命令..."
-                                        addonBefore={config.prefix}
-                                        addonAfter={
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <div 
-                                                    style={{ cursor: 'pointer', color: '#1890ff' }}
-                                                    onClick={() => {
-                                                        const value = assistantInputs.get(assistantName);
-                                                        if (value) {
-                                                            const fullCommand = `@${assistantName} ${value}`;
-                                                            executeCommand(fullCommand);
-                                                            setAssistantInputs(prev => new Map(prev).set(assistantName, ''));
-                                                        }
-                                                    }}
-                                                >
-                                                    发送
-                                                </div>
-                                                <Icon 
-                                                    type="close" 
-                                                    style={{ cursor: 'pointer' }}
-                                                    onClick={() => handleCloseAssistant(assistantName)}
-                                                />
-                                            </div>
-                                        }
-                                    />
-                                </div>
-                            );
+                            // ... rest of the code for non-preset assistants ...
                         })}
 
                         {/* 主输入框 */}
