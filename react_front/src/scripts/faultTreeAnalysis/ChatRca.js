@@ -1183,20 +1183,21 @@ const ChatRca = ({ treeData, style }) => {
         <div style={{ 
             display: 'flex',
             flexDirection: 'column',
-            height: '100%',
+            height: '100vh',
             background: '#f5f5f5',
             position: 'relative',
             overflow: 'hidden',
             ...style
         }}>
-            {/* 添加顶部工具栏 */}
+            {/* 顶部工具栏 */}
             <div style={{
                 padding: '8px 16px',
                 borderBottom: '1px solid #e8e8e8',
                 background: '#fff',
                 display: 'flex',
                 justifyContent: 'flex-end',
-                gap: '16px'
+                gap: '16px',
+                zIndex: 1000
             }}>
                 <Tooltip title="新开会话">
                     <Icon 
@@ -1222,19 +1223,22 @@ const ChatRca = ({ treeData, style }) => {
                 </Tooltip>
             </div>
 
+            {/* 消息列表区域 */}
             <div 
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
                 style={{
                     flex: 1,
                     overflowY: 'auto',
-                    padding: '16px',
-                    paddingBottom: `${inputAreaHeight + assistantsHeight}px`,
+                    paddingLeft: '16px',
+                    paddingRight: '16px',
+                    paddingTop: '16px',
+                    marginBottom: `${inputAreaHeight + assistantsHeight}px`,
                 }}
             >
                 {messages.map((msg, index) => (
                     <div key={index} style={{
-                        marginBottom: '16px',
+                        marginBottom: index === messages.length - 1 ? 0 : '16px',
                         display: 'flex',
                         flexDirection: msg.type === 'user' ? 'row-reverse' : 'row',
                         alignItems: 'flex-start',
@@ -1321,6 +1325,7 @@ const ChatRca = ({ treeData, style }) => {
                 ))}
             </div>
 
+            {/* 底部输入区域 */}
             <div style={{
                 padding: '16px',
                 background: '#fff',
