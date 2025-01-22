@@ -207,6 +207,13 @@ const ChatRca = ({ treeData, style }) => {
     const abortControllerRef = useRef(null);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
+    // 添加新的状态来管理历史会话
+    const [historyData, setHistoryData] = useState([]);
+    const [expandedConversations, setExpandedConversations] = useState(new Set());
+    const [conversationMessages, setConversationMessages] = useState(new Map());
+    const [loadingConversations, setLoadingConversations] = useState(new Set());
+    const [historyModalVisible, setHistoryModalVisible] = useState(false);
+
     // 将 QUICK_SELECT_CONFIG 移到组件内部
     const QUICK_SELECT_CONFIG = {
         servers: extractServersFromTree(treeData),
@@ -742,7 +749,62 @@ const ChatRca = ({ treeData, style }) => {
         }
     };
 
-    // 处理查看历史
+    // 添加新的函数用于获取会话消息
+    const fetchConversationMessages = async (conversationId) => {
+        try {
+            const response = await fetch(`${DIFY_BASE_URL}/messages?user=system&conversation_id=${conversationId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': DIFY_API_KEY,
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('获取会话消息失败:', error);
+            throw error;
+        }
+    };
+
+    // 处理展开/收起的函数
+    const handleConversationToggle = async (conversationId) => {
+        const isExpanded = expandedConversations.has(conversationId);
+        const messages = conversationMessages.get(conversationId);
+
+        // 如果是展开操作且没有消息数据，则先加载消息
+        if (!isExpanded && !messages) {
+            setLoadingConversations(prev => new Set(prev).add(conversationId));
+            try {
+                const messagesData = await fetchConversationMessages(conversationId);
+                setConversationMessages(prev => new Map(prev).set(conversationId, messagesData.data));
+            } catch (error) {
+                message.error('获取会话详情失败');
+            } finally {
+                setLoadingConversations(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(conversationId);
+                    return newSet;
+                });
+            }
+        }
+
+        // 更新展开状态
+        setExpandedConversations(prev => {
+            const newSet = new Set(prev);
+            if (isExpanded) {
+                newSet.delete(conversationId);
+            } else {
+                newSet.add(conversationId);
+            }
+            return newSet;
+        });
+    };
+
+    // 修改 handleViewHistory 函数
     const handleViewHistory = async () => {
         setIsHistoryLoading(true);
         try {
@@ -759,53 +821,8 @@ const ChatRca = ({ treeData, style }) => {
 
             const data = await response.json();
             if (data.data && data.data.length > 0) {
-                Modal.info({
-                    title: '历史会话列表',
-                    content: (
-                        <div style={{ 
-                            maxHeight: '400px', 
-                            overflowY: 'auto',
-                            paddingRight: '10px'
-                        }}>
-                            {data.data.map(conversation => (
-                                <div 
-                                    key={conversation.id} 
-                                    style={{ 
-                                        marginBottom: '8px',
-                                        padding: '12px',
-                                        border: '1px solid #e8e8e8',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer',
-                                        transition: 'background-color 0.3s'
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                                >
-                                    <div style={{ 
-                                        fontSize: '15px', 
-                                        color: '#333',
-                                        fontWeight: 500,
-                                        marginBottom: '8px'
-                                    }}>
-                                        {conversation.name || '未命名会话'}
-                                    </div>
-                                    <div style={{ 
-                                        fontSize: '13px', 
-                                        color: '#666',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center'
-                                    }}>
-                                        <span>ID: {conversation.id}</span>
-                                        <span>{new Date(conversation.created_at * 1000).toLocaleString()}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ),
-                    width: 500,
-                    maskClosable: true
-                });
+                setHistoryData(data.data);
+                setHistoryModalVisible(true);
             } else {
                 message.info('暂无历史会话记录');
             }
@@ -816,6 +833,248 @@ const ChatRca = ({ treeData, style }) => {
             setIsHistoryLoading(false);
         }
     };
+
+    // 修改继续对话的处理函数
+    const handleContinueConversation = async (conversation) => {
+        try {
+            // 获取历史消息
+            const messagesData = await fetchConversationMessages(conversation.id);
+            
+            // 设置会话ID
+            setConversationId(conversation.id);
+            
+            // 修改消息转换逻辑，确保问题和回答都被正确加载
+            const convertedMessages = messagesData.data.flatMap(msg => {
+                const messages = [];
+                
+                // 添加用户问题
+                if (msg.query) {
+                    messages.push({
+                        type: 'user',
+                        content: msg.query,
+                        timestamp: new Date(msg.created_at * 1000).toLocaleString()
+                    });
+                }
+                
+                // 添加系统回答
+                if (msg.answer) {
+                    messages.push({
+                        type: 'assistant',
+                        content: msg.answer,
+                        timestamp: new Date(msg.created_at * 1000).toLocaleString(),
+                        // 如果有参考资料，也一并保存
+                        retriever_resources: msg.retriever_resources
+                    });
+                }
+                
+                return messages;
+            });
+            
+            // 加载转换后的消息到当前对话
+            setMessages(convertedMessages);
+            
+            // 关闭历史对话弹窗
+            setHistoryModalVisible(false);
+            
+            message.success('已加载历史对话');
+        } catch (error) {
+            console.error('加载历史对话失败:', error);
+            message.error('加载历史对话失败');
+        }
+    };
+
+    // 修改历史记录弹窗的渲染
+    const renderHistoryModal = () => (
+        <Modal
+            title="历史会话列表"
+            visible={historyModalVisible}
+            onCancel={() => setHistoryModalVisible(false)}
+            footer={[
+                <Button key="close" onClick={() => setHistoryModalVisible(false)}>
+                    关闭
+                </Button>
+            ]}
+            width={800}
+        >
+            <div style={{ 
+                maxHeight: '600px', 
+                overflowY: 'auto',
+                paddingRight: '10px'
+            }}>
+                {historyData.map(conversation => {
+                    const isExpanded = expandedConversations.has(conversation.id);
+                    const isLoading = loadingConversations.has(conversation.id);
+                    const messages = conversationMessages.get(conversation.id);
+
+                    return (
+                        <div 
+                            key={conversation.id} 
+                            style={{ 
+                                marginBottom: '16px',
+                                border: '1px solid #e8e8e8',
+                                borderRadius: '8px',
+                                background: '#fff'
+                            }}
+                        >
+                            <div style={{ 
+                                padding: '16px',
+                                display: 'flex', 
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                borderBottom: isExpanded ? '1px solid #e8e8e8' : 'none'
+                            }}>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ 
+                                        fontSize: '16px', 
+                                        fontWeight: 500,
+                                        color: '#1890ff'
+                                    }}>
+                                        {conversation.name || '未命名会话'}
+                                    </div>
+                                    <div style={{ 
+                                        fontSize: '12px', 
+                                        color: '#666',
+                                        marginTop: '4px'
+                                    }}>
+                                        {new Date(conversation.created_at * 1000).toLocaleString()}
+                                    </div>
+                                </div>
+                                <div style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px'
+                                }}>
+                                    <Button
+                                        type="primary"
+                                        size="small"
+                                        onClick={() => handleContinueConversation(conversation)}
+                                    >
+                                        继续对话
+                                    </Button>
+                                    <div 
+                                        onClick={() => handleConversationToggle(conversation.id)}
+                                        style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            cursor: 'pointer',
+                                            padding: '8px'
+                                        }}
+                                    >
+                                        {isLoading && <Icon type="loading" />}
+                                        <Icon 
+                                            type={isExpanded ? 'up' : 'down'} 
+                                            style={{ fontSize: '16px', color: '#666' }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {isExpanded && messages && (
+                                <div style={{ padding: '16px' }}>
+                                    {messages.map((message, index) => (
+                                        <div 
+                                            key={message.id}
+                                            style={{
+                                                marginBottom: index === messages.length - 1 ? 0 : '16px',
+                                                padding: '12px',
+                                                borderRadius: '8px',
+                                                background: '#fff',
+                                                border: '1px solid #e8e8e8'
+                                            }}
+                                        >
+                                            {/* 问题部分 */}
+                                            <div style={{
+                                                padding: '12px',
+                                                marginBottom: '8px',
+                                                background: '#f0f5ff',
+                                                borderRadius: '4px',
+                                                border: '1px solid #d6e4ff'
+                                            }}>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    marginBottom: '8px'
+                                                }}>
+                                                    <Tag color="blue">问题</Tag>
+                                                    <span style={{ fontSize: '12px', color: '#666' }}>
+                                                        {new Date(message.created_at * 1000).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                                <div style={{ whiteSpace: 'pre-wrap' }}>
+                                                    {message.query}
+                                                </div>
+                                            </div>
+
+                                            {/* 回答部分 */}
+                                            <div style={{
+                                                padding: '12px',
+                                                background: '#f6ffed',
+                                                borderRadius: '4px',
+                                                border: '1px solid #b7eb8f'
+                                            }}>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    marginBottom: '8px'
+                                                }}>
+                                                    <Tag color="green">回答</Tag>
+                                                    <span style={{ fontSize: '12px', color: '#666' }}>
+                                                        {new Date(message.created_at * 1000).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                                <div style={{ whiteSpace: 'pre-wrap' }}>
+                                                    {message.answer}
+                                                </div>
+                                            </div>
+
+                                            {/* 参考资料部分 */}
+                                            {message.retriever_resources && message.retriever_resources.length > 0 && (
+                                                <div style={{ 
+                                                    marginTop: '12px',
+                                                    padding: '12px',
+                                                    background: '#fafafa',
+                                                    borderRadius: '4px',
+                                                    border: '1px solid #e8e8e8',
+                                                    fontSize: '12px'
+                                                }}>
+                                                    <div style={{ 
+                                                        fontWeight: 500, 
+                                                        marginBottom: '8px',
+                                                        color: '#666'
+                                                    }}>
+                                                        参考资料
+                                                    </div>
+                                                    {message.retriever_resources.map((resource, idx) => (
+                                                        <div key={idx} style={{ 
+                                                            padding: '4px 0',
+                                                            borderBottom: idx < message.retriever_resources.length - 1 ? '1px dashed #e8e8e8' : 'none'
+                                                        }}>
+                                                            <div>来源：{resource.dataset_name} - {resource.document_name}</div>
+                                                            <div>相关度：{(resource.score * 100).toFixed(1)}%</div>
+                                                            <div style={{ 
+                                                                marginTop: '4px',
+                                                                padding: '8px',
+                                                                background: '#fff',
+                                                                borderRadius: '4px',
+                                                                fontSize: '12px',
+                                                                color: '#666'
+                                                            }}>
+                                                                {resource.content}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </Modal>
+    );
 
     // 计算输入区域的总高度
     const getInputAreaHeight = () => {
@@ -1425,6 +1684,7 @@ const ChatRca = ({ treeData, style }) => {
                     </div>
                 </div>
             </div>
+            {renderHistoryModal()}
         </div>
     );
 };
