@@ -5,13 +5,12 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-// API 地址常量
+// API URLs and Configuration
 const DIFY_BASE_URL = 'http://127.0.0.1/v1';
 const DIFY_API_KEY = 'Bearer app-0awR0muTJbJAISBjgHYli4Dv';
 const DIFY_CHAT_URL = `${DIFY_BASE_URL}/chat-messages`;
 const DIFY_CONVERSATIONS_URL = `${DIFY_BASE_URL}/conversations`;
-
-
+const COMMAND_EXECUTE_URL = 'http://localhost:8002/execute';  // 新增命令执行 URL
 
 // 定义 Markdown 渲染器配置
 const markdownRenderers = {
@@ -33,7 +32,6 @@ const markdownRenderers = {
         );
     }
 };
-
 
 // 定义上下文类型
 const CONTEXT_TYPES = [
@@ -863,10 +861,10 @@ const ChatRca = ({ treeData, style }) => {
         }, 0);
     };
 
-    // 添加 executeCommand 函数定义
+    // 修改 executeCommand 函数
     const executeCommand = async (command) => {
         try {
-            const response = await fetch('http://localhost:8002/execute', {
+            const response = await fetch(COMMAND_EXECUTE_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
