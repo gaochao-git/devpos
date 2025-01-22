@@ -927,6 +927,7 @@ const ChatRca = ({ treeData, style }) => {
                 setMessages(prev => [...prev, {
                     type: 'assistant',
                     content: `执行失败: ${errorMessage}`,
+                    rawContent: errorMessage,  // 添加原始文本
                     command: command,
                     timestamp: new Date().toLocaleTimeString(),
                     isError: true
@@ -941,6 +942,7 @@ const ChatRca = ({ treeData, style }) => {
                 setMessages(prev => [...prev, {
                     type: 'assistant',
                     content: formatMessage,
+                    rawContent: responseData.result,  // 添加原始文本
                     command: command,
                     timestamp: new Date().toLocaleTimeString()
                 }]);
@@ -948,6 +950,7 @@ const ChatRca = ({ treeData, style }) => {
                 setMessages(prev => [...prev, {
                     type: 'assistant',
                     content: `执行失败: ${responseData.result || '未知错误'}`,
+                    rawContent: responseData.result || '未知错误',  // 添加原始文本
                     command: command,
                     timestamp: new Date().toLocaleTimeString(),
                     isError: true
@@ -967,6 +970,7 @@ const ChatRca = ({ treeData, style }) => {
             setMessages(prev => [...prev, {
                 type: 'assistant',
                 content: `执行失败: ${error.message}`,
+                rawContent: error.message,  // 添加原始文本
                 command: command,
                 timestamp: new Date().toLocaleTimeString(),
                 isError: true
@@ -1164,6 +1168,17 @@ const ChatRca = ({ treeData, style }) => {
     const inputAreaHeight = getInputAreaHeight();
     const assistantsHeight = getAssistantsHeight();
 
+    // 然后修改复制函数
+    const copyToClipboard = (msg) => {
+        const textToCopy = msg.rawContent || msg.content;  // 使用 msg
+        
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            message.success('已复制到剪贴板');
+        }).catch(() => {
+            message.error('复制失败');
+        });
+    };
+
     return (
         <div style={{ 
             display: 'flex',
@@ -1234,7 +1249,7 @@ const ChatRca = ({ treeData, style }) => {
                             color: msg.type === 'user' ? '#333' : '#333',
                             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                         }}>
-                            {/* 角色、时间和勾选框放在一行 */}
+                            {/* 角色、时间和操作按钮放在一行 */}
                             <div style={{
                                 display: 'flex',
                                 justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start',
@@ -1265,6 +1280,20 @@ const ChatRca = ({ treeData, style }) => {
                                         checked={selectedResults.has(msg.timestamp)}
                                         onChange={() => handleResultSelect(msg.timestamp)}
                                     />
+                                )}
+                                {/* 添加复制按钮 */}
+                                {msg.type === 'assistant' && (
+                                    <Tooltip title="复制内容">
+                                        <Icon 
+                                            type="copy" 
+                                            style={{ 
+                                                cursor: 'pointer',
+                                                color: '#1890ff',
+                                                fontSize: '14px'
+                                            }}
+                                            onClick={() => copyToClipboard(msg)}
+                                        />
+                                    </Tooltip>
                                 )}
                             </div>
 
