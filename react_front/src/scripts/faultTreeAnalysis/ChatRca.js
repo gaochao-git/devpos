@@ -105,38 +105,61 @@ const DEFAULT_ASSISTANTS = [
 
 // 定义助手配置
 const ASSISTANT_CONFIGS = {
-    'MySQL助手': {
-        prefix: 'mysql> ',
-        serverFormat: (ip, port) => `${ip}:${port || '3306'}`,
-        commandFormat: (ip, port, command) => `${ip} -P ${port} -e "${command}"`,
-        commonCommands: [
-            { label: 'show processlist（查看进程列表）', value: 'show processlist' },
-            { label: 'show slave status\\G（查看主从状态）', value: 'show slave status\\G' },
-            { label: 'show master status\\G（查看主库状态）', value: 'show master status\\G' },
-            { label: 'show status like "%Threads_connected%"（查看连接数）', value: 'show status like "%Threads_connected%"' },
-            { label: 'show engine innodb status\G（查看事务状态）', value: 'show engine innodb status\\G' }
-        ]
-    },
     'SSH助手': {
         prefix: 'ssh> ',
         serverFormat: (ip) => ip,
         commandFormat: (ip, _, command) => `${ip} ${command}`,
         commonCommands: [
-            { label: 'df -h（查看磁盘使用情况）', value: 'df -h' },
-            { label: 'free -m（查看内存使用情况）', value: 'free -m' },
-            { label: 'top -n 1（查看系统负载）', value: 'top -n 1' },
-            { label: 'netstat -ant（查看网络连接）', value: 'netstat -ant' },
-            { label: 'ps aux（查看进程状态）', value: 'ps aux' }
+            // CPU相关
+            { value: 'top -n 1', label: 'CPU: 查看系统负载和进程状态，采样1次' },
+            { value: 'uptime', label: 'CPU: 查看1/5/15分钟的平均负载' },
+            { value: 'mpstat -P ALL 1 3', label: 'CPU: 查看所有CPU核心的使用率统计，每秒采样1次共3次' },
+            
+            // 内存相关
+            { value: 'free -m', label: '内存: 查看系统内存使用情况，以MB为单位' },
+            { value: 'vmstat 1 3', label: '内存: 查看虚拟内存使用统计，每秒采样1次共3次' },
+            
+            // 磁盘相关
+            { value: 'df -h', label: '磁盘: 查看各文件系统使用情况，以人类可读方式显示' },
+            { value: 'iostat -xz 1 3', label: '磁盘: 查看IO详细统计信息，每秒采样1次共3次' },
+            { value: 'lsof | wc -l', label: '磁盘: 统计当前系统打开的文件总数' },
+            
+            // 网络相关
+            { value: 'netstat -ant | grep ESTABLISHED', label: '网络: 查看当前已建立的TCP连接数' },
+            { value: 'netstat -anu', label: '网络: 查看所有UDP连接的状态' },
+            { value: 'ss -ant', label: '网络: 使用ss命令查看网络连接详情' },
+            
+            // 进程相关
+            { value: 'ps aux --sort=-%cpu | head -10', label: '进程: 按CPU使用率降序显示前10个进程' },
+            { value: 'ps aux --sort=-%mem | head -10', label: '进程: 按内存使用率降序显示前10个进程' },
+            { value: 'pstree -p', label: '进程: 以树形结构显示进程间父子关系' }
+        ]
+    },
+    'MySQL助手': {
+        prefix: 'mysql> ',
+        serverFormat: (ip, port) => `${ip}:${port || '3306'}`,
+        commandFormat: (ip, port, command) => `${ip} -P ${port} -e "${command}"`,
+        commonCommands: [
+            { value: 'show processlist;', label: 'MySQL: 查看进程列表' },
+            { value: 'show slave status\\G', label: 'MySQL: 查看主从状态' },
+            { value: 'show master status\\G', label: 'MySQL: 查看主库状态' },
+            { value: 'show status like "%Threads_connected%"', label: 'MySQL: 查看连接数' },
+            { value: 'show engine innodb status\\G', label: 'MySQL: 查看事务状态' }
         ]
     },
     'Zabbix助手': {
         prefix: 'zabbix> ',
         serverFormat: (ip) => ip,
-        commandFormat: (ip, _, command) => `${ip} "${command}"`,
+        commandFormat: (ip, _, command) => `${ip} ${command}`,
         commonCommands: [
-            { label: '主机列表', value: 'host.get', desc: '获取所有监控主机列表' },
-            { label: '监控项', value: 'item.get', desc: '获取监控项配置' },
-            { label: '告警历史', value: 'alert.get', desc: '获取历史告警记录' }
+            { value: 'get_history', label: 'Zabbix: 获取监控项历史数据' },
+            { value: 'get_problems', label: 'Zabbix: 获取当前告警问题' },
+            { value: 'get_hosts', label: 'Zabbix: 获取主机列表' },
+            { value: 'get_items', label: 'Zabbix: 获取监控项列表' },
+            { value: 'get_triggers', label: 'Zabbix: 获取触发器列表' },
+            { value: 'get_events', label: 'Zabbix: 获取事件列表' },
+            { value: 'get_graphs', label: 'Zabbix: 获取图形列表' },
+            { value: 'get_trends', label: 'Zabbix: 获取趋势数据' }
         ]
     }
 };
@@ -1353,16 +1376,25 @@ const ChatRca = ({ treeData, style }) => {
                                             onChange={value => {
                                                 setAssistantInputs(prev => new Map(prev).set(assistantName, value));
                                             }}
-                                            filterOption={(input, option) =>
-                                                option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                            }
+                                            filterOption={(input, option) => {
+                                                const value = option.props.value || '';
+                                                const label = option.props.children.props.title || '';
+                                                return (
+                                                    value.toLowerCase().indexOf(input.toLowerCase()) >= 0 ||
+                                                    label.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                                );
+                                            }}
+                                            optionLabelProp="value"
                                         >
                                             {config.commonCommands.map(cmd => (
                                                 <Select.Option 
                                                     key={cmd.value} 
                                                     value={cmd.value}
                                                 >
-                                                    {cmd.label}
+                                                    <div title={`${cmd.value} - ${cmd.label}`}>
+                                                        <div style={{ fontWeight: 'bold' }}>{cmd.value}</div>
+                                                        <div style={{ fontSize: '12px', color: '#666' }}>{cmd.label}</div>
+                                                    </div>
                                                 </Select.Option>
                                             ))}
                                         </Select>
@@ -1674,9 +1706,10 @@ const ChatRca = ({ treeData, style }) => {
                                 {/* 显示过滤后的列表 */}
                                 {getFilteredItems().map((item, index) => (
                                     <div
-                                        key={quickSelectMode === 'server' ? item.ip : item.cmd}
+                                        key={quickSelectMode === 'server' ? item.ip : item.value}
                                         onClick={() => handleQuickSelect(item)}
                                         onMouseEnter={() => setSelectedIndex(index)}
+                                        title={quickSelectMode === 'server' ? `${item.name} (${item.ip})` : `${item.value}\n${item.label}`}
                                         style={{
                                             padding: '8px 12px',
                                             cursor: 'pointer',
@@ -1692,8 +1725,8 @@ const ChatRca = ({ treeData, style }) => {
                                             </>
                                         ) : (
                                             <>
-                                                <div style={{ fontWeight: 'bold', color: '#334155' }}>{item.cmd}</div>
-                                                <div style={{ fontSize: '12px', color: '#64748b' }}>{item.desc}</div>
+                                                <div style={{ fontWeight: 'bold', color: '#334155' }}>{item.value}</div>
+                                                <div style={{ fontSize: '12px', color: '#64748b' }}>{item.label}</div>
                                             </>
                                         )}
                                     </div>
