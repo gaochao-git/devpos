@@ -13,7 +13,8 @@ from .views import (
     DeleteFaultTreeHistory,
     GetFaultTreeData,
     AnalyzeRootCause,
-    GetMetricHistory
+    GetMetricHistory,
+    GetAllMetricNamesByIp,
 )
 
 urlpatterns = [
@@ -35,5 +36,5 @@ urlpatterns = [
     path('v1/get_fault_tree_data/', GetFaultTreeData.as_view()),        # 获取故障树数据
     path('v1/analyze_root_cause/', AnalyzeRootCause.as_view()),         # 根因分析
     path('v1/get_metric_history/', GetMetricHistory.as_view()),             # 获取某个指标历史数据
-
+    path('v1/get_all_metric_names_by_ip/', GetAllMetricNamesByIp.as_view()),         # 获取某个机器所有指标名称
 ]

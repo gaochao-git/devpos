@@ -438,6 +438,25 @@ class GetMetricHistory(BaseView):
         except Exception as e:
             return self.my_response({"status": "error","message": f"获取故障树数据失败: {str(e)}","code": status.HTTP_500_INTERNAL_SERVER_ERROR})
 
+class GetAllMetricNamesByIp(BaseView):
+    """获取某个机器所有指标名称"""
+    def post(self, request):
+        # 验证请求参数
+        request_body = self.request_params
+        rules = {
+            "ip": [Required],  # 机器IP
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error","message": str(valid_ret.errors),"code": status.HTTP_400_BAD_REQUEST})
+        ip = request_body.get('ip')
+        # 获取对应的处理函数
+        handler = HandlerManager.init_metric_handlers(handler_name='zabbix',handler_type='data')
+        if not handler: raise ValueError(f"Unsupported data source: {handler_name}")
+        # 执行处理函数获取对应的监控值
+        result = handler(ip, None, None, None)
+        return self.my_response({"status": "ok","message": "success","data": result})
+
+
 class AnalyzeRootCause(BaseView):
     """分析故障根"""
     def post(self, request):

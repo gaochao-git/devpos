@@ -317,6 +317,51 @@ class ZabbixClient:
                 'data': None
             }
 
+    def get_all_metrics(self, host_ip: str) -> Dict[str, Any]:
+        """
+        获取主机的所有监控项
+        Args:
+            host_ip: 主机IP地址
+        Returns:
+            Dict: 包含所有监控项信息的字典
+        """
+        try:
+            # 获取主机ID
+            host_id = self.find_host_by_ip(host_ip)
+            if not host_id:
+                return {
+                    'status': 'error',
+                    'msg': f'No host found with IP: {host_ip}',
+                    'data': None
+                }
+
+            # 获取所有监控项
+            items = self.zapi.item.get(
+                hostids=host_id,
+                output=['itemid', 'name', 'key_', 'lastvalue', 'units', 'value_type', 'lastclock', 'description'],
+                sortfield='name'
+            )
+
+            if not items:
+                return {
+                    'status': 'warning',
+                    'msg': f'No metrics found for host {host_ip}',
+                    'data': []
+                }
+
+            return {
+                'status': 'success',
+                'msg': 'Metrics retrieved successfully',
+                'data': items
+            }
+
+        except Exception as e:
+            return {
+                'status': 'error',
+                'msg': str(e),
+                'data': None
+            }
+
 def get_zabbix_metrics(
     host_ip: str,
     metric_name: str,
@@ -547,80 +592,102 @@ def get_prototype_metrics(host_ip: str, discovery_rule_name: Optional[str] = Non
     finally:
         client.close()
 
+def get_all_host_metrics(host_ip: str) -> Dict[str, Any]:
+    """
+    获取主机所有监控项的封装方法
+    Args:
+        host_ip: 主机IP地址
+    Returns:
+        Dict: 包含所有监控项信息的字典
+    """
+    client = ZabbixClient(
+        url='http://47.95.3.120:3301/zabbix',
+        user='Admin',
+        password='zabbix'
+    )
+    try:
+        return client.get_all_metrics(host_ip)
+    finally:
+        client.close()
+
 # 使用示例
 if __name__ == "__main__":
 
     # 获取最新数据
     host_ip = "127.0.0.1"
-    result = get_zabbix_metrics(host_ip=host_ip, metric_name='system.cpu.util[,iowait]')
-    print("--------------Latest data:", result)
-    result = get_zabbix_metrics(host_ip=host_ip, metric_name='vm.memory.size[available]')
-    print("--------------Latest data:", result)
-    result = get_zabbix_metrics(host_ip=host_ip, metric_name='vfs.fs.size[/,free]')
-    print("--------------Latest data:", result)
-    result = get_zabbix_metrics(host_ip=host_ip, metric_name='disk.io.util[vda]')
-    print("--------------Latest data:", result)
+    # result = get_zabbix_metrics(host_ip=host_ip, metric_name='system.cpu.util[,iowait]')
+    # print("--------------Latest data:", result)
+    # result = get_zabbix_metrics(host_ip=host_ip, metric_name='vm.memory.size[available]')
+    # print("--------------Latest data:", result)
+    # result = get_zabbix_metrics(host_ip=host_ip, metric_name='vfs.fs.size[/,free]')
+    # print("--------------Latest data:", result)
+    # result = get_zabbix_metrics(host_ip=host_ip, metric_name='disk.io.util[vda]')
+    # print("--------------Latest data:", result)
 
-    # 获取某个时间范围的历史数据
-    time_till = int(time.time())
-    time_from = time_till - 3600
-    limit = 1000
-    result = get_zabbix_metrics(
-        host_ip=host_ip,
-        metric_name='system.cpu.util',
-        time_from=time_from,
-        time_till=time_till,
-        limit=limit,
-        match_type='search'
-    )
-    print("--------value in last hour:", result)
+    # # 获取某个时间范围的历史数据
+    # time_till = int(time.time())
+    # time_from = time_till - 3600
+    # limit = 1000
+    # result = get_zabbix_metrics(
+    #     host_ip=host_ip,
+    #     metric_name='system.cpu.util',
+    #     time_from=time_from,
+    #     time_till=time_till,
+    #     limit=limit,
+    #     match_type='search'
+    # )
+    # print("--------value in last hour:", result)
 
-    # 获取发现规则示例
-    print("\n--------------Discovery Rules:")
-    # 获取所有发现规则
-    result = get_zabbix_discovery_rules(host_ip="127.0.0.1")
-    print("All discovery rules:", result)
+    # # 获取发现规则示例
+    # print("\n--------------Discovery Rules:")
+    # # 获取所有发现规则
+    # result = get_zabbix_discovery_rules(host_ip="127.0.0.1")
+    # print("All discovery rules:", result)
     
-    # 获取特定的发现规则
-    result = get_zabbix_discovery_rules(
-        host_ip="127.0.0.1",
-        rule_key="vfs.fs.discovery"
-    )
-    print("\nFilesystem discovery rule:", result)
+    # # 获取特定的发现规则
+    # result = get_zabbix_discovery_rules(
+    #     host_ip="127.0.0.1",
+    #     rule_key="vfs.fs.discovery"
+    # )
+    # print("\nFilesystem discovery rule:", result)
 
-    # 获取发现规则原型示例
-    print("\n--------------Discovery Rule Prototypes:")
-    # 获取所有原型
-    result = get_zabbix_discovery_prototypes(host_ip="127.0.0.1")
-    print("All prototypes:", result)
+    # # 获取发现规则原型示例
+    # print("\n--------------Discovery Rule Prototypes:")
+    # # 获取所有原型
+    # result = get_zabbix_discovery_prototypes(host_ip="127.0.0.1")
+    # print("All prototypes:", result)
     
-    # 获取特定发现规则的原型
-    # 首先获取发现规则ID
-    rules = get_zabbix_discovery_rules(
-        host_ip="127.0.0.1",
-        rule_key="vfs.fs.discovery"
-    )
-    if rules['status'] == 'success' and rules['data']:
-        rule_id = rules['data'][0]['itemid']
-        # 然后获取该规则的原型
-        result = get_zabbix_discovery_prototypes(
-            host_ip="127.0.0.1",
-            discovery_rule_id=rule_id
-        )
-        print("\nFilesystem prototypes:", result)
+    # # 获取特定发现规则的原型
+    # # 首先获取发现规则ID
+    # rules = get_zabbix_discovery_rules(
+    #     host_ip="127.0.0.1",
+    #     rule_key="vfs.fs.discovery"
+    # )
+    # if rules['status'] == 'success' and rules['data']:
+    #     rule_id = rules['data'][0]['itemid']
+    #     # 然后获取该规则的原型
+    #     result = get_zabbix_discovery_prototypes(
+    #         host_ip="127.0.0.1",
+    #         discovery_rule_id=rule_id
+    #     )
+    #     print("\nFilesystem prototypes:", result)
 
-    # 获取磁盘剩余空间
-    disk_space = get_disk_free_space(host_ip)
-    print("Disk free space:", disk_space)
+    # # 获取磁盘剩余空间
+    # disk_space = get_disk_free_space(host_ip)
+    # print("Disk free space:", disk_space)
 
-    # 通过发现规则名称获取数据
-    metrics = get_prototype_metrics(host_ip, "Disk device discovery")
-    print("Disk device metrics:", metrics)
+    # # 通过发现规则名称获取数据
+    # metrics = get_prototype_metrics(host_ip, "Disk device discovery")
+    # print("Disk device metrics:", metrics)
     
-    # 获取文件系统发现规则的数据
-    metrics = get_prototype_metrics(host_ip, "Mounted filesystem discovery")
-    print("Filesystem metrics:", metrics)
+    # # 获取文件系统发现规则的数据
+    # metrics = get_prototype_metrics(host_ip, "Mounted filesystem discovery")
+    # print("Filesystem metrics:", metrics)
     
-    # 获取网络接口发现规则的数据
-    metrics = get_prototype_metrics(host_ip, "Network interface discovery")
-    print("Network interface metrics:", metrics)
+    # # 获取网络接口发现规则的数据
+    # metrics = get_prototype_metrics(host_ip, "Network interface discovery")
+    # print("Network interface metrics:", metrics)
+
+    # 获取所有指标名称
+    metrics = get_all_host_metrics(host_ip)
+    print("All metrics:", metrics)
