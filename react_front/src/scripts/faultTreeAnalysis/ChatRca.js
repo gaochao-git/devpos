@@ -4,6 +4,7 @@ import { Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import MyAxios from "../common/interface"
 
 // API URLs and Configuration
 const DIFY_BASE_URL = 'http://127.0.0.1/v1';
@@ -150,31 +151,30 @@ const ASSISTANT_CONFIGS = {
     'Zabbix助手': {
         prefix: 'zabbix> ',
         serverFormat: (ip) => ip,
-        commandFormat: (ip, _, command) => `${ip} ${command}`,
-        commonCommands: [
-            // 数据库指标
-            { value: 'get_history mysql.status[Bytes_received]', label: '每秒接收字节数' },
-            { value: 'get_history mysql.status[Bytes_sent]', label: '每秒发送字节数' },
-            { value: 'get_history mysql.status[Questions]', label: '每秒查询数' },
-            { value: 'get_history mysql.status[Slow_queries]', label: '慢查询数' },
-            
-            // CPU指标
-            { value: 'get_history system.cpu.util[,user]', label: 'CPU用户使用率' },
-            { value: 'get_history system.cpu.util[,system]', label: 'CPU系统使用率' },
-            { value: 'get_history system.cpu.load[percpu,avg1]', label: 'CPU每核平均负载(1分钟)' },
-            
-            // 内存指标
-            { value: 'get_history vm.memory.size[available]', label: '可用内存' },
-            { value: 'get_history vm.memory.size[used]', label: '已用内存' },
-            
-            // 磁盘指标
-            { value: 'get_history vfs.fs.size[/,used]', label: '根分区使用量' },
-            { value: 'get_history vfs.fs.size[/,pfree]', label: '根分区剩余百分比' },
-            
-            // 网络指标
-            { value: 'get_history net.if.in[eth0]', label: '网络入站流量' },
-            { value: 'get_history net.if.out[eth0]', label: '网络出站流量' }
-        ]
+        commandFormat: (ip, _, command) => `${ip} get_history ${command}`,
+        commonCommands: [], 
+        getMetrics: async (ip) => {
+            try {
+                const response = await MyAxios.post('/fault_tree/v1/get_all_metric_names_by_ip/', { "ip": ip });
+                
+                if (response.data.status === "ok") {
+                    const metrics = response.data.data.map(metric => ({
+                        value: metric.key_,  // 修正为 key_
+                        label: metric.name   // 保持不变
+                    }));
+                    
+                    console.log('Zabbix metrics after conversion:', metrics);
+                    return metrics;
+                } else {
+                    message.error(response.data.message || '获取监控项失败');
+                    return [];
+                }
+            } catch (error) {
+                console.error('获取 Zabbix 监控项失败:', error);
+                message.error(error.message || '获取监控项失败');
+                return [];
+            }
+        }
     }
 };
 
@@ -456,6 +456,9 @@ const ChatRca = ({ treeData, style }) => {
     const [conversationMessages, setConversationMessages] = useState(new Map());
     const [loadingConversations, setLoadingConversations] = useState(new Set());
     const [historyModalVisible, setHistoryModalVisible] = useState(false);
+
+    // 添加状态来存储每个服务器的 Zabbix 监控项
+    const [zabbixMetrics, setZabbixMetrics] = useState(new Map());
 
     // 将 QUICK_SELECT_CONFIG 移到组件内部
     const QUICK_SELECT_CONFIG = {
@@ -1179,6 +1182,67 @@ const ChatRca = ({ treeData, style }) => {
         });
     };
 
+    // 修改选择服务器的处理函数
+    const handleServerSelect = async (assistantName, value) => {
+        const [ip, port] = value.split(':');
+        setAssistantConfigs(prev => 
+            new Map(prev).set(assistantName, { ip, port: port || '' })
+        );
+        
+        // 如果是 Zabbix 助手，获取监控项
+        if (assistantName === 'Zabbix助手') {
+            const metrics = await ASSISTANT_CONFIGS[assistantName].getMetrics(ip);
+            setZabbixMetrics(prev => new Map(prev).set(ip, metrics));
+            
+            // 更新助手配置中的命令列表
+            ASSISTANT_CONFIGS[assistantName].commonCommands = metrics;
+        }
+    };
+
+    // 修改渲染命令选择框的部分
+    const renderCommandSelect = (assistantName) => {
+        const config = ASSISTANT_CONFIGS[assistantName];
+        const serverConfig = assistantConfigs.get(assistantName);
+        
+        let commands = config.commonCommands;
+        if (assistantName === 'Zabbix助手' && serverConfig?.ip) {
+            commands = zabbixMetrics.get(serverConfig.ip) || [];
+        }
+        
+        return (
+            <Select
+                style={{ flex: 1, marginRight: '12px' }}
+                placeholder={commands.length ? "选择命令" : "请先选择服务器"}
+                showSearch
+                value={assistantInputs.get(assistantName) || undefined}
+                onChange={(value) => {
+                    setAssistantInputs(prev => new Map(prev).set(assistantName, value));
+                }}
+                optionLabelProp="value"
+                filterOption={(input, option) => {
+                    const value = option.props.value || '';
+                    const label = option.props.children.props.children[0].props.children || '';
+                    return (
+                        value.toLowerCase().includes(input.toLowerCase()) ||
+                        label.toLowerCase().includes(input.toLowerCase())
+                    );
+                }}
+            >
+                {commands.map(cmd => (
+                    <Select.Option 
+                        key={cmd.value} 
+                        value={cmd.value}
+                    >
+                        <div style={{ padding: '4px 0' }}>
+                            <div style={{ fontWeight: 'bold' }}>{cmd.value}</div>
+                            <div style={{ fontSize: '12px', color: '#666' }}>{cmd.label}</div>
+                        </div>
+                    </Select.Option>
+                ))}
+            </Select>
+        );
+    };
+
     return (
         <div style={{ 
             display: 'flex',
@@ -1411,12 +1475,7 @@ const ChatRca = ({ treeData, style }) => {
                                                     assistantConfigs.get(assistantName).port
                                                 ) : undefined
                                             }
-                                            onChange={value => {
-                                                const [ip, port] = value.split(':');
-                                                setAssistantConfigs(prev => 
-                                                    new Map(prev).set(assistantName, { ip, port: port || '' })
-                                                );
-                                            }}
+                                            onChange={value => handleServerSelect(assistantName, value)}
                                         >
                                             {QUICK_SELECT_CONFIG.servers.map(server => (
                                                 <Select.Option 
@@ -1427,36 +1486,7 @@ const ChatRca = ({ treeData, style }) => {
                                                 </Select.Option>
                                             ))}
                                         </Select>
-                                        <Select
-                                            style={{ flex: 1, marginRight: '12px' }}
-                                            placeholder="选择命令"
-                                            showSearch
-                                            value={assistantInputs.get(assistantName) || undefined}
-                                            onChange={value => {
-                                                setAssistantInputs(prev => new Map(prev).set(assistantName, value));
-                                            }}
-                                            filterOption={(input, option) => {
-                                                const value = option.props.value || '';
-                                                const label = option.props.children.props.title || '';
-                                                return (
-                                                    value.toLowerCase().indexOf(input.toLowerCase()) >= 0 ||
-                                                    label.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                                );
-                                            }}
-                                            optionLabelProp="value"
-                                        >
-                                            {config.commonCommands.map(cmd => (
-                                                <Select.Option 
-                                                    key={cmd.value} 
-                                                    value={cmd.value}
-                                                >
-                                                    <div title={`${cmd.value} - ${cmd.label}`}>
-                                                        <div style={{ fontWeight: 'bold' }}>{cmd.value}</div>
-                                                        <div style={{ fontSize: '12px', color: '#666' }}>{cmd.label}</div>
-                                                    </div>
-                                                </Select.Option>
-                                            ))}
-                                        </Select>
+                                        {renderCommandSelect(assistantName)}
                                         <div style={{ 
                                             display: 'flex',
                                             alignItems: 'center',

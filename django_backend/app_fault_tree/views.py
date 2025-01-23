@@ -448,10 +448,30 @@ class GetAllMetricNamesByIp(BaseView):
             "ip": [Required],  # 机器IP
         }
         valid_ret = validate(rules, request_body)
-        if not valid_ret.valid: return self.my_response({"status": "error","message": str(valid_ret.errors),"code": status.HTTP_400_BAD_REQUEST})
-        ip = request_body.get('ip')
+        if not valid_ret.valid: 
+            return self.my_response({
+                "status": "error",
+                "message": str(valid_ret.errors),
+                "code": status.HTTP_400_BAD_REQUEST
+            })
+            
+        # ip = request_body.get('ip')
+        ip = "127.0.0.1"
         result = get_all_host_metrics(ip)
-        return self.my_response({"status": "ok","message": "success","data": result})
+        
+        # 处理 result 中的嵌套结构
+        if result.get('status') == 'error':
+            return self.my_response({
+                "status": "error",
+                "message": result.get('msg', '获取监控项失败'),
+                "data": None
+            })
+            
+        return self.my_response({
+            "status": "ok",
+            "message": "success",
+            "data": result.get('data')
+        })
 
 
 class AnalyzeRootCause(BaseView):
