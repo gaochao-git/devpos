@@ -921,7 +921,8 @@ const ChatRca = ({ treeData, style }) => {
             const result = await response.json();
             
             if (result.status === "ok") {
-                const formattedCommand = `@${command.tool}助手 ${command.address} ${command.cmd}`;                const formattedResult = `\`\`\`bash\n${result.data}\n\`\`\``;
+                const formattedCommand = '助手返回';                
+                const formattedResult = `\`\`\`bash\n${result.data}\n\`\`\``;
                 const formatMessage = `${formattedCommand}\n${formattedResult}`;
                 setMessages(prev => [...prev, {
                     type: 'assistant',
@@ -1318,8 +1319,8 @@ const ChatRca = ({ treeData, style }) => {
                                 }}>
                                     {msg.timestamp}
                                 </div>
-                                {/* 只在助手返回的命令结果上显示勾选框 */}
-                                {msg.type === 'assistant' && msg.command && (
+                                {/* 只要是命令相关的消息就显示勾选框 */}
+                                {msg.command && (
                                     <Checkbox
                                         checked={selectedResults.has(msg.timestamp)}
                                         onChange={() => handleResultSelect(msg.timestamp)}
@@ -1528,15 +1529,17 @@ const ChatRca = ({ treeData, style }) => {
                                                             cmd: value
                                                         };
                                                     }
-                                                    executeCommand(params).finally(() => {
-                                                        // 执行完成后清除状态
-                                                        setExecutingAssistants(prev => {
-                                                            const next = new Set(prev);
-                                                            next.delete(assistantName);
-                                                            return next;
-                                                        });
-                                                    });
-                                                    setAssistantInputs(prev => new Map(prev).set(assistantName, ''));
+
+                                                    // 添加用户消息到对话框
+                                                    const userCommand = `@${params.tool}助手 ${params.address} ${params.cmd}`;
+                                                    setMessages(prev => [...prev, {
+                                                        type: 'user',
+                                                        content: userCommand,
+                                                        command: userCommand,  // 使用和助手回答相同的属性结构
+                                                        timestamp: new Date().toLocaleTimeString()
+                                                    }]);
+
+                                                    executeCommand(params);
                                                 }}
                                             >
                                                 {executingAssistants.has(assistantName) ? (
