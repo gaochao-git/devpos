@@ -906,6 +906,48 @@ const ChatRca = ({ treeData, style }) => {
     const executeCommand = async (params) => {
         try {
             console.log('Executing command with params:', params);
+            
+            // 如果是 Zabbix 助手，使用不同的 API
+            if (params.tool === 'zabbix') {
+                const response = await MyAxios.post('/fault_tree/v1/get_metric_history_by_ip/', {
+                    address: params.address,
+                    cmd: params.cmd,
+                    time_from: params.time_from,
+                    time_till: params.time_till
+                });
+                
+                if (response.data.status === 'ok') {
+                    const formattedCommand = `> @${params.tool}助手 ${params.address} ${params.cmd}`;
+                    // 格式化输出数据
+                    const outputData = response.data.data.map(item => 
+                        `${item.key_} | ${item.metric_time} | ${item.value}${item.units}`
+                    ).join('\n');
+                    const formattedResult = `\`\`\`bash\n${outputData}\n\`\`\``;
+                    const formatMessage = `${formattedCommand}\n${formattedResult}`;
+                    
+                    setMessages(prev => [...prev, {
+                        type: 'assistant',
+                        content: formatMessage,
+                        rawContent: outputData,
+                        command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
+                        timestamp: new Date().toLocaleTimeString()
+                    }]);
+                } else {
+                    setMessages(prev => [...prev, {
+                        type: 'assistant',
+                        content: `执行失败: ${response.data.message || '未知错误'}`,
+                        rawContent: response.data.message || '未知错误',
+                        command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
+                        timestamp: new Date().toLocaleTimeString(),
+                        isError: true
+                    }]);
+                }
+                // 重置执行状态
+                setExecutingAssistants(new Set());
+                return response.data;
+            }
+            
+            // 其他助手使用原有的 API
             const response = await fetch(COMMAND_EXECUTE_URL, {
                 method: 'POST',
                 headers: {
@@ -915,20 +957,6 @@ const ChatRca = ({ treeData, style }) => {
             });
 
             const result = await response.json();
-
-            if (!response.ok || result.status === 'error') {
-                // 添加错误消息到对话框
-                setMessages(prev => [...prev, {
-                    type: 'assistant',
-                    content: `执行失败: ${result.detail || result.message || '未知错误'}`,
-                    command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
-                    timestamp: new Date().toLocaleTimeString(),
-                    isError: true
-                }]);
-                // 重置执行状态
-                setExecutingAssistants(new Set());
-                return;
-            }
             
             if (result.status === "ok") {
                 const formattedCommand = `> @${params.tool}助手 ${params.address} ${params.cmd}`;
@@ -941,23 +969,25 @@ const ChatRca = ({ treeData, style }) => {
                     command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
                     timestamp: new Date().toLocaleTimeString()
                 }]);
-                // 重置执行状态
-                setExecutingAssistants(new Set());
+            } else {
+                setMessages(prev => [...prev, {
+                    type: 'assistant',
+                    content: `执行失败: ${result.message || '未知错误'}`,
+                    rawContent: result.message || '未知错误',
+                    command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
+                    timestamp: new Date().toLocaleTimeString(),
+                    isError: true
+                }]);
             }
-
+            // 重置执行状态
+            setExecutingAssistants(new Set());
             return result;
         } catch (error) {
             console.error('执行命令失败:', error);
-            // 添加错误消息到对话框
-            setMessages(prev => [...prev, {
-                type: 'assistant',
-                content: `执行失败: ${error.message || '未知错误'}`,
-                command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
-                timestamp: new Date().toLocaleTimeString(),
-                isError: true
-            }]);
+            message.error(error.message || '执行命令失败');
             // 重置执行状态
             setExecutingAssistants(new Set());
+            throw error;
         }
     };
 

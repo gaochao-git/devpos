@@ -21,7 +21,7 @@ from django.http import StreamingHttpResponse
 import json
 import time
 import random
-from .zabbix_api_util import get_all_host_metrics
+from .zabbix_api_util import get_all_host_metrics, get_zabbix_metrics
 
 class CreateFaultTreeConfig(BaseView):
     """创建故障树配置"""
@@ -438,6 +438,28 @@ class GetMetricHistory(BaseView):
             return self.my_response({"status": "ok","message": "success","data": result})
         except Exception as e:
             return self.my_response({"status": "error","message": f"获取故障树数据失败: {str(e)}","code": status.HTTP_500_INTERNAL_SERVER_ERROR})
+
+class GetMetricHistoryByIp(BaseView):
+    """获取某个机器所有指标历史数据"""
+    def post(self, request):
+        request_body = self.request_params
+        rules = {
+            "address": [],  # 节点信息
+            "cmd": [],
+            "time_from": [],
+            "time_till": [],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid: return self.my_response({"status": "error","message": str(valid_ret.errors),"code": status.HTTP_400_BAD_REQUEST})
+        ip = request_body.get('address')
+        metric_name = request_body.get('cmd')
+        time_from = request_body.get('time_from')
+        time_till = request_body.get('time_till')
+        result = get_zabbix_metrics(ip, metric_name, time_from, time_till)
+        print(result)
+        if result.get('status') == 'error':
+            return self.my_response({"status": "error","message": result.get('msg', '获取监控项失败'),"data": None})
+        return self.my_response({"status": "ok","message": "success","data": result.get('data')})
 
 class GetAllMetricNamesByIp(BaseView):
     """获取某个机器所有指标名称"""
