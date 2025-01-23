@@ -319,7 +319,7 @@ class ZabbixClient:
 
     def get_all_metrics(self, host_ip: str) -> Dict[str, Any]:
         """
-        获取主机的所有监控项
+        获取主机的所有已启用的监控项
         Args:
             host_ip: 主机IP地址
         Returns:
@@ -335,23 +335,24 @@ class ZabbixClient:
                     'data': None
                 }
 
-            # 获取所有监控项
+            # 获取所有已启用的监控项（status=0 表示启用）
             items = self.zapi.item.get(
                 hostids=host_id,
                 output=['itemid', 'name', 'key_', 'lastvalue', 'units', 'value_type', 'lastclock', 'description'],
+                filter={'status': '0'},  # 只获取已启用的监控项
                 sortfield='name'
             )
 
             if not items:
                 return {
                     'status': 'warning',
-                    'msg': f'No metrics found for host {host_ip}',
+                    'msg': f'No active metrics found for host {host_ip}',
                     'data': []
                 }
 
             return {
                 'status': 'success',
-                'msg': 'Metrics retrieved successfully',
+                'msg': 'Active metrics retrieved successfully',
                 'data': items
             }
 
@@ -691,3 +692,4 @@ if __name__ == "__main__":
     # 获取所有指标名称
     metrics = get_all_host_metrics(host_ip)
     print("All metrics:", metrics)
+    print(len(metrics['data']))

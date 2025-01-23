@@ -21,6 +21,7 @@ from django.http import StreamingHttpResponse
 import json
 import time
 import random
+from .zabbix_api_util import get_all_host_metrics
 
 class CreateFaultTreeConfig(BaseView):
     """创建故障树配置"""
@@ -449,11 +450,7 @@ class GetAllMetricNamesByIp(BaseView):
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid: return self.my_response({"status": "error","message": str(valid_ret.errors),"code": status.HTTP_400_BAD_REQUEST})
         ip = request_body.get('ip')
-        # 获取对应的处理函数
-        handler = HandlerManager.init_metric_handlers(handler_name='zabbix',handler_type='data')
-        if not handler: raise ValueError(f"Unsupported data source: {handler_name}")
-        # 执行处理函数获取对应的监控值
-        result = handler(ip, None, None, None)
+        result = get_all_host_metrics(ip)
         return self.my_response({"status": "ok","message": "success","data": result})
 
 
