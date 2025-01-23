@@ -455,11 +455,23 @@ class GetMetricHistoryByIp(BaseView):
         metric_name = request_body.get('cmd')
         time_from = request_body.get('time_from')
         time_till = request_body.get('time_till')
-        result = get_zabbix_metrics(ip, metric_name, time_from, time_till)
-        print(result)
-        if result.get('status') == 'error':
-            return self.my_response({"status": "error","message": result.get('msg', '获取监控项失败'),"data": None})
-        return self.my_response({"status": "ok","message": "success","data": result.get('data')})
+
+        # 如果没有指定时间范围，设置为最近10分钟
+        if time_from is None or time_till is None:
+            time_till = int(time.time())
+            time_from = time_till - 600  # 10分钟 = 600秒
+
+        try:
+            result = get_zabbix_metrics(
+                host_ip=ip,
+                metric_name=metric_name,
+                time_from=time_from,
+                time_till=time_till,
+                match_type='filter'
+            )
+            return self.my_response({"status": "ok","message": "success","data": result.get('data')})
+        except Exception as e:
+            return self.my_response({"status": "error","message": f"获取监控项失败: {str(e)}","code": status.HTTP_500_INTERNAL_SERVER_ERROR})
 
 class GetAllMetricNamesByIp(BaseView):
     """获取某个机器所有指标名称"""

@@ -931,19 +931,23 @@ const ChatRca = ({ treeData, style }) => {
                     
                     const timestamp = new Date().getTime().toString();
                     
-                    setMessages(prev => [...prev, {
-                        type: 'assistant',
-                        content: formatMessage,
-                        rawContent: response.data.data,
-                        command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
-                        timestamp: timestamp,
-                        isZabbix: true
-                    }]);
+                    setMessages(prev => {
+                        setExecutingAssistants(new Set());
+                        return [...prev, {
+                            type: 'assistant',
+                            content: formatMessage,
+                            rawContent: response.data.data,
+                            command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
+                            timestamp: timestamp,
+                            isZabbix: true
+                        }];
+                    });
                     
                     // 默认设置为图表视图
                     setMessageViewModes(prev => new Map(prev).set(timestamp, 'chart'));
+                    
+                    return response.data;
                 }
-                return response.data;
             }
             
             // 其他助手使用原有的 API
@@ -1533,11 +1537,7 @@ const ChatRca = ({ treeData, style }) => {
                                                         if (abortControllerRef.current) {
                                                             abortControllerRef.current.abort();  // 中断请求
                                                         }
-                                                        setExecutingAssistants(prev => {
-                                                            const next = new Set(prev);
-                                                            next.delete(assistantName);
-                                                            return next;
-                                                        });
+                                                        setExecutingAssistants(new Set());
                                                         return;
                                                     }
 
