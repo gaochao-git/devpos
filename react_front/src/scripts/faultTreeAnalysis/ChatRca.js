@@ -410,6 +410,13 @@ const HistoryConversationModal = ({
     );
 };
 
+// 添加获取标准时间格式的公共方法
+const getStandardTime = () => {
+    const now = new Date();
+    return now.toTimeString().split(' ')[0] + '.' + 
+           now.getMilliseconds().toString().padStart(3, '0');
+};
+
 const ChatRca = ({ treeData, style }) => {
     // 消息列表状态
     const [messages, setMessages] = useState([]);
@@ -501,7 +508,7 @@ const ChatRca = ({ treeData, style }) => {
         setMessages(prev => [...prev, {
             type: 'assistant',
             content: '',
-            timestamp: new Date().toLocaleTimeString()
+            timestamp: getStandardTime()
         }]);
 
         try {
@@ -614,7 +621,7 @@ const ChatRca = ({ treeData, style }) => {
             setMessages(prev => [...prev, {
                 type: 'assistant',
                 content: `调用失败: ${modelError.message}`,
-                timestamp: new Date().toLocaleTimeString(),
+                timestamp: getStandardTime(),
                 isError: true
             }]);
             message.error('大模型调用失败：' + modelError.message);
@@ -656,6 +663,7 @@ const ChatRca = ({ treeData, style }) => {
         if (!inputValue.trim() || isStreaming) return;
         setIsUserScrolling(false);
 
+        const timestamp = getStandardTime();
         const isAssistantCommand = DEFAULT_ASSISTANTS.some(assistant => 
             inputValue.includes('@' + assistant.name)
         );
@@ -678,7 +686,7 @@ const ChatRca = ({ treeData, style }) => {
             contexts: selectedContext.map(key => 
                 CONTEXT_TYPES.find(t => t.key === key)
             ),
-            timestamp: new Date().toLocaleTimeString()
+            timestamp: timestamp
         };
         
         setMessages(prev => [...prev, userMessage]);
@@ -698,7 +706,7 @@ const ChatRca = ({ treeData, style }) => {
                 setMessages(prev => [...prev, {
                     type: 'assistant',
                     content: `调用失败: ${error.message}`,
-                    timestamp: new Date().toLocaleTimeString(),
+                    timestamp: timestamp,
                     isError: true
                 }]);
             }
@@ -929,9 +937,7 @@ const ChatRca = ({ treeData, style }) => {
 
                     const formatMessage = `${formattedCommand}\n\`\`\`\n${headerRow}${dataRows}\n\`\`\``;
                     
-                    // 格式化当前时间为 "HH:mm:ss" 格式
-                    const now = new Date();
-                    const timeString = now.toTimeString().split(' ')[0];
+                    const timestamp = getStandardTime();
                     
                     setMessages(prev => {
                         setExecutingAssistants(new Set());
@@ -940,13 +946,12 @@ const ChatRca = ({ treeData, style }) => {
                             content: formatMessage,
                             rawContent: response.data.data,
                             command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
-                            timestamp: timeString,  // 使用格式化后的时间
+                            timestamp: timestamp,
                             isZabbix: true
                         }];
                     });
                     
-                    // 默认设置为图表视图
-                    setMessageViewModes(prev => new Map(prev).set(timeString, 'chart'));
+                    setMessageViewModes(prev => new Map(prev).set(timestamp, 'chart'));
                     
                     return response.data;
                 }
@@ -972,7 +977,8 @@ const ChatRca = ({ treeData, style }) => {
                     content: formatMessage,
                     rawContent: result.data,
                     command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
-                    timestamp: new Date().toLocaleTimeString()
+                    timestamp: getStandardTime(),
+                    isError: false
                 }]);
             } else {
                 setMessages(prev => [...prev, {
@@ -980,7 +986,7 @@ const ChatRca = ({ treeData, style }) => {
                     content: `执行失败: ${result.message || '未知错误'}`,
                     rawContent: result.message || '未知错误',
                     command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
-                    timestamp: new Date().toLocaleTimeString(),
+                    timestamp: getStandardTime(),
                     isError: true
                 }]);
             }
@@ -1623,7 +1629,7 @@ const ChatRca = ({ treeData, style }) => {
                                                         type: 'user',
                                                         content: userCommand,
                                                         command: userCommand,  // 使用和助手回答相同的属性结构
-                                                        timestamp: new Date().toLocaleTimeString()
+                                                        timestamp: getStandardTime()
                                                     }]);
 
                                                     executeCommand(params);
