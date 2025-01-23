@@ -469,9 +469,23 @@ class GetMetricHistoryByIp(BaseView):
                 time_till=time_till,
                 match_type='filter'
             )
-            return self.my_response({"status": "ok","message": "success","data": result.get('data')})
+            
+            # 对数据按时间正序排序
+            if result.get('data'):
+                sorted_data = sorted(result['data'], key=lambda x: x['metric_time'])
+                result['data'] = sorted_data
+                
+            return self.my_response({
+                "status": "ok",
+                "message": "success",
+                "data": result.get('data')
+            })
         except Exception as e:
-            return self.my_response({"status": "error","message": f"获取监控项失败: {str(e)}","code": status.HTTP_500_INTERNAL_SERVER_ERROR})
+            return self.my_response({
+                "status": "error",
+                "message": f"获取监控项失败: {str(e)}",
+                "code": status.HTTP_500_INTERNAL_SERVER_ERROR
+            })
 
 class GetAllMetricNamesByIp(BaseView):
     """获取某个机器所有指标名称"""
