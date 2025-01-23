@@ -30,7 +30,9 @@ app.add_middleware(
 )
 
 class CommandRequest(BaseModel):
-    command: str = Field(..., description="The command to execute")
+    tool: str = Field(..., description="The tool to use (ssh/mysql/zabbix)")
+    address: str = Field(..., description="The target address (ip or ip:port)")
+    cmd: str = Field(..., description="The command to execute")
 
 # 设置超时时间（秒）
 COMMAND_TIMEOUT = 30
@@ -318,43 +320,41 @@ def execute_mysql_command(host: str, port: int, sql: str) -> str:
         logger.error(f"MySQL execution error: {str(e)}")
         raise
 
-@app.post("/execute")
+@app.post("/execute/")
 async def execute_command(command_request: CommandRequest):
     """执行远程命令的API接口"""
     try:
-        command = command_request.command
-        logger.info(f"Received command: {command}")
+        logger.info(f"Received command request: {command_request}")
+        
+        tool = command_request.tool
+        address = command_request.address
+        cmd = command_request.cmd
 
-        # 解析命令
-        parts = command.split(None, 1)
-        if len(parts) < 2 or not parts[0].startswith('@') or not parts[0].endswith('助手'):
-            raise HTTPException(
-                status_code=400,
-                detail="命令格式错误: 需要'@XXX助手 命令'格式"
-            )
-
-        assistant_type = parts[0][1:-2].lower()
-        command_body = parts[1]
-        # 根据助手类型选择执行方式
-        if assistant_type == 'ssh':
-            # SSH命令保持原有逻辑
-            ssh_parts = command_body.split(None, 1)
-            if len(ssh_parts) < 2:
-                raise HTTPException(status_code=400, detail="SSH命令格式错误")
-            result = execute_ssh_command(ssh_parts[0], ssh_parts[1])
-        elif assistant_type == 'mysql':
-            # 解析并执行MySQL命令
-            host, port, sql = parse_mysql_command(command)
-            result = execute_mysql_command(host, port, sql)
+        # 解析地址
+        if ':' in address:
+            host, port = address.split(':')
+            port = int(port)
         else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"不支持的助手类型: {assistant_type}"
-            )
+            host = address
+            port = None
+
+        # 根据工具类型执行不同的命令
+        if tool == 'ssh':
+            result = execute_ssh_command(host, cmd)
+        elif tool == 'mysql':
+            if port is None:
+                port = 3306
+            result = execute_mysql_command(host, port, cmd)
+        elif tool == 'zabbix':
+            # TODO: 实现 Zabbix 命令执行
+            raise HTTPException(status_code=400, detail="Zabbix 命令暂未实现")
+        else:
+            raise HTTPException(status_code=400, detail=f"不支持的工具类型: {tool}")
 
         return {
-            "success": True,
-            "result": result
+            "status": "ok",
+            "message": "success",
+            "data": result
         }
 
     except TimeoutError as te:

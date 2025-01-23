@@ -139,7 +139,7 @@ const ASSISTANT_CONFIGS = {
     'MySQL助手': {
         prefix: 'mysql> ',
         serverFormat: (ip, port) => `${ip}:${port || '3306'}`,
-        commandFormat: (ip, port, command) => `${ip} -P ${port || '3306'} -e "${command}"`,
+        commandFormat: (ip, port, command) => `${ip}:${port || '3306'} ${command}`,
         commonCommands: [
             { value: 'show processlist;', label: 'MySQL: 查看进程列表' },
             { value: 'show slave status\\G', label: 'MySQL: 查看主从状态' },
@@ -907,79 +907,89 @@ const ChatRca = ({ treeData, style }) => {
 
     // 修改 executeCommand 函数
     const executeCommand = async (command) => {
-        try {
-            // 创建新的 AbortController
-            abortControllerRef.current = new AbortController();
+        // 解析命令字符串
+        const parts = command.split(' ');
+        const assistantType = parts[0].substring(1); // 去掉@符号
+        const address = parts[1];
+        const cmd = parts.slice(2).join(' ');
 
+        // 根据助手类型确定工具名称
+        let tool;
+        switch (assistantType) {
+            case 'SSH助手':
+                tool = 'ssh';
+                break;
+            case 'MySQL助手':
+                tool = 'mysql';
+                break;
+            case 'Zabbix助手':
+                tool = 'zabbix';
+                break;
+            default:
+                message.error('未知的助手类型');
+                return;
+        }
+
+        const params = {
+            tool: tool,
+            address: address,
+            cmd: cmd
+        };
+
+        try {
+            console.log('Executing command with params:', params);
             const response = await fetch(COMMAND_EXECUTE_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
                 },
-                body: JSON.stringify({
-                    command: command
-                }),
-                signal: abortControllerRef.current.signal  // 添加 signal
+                body: JSON.stringify(params)
             });
 
-            const responseData = await response.json();
-
             if (!response.ok) {
-                const errorMessage = responseData.detail || '未知错误';
-                setMessages(prev => [...prev, {
-                    type: 'assistant',
-                    content: `执行失败: ${errorMessage}`,
-                    rawContent: errorMessage,  // 添加原始文本
-                    command: command,
-                    timestamp: new Date().toLocaleTimeString(),
-                    isError: true
-                }]);
-                return;
+                const errorData = await response.json();
+                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
             }
 
-            if (responseData.success) {
+            const result = await response.json();
+            
+            if (result.status === "ok") {
                 const formattedCommand = `> ${command}`;
-                const formattedResult = `\`\`\`bash\n${responseData.result}\n\`\`\``;
+                const formattedResult = `\`\`\`bash\n${result.data}\n\`\`\``;
                 const formatMessage = `${formattedCommand}\n${formattedResult}`;
                 setMessages(prev => [...prev, {
                     type: 'assistant',
                     content: formatMessage,
-                    rawContent: responseData.result,  // 添加原始文本
+                    rawContent: result.data,  // 添加原始文本
                     command: command,
                     timestamp: new Date().toLocaleTimeString()
                 }]);
             } else {
                 setMessages(prev => [...prev, {
                     type: 'assistant',
-                    content: `执行失败: ${responseData.result || '未知错误'}`,
-                    rawContent: responseData.result || '未知错误',  // 添加原始文本
+                    content: `执行失败: ${result.message || '未知错误'}`,
+                    rawContent: result.message || '未知错误',  // 添加原始文本
                     command: command,
                     timestamp: new Date().toLocaleTimeString(),
                     isError: true
                 }]);
             }
-            
-            return responseData;
 
+            return result;
         } catch (error) {
-            // 判断是否是中断错误
-            if (error.name === 'AbortError') {
-                console.log('请求被中断');
-                return;
-            }
-
             console.error('执行命令失败:', error);
+            message.error(error.message || '执行命令失败');
+            
             setMessages(prev => [...prev, {
                 type: 'assistant',
-                content: `执行失败: ${error.message}`,
-                rawContent: error.message,  // 添加原始文本
+                content: `执行失败: ${error.message || '未知错误'}`,
+                rawContent: error.message || '未知错误',
                 command: command,
                 timestamp: new Date().toLocaleTimeString(),
                 isError: true
             }]);
-        } finally {
-            abortControllerRef.current = null;
+            
+            throw error;
         }
     };
 
@@ -1534,7 +1544,7 @@ const ChatRca = ({ treeData, style }) => {
 
                                                     let fullCommand;
                                                     if (assistantName === 'MySQL助手') {
-                                                        fullCommand = `@${assistantName} ${serverConfig.ip} -P ${serverConfig.port || '3306'} -e "${value}"`;
+                                                        fullCommand = `@${assistantName} ${serverConfig.ip}:${serverConfig.port || '3306'} "${value}"`;
                                                     } else {
                                                         fullCommand = `@${assistantName} ${serverConfig.ip} ${value}`;
                                                     }
