@@ -40,33 +40,14 @@ const CONTEXT_TYPES = [
     { key: 'tree', label: '故障树数据', icon: 'cluster', 
       description: '使用故障树结构和关联信息' },
     { key: 'zabbix', label: 'Zabbix可用指标列表', icon: 'line-chart', 
-      description: '包含系统性能和状态指标' }
+      description: '包含系统性能和状态指标' },
+    { key: 'ssh', label: 'SSH命令列表', icon: 'line-chart', 
+      description: '执行系统命令' },
+    { key: 'mysql', label: 'MySQL命令列表', icon: 'line-chart', 
+      description: '执行MySQL命令' }
 ];
 
-// 定义 Zabbix 指标列表
-const ZABBIX_METRICS = [
-    {
-        key: 'mysql.status[Bytes_received]',
-        label: 'MySQL bytes received per second',
-        description: '每秒接收字节数'
-    },
-    {
-        key: 'mysql.status[Bytes_sent]',
-        label: 'MySQL bytes sent per second',
-        description: '每秒发送字节数'
-    },
-    {
-        key: 'mysql.status[Questions]',
-        label: 'MySQL queries per second',
-        description: '每秒查询数'
-    },
-    {
-        key: 'mysql.status[Slow_queries]',
-        label: 'MySQL slow queries',
-        description: '慢查询数'
-    }
-    // ... 其他 Zabbix 指标
-];
+
 
 // 定义助手列表
 const DEFAULT_ASSISTANTS = [
@@ -586,6 +567,20 @@ const ChatRca = ({ treeData, style }) => {
             }
             if (selectedContext.includes('zabbix')) {
                 contextData.push(`Zabbix可用指标列表：${JSON.stringify(zabbixMetricsList)}`);
+            }
+            if (selectedContext.includes('ssh')) {
+                const sshCommands = ASSISTANT_CONFIGS['SSH助手'].commonCommands;
+                contextData.push(`可用的SSH命令列表：${JSON.stringify(sshCommands.map(cmd => ({
+                    command: cmd.value,
+                    description: cmd.label
+                })))}`);
+            }
+            if (selectedContext.includes('mysql')) {
+                const mysqlCommands = ASSISTANT_CONFIGS['MySQL助手'].commonCommands;
+                contextData.push(`可用的MySQL命令列表：${JSON.stringify(mysqlCommands.map(cmd => ({
+                    command: cmd.value,
+                    description: cmd.label
+                })))}`);
             }
 
             // 组合查询
