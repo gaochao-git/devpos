@@ -921,8 +921,7 @@ const ChatRca = ({ treeData, style }) => {
             const result = await response.json();
             
             if (result.status === "ok") {
-                const formattedCommand = `> ${command}`;
-                const formattedResult = `\`\`\`bash\n${result.data}\n\`\`\``;
+                const formattedCommand = `@${command.tool}助手 ${command.address} ${command.cmd}`;                const formattedResult = `\`\`\`bash\n${result.data}\n\`\`\``;
                 const formatMessage = `${formattedCommand}\n${formattedResult}`;
                 setMessages(prev => [...prev, {
                     type: 'assistant',
