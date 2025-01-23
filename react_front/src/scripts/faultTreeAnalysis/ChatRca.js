@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import MyAxios from "../common/interface"
+import ZabbixChart from './ZabbixChart';
 
 // API URLs and Configuration
 const DIFY_BASE_URL = 'http://127.0.0.1/v1';
@@ -457,6 +458,9 @@ const ChatRca = ({ treeData, style }) => {
     // 添加状态来存储每个服务器的 Zabbix 监控项
     const [zabbixMetrics, setZabbixMetrics] = useState(new Map());
 
+    // 在组件顶部添加新的状态
+    const [messageViewModes, setMessageViewModes] = useState(new Map());
+
     // 将 QUICK_SELECT_CONFIG 移到组件内部
     const QUICK_SELECT_CONFIG = {
         servers: extractServersFromTree(treeData),
@@ -902,12 +906,9 @@ const ChatRca = ({ treeData, style }) => {
         }, 0);
     };
 
-    // 修改 executeCommand 函数
+    // 修改 executeCommand 函数中处理 Zabbix 响应的部分
     const executeCommand = async (params) => {
         try {
-            console.log('Executing command with params:', params);
-            
-            // 如果是 Zabbix 助手，使用不同的 API
             if (params.tool === 'zabbix') {
                 const response = await MyAxios.post('/fault_tree/v1/get_metric_history_by_ip/', {
                     address: params.address,
@@ -918,32 +919,30 @@ const ChatRca = ({ treeData, style }) => {
                 
                 if (response.data.status === 'ok') {
                     const formattedCommand = `> @${params.tool}助手 ${params.address} ${params.cmd}`;
-                    // 格式化输出数据
-                    const outputData = response.data.data.map(item => 
-                        `${item.key_} | ${item.metric_time} | ${item.value}${item.units}`
+                    const metricsData = response.data.data;
+                    const firstItem = metricsData[0];
+                    
+                    const headerRow = `指标名称: ${firstItem.name} (${firstItem.key_})\n`;
+                    const dataRows = metricsData.map(point => 
+                        `${point.metric_time} | ${point.value}${firstItem.units}`
                     ).join('\n');
-                    const formattedResult = `\`\`\`bash\n${outputData}\n\`\`\``;
-                    const formatMessage = `${formattedCommand}\n${formattedResult}`;
+
+                    const formatMessage = `${formattedCommand}\n\`\`\`\n${headerRow}${dataRows}\n\`\`\``;
+                    
+                    const timestamp = new Date().getTime().toString();
                     
                     setMessages(prev => [...prev, {
                         type: 'assistant',
                         content: formatMessage,
-                        rawContent: outputData,
+                        rawContent: response.data.data,
                         command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
-                        timestamp: new Date().toLocaleTimeString()
+                        timestamp: timestamp,
+                        isZabbix: true
                     }]);
-                } else {
-                    setMessages(prev => [...prev, {
-                        type: 'assistant',
-                        content: `执行失败: ${response.data.message || '未知错误'}`,
-                        rawContent: response.data.message || '未知错误',
-                        command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
-                        timestamp: new Date().toLocaleTimeString(),
-                        isError: true
-                    }]);
+                    
+                    // 默认设置为图表视图
+                    setMessageViewModes(prev => new Map(prev).set(timestamp, 'chart'));
                 }
-                // 重置执行状态
-                setExecutingAssistants(new Set());
                 return response.data;
             }
             
@@ -1310,83 +1309,100 @@ const ChatRca = ({ treeData, style }) => {
             >
                 {messages.map((msg, index) => (
                     <div key={index} style={{
-                        marginBottom: index === messages.length - 1 ? 0 : '16px',
+                        marginBottom: '16px',
                         display: 'flex',
-                        flexDirection: msg.type === 'user' ? 'row-reverse' : 'row',
-                        alignItems: 'flex-start',
-                        gap: '8px'
+                        justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start',
                     }}>
                         <div style={{
-                            flex: 1,
                             maxWidth: '80%',
                             padding: '12px',
                             borderRadius: '8px',
                             background: msg.type === 'user' ? '#91d5ff' : '#fff',
-                            color: msg.type === 'user' ? '#333' : '#333',
                             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                         }}>
-                            {/* 角色、时间和操作按钮放在一行 */}
+                            {/* 消息头部 */}
                             <div style={{
                                 display: 'flex',
-                                justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start',
+                                justifyContent: 'space-between',
                                 alignItems: 'center',
-                                marginBottom: '8px',
-                                gap: '8px'
+                                marginBottom: '8px'
                             }}>
+                                {/* 左侧角色和时间 */}
                                 <div style={{
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '12px',
-                                    color: '#fff',
-                                    background: msg.type === 'user' ? '#fa8c16' : 
-                                               (msg.command ? '#52c41a' : '#722ed1'),
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
                                 }}>
-                                    {msg.type === 'user' ? '用户' : 
-                                     (msg.command ? '助手' : '大模型')}
+                                    <Tag color={msg.type === 'user' ? '#fa8c16' : '#52c41a'}>
+                                        {msg.type === 'user' ? '用户' : '助手'}
+                                    </Tag>
+                                    <span style={{ fontSize: '12px', color: '#666' }}>
+                                        {msg.timestamp}
+                                    </span>
                                 </div>
+
+                                {/* 右侧操作按钮 */}
                                 <div style={{
-                                    fontSize: '12px',
-                                    color: msg.type === 'user' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.45)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
                                 }}>
-                                    {msg.timestamp}
-                                </div>
-                                {/* 只要是命令相关的消息就显示勾选框 */}
-                                {msg.command && (
+                                    {/* 引用勾选框 */}
                                     <Checkbox
                                         checked={selectedResults.has(msg.timestamp)}
-                                        onChange={() => handleResultSelect(msg.timestamp)}
+                                        onChange={(e) => handleResultSelect(msg.timestamp)}
+                                        style={{ marginRight: '8px' }}
                                     />
-                                )}
-                                {/* 添加复制按钮 */}
-                                {msg.type === 'assistant' && (
-                                    <Tooltip title="复制内容">
-                                        <Icon 
-                                            type="copy" 
-                                            style={{ 
-                                                cursor: 'pointer',
-                                                color: '#1890ff',
-                                                fontSize: '14px'
-                                            }}
-                                            onClick={() => copyToClipboard(msg)}
-                                        />
-                                    </Tooltip>
-                                )}
+                                    
+                                    {/* Zabbix视图切换按钮 */}
+                                    {msg.isZabbix && (
+                                        <>
+                                            <Button
+                                                type="link"
+                                                size="small"
+                                                icon="file-text"
+                                                style={{
+                                                    color: messageViewModes.get(msg.timestamp) === 'text' ? '#1890ff' : '#999'
+                                                }}
+                                                onClick={() => setMessageViewModes(prev => new Map(prev).set(msg.timestamp, 'text'))}
+                                            >
+                                                文本
+                                            </Button>
+                                            <Button
+                                                type="link"
+                                                size="small"
+                                                icon="line-chart"
+                                                style={{
+                                                    color: messageViewModes.get(msg.timestamp) === 'chart' ? '#1890ff' : '#999'
+                                                }}
+                                                onClick={() => setMessageViewModes(prev => new Map(prev).set(msg.timestamp, 'chart'))}
+                                            >
+                                                图表
+                                            </Button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
                             {/* 消息内容 */}
-                            {msg.type === 'user' ? (
-                                <div>
-                                    <div className="context-tags" style={{ marginBottom: '8px' }}>
-                                        {msg.contexts?.map(ctx => (
-                                            <Tag key={ctx.key} icon={<Icon type={ctx.icon} />}>
-                                                {ctx.label}
-                                            </Tag>
-                                        ))}
-                                    </div>
+                            {msg.isZabbix ? (
+                                messageViewModes.get(msg.timestamp) === 'text' ? (
                                     <ReactMarkdown components={markdownRenderers}>
                                         {msg.content}
                                     </ReactMarkdown>
-                                </div>
+                                ) : (
+                                    <div style={{ 
+                                        marginTop: '10px',
+                                        width: '100%',  // 修改为100%，与文本宽度一致
+                                        overflow: 'hidden'
+                                    }}>
+                                        <ZabbixChart 
+                                            data={msg.rawContent} 
+                                            style={{ height: '220px' }}
+                                            showHeader={false}
+                                        />
+                                    </div>
+                                )
                             ) : (
                                 <ReactMarkdown components={markdownRenderers}>
                                     {msg.content}
