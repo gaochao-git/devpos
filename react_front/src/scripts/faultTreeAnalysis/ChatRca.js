@@ -929,7 +929,9 @@ const ChatRca = ({ treeData, style }) => {
 
                     const formatMessage = `${formattedCommand}\n\`\`\`\n${headerRow}${dataRows}\n\`\`\``;
                     
-                    const timestamp = new Date().getTime().toString();
+                    // 格式化当前时间为 "HH:mm:ss" 格式
+                    const now = new Date();
+                    const timeString = now.toTimeString().split(' ')[0];
                     
                     setMessages(prev => {
                         setExecutingAssistants(new Set());
@@ -938,13 +940,13 @@ const ChatRca = ({ treeData, style }) => {
                             content: formatMessage,
                             rawContent: response.data.data,
                             command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
-                            timestamp: timestamp,
+                            timestamp: timeString,  // 使用格式化后的时间
                             isZabbix: true
                         }];
                     });
                     
                     // 默认设置为图表视图
-                    setMessageViewModes(prev => new Map(prev).set(timestamp, 'chart'));
+                    setMessageViewModes(prev => new Map(prev).set(timeString, 'chart'));
                     
                     return response.data;
                 }
