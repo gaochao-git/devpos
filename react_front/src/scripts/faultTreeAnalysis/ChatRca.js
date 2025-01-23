@@ -109,11 +109,6 @@ const ASSISTANT_CONFIGS = {
     'SSH助手': {
         prefix: 'ssh> ',
         serverFormat: (ip) => ip,
-        commandFormat: (ip, _, command) => ({
-            tool: 'ssh',
-            address: ip,
-            cmd: command
-        }),
         commonCommands: [
             // CPU相关
             { value: 'top -n 1', label: 'CPU: 查看系统负载和进程状态，采样1次' },
@@ -143,11 +138,6 @@ const ASSISTANT_CONFIGS = {
     'MySQL助手': {
         prefix: 'mysql> ',
         serverFormat: (ip, port) => `${ip}:${port || '3306'}`,
-        commandFormat: (ip, port, command) => ({
-            tool: 'mysql',
-            address: `${ip}:${port || '3306'}`,
-            cmd: command
-        }),
         commonCommands: [
             { value: 'show processlist;', label: 'MySQL: 查看进程列表' },
             { value: 'show slave status\\G', label: 'MySQL: 查看主从状态' },
@@ -159,7 +149,6 @@ const ASSISTANT_CONFIGS = {
     'Zabbix助手': {
         prefix: 'zabbix> ',
         serverFormat: (ip) => ip,
-        commandFormat: (ip, _, command) => `${ip} get_history ${command}`,
         commonCommands: [], 
         getMetrics: async (ip) => {
             try {
@@ -915,43 +904,13 @@ const ChatRca = ({ treeData, style }) => {
 
     // 修改 executeCommand 函数
     const executeCommand = async (command) => {
-        // 解析命令字符串
-        const parts = command.split(' ');
-        const assistantType = parts[0].substring(1); // 去掉@符号
-        const address = parts[1];
-        const cmd = parts.slice(2).join(' ');
-
-        // 根据助手类型确定工具名称
-        let tool;
-        switch (assistantType) {
-            case 'SSH助手':
-                tool = 'ssh';
-                break;
-            case 'MySQL助手':
-                tool = 'mysql';
-                break;
-            case 'Zabbix助手':
-                tool = 'zabbix';
-                break;
-            default:
-                message.error('未知的助手类型');
-                return;
-        }
-
-        const params = {
-            tool: tool,
-            address: address,
-            cmd: cmd
-        };
-
         try {
-            console.log('Executing command with params:', params);
             const response = await fetch(COMMAND_EXECUTE_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(params)
+                body: JSON.stringify(command)  // 直接使用 commandFormat 生成的参数对象
             });
 
             if (!response.ok) {
@@ -1550,14 +1509,27 @@ const ChatRca = ({ treeData, style }) => {
                                                     // 设置执行状态
                                                     setExecutingAssistants(prev => new Set(prev).add(assistantName));
 
-                                                    let fullCommand;
-                                                    if (assistantName === 'MySQL助手') {
-                                                        fullCommand = `@${assistantName} ${serverConfig.ip}:${serverConfig.port || '3306'} "${value}"`;
-                                                    } else {
-                                                        fullCommand = `@${assistantName} ${serverConfig.ip} ${value}`;
-                                                    }
+                                                    const TOOL_MAP = {
+                                                        'MySQL助手': 'mysql',
+                                                        'SSH助手': 'ssh',
+                                                        'Zabbix助手': 'zabbix'
+                                                    };
 
-                                                    executeCommand(fullCommand).finally(() => {
+                                                    let params;
+                                                    if (assistantName === 'MySQL助手') {
+                                                        params = {
+                                                            tool: TOOL_MAP[assistantName],
+                                                            address: `${serverConfig.ip}:${serverConfig.port || '3306'}`,
+                                                            cmd: value
+                                                        };
+                                                    } else {
+                                                        params = {
+                                                            tool: TOOL_MAP[assistantName],
+                                                            address: serverConfig.ip,
+                                                            cmd: value
+                                                        };
+                                                    }
+                                                    executeCommand(params).finally(() => {
                                                         // 执行完成后清除状态
                                                         setExecutingAssistants(prev => {
                                                             const next = new Set(prev);
