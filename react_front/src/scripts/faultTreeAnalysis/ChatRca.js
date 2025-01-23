@@ -922,7 +922,7 @@ const ChatRca = ({ treeData, style }) => {
                     const metricsData = response.data.data;
                     const firstItem = metricsData[0];
                     
-                    const headerRow = `指标名称: ${firstItem.name} (${firstItem.key_})\n`;
+                    const headerRow = `指标名称: (${firstItem.key_})\n`;
                     const dataRows = metricsData.map(point => 
                         `${point.metric_time} | ${point.value}${firstItem.units}`
                     ).join('\n');
