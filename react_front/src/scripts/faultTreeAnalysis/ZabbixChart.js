@@ -16,6 +16,15 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
         const firstItem = data[0];
 
         return {
+            title: {
+                text: firstItem.key_,
+                left: 'center',
+                top: 5,
+                textStyle: {
+                    color: '#666',
+                    fontSize: 13
+                }
+            },
             tooltip: {
                 trigger: 'axis',
                 formatter: function(params) {
@@ -25,6 +34,7 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
                 }
             },
             grid: {
+                top: 30,
                 left: '3%',
                 right: '4%',
                 bottom: '3%',
@@ -43,9 +53,11 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
             },
             yAxis: {
                 type: 'value',
-                name: firstItem.units,
-                nameLocation: 'end',
-                nameGap: 15,
+                axisLabel: {
+                    formatter: (value) => {
+                        return value + firstItem.units;
+                    }
+                },
                 scale: true
             },
             dataZoom: [
@@ -94,19 +106,20 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
     };
 
     return (
-        <div style={{ width: '100%', padding: '10px 0' }}>
+        <div style={{ width: '100%', padding: '5px 0' }}>
             {showHeader && (
                 <div style={{ 
                     textAlign: 'center', 
-                    marginBottom: '10px',
-                    color: '#666'
+                    marginBottom: '5px',
+                    color: '#666',
+                    fontSize: '12px'
                 }}>
                     数据点数量: {data.length}
                 </div>
             )}
             <ReactEcharts 
                 option={getChartOption()} 
-                style={{ height: '220px', ...style }}
+                style={{ height: '200px', ...style }}
                 opts={{ renderer: 'svg' }}
             />
         </div>
