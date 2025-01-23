@@ -109,7 +109,11 @@ const ASSISTANT_CONFIGS = {
     'SSH助手': {
         prefix: 'ssh> ',
         serverFormat: (ip) => ip,
-        commandFormat: (ip, _, command) => `${ip} ${command}`,
+        commandFormat: (ip, _, command) => ({
+            tool: 'ssh',
+            address: ip,
+            cmd: command
+        }),
         commonCommands: [
             // CPU相关
             { value: 'top -n 1', label: 'CPU: 查看系统负载和进程状态，采样1次' },
@@ -139,7 +143,11 @@ const ASSISTANT_CONFIGS = {
     'MySQL助手': {
         prefix: 'mysql> ',
         serverFormat: (ip, port) => `${ip}:${port || '3306'}`,
-        commandFormat: (ip, port, command) => `${ip}:${port || '3306'} ${command}`,
+        commandFormat: (ip, port, command) => ({
+            tool: 'mysql',
+            address: `${ip}:${port || '3306'}`,
+            cmd: command
+        }),
         commonCommands: [
             { value: 'show processlist;', label: 'MySQL: 查看进程列表' },
             { value: 'show slave status\\G', label: 'MySQL: 查看主从状态' },
