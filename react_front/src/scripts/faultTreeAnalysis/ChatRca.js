@@ -1184,11 +1184,25 @@ const ChatRca = ({ treeData, style }) => {
     const inputAreaHeight = getInputAreaHeight();
     const assistantsHeight = getAssistantsHeight();
 
-    // 然后修改复制函数
+    // 修改复制函数
     const copyToClipboard = (msg) => {
-        const textToCopy = msg.rawContent || msg.content;  // 使用 msg
+        let content = '';
         
-        navigator.clipboard.writeText(textToCopy).then(() => {
+        // 处理不同类型的消息内容
+        if (msg.type === 'assistant') {
+            if (msg.command) {
+                // 所有助手消息（包括Zabbix）都复制显示的内容
+                const contentMatch = msg.content.match(/^>.*\n```.*\n([\s\S]*?)\n```/);
+                content = contentMatch ? contentMatch[1] : msg.content;
+            } else {
+                // 大模型回复
+                content = msg.content;
+            }
+        } else {
+            content = msg.content;
+        }
+
+        navigator.clipboard.writeText(content).then(() => {
             message.success('已复制到剪贴板');
         }).catch(() => {
             message.error('复制失败');
@@ -1339,10 +1353,19 @@ const ChatRca = ({ treeData, style }) => {
                                     alignItems: 'center',
                                     gap: '8px'
                                 }}>
-                                    <Tag color={msg.type === 'user' ? '#fa8c16' : '#52c41a'}>
-                                        {msg.type === 'user' ? '用户' : '助手'}
+                                    <Tag color={
+                                        msg.type === 'user' ? '#fa8c16' : 
+                                        msg.command ? '#52c41a' : 
+                                        '#1890ff'
+                                    }>
+                                        {msg.type === 'user' ? '用户' : 
+                                         msg.command ? '助手' : 
+                                         '大模型'}
                                     </Tag>
-                                    <span style={{ fontSize: '12px', color: '#666' }}>
+                                    <span style={{ 
+                                        fontSize: '12px', 
+                                        color: 'rgba(0, 0, 0, 0.45)'
+                                    }}>
                                         {msg.timestamp}
                                     </span>
                                 </div>
@@ -1368,7 +1391,8 @@ const ChatRca = ({ treeData, style }) => {
                                                 size="small"
                                                 icon="file-text"
                                                 style={{
-                                                    color: messageViewModes.get(msg.timestamp) === 'text' ? '#1890ff' : '#999'
+                                                    color: messageViewModes.get(msg.timestamp) === 'text' ? '#1890ff' : '#999',
+                                                    padding: '4px 8px'
                                                 }}
                                                 onClick={() => setMessageViewModes(prev => new Map(prev).set(msg.timestamp, 'text'))}
                                             >
@@ -1379,13 +1403,27 @@ const ChatRca = ({ treeData, style }) => {
                                                 size="small"
                                                 icon="line-chart"
                                                 style={{
-                                                    color: messageViewModes.get(msg.timestamp) === 'chart' ? '#1890ff' : '#999'
+                                                    color: messageViewModes.get(msg.timestamp) === 'chart' ? '#1890ff' : '#999',
+                                                    padding: '4px 8px'
                                                 }}
                                                 onClick={() => setMessageViewModes(prev => new Map(prev).set(msg.timestamp, 'chart'))}
                                             >
                                                 图表
                                             </Button>
                                         </>
+                                    )}
+                                    
+                                    {/* 复制按钮 - 对所有助手消息和大模型回复都显示 */}
+                                    {msg.type === 'assistant' && (
+                                        <Button
+                                            type="link"
+                                            size="small"
+                                            icon="copy"
+                                            style={{ padding: '4px 8px' }}
+                                            onClick={() => copyToClipboard(msg)}
+                                        >
+                                            复制
+                                        </Button>
                                     )}
                                 </div>
                             </div>
