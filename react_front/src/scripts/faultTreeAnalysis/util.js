@@ -149,13 +149,17 @@ export const SSH_COMMANDS = [
 
 export const MYSQL_COMMANDS = [
     
-    { value: 'show variables like "%read_only%"', label: 'MySQL: 查看是否为只读'},
-    { value: 'show variables like "%connections%"', label: 'MySQL: 查看连接数'},
-    { value: 'show variables', label: 'MySQL: 查看所有变量' },
-    { value: 'show status', label: 'MySQL: 查看所有状态' },
-    { value: 'show full processlist;', label: 'MySQL: 查看进程列表' },
-    { value: 'show slave status\\G', label: 'MySQL: 查看主从状态' },
-    { value: 'show master status\\G', label: 'MySQL: 查看主库状态' },
-    { value: 'show engine innodb status\\G', label: 'MySQL: 查看事务状态' },
-    { value: 'select user,db,substring_index(host,":",1) ip,count(*) count from information_schema.processlist group by ip order by count;', label: 'MySQL: 连接聚合' },
+    { value: 'show variables like "%read_only%"', label: 'MySQL: 查看是否为只读配置'},
+    { value: 'show variables like "%connections%"', label: 'MySQL: 查看连接数配置'},
+    { value: 'show variables', label: 'MySQL: 查看所有变量配置' },
+    { value: 'show status', label: 'MySQL: 查看所有运行状态' },
+    { value: 'show status like "%connecte%"', label: 'MySQL: 查看连接运行状态' },
+    { value: 'show slave status\\G', label: 'MySQL: 查看主从运行状态' },
+    { value: 'show master status\\G', label: 'MySQL: 查看主库运行状态' },
+    { value: 'show full processlist;', label: 'MySQL: 查看连接列表' },
+    { value: 'show engine innodb status\\G', label: 'MySQL: 查看innodb运行状态' },
+    { value: 'show variables like "%semi%";', label: 'MySQL: 查看半同步配置'},
+    { value: 'show status like "%semi%";', label: 'MySQL: 查看半同步运行状态'},
+    { value: 'select user,db,substring_index(host,":",1) ip,count(*) count from information_schema.processlist group by ip order by count;', label: 'MySQL: 查看连接聚合' },
+    { value: 'select a.trx_id, a.trx_state, a.trx_started, a.trx_query, b.COMMAND, b.TIME, b.STATE, b.INFO, c.PROCESSLIST_ID, c.PROCESSLIST_USER, c.PROCESSLIST_HOST, c.PROCESSLIST_DB, d.SQL_TEXT FROM information_schema.INNODB_TRX a LEFT JOIN information_schema.PROCESSLIST b ON a.trx_mysql_thread_id = b.id LEFT JOIN performance_schema.threads c ON b.id = c.PROCESSLIST_ID LEFT JOIN performance_schema.events_statements_current d ON d.THREAD_ID = c.THREAD_ID order by a.trx_started desc\\G', label: 'MySQL: 查看未提交事物' },
 ]; 
