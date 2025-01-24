@@ -1223,13 +1223,15 @@ const ChatRca = ({ treeData, style }) => {
                                                     const isExecuting = executingAssistants.has(assistantName);
                                                     
                                                     if (isExecuting) {
-                                                        // 实现暂停逻辑
                                                         if (abortControllerRef.current) {
-                                                            abortControllerRef.current.abort();  // 中断请求
+                                                            abortControllerRef.current.abort();
                                                         }
                                                         setExecutingAssistants(new Set());
                                                         return;
                                                     }
+
+                                                    // 重置用户滚动状态，允许自动滚动
+                                                    setIsUserScrolling(false);
 
                                                     const value = assistantInputs.get(assistantName);
                                                     const serverConfig = assistantConfigs.get(assistantName);
