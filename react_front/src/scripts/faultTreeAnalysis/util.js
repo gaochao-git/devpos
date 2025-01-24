@@ -118,4 +118,39 @@ export const getStandardTime = () => {
     const millisecond = String(now.getMilliseconds()).padStart(3, '0');
     
     return `${year}-${month}-${day} ${hour}:${minute}:${second}.${millisecond}`;
-}; 
+};
+
+// Common commands for assistants
+export const SSH_COMMANDS = [
+    // CPU相关
+    { value: 'top -n 1', label: 'CPU: 查看系统负载和进程状态，采样1次' },
+    { value: 'uptime', label: 'CPU: 查看1/5/15分钟的平均负载' },
+    { value: 'mpstat -P ALL 1 3', label: 'CPU: 查看所有CPU核心的使用率统计，每秒采样1次共3次' },
+    
+    // 内存相关
+    { value: 'free -m', label: '内存: 查看系统内存使用情况，以MB为单位' },
+    { value: 'vmstat 1 3', label: '内存: 查看虚拟内存使用统计，每秒采样1次共3次' },
+    
+    // 磁盘相关
+    { value: 'df -h', label: '磁盘: 查看各文件系统使用情况，以人类可读方式显示' },
+    { value: 'iostat -xz 1 3', label: '磁盘: 查看IO详细统计信息，每秒采样1次共3次' },
+    { value: 'lsof | wc -l', label: '磁盘: 统计当前系统打开的文件总数' },
+    
+    // 网络相关
+    { value: 'netstat -ant | grep ESTABLISHED', label: '网络: 查看当前已建立的TCP连接数' },
+    { value: 'netstat -anu', label: '网络: 查看所有UDP连接的状态' },
+    { value: 'ss -ant', label: '网络: 使用ss命令查看网络连接详情' },
+    
+    // 进程相关
+    { value: 'ps aux --sort=-%cpu | head -10', label: '进程: 按CPU使用率降序显示前10个进程' },
+    { value: 'ps aux --sort=-%mem | head -10', label: '进程: 按内存使用率降序显示前10个进程' },
+    { value: 'pstree -p', label: '进程: 以树形结构显示进程间父子关系' }
+];
+
+export const MYSQL_COMMANDS = [
+    { value: 'show processlist;', label: 'MySQL: 查看进程列表' },
+    { value: 'show slave status\\G', label: 'MySQL: 查看主从状态' },
+    { value: 'show master status\\G', label: 'MySQL: 查看主库状态' },
+    { value: 'show status like "%Threads_connected%"', label: 'MySQL: 查看连接数' },
+    { value: 'show engine innodb status\\G', label: 'MySQL: 查看事务状态' }
+]; 
