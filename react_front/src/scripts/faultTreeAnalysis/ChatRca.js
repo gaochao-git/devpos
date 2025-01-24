@@ -152,6 +152,146 @@ const UserInput = ({
     );
 };
 
+// 新增 MessageItem 组件
+const MessageItem = ({
+    msg,
+    index,
+    selectedResults,
+    handleResultSelect,
+    messageViewModes,
+    setMessageViewModes,
+    copyToClipboard
+}) => {
+    return (
+        <div key={index} style={{
+            marginBottom: '16px',
+            display: 'flex',
+            justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start',
+        }}>
+            <div style={{
+                maxWidth: '80%',
+                padding: '12px',
+                borderRadius: '8px',
+                background: msg.type === 'user' ? '#91d5ff' : '#fff',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+                {/* 消息头部 */}
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                }}>
+                    {/* 左侧角色和时间 */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
+                        <Tag color={
+                            msg.type === 'user' ? '#fa8c16' : 
+                            msg.command ? '#52c41a' : 
+                            '#1890ff'
+                        }>
+                            {msg.type === 'user' ? '用户' : 
+                             msg.command ? '助手' : 
+                             '大模型'}
+                        </Tag>
+                        <span style={{ 
+                            fontSize: '12px', 
+                            color: 'rgba(0, 0, 0, 0.45)'
+                        }}>
+                            {msg.timestamp}
+                        </span>
+                    </div>
+
+                    {/* 右侧操作按钮 */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
+                        {/* 引用勾选框 */}
+                        <Checkbox
+                            checked={selectedResults.has(msg.timestamp)}
+                            onChange={(e) => handleResultSelect(msg.timestamp)}
+                            style={{ marginRight: '8px' }}
+                        />
+                        
+                        {/* Zabbix视图切换按钮 */}
+                        {msg.isZabbix && (
+                            <>
+                                <Button
+                                    type="link"
+                                    size="small"
+                                    icon="file-text"
+                                    style={{
+                                        color: messageViewModes.get(msg.timestamp) === 'text' ? '#1890ff' : '#999',
+                                        padding: '4px 8px'
+                                    }}
+                                    onClick={() => setMessageViewModes(prev => new Map(prev).set(msg.timestamp, 'text'))}
+                                >
+                                    文本
+                                </Button>
+                                <Button
+                                    type="link"
+                                    size="small"
+                                    icon="line-chart"
+                                    style={{
+                                        color: messageViewModes.get(msg.timestamp) === 'chart' ? '#1890ff' : '#999',
+                                        padding: '4px 8px'
+                                    }}
+                                    onClick={() => setMessageViewModes(prev => new Map(prev).set(msg.timestamp, 'chart'))}
+                                >
+                                    图表
+                                </Button>
+                            </>
+                        )}
+                        
+                        {/* 复制按钮 - 对所有助手消息和大模型回复都显示 */}
+                        {msg.type === 'assistant' && (
+                            <Button
+                                type="link"
+                                size="small"
+                                icon="copy"
+                                style={{ padding: '4px 8px' }}
+                                onClick={() => copyToClipboard(msg)}
+                            >
+                                复制
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                {/* 消息内容 */}
+                {msg.isZabbix ? (
+                    messageViewModes.get(msg.timestamp) === 'text' ? (
+                        <ReactMarkdown components={markdownRenderers}>
+                            {msg.content}
+                        </ReactMarkdown>
+                    ) : (
+                        <div style={{ 
+                            marginTop: '10px',
+                            width: '100%',
+                            overflow: 'hidden'
+                        }}>
+                            <ZabbixChart 
+                                data={msg.rawContent} 
+                                style={{ height: '220px' }}
+                                showHeader={false}
+                            />
+                        </div>
+                    )
+                ) : (
+                    <ReactMarkdown components={markdownRenderers}>
+                        {msg.content}
+                    </ReactMarkdown>
+                )}
+            </div>
+        </div>
+    );
+};
+
 const ChatRca = ({ treeData, style }) => {
     // 消息列表状态
     const [messages, setMessages] = useState([]);
@@ -1103,132 +1243,16 @@ const ChatRca = ({ treeData, style }) => {
                 }}
             >
                 {messages.map((msg, index) => (
-                    <div key={index} style={{
-                        marginBottom: '16px',
-                        display: 'flex',
-                        justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start',
-                    }}>
-                        <div style={{
-                            maxWidth: '80%',
-                            padding: '12px',
-                            borderRadius: '8px',
-                            background: msg.type === 'user' ? '#91d5ff' : '#fff',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                        }}>
-                            {/* 消息头部 */}
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                marginBottom: '8px'
-                            }}>
-                                {/* 左侧角色和时间 */}
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                }}>
-                                    <Tag color={
-                                        msg.type === 'user' ? '#fa8c16' : 
-                                        msg.command ? '#52c41a' : 
-                                        '#1890ff'
-                                    }>
-                                        {msg.type === 'user' ? '用户' : 
-                                         msg.command ? '助手' : 
-                                         '大模型'}
-                                    </Tag>
-                                    <span style={{ 
-                                        fontSize: '12px', 
-                                        color: 'rgba(0, 0, 0, 0.45)'
-                                    }}>
-                                        {msg.timestamp}
-                                    </span>
-                                </div>
-
-                                {/* 右侧操作按钮 */}
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                }}>
-                                    {/* 引用勾选框 */}
-                                    <Checkbox
-                                        checked={selectedResults.has(msg.timestamp)}
-                                        onChange={(e) => handleResultSelect(msg.timestamp)}
-                                        style={{ marginRight: '8px' }}
-                                    />
-                                    
-                                    {/* Zabbix视图切换按钮 */}
-                                    {msg.isZabbix && (
-                                        <>
-                                            <Button
-                                                type="link"
-                                                size="small"
-                                                icon="file-text"
-                                                style={{
-                                                    color: messageViewModes.get(msg.timestamp) === 'text' ? '#1890ff' : '#999',
-                                                    padding: '4px 8px'
-                                                }}
-                                                onClick={() => setMessageViewModes(prev => new Map(prev).set(msg.timestamp, 'text'))}
-                                            >
-                                                文本
-                                            </Button>
-                                            <Button
-                                                type="link"
-                                                size="small"
-                                                icon="line-chart"
-                                                style={{
-                                                    color: messageViewModes.get(msg.timestamp) === 'chart' ? '#1890ff' : '#999',
-                                                    padding: '4px 8px'
-                                                }}
-                                                onClick={() => setMessageViewModes(prev => new Map(prev).set(msg.timestamp, 'chart'))}
-                                            >
-                                                图表
-                                            </Button>
-                                        </>
-                                    )}
-                                    
-                                    {/* 复制按钮 - 对所有助手消息和大模型回复都显示 */}
-                                    {msg.type === 'assistant' && (
-                                        <Button
-                                            type="link"
-                                            size="small"
-                                            icon="copy"
-                                            style={{ padding: '4px 8px' }}
-                                            onClick={() => copyToClipboard(msg)}
-                                        >
-                                            复制
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* 消息内容 */}
-                            {msg.isZabbix ? (
-                                messageViewModes.get(msg.timestamp) === 'text' ? (
-                                    <ReactMarkdown components={markdownRenderers}>
-                                        {msg.content}
-                                    </ReactMarkdown>
-                                ) : (
-                                    <div style={{ 
-                                        marginTop: '10px',
-                                        width: '100%',  // 修改为100%，与文本宽度一致
-                                        overflow: 'hidden'
-                                    }}>
-                                        <ZabbixChart 
-                                            data={msg.rawContent} 
-                                            style={{ height: '220px' }}
-                                            showHeader={false}
-                                        />
-                                    </div>
-                                )
-                            ) : (
-                                <ReactMarkdown components={markdownRenderers}>
-                                    {msg.content}
-                                </ReactMarkdown>
-                            )}
-                        </div>
-                    </div>
+                    <MessageItem
+                        key={index}
+                        msg={msg}
+                        index={index}
+                        selectedResults={selectedResults}
+                        handleResultSelect={handleResultSelect}
+                        messageViewModes={messageViewModes}
+                        setMessageViewModes={setMessageViewModes}
+                        copyToClipboard={copyToClipboard}
+                    />
                 ))}
             </div>
 
