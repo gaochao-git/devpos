@@ -430,7 +430,7 @@ const ChatRca = ({ treeData, style }) => {
         
         // 先添加一个空的助手消息，只显示标签
         setMessages(prev => [...prev, {
-            type: 'assistant',
+            type: 'llm',
             content: '',
             timestamp: getStandardTime()
         }]);
@@ -554,7 +554,7 @@ const ChatRca = ({ treeData, style }) => {
         } catch (modelError) {
             console.error('大模型调用错误:', modelError);
             setMessages(prev => [...prev, {
-                type: 'assistant',
+                type: 'llm',
                 content: `调用失败: ${modelError.message}`,
                 timestamp: getStandardTime(),
                 isError: true
@@ -645,7 +645,7 @@ const ChatRca = ({ treeData, style }) => {
         } catch (error) {
             if (error.name !== 'AbortError') {
                 setMessages(prev => [...prev, {
-                    type: 'assistant',
+                    type: 'llm',
                     content: `调用失败: ${error.message}`,
                     timestamp: timestamp,
                     isError: true
@@ -1225,6 +1225,20 @@ const ChatRca = ({ treeData, style }) => {
         });
     };
 
+    // 修改 MessageItem 组件中的标签显示
+    const getTagText = (msg) => {
+        switch (msg.type) {
+            case 'user':
+                return '用户';
+            case 'llm':
+                return '大模型';
+            case 'assistant':
+                return msg.command ? msg.command.split(' ')[0].slice(1) : '助手';
+            default:
+                return '未知';
+        }
+    };
+
     return (
         <div style={{ 
             display: 'flex',
@@ -1293,7 +1307,7 @@ const ChatRca = ({ treeData, style }) => {
                         setMessageViewModes={setMessageViewModes}
                         copyToClipboard={copyToClipboard}
                         isExpanded={expandedMessages.has(msg.timestamp) || 
-                                  (index === messages.length - 1 && msg.type === 'assistant')}
+                                  (index === messages.length - 1 && msg.type !== 'user')}
                         onExpandChange={(expanded) => handleMessageExpand(msg.timestamp, expanded)}
                     />
                 ))}
