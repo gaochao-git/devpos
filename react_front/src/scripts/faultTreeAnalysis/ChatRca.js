@@ -2,134 +2,22 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Input, Button, message, Select, Tooltip, Tag, Popover, Checkbox, Modal, Divider } from 'antd';
 import { Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import MyAxios from "../common/interface"
 import ZabbixChart from './ZabbixChart';
 import HistoryConversationModal from './historyConversation';
+import {
+    DIFY_BASE_URL,
+    DIFY_API_KEY,
+    DIFY_CHAT_URL,
+    DIFY_CONVERSATIONS_URL,
+    COMMAND_EXECUTE_URL,
+    markdownRenderers,
+    CONTEXT_TYPES,
+    DEFAULT_ASSISTANTS,
+    extractServersFromTree,
+    getStandardTime
+} from './util';
 
-// API URLs and Configuration
-const DIFY_BASE_URL = 'http://127.0.0.1/v1';
-const DIFY_API_KEY = 'Bearer app-0awR0muTJbJAISBjgHYli4Dv';
-const DIFY_CHAT_URL = `${DIFY_BASE_URL}/chat-messages`;
-const DIFY_CONVERSATIONS_URL = `${DIFY_BASE_URL}/conversations`;
-const COMMAND_EXECUTE_URL = 'http://localhost:8002/execute';  // 新增命令执行 URL
-
-// 定义 Markdown 渲染器配置
-const markdownRenderers = {
-    code: ({ node, inline, className, children, ...props }) => {
-        const match = /language-(\w+)/.exec(className || '');
-        return !inline && match ? (
-            <SyntaxHighlighter
-                style={nightOwl}
-                language={match[1]}
-                PreTag="div"
-                {...props}
-            >
-                {String(children).replace(/\n$/, '')}
-            </SyntaxHighlighter>
-        ) : (
-            <code className={className} {...props}>
-                {children}
-            </code>
-        );
-    }
-};
-
-// 定义上下文类型
-const CONTEXT_TYPES = [
-    { key: 'tree', label: '故障树数据', icon: 'cluster', 
-      description: '使用故障树结构和关联信息' },
-    { key: 'zabbix', label: 'Zabbix可用指标列表', icon: 'line-chart', 
-      description: '包含系统性能和状态指标' },
-    { key: 'ssh', label: 'SSH命令列表', icon: 'line-chart', 
-      description: '执行系统命令' },
-    { key: 'mysql', label: 'MySQL命令列表', icon: 'line-chart', 
-      description: '执行MySQL命令' }
-];
-
-
-
-// 定义助手列表
-const DEFAULT_ASSISTANTS = [
-    {
-        id: 'ssh',
-        name: 'SSH助手',
-        description: '执行SSH连接、权限配置、日志查看等操作',
-        mode: 'ssh_assistant',
-        examples: [
-            '@SSH助手 连接到 192.168.1.100',
-            '@SSH助手 查看 /var/log/mysql/error.log',
-            '@SSH助手 检查 mysql 进程状态'
-        ]
-    },
-    {
-        id: 'mysql',
-        name: 'MySQL助手',
-        description: '执行MySQL连接、状态查看、性能分析等操作',
-        mode: 'mysql_assistant',
-        examples: [
-            '@MySQL助手 查看当前连接数',
-            '@MySQL助手 检查慢查询日志',
-            '@MySQL助手 显示主从状态'
-        ]
-    },
-    {
-        id: 'zabbix',
-        name: 'Zabbix助手',
-        description: '查看监控数据、告警信息、性能图表等',
-        mode: 'zabbix_assistant',
-        examples: [
-            '@Zabbix助手 显示最近告警',
-            '@Zabbix助手 查看主机 CPU 使用率',
-            '@Zabbix助手 检查磁盘空间'
-        ]
-    }
-];
-
-// 从 treeData 中提取服务器信息的函数
-const extractServersFromTree = (treeData) => {
-    const servers = [];
-    const existingIpPorts = new Set(); // 用于记录已存在的 IP:port 组合
-    
-    const traverse = (node) => {
-        if (node.ip_port && node.ip_port.ip) {
-            // 创建唯一标识符
-            const ipPortKey = `${node.ip_port.ip}:${node.ip_port.port || ''}`;
-            
-            // 如果这个 IP:port 组合还没有被记录过
-            if (!existingIpPorts.has(ipPortKey)) {
-                existingIpPorts.add(ipPortKey); // 记录这个组合
-                servers.push({
-                    ip: node.ip_port.ip,
-                    port: node.ip_port.port,
-                    name: node.key || node.ip_port.ip
-                });
-            }
-        }
-        // 继续遍历子节点
-        if (node.children) {
-            node.children.forEach(traverse);
-        }
-    };
-    
-    traverse(treeData);
-    return servers;
-};
-
-// 修改获取标准时间格式的公共方法
-const getStandardTime = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hour = String(now.getHours()).padStart(2, '0');
-    const minute = String(now.getMinutes()).padStart(2, '0');
-    const second = String(now.getSeconds()).padStart(2, '0');
-    const millisecond = String(now.getMilliseconds()).padStart(3, '0');
-    
-    return `${year}-${month}-${day} ${hour}:${minute}:${second}.${millisecond}`;
-};
 
 const ChatRca = ({ treeData, style }) => {
     // 消息列表状态
