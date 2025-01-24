@@ -163,11 +163,10 @@ const MessageItem = ({
     handleResultSelect,
     messageViewModes,
     setMessageViewModes,
-    copyToClipboard
+    copyToClipboard,
+    isExpanded,
+    onExpandChange
 }) => {
-    // 使用常量作为阈值，默认收起
-    const [isExpanded, setIsExpanded] = useState(false);
-    
     // 获取显示内容
     const displayContent = isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD 
         ? msg.content 
@@ -301,7 +300,7 @@ const MessageItem = ({
                         {msg.content.length > MESSAGE_DISPLAY_THRESHOLD && (
                             <Button 
                                 type="link" 
-                                onClick={() => setIsExpanded(!isExpanded)}
+                                onClick={() => onExpandChange(!isExpanded)}
                                 style={{ padding: '4px 0' }}
                             >
                                 {isExpanded ? '收起' : '展开'}
@@ -594,6 +593,9 @@ const ChatRca = ({ treeData, style }) => {
         }
     }, [messages, scrollToBottom, isUserScrolling]);
 
+    // 添加展开状态管理
+    const [expandedMessages, setExpandedMessages] = useState(new Set());
+
     // 修改 handleSend 函数
     const handleSend = async () => {
         if (!inputValue.trim() || isStreaming) return;
@@ -628,8 +630,11 @@ const ChatRca = ({ treeData, style }) => {
         setMessages(prev => [...prev, userMessage]);
         setInputValue('');
         setIsStreaming(true);
-        setStreamContent(''); // 确保在新消息开始时清空流式内容
+        setStreamContent('');
         abortControllerRef.current = new AbortController();
+
+        // 重置所有展开状态
+        setExpandedMessages(new Set());
 
         try {
             if (isAssistantCommand) {
@@ -1207,6 +1212,19 @@ const ChatRca = ({ treeData, style }) => {
         );
     };
 
+    // 修改 MessageItem 组件的展开/收起处理
+    const handleMessageExpand = (timestamp, expanded) => {
+        setExpandedMessages(prev => {
+            const newSet = new Set(prev);
+            if (expanded) {
+                newSet.add(timestamp);
+            } else {
+                newSet.delete(timestamp);
+            }
+            return newSet;
+        });
+    };
+
     return (
         <div style={{ 
             display: 'flex',
@@ -1274,6 +1292,8 @@ const ChatRca = ({ treeData, style }) => {
                         messageViewModes={messageViewModes}
                         setMessageViewModes={setMessageViewModes}
                         copyToClipboard={copyToClipboard}
+                        isExpanded={expandedMessages.has(msg.timestamp)}
+                        onExpandChange={(expanded) => handleMessageExpand(msg.timestamp, expanded)}
                     />
                 ))}
             </div>
