@@ -420,17 +420,11 @@ const ChatRca = ({ treeData, style }) => {
 
     // 处理键盘事件
     const handleKeyDown = (e) => {
-        console.log('Key pressed:', e.key);
-
         if (e.key === 'Tab') {
             e.preventDefault(); // 阻止默认的 Tab 行为
             
             // 先关闭 @ 窗口
             setAtPosition(null);
-            
-            const currentAssistant = DEFAULT_ASSISTANTS.find(assistant => 
-                inputValue.includes('@' + assistant.name)
-            );
             
             if (!quickSelectMode) {
                 setQuickSelectMode('server');
