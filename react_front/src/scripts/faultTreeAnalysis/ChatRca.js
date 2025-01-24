@@ -256,20 +256,9 @@ const ChatRca = ({ treeData, style }) => {
     const QUICK_SELECT_CONFIG = {
         servers: extractServersFromTree(treeData),
         commands: {
-            'SSH助手': [
-                { cmd: 'ls -l', desc: '列出文件' },
-                { cmd: 'df -h', desc: '查看磁盘空间' },
-                { cmd: 'free -m', desc: '查看内存使用' }
-            ],
-            'MySQL助手': [
-                { cmd: 'show processlist', desc: '查看连接状态' },
-                { cmd: 'show slave status\\G', desc: '查看从库状态' },
-                { cmd: 'show master status\\G', desc: '查看主库状态' }
-            ],
-            'Zabbix助手': [
-                { cmd: 'zabbix_get -s host -k key', desc: '获取监控项数据' },
-                { cmd: 'zabbix_sender -z server -s host -k key -o value', desc: '发送数据' }
-            ]
+            'SSH助手': [],
+            'MySQL助手': [],
+            'Zabbix助手': []
         }
     };
 
