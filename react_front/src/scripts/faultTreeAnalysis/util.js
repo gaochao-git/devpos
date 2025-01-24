@@ -140,6 +140,10 @@ export const SSH_COMMANDS = [
     { value: 'netstat -ant | grep ESTABLISHED', label: '网络: 查看当前已建立的TCP连接数' },
     { value: 'netstat -anu', label: '网络: 查看所有UDP连接的状态' },
     { value: 'ss -ant', label: '网络: 使用ss命令查看网络连接详情' },
+    { value: 'iftop -t -n -P -s 10 | head -n 10', label: '网络: 查看网络流量top10'},
+    { value: 'iftop -t -n -P -s 10 | grep "=>" | head -n 10', label: '网络: 查看网络出流量top10'},
+    { value: 'iftop -t -n -P -s 10 | grep "<=" | head -n 10', label: '网络: 查看网络入流量top10'},
+    { value: 'iptables -L', label: '网络: 查看iptables规则'},
     
     // 进程相关
     { value: 'ps aux --sort=-%cpu | head -10', label: '进程: 按CPU使用率降序显示前10个进程' },
