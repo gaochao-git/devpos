@@ -879,37 +879,44 @@ const ChatRca = ({ treeData, style }) => {
             commands = zabbixMetrics.get(serverConfig.ip) || [];
         }
         
+        const selectedCommand = commands.find(cmd => 
+            cmd.value === assistantInputs.get(assistantName)
+        );
+        
         return (
-            <Select
-                style={{ flex: 1, marginRight: '12px' }}
-                placeholder={commands.length ? "选择命令" : "请先选择服务器"}
-                showSearch
-                value={assistantInputs.get(assistantName) || undefined}
-                onChange={(value) => {
-                    setAssistantInputs(prev => new Map(prev).set(assistantName, value));
-                }}
-                optionLabelProp="value"
-                filterOption={(input, option) => {
-                    const value = option.props.value || '';
-                    const label = option.props.children.props.children[0].props.children || '';
-                    return (
-                        value.toLowerCase().includes(input.toLowerCase()) ||
-                        label.toLowerCase().includes(input.toLowerCase())
-                    );
-                }}
-            >
-                {commands.map(cmd => (
-                    <Select.Option 
-                        key={cmd.value} 
-                        value={cmd.value}
-                    >
-                        <div style={{ padding: '4px 0' }}>
-                            <div style={{ fontWeight: 'bold' }}>{cmd.value}</div>
-                            <div style={{ fontSize: '12px', color: '#666' }}>{cmd.label}</div>
-                        </div>
-                    </Select.Option>
-                ))}
-            </Select>
+
+                <Select
+                    style={{ flex: 1, marginRight: '12px' }}
+                    placeholder={commands.length ? "选择命令" : "请先选择服务器"}
+                    showSearch
+                    value={assistantInputs.get(assistantName) || undefined}
+                    onChange={(value) => {
+                        setAssistantInputs(prev => new Map(prev).set(assistantName, value));
+                    }}
+                    optionLabelProp="label"
+                    filterOption={(input, option) => {
+                        const value = option.props.value || '';
+                        const label = option.props.label || '';
+                        return (
+                            value.toLowerCase().includes(input.toLowerCase()) ||
+                            label.toLowerCase().includes(input.toLowerCase())
+                        );
+                    }}
+                >
+                    {commands.map(cmd => (
+                        <Select.Option 
+                            key={cmd.value}
+                            value={cmd.value}
+                            label={cmd.label.split(': ')[1] || cmd.label}
+                            title={`${cmd.label}\n${cmd.value}`}
+                        >
+                            <div style={{ padding: '4px 0' }}>
+                                <div style={{ fontWeight: 'bold' }}>{cmd.label.split(': ')[1] || cmd.label}</div>
+                                <div style={{ fontSize: '12px', color: '#666' }}>{cmd.value}</div>
+                            </div>
+                        </Select.Option>
+                    ))}
+                </Select>
         );
     };
 
