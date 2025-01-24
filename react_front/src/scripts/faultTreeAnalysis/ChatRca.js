@@ -1292,7 +1292,8 @@ const ChatRca = ({ treeData, style }) => {
                         messageViewModes={messageViewModes}
                         setMessageViewModes={setMessageViewModes}
                         copyToClipboard={copyToClipboard}
-                        isExpanded={expandedMessages.has(msg.timestamp)}
+                        isExpanded={expandedMessages.has(msg.timestamp) || 
+                                  (index === messages.length - 1 && msg.type === 'assistant')}
                         onExpandChange={(expanded) => handleMessageExpand(msg.timestamp, expanded)}
                     />
                 ))}
