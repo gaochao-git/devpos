@@ -254,12 +254,7 @@ const ChatRca = ({ treeData, style }) => {
 
     // 将 QUICK_SELECT_CONFIG 移到组件内部
     const QUICK_SELECT_CONFIG = {
-        servers: extractServersFromTree(treeData),
-        commands: {
-            'SSH助手': [],
-            'MySQL助手': [],
-            'Zabbix助手': []
-        }
+        servers: extractServersFromTree(treeData)
     };
 
     // 中断处理
@@ -575,17 +570,11 @@ const ChatRca = ({ treeData, style }) => {
             
             if (!quickSelectMode) {
                 setQuickSelectMode('server');
-                setQuickSelectItems(QUICK_SELECT_CONFIG.commands[currentAssistant.name]);
             } else if (quickSelectMode === 'server') {
                 setQuickSelectMode('command');
-                const commands = currentAssistant 
-                    ? QUICK_SELECT_CONFIG.commands[currentAssistant.name] 
-                    : QUICK_SELECT_CONFIG.commands['SSH助手'];
-                setQuickSelectItems(commands);
             } else {
                 // 当关闭快速选择窗口时，不改变模式，而是重新开始循环
                 setQuickSelectMode('server');
-                setQuickSelectItems(QUICK_SELECT_CONFIG.commands['SSH助手']);
             }
             
             setSearchText('');
