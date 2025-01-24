@@ -155,6 +155,7 @@ export const MYSQL_COMMANDS = [
     { value: 'show variables like "%read_only%"', label: 'MySQL: 查看是否为只读配置'},
     { value: 'show variables like "%connections%"', label: 'MySQL: 查看连接数配置'},
     { value: 'show variables', label: 'MySQL: 查看所有变量配置' },
+    { value: 'show variables like "%log%"', label: 'MySQL: 查看日志配置'},
     { value: 'show status', label: 'MySQL: 查看所有运行状态' },
     { value: 'show status like "%connecte%"', label: 'MySQL: 查看连接运行状态' },
     { value: 'show slave status\\G', label: 'MySQL: 查看主从运行状态' },
