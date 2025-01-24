@@ -20,6 +20,9 @@ import {
     MYSQL_COMMANDS
 } from './util';
 
+// 添加常量配置
+const MESSAGE_DISPLAY_THRESHOLD = 500;
+
 // 新增上下文标签组件
 const ContextTags = ({
     selectedContext,
@@ -162,6 +165,14 @@ const MessageItem = ({
     setMessageViewModes,
     copyToClipboard
 }) => {
+    // 使用常量作为阈值，默认收起
+    const [isExpanded, setIsExpanded] = useState(false);
+    
+    // 获取显示内容
+    const displayContent = isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD 
+        ? msg.content 
+        : msg.content.slice(0, MESSAGE_DISPLAY_THRESHOLD) + '...';
+
     return (
         <div key={index} style={{
             marginBottom: '16px',
@@ -283,9 +294,20 @@ const MessageItem = ({
                         </div>
                     )
                 ) : (
-                    <ReactMarkdown components={markdownRenderers}>
-                        {msg.content}
-                    </ReactMarkdown>
+                    <>
+                        <ReactMarkdown components={markdownRenderers}>
+                            {displayContent}
+                        </ReactMarkdown>
+                        {msg.content.length > MESSAGE_DISPLAY_THRESHOLD && (
+                            <Button 
+                                type="link" 
+                                onClick={() => setIsExpanded(!isExpanded)}
+                                style={{ padding: '4px 0' }}
+                            >
+                                {isExpanded ? '收起' : '展开'}
+                            </Button>
+                        )}
+                    </>
                 )}
             </div>
         </div>
