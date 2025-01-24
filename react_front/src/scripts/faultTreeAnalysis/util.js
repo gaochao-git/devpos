@@ -148,9 +148,14 @@ export const SSH_COMMANDS = [
 ];
 
 export const MYSQL_COMMANDS = [
-    { value: 'show processlist;', label: 'MySQL: 查看进程列表' },
+    
+    { value: 'show variables like "%read_only%"', label: 'MySQL: 查看是否为只读'},
+    { value: 'show variables like "%connections%"', label: 'MySQL: 查看连接数'},
+    { value: 'show variables', label: 'MySQL: 查看所有变量' },
+    { value: 'show status', label: 'MySQL: 查看所有状态' },
+    { value: 'show full processlist;', label: 'MySQL: 查看进程列表' },
     { value: 'show slave status\\G', label: 'MySQL: 查看主从状态' },
     { value: 'show master status\\G', label: 'MySQL: 查看主库状态' },
-    { value: 'show status like "%Threads_connected%"', label: 'MySQL: 查看连接数' },
-    { value: 'show engine innodb status\\G', label: 'MySQL: 查看事务状态' }
+    { value: 'show engine innodb status\\G', label: 'MySQL: 查看事务状态' },
+    { value: 'select user,db,substring_index(host,":",1) ip,count(*) count from information_schema.processlist group by ip order by count;', label: 'MySQL: 连接聚合' },
 ]; 
