@@ -20,6 +20,43 @@ import {
     MYSQL_COMMANDS
 } from './util';
 
+// 新增上下文标签组件
+const ContextTags = ({
+    selectedContext,
+    setSelectedContext
+}) => {
+    return (
+        <div style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '8px'
+        }}>
+            {selectedContext.map(key => {
+                const contextType = CONTEXT_TYPES.find(t => t.key === key);
+                return (
+                    <Tag 
+                        key={key}
+                        closable
+                        onClose={() => {
+                            setSelectedContext(prev => 
+                                prev.filter(k => k !== key)
+                            );
+                        }}
+                        style={{
+                            margin: 0,
+                            background: '#e6f4ff',
+                            borderColor: '#91caff'
+                        }}
+                    >
+                        <Icon type={contextType.icon} /> {contextType.label}
+                    </Tag>
+                );
+            })}
+        </div>
+    );
+};
+
 // 只拆分输入框组件，保持原有逻辑
 const UserInput = ({ 
     inputValue,
@@ -1206,35 +1243,11 @@ const ChatRca = ({ treeData, style }) => {
                 right: 0,
                 zIndex: 1000,
             }}>
-                {/* 上下文标签区域 */}
-                <div style={{ 
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '8px'
-                }}>
-                    {selectedContext.map(key => {
-                        const contextType = CONTEXT_TYPES.find(t => t.key === key);
-                        return (
-                            <Tag 
-                                key={key}
-                                closable
-                                onClose={() => {
-                                    setSelectedContext(prev => 
-                                        prev.filter(k => k !== key)
-                                    );
-                                }}
-                                style={{
-                                    margin: 0,
-                                    background: '#e6f4ff',
-                                    borderColor: '#91caff'
-                                }}
-                            >
-                                <Icon type={contextType.icon} /> {contextType.label}
-                            </Tag>
-                        );
-                    })}
-                </div>
+                {/* 使用新的 ContextTags 组件 */}
+                <ContextTags 
+                    selectedContext={selectedContext}
+                    setSelectedContext={setSelectedContext}
+                />
 
                 {/* 输入框和发送按钮 */}
                 <div style={{ 
