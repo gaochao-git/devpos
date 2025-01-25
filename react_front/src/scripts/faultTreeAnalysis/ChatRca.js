@@ -174,6 +174,31 @@ const MessageItem = ({
         ? msg.content 
         : msg.content.slice(0, MESSAGE_DISPLAY_THRESHOLD) + '...';
 
+    // 判断内容是否为 JSON
+    const isJsonString = (str) => {
+        try {
+            const result = JSON.parse(str);
+            return typeof result === 'object';
+        } catch (e) {
+            return false;
+        }
+    };
+
+    // 获取展开的内容
+    const getExpandedContent = () => {
+        const content = msg.contexts?.find(c => c.key === expandedContext)?.content || 
+                       msg.references?.find(r => r.timestamp === expandedContext)?.content || '';
+        
+        if (isJsonString(content)) {
+            try {
+                return JSON.stringify(JSON.parse(content), null, 2);
+            } catch (e) {
+                return content;
+            }
+        }
+        return content;
+    };
+
     // 获取引用的内容
     const getReferencedContent = (timestamp) => {
         return messages.find(m => m.timestamp === timestamp)?.content || '';
@@ -313,7 +338,7 @@ const MessageItem = ({
                     </div>
                 )}
 
-                {/* 展开的内容（上下文或引用） */}
+                {/* 展开的上下文内容 */}
                 {expandedContext && (
                     <div style={{
                         marginBottom: '8px',
@@ -337,15 +362,20 @@ const MessageItem = ({
                                 onClick={() => setExpandedContext(null)}
                             />
                         </div>
-                        <pre style={{ 
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-all',
-                            margin: 0,
-                            fontSize: '12px'
-                        }}>
-                            {msg.contexts?.find(c => c.key === expandedContext)?.content || 
-                             msg.references?.find(r => r.timestamp === expandedContext)?.content}
-                        </pre>
+                        {isJsonString(getExpandedContent()) ? (
+                            <pre style={{ 
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-all',
+                                margin: 0,
+                                fontSize: '12px'
+                            }}>
+                                {getExpandedContent()}
+                            </pre>
+                        ) : (
+                            <ReactMarkdown components={markdownRenderers}>
+                                {getExpandedContent()}
+                            </ReactMarkdown>
+                        )}
                     </div>
                 )}
 
