@@ -778,18 +778,21 @@ const ChatRca = ({ treeData, style }) => {
             timestamp: timestamp
         };
         
+        // 立即清除上下文选择
+        setSelectedContext([]);
+        setSelectedResults(new Set());
+        
         setMessages(prev => [...prev, userMessage]);
         setInputValue('');
         setIsStreaming(true);
         setStreamContent('');
-        setSelectedResults(new Set());
         abortControllerRef.current = new AbortController();
 
         try {
             if (isAssistantCommand) {
                 await executeCommand(inputValue);
             } else {
-                await handleModelQuery(fullContent);  // 使用包含引用内容的完整提问
+                await handleModelQuery(fullContent);
             }
         } catch (error) {
             if (error.name !== 'AbortError') {
