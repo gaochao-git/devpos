@@ -165,12 +165,19 @@ const MessageItem = ({
     setMessageViewModes,
     copyToClipboard,
     isExpanded,
-    onExpandChange
+    onExpandChange,
+    messages
 }) => {
-    // 获取显示内容
+    const [expandedContext, setExpandedContext] = useState(null);
+    
     const displayContent = isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD 
         ? msg.content 
         : msg.content.slice(0, MESSAGE_DISPLAY_THRESHOLD) + '...';
+
+    // 获取引用的内容
+    const getReferencedContent = (timestamp) => {
+        return messages.find(m => m.timestamp === timestamp)?.content || '';
+    };
 
     return (
         <div key={index} style={{
@@ -272,6 +279,75 @@ const MessageItem = ({
                         )}
                     </div>
                 </div>
+
+                {/* 显示上下文和引用标签 */}
+                {msg.type === 'user' && (
+                    <div style={{ 
+                        marginBottom: '8px',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '4px'
+                    }}>
+                        {/* 显示上下文标签 */}
+                        {msg.contexts && msg.contexts.map(context => (
+                            <Tag
+                                key={context.key}
+                                color="blue"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setExpandedContext(expandedContext === context.key ? null : context.key)}
+                            >
+                                <Icon type={context.icon} /> {context.label}
+                            </Tag>
+                        ))}
+                        {/* 显示引用标签 */}
+                        {msg.references && msg.references.map(ref => (
+                            <Tag
+                                key={ref.timestamp}
+                                color="purple"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setExpandedContext(expandedContext === ref.timestamp ? null : ref.timestamp)}
+                            >
+                                <Icon type="link" /> 引用内容
+                            </Tag>
+                        ))}
+                    </div>
+                )}
+
+                {/* 展开的内容（上下文或引用） */}
+                {expandedContext && (
+                    <div style={{
+                        marginBottom: '8px',
+                        padding: '8px',
+                        background: '#f5f5f5',
+                        borderRadius: '4px',
+                        border: '1px solid #e8e8e8'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '4px'
+                        }}>
+                            <span style={{ color: '#666' }}>
+                                {msg.contexts?.find(c => c.key === expandedContext)?.label || '引用内容'}
+                            </span>
+                            <Icon
+                                type="close"
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setExpandedContext(null)}
+                            />
+                        </div>
+                        <pre style={{ 
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-all',
+                            margin: 0,
+                            fontSize: '12px'
+                        }}>
+                            {msg.contexts?.find(c => c.key === expandedContext)?.content || 
+                             msg.references?.find(r => r.timestamp === expandedContext)?.content}
+                        </pre>
+                    </div>
+                )}
 
                 {/* 消息内容 */}
                 {msg.isZabbix ? (
@@ -606,24 +682,58 @@ const ChatRca = ({ treeData, style }) => {
             inputValue.includes('@' + assistant.name)
         );
 
-        // 获取选中的内容
-        const selectedContent = messages
-            .filter(msg => selectedResults.has(msg.timestamp))
-            .map(msg => msg.content)
-            .join('\n\n');
+        // 构建上下文数据
+        const contextData = selectedContext.map(key => {
+            let content = '';
+            switch(key) {
+                case 'tree':
+                    content = JSON.stringify(treeData, null, 2);
+                    break;
+                case 'zabbix':
+                    content = JSON.stringify(zabbixMetricsList, null, 2);
+                    break;
+                case 'ssh':
+                    content = JSON.stringify(SSH_COMMANDS.map(cmd => ({
+                        command: cmd.value,
+                        description: cmd.label
+                    })), null, 2);
+                    break;
+                case 'mysql':
+                    content = JSON.stringify(MYSQL_COMMANDS.map(cmd => ({
+                        command: cmd.value,
+                        description: cmd.label
+                    })), null, 2);
+                    break;
+            }
+            return {
+                key,
+                icon: CONTEXT_TYPES.find(t => t.key === key)?.icon,
+                label: CONTEXT_TYPES.find(t => t.key === key)?.label,
+                content
+            };
+        });
 
-        // 构建完整的消息内容
-        const fullContent = selectedContent 
-            ? `${selectedContent}\n${inputValue}`
+        // 获取选中的引用内容
+        const references = Array.from(selectedResults).map(refTimestamp => {
+            const refMsg = messages.find(m => m.timestamp === refTimestamp);
+            return {
+                timestamp: refTimestamp,
+                content: refMsg?.content || '',
+                type: refMsg?.type || ''
+            };
+        });
+
+        // 构建完整的提问内容，包含引用内容
+        const fullContent = references.length > 0
+            ? `${references.map(ref => ref.content).join('\n\n')}\n\n${inputValue}`
             : inputValue;
 
         // 先添加用户消息
         const userMessage = {
             type: 'user',
-            content: fullContent,
-            contexts: selectedContext.map(key => 
-                CONTEXT_TYPES.find(t => t.key === key)
-            ),
+            content: inputValue,
+            contexts: contextData,
+            references,
             timestamp: timestamp
         };
         
@@ -631,16 +741,14 @@ const ChatRca = ({ treeData, style }) => {
         setInputValue('');
         setIsStreaming(true);
         setStreamContent('');
+        setSelectedResults(new Set());
         abortControllerRef.current = new AbortController();
-
-        // 重置所有展开状态
-        setExpandedMessages(new Set());
 
         try {
             if (isAssistantCommand) {
                 await executeCommand(inputValue);
             } else {
-                await handleModelQuery(fullContent);
+                await handleModelQuery(fullContent);  // 使用包含引用内容的完整提问
             }
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -1306,9 +1414,9 @@ const ChatRca = ({ treeData, style }) => {
                         messageViewModes={messageViewModes}
                         setMessageViewModes={setMessageViewModes}
                         copyToClipboard={copyToClipboard}
-                        isExpanded={expandedMessages.has(msg.timestamp) || 
-                                  (index === messages.length - 1 && msg.type !== 'user')}
+                        isExpanded={expandedMessages.has(msg.timestamp)}
                         onExpandChange={(expanded) => handleMessageExpand(msg.timestamp, expanded)}
+                        messages={messages}
                     />
                 ))}
             </div>
