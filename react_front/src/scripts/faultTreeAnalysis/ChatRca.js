@@ -672,6 +672,17 @@ const ChatRca = ({ treeData, style }) => {
     // 添加展开状态管理
     const [expandedMessages, setExpandedMessages] = useState(new Set());
 
+    // 添加一个 effect 来处理最新消息的展开状态
+    useEffect(() => {
+        if (messages.length > 0) {
+            const lastMessage = messages[messages.length - 1];
+            // 只要不是用户消息就展开
+            if (lastMessage.type !== 'user') {
+                setExpandedMessages(new Set([lastMessage.timestamp]));
+            }
+        }
+    }, [messages]);
+
     // 修改 handleSend 函数
     const handleSend = async () => {
         if (!inputValue.trim() || isStreaming) return;
