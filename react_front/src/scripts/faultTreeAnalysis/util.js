@@ -76,6 +76,17 @@ export const DEFAULT_ASSISTANTS = [
             '@Zabbix助手 查看主机 CPU 使用率',
             '@Zabbix助手 检查磁盘空间'
         ]
+    },
+    {
+        id: 'elasticsearch',
+        name: 'ES助手',
+        description: '执行Elasticsearch查询、索引管理、集群监控等操作',
+        mode: 'es_assistant',
+        examples: [
+            '@ES助手 查询日志索引',
+            '@ES助手 检查集群健康状态',
+            '@ES助手 分析字段统计'
+        ]
     }
 ];
 
@@ -169,4 +180,64 @@ export const MYSQL_COMMANDS = [
     { value: 'SELECT * FROM information_schema.INNODB_TRX;', label: 'MySQL: 查看InnoDB事务信息' },
     { value: 'SELECT * FROM information_schema.INNODB_LOCK_WAITS;', label: 'MySQL: 查看锁等待信息' },
     { value: 'SELECT * FROM information_schema.INNODB_LOCKS;', label: 'MySQL: 查看锁详细信息' }
+];
+
+// 添加ES相关常量配置
+export const ES_MOCK_INDICES = [
+    { value: 'logs-*', label: '日志索引' },
+    { value: 'metrics-*', label: '指标索引' },
+    { value: 'traces-*', label: '链路追踪索引' }
+];
+
+export const ES_MOCK_FIELDS = {
+    'logs-*': [
+        { field: 'timestamp', type: 'date', description: '时间戳' },
+        { field: 'level', type: 'keyword', description: '日志级别' },
+        { field: 'message', type: 'text', description: '日志内容' },
+        { field: 'service', type: 'keyword', description: '服务名称' },
+        { field: 'host', type: 'keyword', description: '主机名' }
+    ],
+    'metrics-*': [
+        { field: 'timestamp', type: 'date', description: '时间戳' },
+        { field: 'metric_name', type: 'keyword', description: '指标名称' },
+        { field: 'value', type: 'float', description: '指标值' },
+        { field: 'tags', type: 'object', description: '标签' }
+    ],
+    'traces-*': [
+        { field: 'timestamp', type: 'date', description: '时间戳' },
+        { field: 'trace_id', type: 'keyword', description: '追踪ID' },
+        { field: 'span_id', type: 'keyword', description: '跨度ID' },
+        { field: 'service', type: 'keyword', description: '服务名称' }
+    ]
+};
+
+export const ES_OPERATORS = {
+    keyword: ['is', 'is not', 'in', 'not in'],
+    text: ['contains', 'not contains'],
+    date: ['>=', '<=', 'between'],
+    float: ['>', '<', '>=', '<=', 'between'],
+    object: ['exists', 'not exists']
+};
+
+// ES查询模板
+export const ES_QUERY_TEMPLATES = [
+    {
+        name: '基础查询',
+        description: '使用选定字段进行精确匹配',
+        template: {
+            query: {
+                bool: {
+                    must: []
+                }
+            }
+        }
+    },
+    {
+        name: '聚合分析',
+        description: '对选定字段进行聚合统计',
+        template: {
+            size: 0,
+            aggs: {}
+        }
+    }
 ];
