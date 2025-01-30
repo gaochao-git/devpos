@@ -3,7 +3,7 @@ import { Layout, Card, message, Button, Select, DatePicker, Radio, Modal, Icon, 
 import moment from 'moment';
 import MyAxios from "../common/interface"
 import './index.css';
-import G6Tree from "./G6Tree";
+import G6Tree from "./components/G6Tree";
 import aiGif from '../../images/AI.gif';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';

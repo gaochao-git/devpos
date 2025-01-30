@@ -1,6 +1,6 @@
 import React from 'react';
 import { Input, Icon, Popover } from 'antd';
-import { CONTEXT_TYPES } from './util';
+import { getStandardTime, CONTEXT_TYPES } from '../util';
 
 const UserInput = ({ 
     inputValue,

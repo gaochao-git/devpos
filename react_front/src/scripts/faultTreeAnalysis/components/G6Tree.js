@@ -4,7 +4,7 @@ import G6 from '@antv/g6';
 import { message, Drawer, DatePicker, Button, Input, Icon, Spin } from 'antd';
 import ReactECharts from 'echarts-for-react';
 import moment from 'moment';
-import MyAxios from "../common/interface"
+import MyAxios from "../../common/interface"
 
 const { RangePicker } = DatePicker;
 const { TextArea, Search } = Input;

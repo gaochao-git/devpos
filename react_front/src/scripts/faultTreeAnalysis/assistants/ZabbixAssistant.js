@@ -4,7 +4,7 @@ import { getStandardTime, markdownRenderers } from '../util';
 import MyAxios from "../../common/interface";
 import { message } from 'antd';
 import ReactMarkdown from 'react-markdown';
-import ZabbixChart from '../ZabbixChart';
+import ZabbixChart from '../components/ZabbixChart';
 import { Checkbox, Button } from 'antd';
 
 class ZabbixAssistant extends BaseAssistant {

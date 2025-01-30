@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Button, Tag, Checkbox, Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import ZabbixChart from './ZabbixChart';
-import { markdownRenderers } from './util';
-import { registry } from './assistants';
+import { markdownRenderers } from '../util';
+import { registry } from '../assistants';
 
 const MESSAGE_DISPLAY_THRESHOLD = 500;
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tag, Icon } from 'antd';
-import { CONTEXT_TYPES } from './util';
+import { CONTEXT_TYPES } from '../util';
 
 const ContextTags = ({
     selectedContext,

@@ -1,13 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Input, Button, message, Select, Tooltip, Tag, Popover, Checkbox, Modal, Divider, Radio, DatePicker } from 'antd';
+import { message, Tooltip } from 'antd';
 import { Icon } from 'antd';
-import ReactMarkdown from 'react-markdown';
 import MyAxios from "../common/interface"
-import ZabbixChart from './ZabbixChart';
-import HistoryConversationModal from './historyConversation';
-import UserInput from './UserInput';
-import MessageItem from './MessageItem';
-import ContextTags from './ContextTags';
+import { AssistantContainer, registry } from './assistants';
 import {
     DIFY_BASE_URL,
     DIFY_API_KEY,
@@ -20,8 +15,12 @@ import {
     SSH_COMMANDS,
     MYSQL_COMMANDS,
 } from './util';
-import { AssistantContainer, registry } from './assistants';
-import { QUICK_SELECT_CONFIG } from './util';
+
+// 从 components 目录导入组件
+import HistoryConversationModal from './components/historyConversation';
+import UserInput from './components/UserInput';
+import MessageItem from './components/MessageItem';
+import ContextTags from './components/ContextTags';
 
 const ChatRca = ({ treeData, style }) => {
     // 基础状态
@@ -74,33 +73,6 @@ const ChatRca = ({ treeData, style }) => {
         }));
         setFilteredAssistants(allAssistants);
     }, []);
-
-    // 获取Zabbix监控项的方法
-    const fetchZabbixMetrics = async (ip) => {
-        try {
-            const response = await MyAxios.post('/fault_tree/v1/get_all_metric_names_by_ip/', { "ip": ip });
-            
-            if (response.data.status === "ok") {
-                const metrics = response.data.data.map(metric => ({
-                    value: metric.key_,
-                    label: metric.name
-                }));
-                return metrics;
-            } else {
-                message.error(response.data.message || '获取监控项失败');
-                return [];
-            }
-        } catch (error) {
-            console.error('获取 Zabbix 监控项失败:', error);
-            message.error(error.message || '获取监控项失败');
-            return [];
-        }
-    };
-
-    // 将 QUICK_SELECT_CONFIG 移到组件内部
-    const QUICK_SELECT_CONFIG = {
-        servers: extractServersFromTree(treeData)
-    };
 
     // 中断处理
     const handleInterrupt = () => {
