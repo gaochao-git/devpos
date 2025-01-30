@@ -15,25 +15,13 @@ import {
     DIFY_CHAT_URL,
     DIFY_CONVERSATIONS_URL,
     COMMAND_EXECUTE_URL,
-    markdownRenderers,
     CONTEXT_TYPES,
     DEFAULT_ASSISTANTS,
     extractServersFromTree,
     getStandardTime,
     SSH_COMMANDS,
     MYSQL_COMMANDS,
-    ES_MOCK_INDICES,
-    ES_MOCK_FIELDS,
-    ES_OPERATORS,
-    ES_QUERY_TEMPLATES
 } from './util';
-import moment from 'moment';
-
-// 解构 DatePicker 中的 RangePicker
-const { RangePicker } = DatePicker;
-
-// 添加常量配置
-const MESSAGE_DISPLAY_THRESHOLD = 500;
 
 const ChatRca = ({ treeData, style }) => {
     // 消息列表状态
@@ -945,10 +933,6 @@ const ChatRca = ({ treeData, style }) => {
             commands = zabbixMetrics.get(serverConfig.ip) || [];
         }
         
-        const selectedCommand = commands.find(cmd => 
-            cmd.value === assistantInputs.get(assistantName)
-        );
-        
         return (
 
                 <Select
@@ -999,19 +983,6 @@ const ChatRca = ({ treeData, style }) => {
         });
     };
 
-    // 修改 MessageItem 组件中的标签显示
-    const getTagText = (msg) => {
-        switch (msg.type) {
-            case 'user':
-                return '用户';
-            case 'llm':
-                return '大模型';
-            case 'assistant':
-                return msg.command ? msg.command.split(' ')[0].slice(1) : '助手';
-            default:
-                return '未知';
-        }
-    };
 
     // 定义 handleSendMessage 函数
     const handleSendMessage = useCallback((message) => {
