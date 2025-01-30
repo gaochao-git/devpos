@@ -3,6 +3,7 @@ import { Button, Tag, Checkbox, Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import ZabbixChart from './ZabbixChart';
 import { markdownRenderers } from './util';
+import { registry } from './assistants';
 
 const MESSAGE_DISPLAY_THRESHOLD = 500;
 
@@ -68,6 +69,106 @@ const MessageItem = ({
         }
     };
 
+    // 获取消息内容的渲染方法
+    const renderMessageContent = () => {
+        // 如果是助手消息，使用对应助手的渲染方法
+        if (msg.type === 'assistant' && msg.command) {
+            const assistantName = msg.command.split(' ')[0].slice(1);
+            const assistant = registry.get(assistantName);
+            if (assistant) {
+                return assistant.renderMessage(msg, messageViewModes);
+            }
+        }
+
+        // 如果是 Zabbix 消息
+        if (msg.isZabbix) {
+            return messageViewModes.get(msg.timestamp) === 'text' ? (
+                <ReactMarkdown components={markdownRenderers}>
+                    {msg.content}
+                </ReactMarkdown>
+            ) : (
+                <div style={{ 
+                    marginTop: '10px',
+                    width: '100%',
+                    overflow: 'hidden'
+                }}>
+                    <ZabbixChart 
+                        data={msg.rawContent} 
+                        style={{ height: '220px' }}
+                        showHeader={false}
+                    />
+                </div>
+            );
+        }
+
+        // 默认渲染方式
+        const displayContent = isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD 
+            ? msg.content 
+            : msg.content.slice(0, MESSAGE_DISPLAY_THRESHOLD) + '...';
+
+        return (
+            <>
+                <ReactMarkdown components={markdownRenderers}>
+                    {displayContent}
+                </ReactMarkdown>
+                {msg.content.length > MESSAGE_DISPLAY_THRESHOLD && (
+                    <Button 
+                        type="link" 
+                        onClick={() => onExpandChange(!isExpanded)}
+                        style={{ padding: '4px 0' }}
+                    >
+                        {isExpanded ? '收起' : '展开'}
+                    </Button>
+                )}
+            </>
+        );
+    };
+
+    // 获取消息操作按钮的渲染方法
+    const renderMessageActions = () => {
+        // 如果是助手消息，使用对应助手的渲染方法
+        if (msg.type === 'assistant' && msg.command) {
+            const assistantName = msg.command.split(' ')[0].slice(1);
+            const assistant = registry.get(assistantName);
+            if (assistant) {
+                return assistant.renderMessageActions(
+                    msg, 
+                    messageViewModes, 
+                    setMessageViewModes,
+                    handleResultSelect,
+                    selectedResults,
+                    copyToClipboard
+                );
+            }
+        }
+
+        // 默认的操作按钮
+        return (
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+            }}>
+                <Checkbox
+                    checked={selectedResults.has(msg.timestamp)}
+                    onChange={(e) => handleResultSelect(msg.timestamp)}
+                    style={{ marginRight: '8px' }}
+                />
+                {msg.type === 'assistant' && (
+                    <Button
+                        type="link"
+                        size="small"
+                        icon="copy"
+                        style={{ padding: '4px 8px' }}
+                        onClick={() => copyToClipboard(msg)}
+                    >
+                        复制
+                    </Button>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div key={index} style={{
             marginBottom: '16px',
@@ -110,61 +211,7 @@ const MessageItem = ({
                     </div>
 
                     {/* 右侧操作按钮 */}
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                    }}>
-                        {/* 引用勾选框 */}
-                        <Checkbox
-                            checked={selectedResults.has(msg.timestamp)}
-                            onChange={(e) => handleResultSelect(msg.timestamp)}
-                            style={{ marginRight: '8px' }}
-                        />
-                        
-                        {/* Zabbix视图切换按钮 */}
-                        {msg.isZabbix && (
-                            <>
-                                <Button
-                                    type="link"
-                                    size="small"
-                                    icon="file-text"
-                                    style={{
-                                        color: messageViewModes.get(msg.timestamp) === 'text' ? '#1890ff' : '#999',
-                                        padding: '4px 8px'
-                                    }}
-                                    onClick={() => setMessageViewModes(prev => new Map(prev).set(msg.timestamp, 'text'))}
-                                >
-                                    文本
-                                </Button>
-                                <Button
-                                    type="link"
-                                    size="small"
-                                    icon="line-chart"
-                                    style={{
-                                        color: messageViewModes.get(msg.timestamp) === 'chart' ? '#1890ff' : '#999',
-                                        padding: '4px 8px'
-                                    }}
-                                    onClick={() => setMessageViewModes(prev => new Map(prev).set(msg.timestamp, 'chart'))}
-                                >
-                                    图表
-                                </Button>
-                            </>
-                        )}
-                        
-                        {/* 复制按钮 */}
-                        {msg.type === 'assistant' && (
-                            <Button
-                                type="link"
-                                size="small"
-                                icon="copy"
-                                style={{ padding: '4px 8px' }}
-                                onClick={() => copyToClipboard(msg)}
-                            >
-                                复制
-                            </Button>
-                        )}
-                    </div>
+                    {renderMessageActions()}
                 </div>
 
                 {/* 显示上下文和引用标签 */}
@@ -242,40 +289,7 @@ const MessageItem = ({
                 )}
 
                 {/* 消息内容 */}
-                {msg.isZabbix ? (
-                    messageViewModes.get(msg.timestamp) === 'text' ? (
-                        <ReactMarkdown components={markdownRenderers}>
-                            {msg.content}
-                        </ReactMarkdown>
-                    ) : (
-                        <div style={{ 
-                            marginTop: '10px',
-                            width: '100%',
-                            overflow: 'hidden'
-                        }}>
-                            <ZabbixChart 
-                                data={msg.rawContent} 
-                                style={{ height: '220px' }}
-                                showHeader={false}
-                            />
-                        </div>
-                    )
-                ) : (
-                    <>
-                        <ReactMarkdown components={markdownRenderers}>
-                            {displayContent}
-                        </ReactMarkdown>
-                        {msg.content.length > MESSAGE_DISPLAY_THRESHOLD && (
-                            <Button 
-                                type="link" 
-                                onClick={() => onExpandChange(!isExpanded)}
-                                style={{ padding: '4px 0' }}
-                            >
-                                {isExpanded ? '收起' : '展开'}
-                            </Button>
-                        )}
-                    </>
-                )}
+                {renderMessageContent()}
             </div>
         </div>
     );

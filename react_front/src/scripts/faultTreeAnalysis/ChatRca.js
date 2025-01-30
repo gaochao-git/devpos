@@ -5,7 +5,6 @@ import ReactMarkdown from 'react-markdown';
 import MyAxios from "../common/interface"
 import ZabbixChart from './ZabbixChart';
 import HistoryConversationModal from './historyConversation';
-import ElasticsearchAssistant from './ElasticsearchAssistant';
 import UserInput from './UserInput';
 import MessageItem from './MessageItem';
 import ContextTags from './ContextTags';
@@ -16,61 +15,65 @@ import {
     DIFY_CONVERSATIONS_URL,
     COMMAND_EXECUTE_URL,
     CONTEXT_TYPES,
-    DEFAULT_ASSISTANTS,
     extractServersFromTree,
     getStandardTime,
     SSH_COMMANDS,
     MYSQL_COMMANDS,
 } from './util';
+import { AssistantContainer, registry } from './assistants';
+import { QUICK_SELECT_CONFIG } from './util';
 
 const ChatRca = ({ treeData, style }) => {
-    // 消息列表状态
+    // 基础状态
     const [messages, setMessages] = useState([]);
-    // 流式响应内容
     const [streamContent, setStreamContent] = useState('');
-    // 输入框值
     const [inputValue, setInputValue] = useState('');
-    // 是否正在流式响应
     const [isStreaming, setIsStreaming] = useState(false);
-    // 选中的上下文类型
     const [selectedContext, setSelectedContext] = useState([]);
-    // 会话ID
     const [conversationId, setConversationId] = useState('');
-    // 新增状态
+
+    // 助手相关状态
     const [atPosition, setAtPosition] = useState(null);
-    const [filteredAssistants, setFilteredAssistants] = useState(DEFAULT_ASSISTANTS);
+    const [filteredAssistants, setFilteredAssistants] = useState([]);
+    const [activeAssistants, setActiveAssistants] = useState(new Map());
+    const [assistantConfigs, setAssistantConfigs] = useState(new Map());
+    const [assistantInputs, setAssistantInputs] = useState(new Map());
+    const [executingAssistants, setExecutingAssistants] = useState(new Set());
     const [quickSelectMode, setQuickSelectMode] = useState(null);
     const [quickSelectItems, setQuickSelectItems] = useState([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [searchText, setSearchText] = useState('');
-    const [selectedResults, setSelectedResults] = useState(new Set());
-    const [activeAssistants, setActiveAssistants] = useState(new Map());
-    const [assistantConfigs, setAssistantConfigs] = useState(new Map());
-    // 添加状态来控制快捷命令弹出框
-    const [showQuickCommands, setShowQuickCommands] = useState(null); // 存储当前显示快捷命令的助手名称
-    // 添加 ref 来存储每个助手的输入框引用
-    const inputRefs = useRef(new Map());
-    // 添加状态来存储每个助手的输入值
-    const [assistantInputs, setAssistantInputs] = useState(new Map());
-    // 添加新的状态
-    // 添加新的状态来跟踪每个助手的执行状态
-    const [executingAssistants, setExecutingAssistants] = useState(new Set());
-    const [isUserScrolling, setIsUserScrolling] = useState(false);
-    const messagesContainerRef = useRef(null);
-    const lastScrollTop = useRef(0);
-    const abortControllerRef = useRef(null);
-    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+    const [zabbixMetrics, setZabbixMetrics] = useState(new Map());
+    const [hoveredAssistant, setHoveredAssistant] = useState(null);
 
-    // 添加新的状态来管理历史会话
+    // 消息展示相关状态
+    const [selectedResults, setSelectedResults] = useState(new Set());
+    const [messageViewModes, setMessageViewModes] = useState(new Map());
+    const [expandedMessages, setExpandedMessages] = useState(new Set());
+    const [isUserScrolling, setIsUserScrolling] = useState(false);
+
+    // 历史会话相关状态
+    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [historyData, setHistoryData] = useState([]);
     const [expandedConversations, setExpandedConversations] = useState(new Set());
     const [conversationMessages, setConversationMessages] = useState(new Map());
     const [loadingConversations, setLoadingConversations] = useState(new Set());
     const [historyModalVisible, setHistoryModalVisible] = useState(false);
 
-    // 添加状态来存储每个服务器的 Zabbix 监控项
-    const [zabbixMetrics, setZabbixMetrics] = useState(new Map());
-    const [zabbixMetricsList, setZabbixMetricsList] = useState([]);
+    // Refs
+    const messagesContainerRef = useRef(null);
+    const lastScrollTop = useRef(0);
+    const abortControllerRef = useRef(null);
+
+    // 初始化助手列表
+    useEffect(() => {
+        const allAssistants = registry.getAll().map(assistant => ({
+            name: assistant.name,
+            description: `使用${assistant.name}执行命令`,
+            examples: [`@${assistant.name} <服务器> <命令>`]  // 添加示例用法
+        }));
+        setFilteredAssistants(allAssistants);
+    }, []);
 
     // 获取Zabbix监控项的方法
     const fetchZabbixMetrics = async (ip) => {
@@ -82,8 +85,6 @@ const ChatRca = ({ treeData, style }) => {
                     value: metric.key_,
                     label: metric.name
                 }));
-                setZabbixMetricsList(metrics);
-                console.log('Zabbix metrics after conversion:', metrics);
                 return metrics;
             } else {
                 message.error(response.data.message || '获取监控项失败');
@@ -95,34 +96,6 @@ const ChatRca = ({ treeData, style }) => {
             return [];
         }
     };
-
-    const ASSISTANT_CONFIGS = {
-        'SSH助手': {
-            prefix: 'ssh> ',
-            serverFormat: (ip) => ip,
-            commonCommands: SSH_COMMANDS
-        },
-        'MySQL助手': {
-            prefix: 'mysql> ',
-            serverFormat: (ip, port) => `${ip}:${port || '3306'}`,
-            commonCommands: MYSQL_COMMANDS
-        },
-        'Zabbix助手': {
-            prefix: 'zabbix> ',
-            serverFormat: (ip) => ip,
-            commonCommands: [],
-            getMetrics: fetchZabbixMetrics
-        },
-        'ES助手': {
-            prefix: 'es> ',
-            serverFormat: (ip) => ip,
-            commonCommands: [],
-            getMetrics: fetchZabbixMetrics
-        }
-    };
-
-    // 在组件顶部添加新的状态
-    const [messageViewModes, setMessageViewModes] = useState(new Map());
 
     // 将 QUICK_SELECT_CONFIG 移到组件内部
     const QUICK_SELECT_CONFIG = {
@@ -214,31 +187,41 @@ const ChatRca = ({ treeData, style }) => {
     const handleModelQuery = async (fullContent) => {
         try {
             // 构建上下文数据
-            const contextData = [];
-            if (selectedContext.includes('tree') && treeData) {
-                contextData.push(`故障树数据：${JSON.stringify(treeData)}`);
-            }
-            if (selectedContext.includes('zabbix')) {
-                contextData.push(`Zabbix可用指标列表：${JSON.stringify(zabbixMetricsList)}`);
-            }
-            if (selectedContext.includes('ssh')) {
-                const sshCommands = ASSISTANT_CONFIGS['SSH助手'].commonCommands;
-                contextData.push(`可用的SSH命令列表：${JSON.stringify(sshCommands.map(cmd => ({
+            const contextData = selectedContext.map(key => {
+                let content = '';
+                switch(key) {
+                    case 'tree':
+                        content = JSON.stringify(treeData, null, 2);
+                        break;
+                    case 'zabbix':
+                        // 将所有服务器的 Zabbix 指标合并成一个数组
+                        const allMetrics = Array.from(zabbixMetrics.values()).flat();
+                        content = JSON.stringify(allMetrics, null, 2);
+                        break;
+                    case 'ssh':
+                        content = JSON.stringify(SSH_COMMANDS.map(cmd => ({
                     command: cmd.value,
                     description: cmd.label
-                })))}`);
-            }
-            if (selectedContext.includes('mysql')) {
-                const mysqlCommands = ASSISTANT_CONFIGS['MySQL助手'].commonCommands;
-                contextData.push(`可用的MySQL命令列表：${JSON.stringify(mysqlCommands.map(cmd => ({
+                        })), null, 2);
+                        break;
+                    case 'mysql':
+                        content = JSON.stringify(MYSQL_COMMANDS.map(cmd => ({
                     command: cmd.value,
                     description: cmd.label
-                })))}`);
-            }
+                        })), null, 2);
+                        break;
+                }
+                return {
+                    key,
+                    icon: CONTEXT_TYPES.find(t => t.key === key)?.icon,
+                    label: CONTEXT_TYPES.find(t => t.key === key)?.label,
+                    content
+                };
+            });
 
             // 组合查询
             const fullQuery = contextData.length > 0
-                ? `${contextData.join('\n\n')}\n\n问题：${fullContent}`
+                ? `${contextData.map(c => c.content).join('\n\n')}\n\n问题：${fullContent}`
                 : fullContent;
 
             const response = await fetch(DIFY_CHAT_URL, {
@@ -310,18 +293,17 @@ const ChatRca = ({ treeData, style }) => {
     }, [messages, scrollToBottom, isUserScrolling]);
 
     // 添加展开状态管理
-    const [expandedMessages, setExpandedMessages] = useState(new Set());
-
-    // 添加一个 effect 来处理最新消息的展开状态
-    useEffect(() => {
-        if (messages.length > 0) {
-            const lastMessage = messages[messages.length - 1];
-            // 只要不是用户消息就展开
-            if (lastMessage.type !== 'user') {
-                setExpandedMessages(new Set([lastMessage.timestamp]));
+    const handleMessageExpand = (timestamp, expanded) => {
+        setExpandedMessages(prev => {
+            const newSet = new Set(prev);
+            if (expanded) {
+                newSet.add(timestamp);
+            } else {
+                newSet.delete(timestamp);
             }
-        }
-    }, [messages]);
+            return newSet;
+        });
+    };
 
     // 修改 handleSend 函数
     const handleSend = async () => {
@@ -329,9 +311,24 @@ const ChatRca = ({ treeData, style }) => {
         setIsUserScrolling(false);
 
         const timestamp = getStandardTime();
-        const isAssistantCommand = DEFAULT_ASSISTANTS.some(assistant => 
+        const isAssistantCommand = filteredAssistants.some(assistant => 
             inputValue.includes('@' + assistant.name)
         );
+
+        // 获取选中的引用内容
+        const references = Array.from(selectedResults).map(refTimestamp => {
+            const refMsg = messages.find(m => m.timestamp === refTimestamp);
+            return {
+                timestamp: refTimestamp,
+                content: refMsg?.content || '',
+                type: refMsg?.type || ''
+            };
+        });
+
+        // 构建完整的提问内容，包含引用内容
+        const fullContent = references.length > 0
+            ? `${references.map(ref => ref.content).join('\n\n')}\n\n${inputValue}`
+            : inputValue;
 
         // 构建上下文数据
         const contextData = selectedContext.map(key => {
@@ -341,7 +338,9 @@ const ChatRca = ({ treeData, style }) => {
                     content = JSON.stringify(treeData, null, 2);
                     break;
                 case 'zabbix':
-                    content = JSON.stringify(zabbixMetricsList, null, 2);
+                    // 将所有服务器的 Zabbix 指标合并成一个数组
+                    const allMetrics = Array.from(zabbixMetrics.values()).flat();
+                    content = JSON.stringify(allMetrics, null, 2);
                     break;
                 case 'ssh':
                     content = JSON.stringify(SSH_COMMANDS.map(cmd => ({
@@ -364,21 +363,6 @@ const ChatRca = ({ treeData, style }) => {
             };
         });
 
-        // 获取选中的引用内容
-        const references = Array.from(selectedResults).map(refTimestamp => {
-            const refMsg = messages.find(m => m.timestamp === refTimestamp);
-            return {
-                timestamp: refTimestamp,
-                content: refMsg?.content || '',
-                type: refMsg?.type || ''
-            };
-        });
-
-        // 构建完整的提问内容，包含引用内容
-        const fullContent = references.length > 0
-            ? `${references.map(ref => ref.content).join('\n\n')}\n\n${inputValue}`
-            : inputValue;
-
         // 先添加用户消息
         const userMessage = {
             type: 'user',
@@ -399,10 +383,15 @@ const ChatRca = ({ treeData, style }) => {
         abortControllerRef.current = new AbortController();
 
         try {
+            // 组合查询
+            const fullQuery = contextData.length > 0
+                ? `${contextData.map(c => c.content).join('\n\n')}\n\n问题：${fullContent}`
+                : fullContent;
+
             if (isAssistantCommand) {
                 await executeCommand(inputValue);
             } else {
-                await handleModelQuery(fullContent);
+                await handleModelQuery(fullQuery);
             }
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -423,24 +412,32 @@ const ChatRca = ({ treeData, style }) => {
     const handleInputChange = (e) => {
         const value = e.target.value;
         setInputValue(value);
-        
-        // 检查是否以@开头（忽略前面的空格）
-        if (value.trim().startsWith('@')) {
-            // 先关闭快速选择窗口
-            setQuickSelectMode(null);
-            setQuickSelectItems([]);
+
+        // 处理@触发
+        if (value.includes('@')) {
+            const atIndex = value.lastIndexOf('@');
+            const searchText = value.slice(atIndex + 1).toLowerCase();
+            setAtPosition(atIndex);
             
-            const searchText = value.trim().slice(1).toLowerCase();
-            setAtPosition(0);
-            
-            const filtered = DEFAULT_ASSISTANTS.filter(assistant => 
+            const allAssistants = registry.getAll().map(assistant => ({
+                name: assistant.name,
+                description: `使用${assistant.name}执行命令`,
+                examples: [`@${assistant.name} <服务器> <命令>`]  // 添加示例用法
+            }));
+
+            const filtered = allAssistants.filter(assistant => 
                 assistant.name.toLowerCase().includes(searchText) ||
                 assistant.description.toLowerCase().includes(searchText)
             );
             setFilteredAssistants(filtered);
         } else {
             setAtPosition(null);
-            setFilteredAssistants(DEFAULT_ASSISTANTS);
+            const allAssistants = registry.getAll().map(assistant => ({
+                name: assistant.name,
+                description: `使用${assistant.name}执行命令`,
+                examples: [`@${assistant.name} <服务器> <命令>`]  // 添加示例用法
+            }));
+            setFilteredAssistants(allAssistants);
         }
     };
 
@@ -451,30 +448,46 @@ const ChatRca = ({ treeData, style }) => {
             return;
         }
         
-        // 添加新的助手输入框
-        setActiveAssistants(prev => {
-            const newMap = new Map(prev);
-            newMap.set(assistant.name, true);
-            return newMap;
-        });
-        
-        // 初始化助手配置
-        setAssistantConfigs(prev => {
-            const newMap = new Map(prev);
-            newMap.set(assistant.name, { ip: '', port: '' });
-            return newMap;
-        });
-        
+        handleAssistantTrigger(assistant.name);
         setAtPosition(null);
         setInputValue('');
     };
 
-    // 添加关闭助手输入框的函数
+    // 处理@助手的逻辑
+    const handleAssistantTrigger = (assistantName) => {
+        // 检查助手是否已经激活
+        if (activeAssistants.has(assistantName)) {
+            message.warning('该助手已经激活');
+            return;
+        }
+
+        // 从注册表中获取助手
+        const assistant = registry.get(assistantName);
+        if (!assistant) {
+            message.error(`未找到助手: ${assistantName}`);
+            return;
+        }
+
+        // 激活助手
+        setActiveAssistants(prev => new Map(prev).set(assistantName, true));
+    };
+
+    // 处理助手关闭
     const handleCloseAssistant = (assistantName) => {
         setActiveAssistants(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(assistantName);
-            return newMap;
+            const next = new Map(prev);
+            next.delete(assistantName);
+            return next;
+        });
+        setAssistantConfigs(prev => {
+            const next = new Map(prev);
+            next.delete(assistantName);
+            return next;
+        });
+        setAssistantInputs(prev => {
+            const next = new Map(prev);
+            next.delete(assistantName);
+            return next;
         });
     };
 
@@ -605,50 +618,26 @@ const ChatRca = ({ treeData, style }) => {
         }, 0);
     };
 
-    // 修改 executeCommand 函数中处理 Zabbix 响应的部分
+    // 处理命令执行
     const executeCommand = async (params) => {
         try {
-            if (params.tool === 'zabbix') {
-                const response = await MyAxios.post('/fault_tree/v1/get_metric_history_by_ip/', {
-                    address: params.address,
-                    cmd: params.cmd,
-                    time_from: params.time_from,
-                    time_till: params.time_till
-                });
-                
-                if (response.data.status === 'ok') {
-                    const formattedCommand = `> @${params.tool}助手 ${params.address} ${params.cmd}`;
-                    const metricsData = response.data.data;
-                    const firstItem = metricsData[0];
-                    
-                    const headerRow = `指标名称: (${firstItem.key_})\n`;
-                    const dataRows = metricsData.map(point => 
-                        `${point.metric_time} | ${point.value}${firstItem.units}`
-                    ).join('\n');
-
-                    const formatMessage = `${formattedCommand}\n\`\`\`\n${headerRow}${dataRows}\n\`\`\``;
-                    
-                    const timestamp = getStandardTime();
-                    
-                    setMessages(prev => {
-                        setExecutingAssistants(new Set());
-                        return [...prev, {
-                            type: 'assistant',
-                            content: formatMessage,
-                            rawContent: response.data.data,
-                            command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
-                            timestamp: timestamp,
-                            isZabbix: true
-                        }];
-                    });
-                    
-                    setMessageViewModes(prev => new Map(prev).set(timestamp, 'chart'));
-                    
-                    return response.data;
-                }
+            // 如果是用户消息，直接添加到消息列表
+            if (params.type === 'user') {
+                setMessages(prev => [...prev, params]);
+                return;
             }
-            
-            // 其他助手使用原有的 API
+
+            // 如果是直接的消息更新（比如 Zabbix 的响应）
+            if (params.type === 'assistant') {
+                setMessages(prev => [...prev, params]);
+                // 如果是 Zabbix 响应，设置图表视图
+                if (params.isZabbix) {
+                    setMessageViewModes(prev => new Map(prev).set(params.timestamp, 'chart'));
+                }
+                return;
+            }
+
+            // 否则是普通的命令执行
             const response = await fetch(COMMAND_EXECUTE_URL, {
                 method: 'POST',
                 headers: {
@@ -681,13 +670,11 @@ const ChatRca = ({ treeData, style }) => {
                     isError: true
                 }]);
             }
-            // 重置执行状态
             setExecutingAssistants(new Set());
             return result;
         } catch (error) {
             console.error('执行命令失败:', error);
             message.error(error.message || '执行命令失败');
-            // 重置执行状态
             setExecutingAssistants(new Set());
             throw error;
         }
@@ -705,20 +692,6 @@ const ChatRca = ({ treeData, style }) => {
             return newSet;
         });
     };
-
-    // 添加 useEffect 处理点击外部关闭
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (showQuickCommands && !event.target.closest('.assistant-input-container')) {
-                setShowQuickCommands(null);
-            }
-        };
-
-        document.addEventListener('click', handleClickOutside);
-        return () => {
-            document.removeEventListener('click', handleClickOutside);
-        };
-    }, [showQuickCommands]);
 
     // 处理新开会话
     const handleNewChat = () => {
@@ -867,13 +840,13 @@ const ChatRca = ({ treeData, style }) => {
 
     // 计算输入区域的总高度
     const getInputAreaHeight = () => {
-        const baseHeight = 80; // 基础输入框高度
-        return baseHeight; // 保持输入框高度固定
+        const baseHeight = 80;
+        return baseHeight;
     };
 
     // 计算助手区域的总高度
     const getAssistantsHeight = () => {
-        const assistantHeight = 56; // 每个助手框的高度
+        const assistantHeight = 56;
         const activeAssistantsCount = Array.from(activeAssistants.keys()).length;
         return activeAssistantsCount * assistantHeight;
     };
@@ -907,94 +880,26 @@ const ChatRca = ({ treeData, style }) => {
     };
 
     // 修改选择服务器的处理函数
-    const handleServerSelect = async (assistantName, value) => {
+    const handleServerSelect = (assistantName, value) => {
         const [ip, port] = value.split(':');
         setAssistantConfigs(prev => 
             new Map(prev).set(assistantName, { ip, port: port || '' })
         );
-        
-        // 如果是 Zabbix 助手，获取监控项
-        if (assistantName === 'Zabbix助手') {
-            const metrics = await ASSISTANT_CONFIGS[assistantName].getMetrics(ip);
-            setZabbixMetrics(prev => new Map(prev).set(ip, metrics));
-            
-            // 更新助手配置中的命令列表
-            ASSISTANT_CONFIGS[assistantName].commonCommands = metrics;
-        }
     };
 
-    // 修改渲染命令选择框的部分
-    const renderCommandSelect = (assistantName) => {
-        const config = ASSISTANT_CONFIGS[assistantName];
-        const serverConfig = assistantConfigs.get(assistantName);
-        
-        let commands = config.commonCommands;
-        if (assistantName === 'Zabbix助手' && serverConfig?.ip) {
-            commands = zabbixMetrics.get(serverConfig.ip) || [];
-        }
-        
-        return (
-
-                <Select
-                    style={{ flex: 1, marginRight: '12px' }}
-                    placeholder={commands.length ? "选择命令" : "请先选择服务器"}
-                    showSearch
-                    value={assistantInputs.get(assistantName) || undefined}
-                    onChange={(value) => {
-                        setAssistantInputs(prev => new Map(prev).set(assistantName, value));
-                    }}
-                    optionLabelProp="label"
-                    filterOption={(input, option) => {
-                        const value = option.props.value || '';
-                        const label = option.props.label || '';
-                        return (
-                            value.toLowerCase().includes(input.toLowerCase()) ||
-                            label.toLowerCase().includes(input.toLowerCase())
-                        );
-                    }}
-                >
-                    {commands.map(cmd => (
-                        <Select.Option 
-                            key={cmd.value}
-                            value={cmd.value}
-                            label={cmd.label.split(': ')[1] || cmd.label}
-                            title={`${cmd.label}\n${cmd.value}`}
-                        >
-                            <div style={{ padding: '4px 0' }}>
-                                <div style={{ fontWeight: 'bold' }}>{cmd.label.split(': ')[1] || cmd.label}</div>
-                                <div style={{ fontSize: '12px', color: '#666' }}>{cmd.value}</div>
-                            </div>
-                        </Select.Option>
-                    ))}
-                </Select>
-        );
-    };
-
-    // 修改 MessageItem 组件的展开/收起处理
-    const handleMessageExpand = (timestamp, expanded) => {
-        setExpandedMessages(prev => {
-            const newSet = new Set(prev);
-            if (expanded) {
-                newSet.add(timestamp);
-            } else {
-                newSet.delete(timestamp);
+    // 移除 useEffect 中的 showQuickCommands 相关代码
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (quickSelectMode && !event.target.closest('.assistant-input-container')) {
+                setQuickSelectMode(null);
             }
-            return newSet;
-        });
-    };
+        };
 
-
-    // 定义 handleSendMessage 函数
-    const handleSendMessage = useCallback((message) => {
-        if (!message.trim()) return;
-        
-        setMessages(prev => [...prev, {
-            type: 'user',
-            content: message,
-            timestamp: getStandardTime(),
-            isError: false
-        }]);
-    }, [getStandardTime]);
+        document.addEventListener('click', handleClickOutside);
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [quickSelectMode]);
 
     return (
         <div style={{ 
@@ -1081,187 +986,32 @@ const ChatRca = ({ treeData, style }) => {
                 right: 0,
                 zIndex: 1000,
             }}>
-                {/* 使用新的 ContextTags 组件 */}
                 <ContextTags 
                     selectedContext={selectedContext}
                     setSelectedContext={setSelectedContext}
                 />
 
-                {/* 输入框和发送按钮 */}
                 <div style={{ 
                     display: 'flex',
                     gap: '8px',
                     position: 'relative'
                 }}>
                     <div style={{ position: 'relative', flex: 1 }}>
-                        {/* 助手输入框区域 */}
-                        {Array.from(activeAssistants.keys()).map(assistantName => {
-                            const config = ASSISTANT_CONFIGS[assistantName];
-                            if (!config) return null;
+                        <AssistantContainer
+                            activeAssistants={activeAssistants}
+                            assistantConfigs={assistantConfigs}
+                            assistantInputs={assistantInputs}
+                            setAssistantInputs={setAssistantInputs}
+                            handleCloseAssistant={handleCloseAssistant}
+                            executingAssistants={executingAssistants}
+                            setExecutingAssistants={setExecutingAssistants}
+                            executeCommand={executeCommand}
+                            handleServerSelect={handleServerSelect}
+                            servers={extractServersFromTree(treeData)}
+                            setMessages={setMessages}
+                            handleSend={handleSend}
+                        />
 
-                            // ES助手使用专门的组件
-                            if (assistantName === 'ES助手') {
-                                return (
-                                    <ElasticsearchAssistant
-                                        key={assistantName}
-                                        assistantName={assistantName}
-                                        config={assistantConfigs.get(assistantName)}
-                                        onClose={handleCloseAssistant}
-                                        setMessages={setMessages}
-                                        getStandardTime={getStandardTime}
-                                        handleSendMessage={handleSendMessage}
-                                        handleServerSelect={handleServerSelect}
-                                        treeData={treeData}
-                                    />
-                                );
-                            }
-
-                            // 其他助手保持原有逻辑
-                            const isPresetAssistant = assistantName === 'MySQL助手' || 
-                                                     assistantName === 'SSH助手' ||
-                                                     assistantName === 'Zabbix助手';
-
-                            if (isPresetAssistant) {
-                                return (
-                                    <div key={assistantName} style={{ 
-                                        marginBottom: '8px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        padding: '4px 11px',
-                                        border: '1px solid #d9d9d9',
-                                        borderRadius: '4px',
-                                        background: '#fff',
-                                        width: '100%'
-                                    }}>
-                                        <span style={{ 
-                                            color: '#ff4d4f',
-                                            fontFamily: 'monospace',
-                                            marginRight: '12px',
-                                            whiteSpace: 'nowrap'
-                                        }}>
-                                            {config.prefix}
-                                        </span>
-                                        <Select
-                                            style={{ width: '30%', marginRight: '12px' }}
-                                            placeholder="选择服务器"
-                                            value={assistantConfigs.get(assistantName)?.ip ? 
-                                                config.serverFormat(
-                                                    assistantConfigs.get(assistantName).ip,
-                                                    assistantConfigs.get(assistantName).port
-                                                ) : undefined
-                                            }
-                                            onChange={value => handleServerSelect(assistantName, value)}
-                                        >
-                                            {QUICK_SELECT_CONFIG.servers.map(server => (
-                                                <Select.Option 
-                                                    key={server.ip} 
-                                                    value={config.serverFormat(server.ip, server.port)}
-                                                >
-                                                    {config.serverFormat(server.ip, server.port)}
-                                                </Select.Option>
-                                            ))}
-                                        </Select>
-                                        {renderCommandSelect(assistantName)}
-                                        <div style={{ 
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                            whiteSpace: 'nowrap'
-                                        }}>
-                                            <div 
-                                                style={{ 
-                                                    cursor: 'pointer', 
-                                                    color: '#1890ff',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '4px'
-                                                }}
-                                                onClick={() => {
-                                                    const isExecuting = executingAssistants.has(assistantName);
-                                                    
-                                                    if (isExecuting) {
-                                                        if (abortControllerRef.current) {
-                                                            abortControllerRef.current.abort();
-                                                        }
-                                                        setExecutingAssistants(new Set());
-                                                        return;
-                                                    }
-
-                                                    // 重置用户滚动状态，允许自动滚动
-                                                    setIsUserScrolling(false);
-
-                                                    const value = assistantInputs.get(assistantName);
-                                                    const serverConfig = assistantConfigs.get(assistantName);
-                                                    
-                                                    if (!value) {
-                                                        message.warning('请选择要执行的命令');
-                                                        return;
-                                                    }
-                                                    if (!serverConfig?.ip) {
-                                                        message.warning('请先选择服务器');
-                                                        return;
-                                                    }
-
-                                                    // 设置执行状态
-                                                    setExecutingAssistants(prev => new Set(prev).add(assistantName));
-
-                                                    const TOOL_MAP = {
-                                                        'MySQL助手': 'mysql',
-                                                        'SSH助手': 'ssh',
-                                                        'Zabbix助手': 'zabbix'
-                                                    };
-
-                                                    let params;
-                                                    if (assistantName === 'MySQL助手') {
-                                                        params = {
-                                                            tool: TOOL_MAP[assistantName],
-                                                            address: `${serverConfig.ip}:${serverConfig.port || '3306'}`,
-                                                            cmd: value
-                                                        };
-                                                    } else {
-                                                        params = {
-                                                            tool: TOOL_MAP[assistantName],
-                                                            address: serverConfig.ip,
-                                                            cmd: value
-                                                        };
-                                                    }
-
-                                                    // 添加用户消息到对话框
-                                                    const userCommand = `@${params.tool}助手 ${params.address} ${params.cmd}`;
-                                                    setMessages(prev => [...prev, {
-                                                        type: 'user',
-                                                        content: userCommand,
-                                                        command: userCommand,  // 使用和助手回答相同的属性结构
-                                                        timestamp: getStandardTime()
-                                                    }]);
-
-                                                    executeCommand(params);
-                                                }}
-                                            >
-                                                {executingAssistants.has(assistantName) ? (
-                                                    <>
-                                                        <Icon type="pause-circle" />
-                                                        暂停
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Icon type="arrow-right" />
-                                                        执行
-                                                    </>
-                                                )}
-                                            </div>
-                                            <Icon 
-                                                type="close" 
-                                                style={{ cursor: 'pointer' }}
-                                                onClick={() => handleCloseAssistant(assistantName)}
-                                            />
-                                        </div>
-                                    </div>
-                                );
-                            }
-                        })}
-
-                        {/* 使用新的 UserInput 组件 */}
                         <UserInput
                             inputValue={inputValue}
                             isStreaming={isStreaming}
@@ -1284,63 +1034,38 @@ const ChatRca = ({ treeData, style }) => {
                                 position: 'absolute',
                                 bottom: '100%',
                                 left: 0,
-                                width: '320px',
-                                background: '#f8fafc',
-                                borderRadius: '8px',
-                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                                padding: '8px',
-                                marginBottom: '8px',
-                                zIndex: 1000,
-                                maxHeight: '400px',
+                                right: 0,
+                                maxHeight: '200px',
                                 overflowY: 'auto',
-                                border: '1px solid #e2e8f0'
+                                backgroundColor: '#fff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                zIndex: 1000
                             }}>
-                                {/* 添加关闭按钮 */}
-                                <div 
-                                    onClick={() => setAtPosition(null)}
-                                    style={{
-                                        position: 'absolute',
-                                        right: '8px',
-                                        top: '8px',
-                                        width: '24px',
-                                        height: '24px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: 'pointer',
-                                        borderRadius: '50%',
-                                        color: '#64748b',
-                                        transition: 'background-color 0.2s',
-                                        '&:hover': {
-                                            background: '#e2e8f0'
-                                        }
-                                    }}
-                                >
-                                    <span style={{
-                                        fontSize: '18px',
-                                        lineHeight: 1,
-                                        fontFamily: 'Arial'
-                                    }}>×</span>
-                                </div>
-
-                                {filteredAssistants.map((assistant) => (
+                                {filteredAssistants.map((assistant, index) => (
                                     <div
-                                        key={assistant.id}
-                                        onClick={() => handleAssistantSelect(assistant)}
+                                        key={assistant.name}
                                         style={{
-                                            padding: '8px 12px',
+                                            padding: '12px',
                                             cursor: 'pointer',
-                                            borderRadius: '4px',
-                                            background: 'transparent',
-                                            '&:hover': {
-                                                background: '#f1f5f9'
-                                            }
+                                            borderBottom: index < filteredAssistants.length - 1 ? '1px solid #e2e8f0' : 'none',
+                                            backgroundColor: hoveredAssistant === assistant.name ? '#f8fafc' : 'transparent'
                                         }}
+                                        onClick={() => handleAssistantSelect(assistant)}
+                                        onMouseEnter={() => setHoveredAssistant(assistant.name)}
+                                        onMouseLeave={() => setHoveredAssistant(null)}
                                     >
-                                        <div style={{ fontWeight: 'bold', color: '#334155' }}>
+                                        <div style={{ 
+                                            fontWeight: 500,
+                                            color: '#0f172a'
+                                        }}>
                                             {assistant.name}
                                         </div>
-                                        <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                        <div style={{ 
+                                            fontSize: '12px',
+                                            color: '#64748b'
+                                        }}>
                                             {assistant.description}
                                         </div>
                                         <div style={{ 
@@ -1348,119 +1073,16 @@ const ChatRca = ({ treeData, style }) => {
                                             fontSize: '12px',
                                             color: '#94a3b8'
                                         }}>
-                                            {assistant.examples[0]}
+                                            示例：{assistant.examples[0]}
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         )}
-
-                        {/* 快速选择弹窗 */}
-                        {quickSelectMode && (
-                            <div className="quick-select-popup" style={{
-                                position: 'absolute',
-                                bottom: '100%',
-                                left: 0,
-                                width: '320px',
-                                background: '#f8fafc',
-                                borderRadius: '8px',
-                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                                padding: '8px',
-                                marginBottom: '8px',
-                                zIndex: 1000,
-                                maxHeight: '400px',
-                                overflowY: 'auto',
-                                border: '1px solid #e2e8f0'
-                            }}>
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    marginBottom: '8px',
-                                    padding: '0 4px'
-                                }}>
-                                    {/* 搜索框 */}
-                                    <Input
-                                        placeholder={quickSelectMode === 'server' ? "搜索服务器..." : "搜索命令..."}
-                                        value={searchText}
-                                        onChange={(e) => {
-                                            setSearchText(e.target.value);
-                                            setSelectedIndex(0);
-                                        }}
-                                        style={{
-                                            background: 'rgba(255, 255, 255, 0.1)',
-                                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                                            borderRadius: '4px',
-                                            color: 'white',
-                                            width: 'calc(100% - 28px)'
-                                        }}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Tab') {
-                                                e.stopPropagation();
-                                            }
-                                        }}
-                                    />
-                                    {/* 关闭按钮 */}
-                                    <Icon 
-                                        type="close" 
-                                        onClick={() => {
-                                            setQuickSelectMode(null);
-                                            setQuickSelectItems([]);
-                                            setSearchText('');
-                                        }}
-                                        style={{
-                                            cursor: 'pointer',
-                                            color: 'rgba(255, 255, 255, 0.7)',
-                                            fontSize: '16px',
-                                            padding: '4px'
-                                        }}
-                                    />
-                                </div>
-
-                                {/* 显示过滤后的列表 */}
-                                {getFilteredItems().map((item, index) => (
-                                    <div
-                                        key={quickSelectMode === 'server' ? item.ip : item.value}
-                                        onClick={() => handleQuickSelect(item)}
-                                        onMouseEnter={() => setSelectedIndex(index)}
-                                        title={quickSelectMode === 'server' ? `${item.name} (${item.ip})` : `${item.value}\n${item.label}`}
-                                        style={{
-                                            padding: '8px 12px',
-                                            cursor: 'pointer',
-                                            borderRadius: '4px',
-                                            background: index === selectedIndex ? '#e2e8f0' : 'transparent',
-                                            transition: 'background-color 0.2s'
-                                        }}
-                                    >
-                                        {quickSelectMode === 'server' ? (
-                                            <>
-                                                <div style={{ fontWeight: 'bold', color: '#334155' }}>{item.name}</div>
-                                                <div style={{ fontSize: '12px', color: '#64748b' }}>{item.ip}</div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div style={{ fontWeight: 'bold', color: '#334155' }}>{item.value}</div>
-                                                <div style={{ fontSize: '12px', color: '#64748b' }}>{item.label}</div>
-                                            </>
-                                        )}
-                                    </div>
-                                ))}
-                                
-                                {/* 显示无结果提示 */}
-                                {getFilteredItems().length === 0 && (
-                                    <div style={{ 
-                                        padding: '8px 12px', 
-                                        color: '#64748b',
-                                        textAlign: 'center' 
-                                    }}>
-                                        未找到匹配结果
-                                    </div>
-                                )}
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
+
             <HistoryConversationModal
                 visible={historyModalVisible}
                 onCancel={() => setHistoryModalVisible(false)}
