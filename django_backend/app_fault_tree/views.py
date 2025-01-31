@@ -455,11 +455,17 @@ class GetMetricHistoryByIp(BaseView):
         metric_name = request_body.get('cmd')
         time_from = request_body.get('time_from')
         time_till = request_body.get('time_till')
-
         # 如果没有指定时间范围，设置为最近10分钟
         if time_from is None or time_till is None:
             time_till = int(time.time())
             time_from = time_till - 600  # 10分钟 = 600秒
+        else:
+            # 如果是字符串格式的时间，转换为时间戳
+            if isinstance(time_from, str):
+                time_from = int(datetime.strptime(time_from, '%Y-%m-%d %H:%M:%S').timestamp())
+            if isinstance(time_till, str):
+                time_till = int(datetime.strptime(time_till, '%Y-%m-%d %H:%M:%S').timestamp())
+        print(time_from,time_till)
 
         try:
             result = get_zabbix_metrics(
@@ -467,7 +473,8 @@ class GetMetricHistoryByIp(BaseView):
                 metric_name=metric_name,
                 time_from=time_from,
                 time_till=time_till,
-                match_type='filter'
+                match_type='filter',
+                limit=10000
             )
             
             # 对数据按时间正序排序
