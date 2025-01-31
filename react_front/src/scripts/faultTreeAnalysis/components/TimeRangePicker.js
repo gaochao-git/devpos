@@ -32,12 +32,6 @@ const TimeRangePicker = ({
                 format="YYYY-MM-DD HH:mm:ss"
                 style={{ minWidth: '380px' }}
             />
-            <Button 
-                type="primary"
-                onClick={() => onOk && onOk(timeRange)}
-            >
-                select time
-            </Button>
         </div>
     );
 };

@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Select, Icon, message, Checkbox, Button, Modal } from 'antd';
 import BaseAssistant from './BaseAssistant';
 import { getStandardTime, markdownRenderers } from '../util';
 import MyAxios from "../../common/interface";
-import { message } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import ZabbixChart from '../components/ZabbixChart';
-import { Checkbox, Button } from 'antd';
+import TimeRangePicker from '../components/TimeRangePicker';
+import moment from 'moment';
 
 class ZabbixAssistant extends BaseAssistant {
     constructor() {
@@ -45,7 +46,7 @@ class ZabbixAssistant extends BaseAssistant {
     }
 
     // 重写执行命令方法
-    async handleExecute({ assistantInputs, config, executingAssistants, executeCommand }) {
+    async handleExecute({ assistantInputs, config, executingAssistants, executeCommand, timeRange }) {
         const isExecuting = executingAssistants.has(this.name);
         const value = assistantInputs.get(this.name);
         
@@ -66,8 +67,8 @@ class ZabbixAssistant extends BaseAssistant {
             const params = {
                 address: config.ip,
                 cmd: value,
-                time_from: Math.floor(Date.now() / 1000) - 3600,  // 默认查询最近1小时
-                time_till: Math.floor(Date.now() / 1000)
+                time_from: Math.floor(timeRange[0].valueOf() / 1000),
+                time_till: Math.floor(timeRange[1].valueOf() / 1000)
             };
 
             const response = await MyAxios.post('/fault_tree/v1/get_metric_history_by_ip/', params);
@@ -121,15 +122,281 @@ class ZabbixAssistant extends BaseAssistant {
         }
     }
 
-    // 重写格式化消息方法
-    formatMessage(response) {
-        return {
-            type: 'assistant',
-            content: response.data,
-            rawContent: response.data,
-            timestamp: getStandardTime(),
-            isZabbix: true
+    // 重写渲染内容方法
+    renderContent({ 
+        config,
+        assistantInputs,
+        setAssistantInputs,
+        handleCloseAssistant,
+        executingAssistants,
+        executeCommand,
+        handleServerSelect,
+        servers,
+        setExecutingAssistants,
+        setMessages
+    }) {
+        const [searchModal, setSearchModal] = useState(false);
+        const [timeRange, setTimeRange] = useState([moment().subtract(1, 'hours'), moment()]);
+        const [selectedMetrics, setSelectedMetrics] = useState([]);
+
+        const handleTimeRangeOk = (range) => {
+            if (!range || !range[0] || !range[1]) {
+                message.warning('请选择有效的时间范围');
+                return;
+            }
+            setTimeRange(range);
         };
+
+        const handleSearch = () => {
+            if (!selectedMetrics.length) {
+                message.warning('请至少选择一个监控指标');
+                return;
+            }
+
+            // 设置选中的指标，使用 JSON 字符串存储多个指标
+            setAssistantInputs(prev => new Map(prev).set(this.name, JSON.stringify(selectedMetrics)));
+            setSearchModal(false);
+        };
+
+        const renderSearchModal = () => (
+            <Modal
+                title="Zabbix查询构建器"
+                visible={searchModal}
+                onCancel={() => setSearchModal(false)}
+                width={800}
+                footer={[
+                    <Button key="cancel" onClick={() => setSearchModal(false)}>
+                        取消
+                    </Button>,
+                    <Button 
+                        key="confirm" 
+                        type="primary"
+                        onClick={handleSearch}
+                    >
+                        确认
+                    </Button>
+                ]}
+            >
+                <div style={{ marginBottom: '16px' }}>
+                    <div style={{ 
+                        marginBottom: '8px', 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                    }}>
+                        <span style={{ fontWeight: 'bold' }}>监控指标（可多选）</span>
+                        {selectedMetrics.length > 0 && (
+                            <Button 
+                                type="link" 
+                                size="small"
+                                onClick={() => setSelectedMetrics([])}
+                                style={{ padding: '4px 0' }}
+                            >
+                                清空选择
+                            </Button>
+                        )}
+                    </div>
+                    <Select
+                        mode="multiple"
+                        style={{ width: '100%' }}
+                        placeholder="选择监控指标"
+                        showSearch
+                        allowClear
+                        value={selectedMetrics}
+                        onChange={setSelectedMetrics}
+                        optionLabelProp="label"
+                        filterOption={(input, option) => {
+                            const value = option.props.value || '';
+                            const label = option.props.label || '';
+                            return (
+                                value.toLowerCase().includes(input.toLowerCase()) ||
+                                label.toLowerCase().includes(input.toLowerCase())
+                            );
+                        }}
+                    >
+                        {this.commands.map(cmd => (
+                            <Select.Option 
+                                key={cmd.value}
+                                value={cmd.value}
+                                label={cmd.label}
+                                title={`${cmd.label}\n${cmd.value}`}
+                            >
+                                <div style={{ padding: '4px 0' }}>
+                                    <div style={{ fontWeight: 'bold' }}>{cmd.label}</div>
+                                    <div style={{ fontSize: '12px', color: '#666' }}>{cmd.value}</div>
+                                </div>
+                            </Select.Option>
+                        ))}
+                    </Select>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                    <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>时间范围</div>
+                    <TimeRangePicker
+                        timeRange={timeRange}
+                        onTimeRangeChange={setTimeRange}
+                        onOk={handleTimeRangeOk}
+                    />
+                </div>
+            </Modal>
+        );
+
+        return (
+            <>
+                {/* 服务器选择 */}
+                <Select
+                    style={{ width: '30%', marginRight: '12px' }}
+                    placeholder="选择服务器"
+                    value={config?.ip ? this.serverFormat(config.ip, config.port) : undefined}
+                    onChange={async value => {
+                        const [ip, port] = value.split(':');
+                        // 先获取指标
+                        await this.handleServerSelect(ip, port);
+                        // 再更新服务器选择
+                        handleServerSelect(this.name, value);
+                        // 清空已选指标
+                        setSelectedMetrics([]);
+                    }}
+                >
+                    {servers.map(server => (
+                        <Select.Option 
+                            key={server.ip} 
+                            value={this.serverFormat(server.ip, server.port)}
+                        >
+                            {this.serverFormat(server.ip, server.port)}
+                        </Select.Option>
+                    ))}
+                </Select>
+
+                {/* 构建查询按钮 */}
+                <Button
+                    type="primary"
+                    style={{ marginRight: 'auto' }}
+                    onClick={() => {
+                        if (!config?.ip) {
+                            message.warning('请先选择服务器');
+                            return;
+                        }
+                        setSearchModal(true);
+                        // 从存储的值中恢复已选指标
+                        const savedValue = assistantInputs.get(this.name);
+                        if (savedValue) {
+                            try {
+                                setSelectedMetrics(JSON.parse(savedValue));
+                            } catch (e) {
+                                setSelectedMetrics([]);
+                            }
+                        }
+                    }}
+                >
+                    构建查询
+                </Button>
+
+                {/* 执行和关闭按钮 */}
+                <div style={{ 
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    whiteSpace: 'nowrap'
+                }}>
+                    <div 
+                        style={{ 
+                            cursor: 'pointer', 
+                            color: '#1890ff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                        }}
+                        onClick={async () => {
+                            const savedValue = assistantInputs.get(this.name);
+                            if (!savedValue) {
+                                message.warning('请先构建查询');
+                                return;
+                            }
+
+                            let metrics;
+                            try {
+                                metrics = JSON.parse(savedValue);
+                            } catch (e) {
+                                message.error('查询数据格式错误');
+                                return;
+                            }
+
+                            if (!metrics.length) {
+                                message.warning('请至少选择一个监控指标');
+                                return;
+                            }
+
+                            // 对每个选中的指标执行查询
+                            for (const metric of metrics) {
+                                const userCommand = `@${this.name} ${this.serverFormat(config?.ip, config?.port)} ${metric}`;
+                                setMessages(prev => [...prev, {
+                                    type: 'user',
+                                    content: userCommand,
+                                    timestamp: getStandardTime()
+                                }]);
+
+                                await this.handleExecute({
+                                    assistantInputs: new Map([[this.name, metric]]),
+                                    config,
+                                    executingAssistants,
+                                    executeCommand,
+                                    setExecutingAssistants,
+                                    timeRange
+                                });
+                            }
+                        }}
+                    >
+                        {executingAssistants.has(this.name) ? (
+                            <>
+                                <Icon type="pause-circle" />
+                                暂停
+                            </>
+                        ) : (
+                            <>
+                                <Icon type="arrow-right" />
+                                执行
+                            </>
+                        )}
+                    </div>
+                    <Icon 
+                        type="close" 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleCloseAssistant(this.name)}
+                    />
+                </div>
+
+                {/* 查询构建器弹窗 */}
+                {renderSearchModal()}
+            </>
+        );
+    }
+
+    // 重写消息渲染方法
+    renderMessage(msg, messageViewModes) {
+        // 初始化视图模式
+        if (!messageViewModes.has(msg.timestamp)) {
+            messageViewModes.set(msg.timestamp, this.getDefaultViewMode());
+        }
+
+        // 根据视图模式选择渲染方式
+        return messageViewModes.get(msg.timestamp) === 'text' ? (
+            <ReactMarkdown components={markdownRenderers}>
+                {msg.content}
+            </ReactMarkdown>
+        ) : (
+            <div style={{ 
+                marginTop: '10px',
+                width: '100%',
+                overflow: 'hidden'
+            }}>
+                <ZabbixChart 
+                    data={msg.rawContent} 
+                    style={{ height: '220px' }}
+                    showHeader={false}
+                />
+            </div>
+        );
     }
 
     // 重写获取默认视图模式方法
@@ -190,31 +457,6 @@ class ZabbixAssistant extends BaseAssistant {
                         复制
                     </Button>
                 )}
-            </div>
-        );
-    }
-
-    // 重写消息渲染方法
-    renderMessage(msg, messageViewModes) {
-        // 初始化视图模式
-        this.initMessageViewMode(msg, messageViewModes);
-
-        // 根据视图模式选择渲染方式
-        return messageViewModes.get(msg.timestamp) === 'text' ? (
-            <ReactMarkdown components={markdownRenderers}>
-                {msg.content}
-            </ReactMarkdown>
-        ) : (
-            <div style={{ 
-                marginTop: '10px',
-                width: '100%',
-                overflow: 'hidden'
-            }}>
-                <ZabbixChart 
-                    data={msg.rawContent} 
-                    style={{ height: '220px' }}
-                    showHeader={false}
-                />
             </div>
         );
     }
