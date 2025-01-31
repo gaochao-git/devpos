@@ -273,7 +273,7 @@ def execute_mysql_command(host: str, port: int, sql: str) -> str:
                 
                 # 格式化输出结果
                 if not result:
-                    return "Query executed successfully. No results to display."
+                    return "Query executed successfully. Empty set."
 
                 if use_g_format:
                     # \G 格式输出
