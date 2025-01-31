@@ -80,27 +80,6 @@ const MessageItem = ({
             }
         }
 
-        // 如果是 Zabbix 消息
-        if (msg.isZabbix) {
-            return messageViewModes.get(msg.timestamp) === 'text' ? (
-                <ReactMarkdown components={markdownRenderers}>
-                    {msg.content}
-                </ReactMarkdown>
-            ) : (
-                <div style={{ 
-                    marginTop: '10px',
-                    width: '100%',
-                    overflow: 'hidden'
-                }}>
-                    <ZabbixChart 
-                        data={msg.rawContent} 
-                        style={{ height: '220px' }}
-                        showHeader={false}
-                    />
-                </div>
-            );
-        }
-
         // 默认渲染方式
         const displayContent = isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD 
             ? msg.content 
