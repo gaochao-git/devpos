@@ -173,353 +173,342 @@ export default class ESAssistant extends BaseAssistant {
     }
 
     // 重写渲染内容方法
-    renderContent({ 
-        config,
-        assistantInputs,
-        setAssistantInputs,
-        handleCloseAssistant,
-        executingAssistants,
-        executeCommand,
-        handleServerSelect,
-        servers,
-        setExecutingAssistants,
-        setMessages
-    }) {
-        const [searchModal, setSearchModal] = useState(false);
-        const [selectedIndex, setSelectedIndex] = useState('');
-        const [selectedFields, setSelectedFields] = useState([]);
-        const [conditions, setConditions] = useState([]);
-        const [timeRange, setTimeRange] = useState([moment().subtract(15, 'minutes'), moment()]);
-        const [isClusterLoading, setIsClusterLoading] = useState(false);
-        const [isIndicesLoading, setIsIndicesLoading] = useState(false);
+    render(props) {
+        return <ESAssistantUI assistant={this} {...props} />;
+    }
+}
 
-        const handleTimeRangeOk = (range) => {
-            if (!range || !range[0] || !range[1]) {
-                message.warning('请选择有效的时间范围');
-                return;
-            }
-            setTimeRange([moment(range[0]), moment(range[1])]);
+// 新增UI组件
+export const ESAssistantUI = ({
+    assistant,
+    config,
+    assistantInputs,
+    setAssistantInputs,
+    handleCloseAssistant,
+    executingAssistants,
+    executeCommand,
+    handleServerSelect,
+    servers,
+    setExecutingAssistants,
+    setMessages
+}) => {
+    const [searchModal, setSearchModal] = useState(false);
+    const [selectedIndex, setSelectedIndex] = useState('');
+    const [selectedFields, setSelectedFields] = useState([]);
+    const [conditions, setConditions] = useState([]);
+    const [timeRange, setTimeRange] = useState([moment().subtract(15, 'minutes'), moment()]);
+    const [isClusterLoading, setIsClusterLoading] = useState(false);
+    const [isIndicesLoading, setIsIndicesLoading] = useState(false);
+
+    const handleTimeRangeOk = (range) => {
+        if (!range || !range[0] || !range[1]) {
+            message.warning('请选择有效的时间范围');
+            return;
+        }
+        setTimeRange([moment(range[0]), moment(range[1])]);
+    };
+
+    const handleSearch = () => {
+        if (!selectedIndex) {
+            message.warning('请选择索引');
+            return;
+        }
+
+        // 构建查询参数对象
+        const queryParams = {
+            index: selectedIndex,
+            timeRange: timeRange.map(t => t.valueOf()),  // 存储时间戳
+            selectedFields,
+            conditions
         };
 
-        const handleSearch = () => {
-            if (!selectedIndex) {
-                message.warning('请选择索引');
-                return;
-            }
+        // 将查询参数序列化后存储
+        setAssistantInputs(prev => new Map(prev).set(assistant.name, JSON.stringify(queryParams)));
+        setSearchModal(false);
+    };
 
-            // 构建查询参数对象
-            const queryParams = {
-                index: selectedIndex,
-                timeRange: timeRange.map(t => t.valueOf()),  // 存储时间戳
-                selectedFields,
-                conditions
-            };
-
-            // 将查询参数序列化后存储
-            setAssistantInputs(prev => new Map(prev).set(this.name, JSON.stringify(queryParams)));
-            setSearchModal(false);
-        };
-
-        const renderSearchModal = () => (
-            <Modal
-                title="Elasticsearch查询构建器"
-                visible={searchModal}
-                onCancel={() => setSearchModal(false)}
-                width={800}
-                footer={[
-                    <Button key="cancel" onClick={() => setSearchModal(false)}>
-                        取消
-                    </Button>,
-                    <Button 
-                        key="confirm" 
-                        type="primary"
-                        onClick={handleSearch}
-                    >
-                        确认
-                    </Button>
-                ]}
-            >
-                <div style={{ marginBottom: '16px' }}>
-                    <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>索引选择</div>
-                    <Select
-                        style={{ width: '100%' }}
-                        placeholder="选择索引"
-                        value={selectedIndex}
-                        onChange={setSelectedIndex}
-                    >
-                        {ES_MOCK_INDICES.map(index => (
-                            <Select.Option key={index.value} value={index.value}>
-                                {index.label}
-                            </Select.Option>
-                        ))}
-                    </Select>
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                    <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>时间范围</div>
-                    <TimeRangePicker
-                        timeRange={timeRange}
-                        onTimeRangeChange={setTimeRange}
-                        onOk={handleTimeRangeOk}
-                    />
-                </div>
-
-                <div style={{ marginBottom: 16 }}>
-                    <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>查询字段</div>
-                    <Select
-                        mode="multiple"
-                        style={{ width: '100%' }}
-                        placeholder="选择查询字段"
-                        value={selectedFields}
-                        onChange={setSelectedFields}
-                        allowClear
-                    >
-                        {ES_MOCK_FIELDS[selectedIndex]?.map(field => (
-                            <Select.Option 
-                                key={field.field} 
-                                value={field.field}
-                                title={`${field.field} (${field.type}) - ${field.description}`}
-                            >
-                                {field.field} - {field.description}
-                            </Select.Option>
-                        ))}
-                    </Select>
-                </div>
-
-                {conditions.map((condition, index) => (
-                    <div key={index} style={{ marginBottom: 8, display: 'flex', gap: 8 }}>
-                        <Select
-                            style={{ width: 200 }}
-                            value={condition.field}
-                            onChange={(value) => {
-                                const newConditions = [...conditions];
-                                newConditions[index] = { ...newConditions[index], field: value };
-                                setConditions(newConditions);
-                            }}
-                        >
-                            {ES_MOCK_FIELDS[selectedIndex]?.map(field => (
-                                <Select.Option key={field.field} value={field.field}>
-                                    {field.field}
-                                </Select.Option>
-                            ))}
-                        </Select>
-                        <Select
-                            style={{ width: 150 }}
-                            value={condition.operator}
-                            onChange={(value) => {
-                                const newConditions = [...conditions];
-                                newConditions[index] = { ...newConditions[index], operator: value };
-                                setConditions(newConditions);
-                            }}
-                        >
-                            {condition.field && ES_OPERATORS[
-                                ES_MOCK_FIELDS[selectedIndex]?.find(f => f.field === condition.field)?.type
-                            ]?.map(op => (
-                                <Select.Option key={op} value={op}>{op}</Select.Option>
-                            ))}
-                        </Select>
-                        <Input
-                            style={{ width: 200 }}
-                            value={condition.value}
-                            onChange={(e) => {
-                                const newConditions = [...conditions];
-                                newConditions[index] = { ...newConditions[index], value: e.target.value };
-                                setConditions(newConditions);
-                            }}
-                            placeholder="输入值"
-                        />
-                        <Button 
-                            type="link" 
-                            danger
-                            onClick={() => {
-                                const newConditions = conditions.filter((_, i) => i !== index);
-                                setConditions(newConditions);
-                            }}
-                        >
-                            删除
-                        </Button>
-                    </div>
-                ))}
-
+    const renderSearchModal = () => (
+        <Modal
+            title="Elasticsearch查询构建器"
+            visible={searchModal}
+            onCancel={() => setSearchModal(false)}
+            width={800}
+            footer={[
+                <Button key="cancel" onClick={() => setSearchModal(false)}>
+                    取消
+                </Button>,
                 <Button 
-                    type="dashed" 
-                    block 
-                    onClick={() => {
-                        setConditions([...conditions, { field: '', operator: '', value: '' }]);
-                    }}
-                    style={{ marginTop: 16 }}
+                    key="confirm" 
+                    type="primary"
+                    onClick={handleSearch}
                 >
-                    添加条件
+                    确认
                 </Button>
-            </Modal>
-        );
-
-        return (
-            <>
+            ]}
+        >
+            <div style={{ marginBottom: '16px' }}>
+                <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>索引选择</div>
                 <Select
-                    style={{ width: '30%', marginRight: '12px' }}
-                    placeholder={isClusterLoading ? "连接集群中..." : "选择服务器"}
-                    value={config?.ip}
-                    onChange={value => handleServerSelect(this.name, value)}
-                    loading={isClusterLoading}
-                    disabled={isClusterLoading}
+                    style={{ width: '100%' }}
+                    placeholder="选择索引"
+                    value={selectedIndex}
+                    onChange={setSelectedIndex}
                 >
-                    {servers.map(server => (
-                        <Select.Option key={server.ip} value={server.ip}>
-                            {server.ip}
+                    {ES_MOCK_INDICES.map(index => (
+                        <Select.Option key={index.value} value={index.value}>
+                            {index.label}
                         </Select.Option>
                     ))}
                 </Select>
+            </div>
 
-                <Button 
-                    type="primary"
-                    disabled={isClusterLoading || isIndicesLoading}
-                    onClick={() => {
-                        if (!config?.ip) {
-                            message.warning('请先选择服务器');
-                            return;
-                        }
-                        setSearchModal(true);
-                        // 从存储的值中恢复查询参数
-                        const savedValue = assistantInputs.get(this.name);
-                        if (savedValue) {
-                            try {
-                                const queryParams = JSON.parse(savedValue);
-                                setSelectedIndex(queryParams.index);
-                                // 从时间戳恢复moment对象
-                                setTimeRange(queryParams.timeRange 
-                                    ? queryParams.timeRange.map(t => moment(t))
-                                    : [moment().subtract(15, 'minutes'), moment()]
-                                );
-                                setSelectedFields(queryParams.selectedFields || []);
-                                setConditions(queryParams.conditions || []);
-                            } catch (e) {
-                                // 如果解析失败，重置所有状态
-                                setSelectedIndex('');
-                                setTimeRange([moment().subtract(15, 'minutes'), moment()]);
-                                setSelectedFields([]);
-                                setConditions([]);
-                            }
-                        }
-                    }}
-                    style={{ marginRight: 'auto' }}
+            <div style={{ marginBottom: '16px' }}>
+                <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>时间范围</div>
+                <TimeRangePicker
+                    timeRange={timeRange}
+                    onTimeRangeChange={setTimeRange}
+                    onOk={handleTimeRangeOk}
+                />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+                <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>查询字段</div>
+                <Select
+                    mode="multiple"
+                    style={{ width: '100%' }}
+                    placeholder="选择查询字段"
+                    value={selectedFields}
+                    onChange={setSelectedFields}
+                    allowClear
                 >
-                    构建查询
-                </Button>
+                    {ES_MOCK_FIELDS[selectedIndex]?.map(field => (
+                        <Select.Option 
+                            key={field.field} 
+                            value={field.field}
+                            title={`${field.field} (${field.type}) - ${field.description}`}
+                        >
+                            {field.field} - {field.description}
+                        </Select.Option>
+                    ))}
+                </Select>
+            </div>
 
-                <div style={{ 
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    whiteSpace: 'nowrap'
-                }}>
-                    <div 
-                        style={{ 
-                            cursor: 'pointer', 
-                            color: '#1890ff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                        }}
-                        onClick={() => {
-                            const savedValue = assistantInputs.get(this.name);
-                            if (!savedValue) {
-                                message.warning('请先构建查询');
-                                return;
-                            }
-
-                            let queryParams;
-                            try {
-                                queryParams = JSON.parse(savedValue);
-                                // 从时间戳恢复moment对象
-                                queryParams.timeRange = queryParams.timeRange 
-                                    ? queryParams.timeRange.map(t => moment(t))
-                                    : [moment().subtract(15, 'minutes'), moment()];
-                            } catch (e) {
-                                message.error('查询参数格式错误');
-                                return;
-                            }
-
-                            // 构建用户命令
-                            const userCommand = `@${this.name} ${config?.ip} ${queryParams.index}`;
-
-                            // 执行命令
-                            this.handleExecute({
-                                assistantInputs: new Map([[this.name, queryParams.index]]),
-                                config,
-                                executingAssistants,
-                                executeCommand: (msg) => {
-                                    if (msg.type === 'assistant') {
-                                        setMessages(prev => [...prev, {
-                                            type: 'user',
-                                            content: userCommand,
-                                            timestamp: getStandardTime()
-                                        }, msg]);
-                                    }
-                                },
-                                setExecutingAssistants,
-                                timeRange: queryParams.timeRange,
-                                selectedFields: queryParams.selectedFields || [],
-                                conditions: queryParams.conditions || []
-                            });
+            {conditions.map((condition, index) => (
+                <div key={index} style={{ marginBottom: 8, display: 'flex', gap: 8 }}>
+                    <Select
+                        style={{ width: 200 }}
+                        value={condition.field}
+                        onChange={(value) => {
+                            const newConditions = [...conditions];
+                            newConditions[index] = { ...newConditions[index], field: value };
+                            setConditions(newConditions);
                         }}
                     >
-                        {executingAssistants.has(this.name) ? (
-                            <>
-                                <Icon type="pause-circle" />
-                                暂停
-                            </>
-                        ) : (
-                            <>
-                                <Icon type="arrow-right" />
-                                执行
-                            </>
-                        )}
-                    </div>
-                    <Icon 
-                        type="close" 
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handleCloseAssistant(this.name)}
+                        {ES_MOCK_FIELDS[selectedIndex]?.map(field => (
+                            <Select.Option key={field.field} value={field.field}>
+                                {field.field}
+                            </Select.Option>
+                        ))}
+                    </Select>
+                    <Select
+                        style={{ width: 150 }}
+                        value={condition.operator}
+                        onChange={(value) => {
+                            const newConditions = [...conditions];
+                            newConditions[index] = { ...newConditions[index], operator: value };
+                            setConditions(newConditions);
+                        }}
+                    >
+                        {condition.field && ES_OPERATORS[
+                            ES_MOCK_FIELDS[selectedIndex]?.find(f => f.field === condition.field)?.type
+                        ]?.map(op => (
+                            <Select.Option key={op} value={op}>{op}</Select.Option>
+                        ))}
+                    </Select>
+                    <Input
+                        style={{ width: 200 }}
+                        value={condition.value}
+                        onChange={(e) => {
+                            const newConditions = [...conditions];
+                            newConditions[index] = { ...newConditions[index], value: e.target.value };
+                            setConditions(newConditions);
+                        }}
+                        placeholder="输入值"
                     />
+                    <Button 
+                        type="link" 
+                        danger
+                        onClick={() => {
+                            const newConditions = conditions.filter((_, i) => i !== index);
+                            setConditions(newConditions);
+                        }}
+                    >
+                        删除
+                    </Button>
                 </div>
+            ))}
 
-                {renderSearchModal()}
-            </>
-        );
-    }
+            <Button 
+                type="dashed" 
+                block 
+                onClick={() => {
+                    setConditions([...conditions, { field: '', operator: '', value: '' }]);
+                }}
+                style={{ marginTop: 16 }}
+            >
+                添加条件
+            </Button>
+        </Modal>
+    );
 
-    // 重写消息渲染方法
-    renderMessage(msg, messageViewModes) {
-        // 如果消息包含 JSON 数据，以 JSON 格式显示
-        try {
-            const data = JSON.parse(msg.rawContent);
-            return (
-                <div>
-                    {/* 命令部分 */}
-                    <ReactMarkdown components={markdownRenderers}>
-                        {msg.command ? `> ${msg.command}\n` : ''}
-                    </ReactMarkdown>
-                    
-                    {/* 结果部分 */}
-                    <div style={{ 
-                        background: '#f5f5f5', 
-                        padding: '12px',
-                        borderRadius: '4px',
-                        marginTop: '8px'
-                    }}>
-                        <pre style={{ 
-                            margin: 0,
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-all'
-                        }}>
-                            {JSON.stringify(data, null, 2)}
-                        </pre>
-                    </div>
+    return (
+        <div style={{ 
+            marginBottom: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '4px 11px',
+            border: '1px solid #d9d9d9',
+            borderRadius: '4px',
+            background: '#fff',
+            width: '100%'
+        }}>
+            <span style={{ 
+                color: '#ff4d4f',
+                fontFamily: 'monospace',
+                marginRight: '12px',
+                whiteSpace: 'nowrap'
+            }}>
+                {assistant.prefix}
+            </span>
+
+            <Select
+                style={{ width: '30%', marginRight: '12px' }}
+                placeholder={isClusterLoading ? "连接集群中..." : "选择服务器"}
+                value={config?.ip}
+                onChange={value => handleServerSelect(assistant.name, value)}
+                loading={isClusterLoading}
+                disabled={isClusterLoading}
+            >
+                {servers.map(server => (
+                    <Select.Option key={server.ip} value={server.ip}>
+                        {server.ip}
+                    </Select.Option>
+                ))}
+            </Select>
+
+            <Button 
+                type="primary"
+                disabled={isClusterLoading || isIndicesLoading}
+                onClick={() => {
+                    if (!config?.ip) {
+                        message.warning('请先选择服务器');
+                        return;
+                    }
+                    setSearchModal(true);
+                    // 从存储的值中恢复查询参数
+                    const savedValue = assistantInputs.get(assistant.name);
+                    if (savedValue) {
+                        try {
+                            const queryParams = JSON.parse(savedValue);
+                            setSelectedIndex(queryParams.index);
+                            // 从时间戳恢复moment对象
+                            setTimeRange(queryParams.timeRange 
+                                ? queryParams.timeRange.map(t => moment(t))
+                                : [moment().subtract(15, 'minutes'), moment()]
+                            );
+                            setSelectedFields(queryParams.selectedFields || []);
+                            setConditions(queryParams.conditions || []);
+                        } catch (e) {
+                            // 如果解析失败，重置所有状态
+                            setSelectedIndex('');
+                            setTimeRange([moment().subtract(15, 'minutes'), moment()]);
+                            setSelectedFields([]);
+                            setConditions([]);
+                        }
+                    }
+                }}
+                style={{ marginRight: 'auto' }}
+            >
+                构建查询
+            </Button>
+
+            <div style={{ 
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                whiteSpace: 'nowrap'
+            }}>
+                <div 
+                    style={{ 
+                        cursor: 'pointer', 
+                        color: '#1890ff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                    }}
+                    onClick={() => {
+                        const savedValue = assistantInputs.get(assistant.name);
+                        if (!savedValue) {
+                            message.warning('请先构建查询');
+                            return;
+                        }
+
+                        let queryParams;
+                        try {
+                            queryParams = JSON.parse(savedValue);
+                            // 从时间戳恢复moment对象
+                            queryParams.timeRange = queryParams.timeRange 
+                                ? queryParams.timeRange.map(t => moment(t))
+                                : [moment().subtract(15, 'minutes'), moment()];
+                        } catch (e) {
+                            message.error('查询参数格式错误');
+                            return;
+                        }
+
+                        // 构建用户命令
+                        const userCommand = `@${assistant.name} ${config?.ip} ${queryParams.index}`;
+
+                        // 执行命令
+                        assistant.handleExecute({
+                            assistantInputs: new Map([[assistant.name, queryParams.index]]),
+                            config,
+                            executingAssistants,
+                            executeCommand: (msg) => {
+                                if (msg.type === 'assistant') {
+                                    setMessages(prev => [...prev, {
+                                        type: 'user',
+                                        content: userCommand,
+                                        timestamp: getStandardTime()
+                                    }, msg]);
+                                }
+                            },
+                            setExecutingAssistants,
+                            timeRange: queryParams.timeRange,
+                            selectedFields: queryParams.selectedFields || [],
+                            conditions: queryParams.conditions || []
+                        });
+                    }}
+                >
+                    {executingAssistants.has(assistant.name) ? (
+                        <>
+                            <Icon type="pause-circle" />
+                            暂停
+                        </>
+                    ) : (
+                        <>
+                            <Icon type="arrow-right" />
+                            执行
+                        </>
+                    )}
                 </div>
-            );
-        } catch (e) {
-            // 如果不是 JSON，使用默认渲染
-            return super.renderMessage(msg, messageViewModes);
-        }
-    }
-} 
+                <Icon 
+                    type="close" 
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleCloseAssistant(assistant.name)}
+                />
+            </div>
+
+            {renderSearchModal()}
+        </div>
+    );
+}; 

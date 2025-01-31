@@ -123,254 +123,8 @@ class ZabbixAssistant extends BaseAssistant {
     }
 
     // 重写渲染内容方法
-    renderContent({ 
-        config,
-        assistantInputs,
-        setAssistantInputs,
-        handleCloseAssistant,
-        executingAssistants,
-        executeCommand,
-        handleServerSelect,
-        servers,
-        setExecutingAssistants,
-        setMessages
-    }) {
-        const [searchModal, setSearchModal] = useState(false);
-        const [timeRange, setTimeRange] = useState([moment().subtract(1, 'hours').format('YYYY-MM-DD HH:mm:ss'), moment().format('YYYY-MM-DD HH:mm:ss')]);
-        const [selectedMetrics, setSelectedMetrics] = useState([]);
-
-        const handleTimeRangeOk = (range) => {
-            if (!range || !range[0] || !range[1]) {
-                message.warning('请选择有效的时间范围');
-                return;
-            }
-            setTimeRange(range);
-        };
-
-        const handleSearch = () => {
-            if (!selectedMetrics.length) {
-                message.warning('请至少选择一个监控指标');
-                return;
-            }
-
-            // 设置选中的指标，使用 JSON 字符串存储多个指标
-            setAssistantInputs(prev => new Map(prev).set(this.name, JSON.stringify(selectedMetrics)));
-            setSearchModal(false);
-        };
-
-        const renderSearchModal = () => (
-            <Modal
-                title="Zabbix查询构建器"
-                visible={searchModal}
-                onCancel={() => setSearchModal(false)}
-                width={800}
-                footer={[
-                    <Button key="cancel" onClick={() => setSearchModal(false)}>
-                        取消
-                    </Button>,
-                    <Button 
-                        key="confirm" 
-                        type="primary"
-                        onClick={handleSearch}
-                    >
-                        确认
-                    </Button>
-                ]}
-            >
-                <div style={{ marginBottom: '16px' }}>
-                    <div style={{ 
-                        marginBottom: '8px', 
-                        display: 'flex', 
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                    }}>
-                        <span style={{ fontWeight: 'bold' }}>监控指标（可多选）</span>
-                        {selectedMetrics.length > 0 && (
-                            <Button 
-                                type="link" 
-                                size="small"
-                                onClick={() => setSelectedMetrics([])}
-                                style={{ padding: '4px 0' }}
-                            >
-                                清空选择
-                            </Button>
-                        )}
-                    </div>
-                    <Select
-                        mode="multiple"
-                        style={{ width: '100%' }}
-                        placeholder="选择监控指标"
-                        showSearch
-                        allowClear
-                        value={selectedMetrics}
-                        onChange={setSelectedMetrics}
-                        optionLabelProp="label"
-                        filterOption={(input, option) => {
-                            const value = option.props.value || '';
-                            const label = option.props.label || '';
-                            return (
-                                value.toLowerCase().includes(input.toLowerCase()) ||
-                                label.toLowerCase().includes(input.toLowerCase())
-                            );
-                        }}
-                    >
-                        {this.commands.map(cmd => (
-                            <Select.Option 
-                                key={cmd.value}
-                                value={cmd.value}
-                                label={cmd.label}
-                                title={`${cmd.label}\n${cmd.value}`}
-                            >
-                                <div style={{ padding: '4px 0' }}>
-                                    <div style={{ fontWeight: 'bold' }}>{cmd.label}</div>
-                                    <div style={{ fontSize: '12px', color: '#666' }}>{cmd.value}</div>
-                                </div>
-                            </Select.Option>
-                        ))}
-                    </Select>
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                    <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>时间范围</div>
-                    <TimeRangePicker
-                        timeRange={timeRange}
-                        onTimeRangeChange={setTimeRange}
-                        onOk={handleTimeRangeOk}
-                    />
-                </div>
-            </Modal>
-        );
-
-        return (
-            <>
-                {/* 服务器选择 */}
-                <Select
-                    style={{ width: '30%', marginRight: '12px' }}
-                    placeholder="选择服务器"
-                    value={config?.ip ? this.serverFormat(config.ip, config.port) : undefined}
-                    onChange={async value => {
-                        const [ip, port] = value.split(':');
-                        // 先获取指标
-                        await this.handleServerSelect(ip, port);
-                        // 再更新服务器选择
-                        handleServerSelect(this.name, value);
-                        // 清空已选指标
-                        setSelectedMetrics([]);
-                    }}
-                >
-                    {servers.map(server => (
-                        <Select.Option 
-                            key={server.ip} 
-                            value={this.serverFormat(server.ip, server.port)}
-                        >
-                            {this.serverFormat(server.ip, server.port)}
-                        </Select.Option>
-                    ))}
-                </Select>
-
-                {/* 构建查询按钮 */}
-                <Button
-                    type="primary"
-                    style={{ marginRight: 'auto' }}
-                    onClick={() => {
-                        if (!config?.ip) {
-                            message.warning('请先选择服务器');
-                            return;
-                        }
-                        setSearchModal(true);
-                        // 从存储的值中恢复已选指标
-                        const savedValue = assistantInputs.get(this.name);
-                        if (savedValue) {
-                            try {
-                                setSelectedMetrics(JSON.parse(savedValue));
-                            } catch (e) {
-                                setSelectedMetrics([]);
-                            }
-                        }
-                    }}
-                >
-                    构建查询
-                </Button>
-
-                {/* 执行和关闭按钮 */}
-                <div style={{ 
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    whiteSpace: 'nowrap'
-                }}>
-                    <div 
-                        style={{ 
-                            cursor: 'pointer', 
-                            color: '#1890ff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                        }}
-                        onClick={async () => {
-                            const savedValue = assistantInputs.get(this.name);
-                            if (!savedValue) {
-                                message.warning('请先构建查询');
-                                return;
-                            }
-
-                            let metrics;
-                            try {
-                                metrics = JSON.parse(savedValue);
-                            } catch (e) {
-                                message.error('查询数据格式错误');
-                                return;
-                            }
-
-                            if (!metrics.length) {
-                                message.warning('请至少选择一个监控指标');
-                                return;
-                            }
-
-                            // 对每个选中的指标执行查询
-                            for (const metric of metrics) {
-                                const userCommand = `@${this.name} ${this.serverFormat(config?.ip, config?.port)} ${metric}`;
-                                setMessages(prev => [...prev, {
-                                    type: 'user',
-                                    content: userCommand,
-                                    timestamp: getStandardTime()
-                                }]);
-
-                                await this.handleExecute({
-                                    assistantInputs: new Map([[this.name, metric]]),
-                                    config,
-                                    executingAssistants,
-                                    executeCommand,
-                                    setExecutingAssistants,
-                                    // 直接使用字符串格式的时间
-                                    timeRange
-                                });
-                            }
-                        }}
-                    >
-                        {executingAssistants.has(this.name) ? (
-                            <>
-                                <Icon type="pause-circle" />
-                                暂停
-                            </>
-                        ) : (
-                            <>
-                                <Icon type="arrow-right" />
-                                执行
-                            </>
-                        )}
-                    </div>
-                    <Icon 
-                        type="close" 
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handleCloseAssistant(this.name)}
-                    />
-                </div>
-
-                {/* 查询构建器弹窗 */}
-                {renderSearchModal()}
-            </>
-        );
+    render(props) {
+        return <ZabbixAssistantUI assistant={this} {...props} />;
     }
 
     // 重写消息渲染方法
@@ -463,7 +217,7 @@ class ZabbixAssistant extends BaseAssistant {
     }
 
     // 重写构建执行参数方法
-    buildExecuteParams(value, config, { timeRange, selectedFields, conditions } = {}) {
+    buildExecuteParams(value, config, { timeRange } = {}) {
         const defaultTimeRange = [
             moment().subtract(1, 'hours').format('YYYY-MM-DD HH:mm:ss'),
             moment().format('YYYY-MM-DD HH:mm:ss')
@@ -479,5 +233,264 @@ class ZabbixAssistant extends BaseAssistant {
         };
     }
 }
+
+// 新增UI组件
+export const ZabbixAssistantUI = ({
+    assistant,
+    config,
+    assistantInputs,
+    setAssistantInputs,
+    handleCloseAssistant,
+    executingAssistants,
+    executeCommand,
+    handleServerSelect,
+    servers,
+    setExecutingAssistants,
+    setMessages
+}) => {
+    const [searchModal, setSearchModal] = useState(false);
+    const [timeRange, setTimeRange] = useState([moment().subtract(1, 'hours').format('YYYY-MM-DD HH:mm:ss'), moment().format('YYYY-MM-DD HH:mm:ss')]);
+    const [selectedMetrics, setSelectedMetrics] = useState([]);
+
+    const handleTimeRangeOk = (range) => {
+        if (!range || !range[0] || !range[1]) {
+            message.warning('请选择有效的时间范围');
+            return;
+        }
+        setTimeRange(range);
+    };
+
+    const handleSearch = () => {
+        if (!selectedMetrics.length) {
+            message.warning('请至少选择一个监控指标');
+            return;
+        }
+
+        setAssistantInputs(prev => new Map(prev).set(assistant.name, JSON.stringify(selectedMetrics)));
+        setSearchModal(false);
+    };
+
+    const renderSearchModal = () => (
+        <Modal
+            title="Zabbix查询构建器"
+            visible={searchModal}
+            onCancel={() => setSearchModal(false)}
+            width={800}
+            footer={[
+                <Button key="cancel" onClick={() => setSearchModal(false)}>
+                    取消
+                </Button>,
+                <Button 
+                    key="confirm" 
+                    type="primary"
+                    onClick={handleSearch}
+                >
+                    确认
+                </Button>
+            ]}
+        >
+            <div style={{ marginBottom: '16px' }}>
+                <div style={{ 
+                    marginBottom: '8px', 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                }}>
+                    <span style={{ fontWeight: 'bold' }}>监控指标（可多选）</span>
+                    {selectedMetrics.length > 0 && (
+                        <Button 
+                            type="link" 
+                            size="small"
+                            onClick={() => setSelectedMetrics([])}
+                            style={{ padding: '4px 0' }}
+                        >
+                            清空选择
+                        </Button>
+                    )}
+                </div>
+                <Select
+                    mode="multiple"
+                    style={{ width: '100%' }}
+                    placeholder="选择监控指标"
+                    showSearch
+                    allowClear
+                    value={selectedMetrics}
+                    onChange={setSelectedMetrics}
+                    optionLabelProp="label"
+                    filterOption={(input, option) => {
+                        const value = option.props.value || '';
+                        const label = option.props.label || '';
+                        return (
+                            value.toLowerCase().includes(input.toLowerCase()) ||
+                            label.toLowerCase().includes(input.toLowerCase())
+                        );
+                    }}
+                >
+                    {assistant.commands.map(cmd => (
+                        <Select.Option 
+                            key={cmd.value}
+                            value={cmd.value}
+                            label={cmd.label}
+                            title={`${cmd.label}\n${cmd.value}`}
+                        >
+                            <div style={{ padding: '4px 0' }}>
+                                <div style={{ fontWeight: 'bold' }}>{cmd.label}</div>
+                                <div style={{ fontSize: '12px', color: '#666' }}>{cmd.value}</div>
+                            </div>
+                        </Select.Option>
+                    ))}
+                </Select>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+                <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>时间范围</div>
+                <TimeRangePicker
+                    timeRange={timeRange}
+                    onTimeRangeChange={setTimeRange}
+                    onOk={handleTimeRangeOk}
+                />
+            </div>
+        </Modal>
+    );
+
+    return (
+        <div style={{ 
+            marginBottom: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '4px 11px',
+            border: '1px solid #d9d9d9',
+            borderRadius: '4px',
+            background: '#fff',
+            width: '100%'
+        }}>
+            <span style={{ 
+                color: '#ff4d4f',
+                fontFamily: 'monospace',
+                marginRight: '12px',
+                whiteSpace: 'nowrap'
+            }}>
+                {assistant.prefix}
+            </span>
+
+            <Select
+                style={{ width: '30%', marginRight: '12px' }}
+                placeholder="选择服务器"
+                value={config?.ip ? assistant.serverFormat(config.ip, config.port) : undefined}
+                onChange={async value => {
+                    const [ip, port] = value.split(':');
+                    await assistant.handleServerSelect(ip, port);
+                    handleServerSelect(assistant.name, value);
+                    setSelectedMetrics([]);
+                }}
+            >
+                {servers.map(server => (
+                    <Select.Option 
+                        key={server.ip} 
+                        value={assistant.serverFormat(server.ip, server.port)}
+                    >
+                        {assistant.serverFormat(server.ip, server.port)}
+                    </Select.Option>
+                ))}
+            </Select>
+
+            <Button
+                type="primary"
+                style={{ marginRight: 'auto' }}
+                onClick={() => {
+                    if (!config?.ip) {
+                        message.warning('请先选择服务器');
+                        return;
+                    }
+                    setSearchModal(true);
+                    const savedValue = assistantInputs.get(assistant.name);
+                    if (savedValue) {
+                        try {
+                            setSelectedMetrics(JSON.parse(savedValue));
+                        } catch (e) {
+                            setSelectedMetrics([]);
+                        }
+                    }
+                }}
+            >
+                构建查询
+            </Button>
+
+            <div style={{ 
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                whiteSpace: 'nowrap'
+            }}>
+                <div 
+                    style={{ 
+                        cursor: 'pointer', 
+                        color: '#1890ff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                    }}
+                    onClick={async () => {
+                        const savedValue = assistantInputs.get(assistant.name);
+                        if (!savedValue) {
+                            message.warning('请先构建查询');
+                            return;
+                        }
+
+                        let metrics;
+                        try {
+                            metrics = JSON.parse(savedValue);
+                        } catch (e) {
+                            message.error('查询数据格式错误');
+                            return;
+                        }
+
+                        if (!metrics.length) {
+                            message.warning('请至少选择一个监控指标');
+                            return;
+                        }
+
+                        for (const metric of metrics) {
+                            const userCommand = `@${assistant.name} ${assistant.serverFormat(config?.ip, config?.port)} ${metric}`;
+                            setMessages(prev => [...prev, {
+                                type: 'user',
+                                content: userCommand,
+                                timestamp: getStandardTime()
+                            }]);
+
+                            await assistant.handleExecute({
+                                assistantInputs: new Map([[assistant.name, metric]]),
+                                config,
+                                executingAssistants,
+                                executeCommand,
+                                setExecutingAssistants,
+                                timeRange
+                            });
+                        }
+                    }}
+                >
+                    {executingAssistants.has(assistant.name) ? (
+                        <>
+                            <Icon type="pause-circle" />
+                            暂停
+                        </>
+                    ) : (
+                        <>
+                            <Icon type="arrow-right" />
+                            执行
+                        </>
+                    )}
+                </div>
+                <Icon 
+                    type="close" 
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleCloseAssistant(assistant.name)}
+                />
+            </div>
+
+            {renderSearchModal()}
+        </div>
+    );
+};
 
 export default ZabbixAssistant; 
