@@ -1,6 +1,6 @@
 import React from 'react';
 import { Select, Icon, message, Checkbox, Button } from 'antd';
-import { getStandardTime, markdownRenderers } from '../util';
+import { getStandardTime, markdownRenderers, MESSAGE_DISPLAY_THRESHOLD } from '../util';
 import ReactMarkdown from 'react-markdown';
 
 export default class BaseAssistant {
@@ -297,12 +297,30 @@ export default class BaseAssistant {
     }
 
     // 渲染消息内容（可被子类重写）
-    renderMessage(msg, messageViewModes) {
-        // 默认渲染方式
+    renderMessage(msg, messageViewModes, setMessageViewModes) {
+        const isExpanded = messageViewModes.get(msg.timestamp) === 'expanded';
+        const displayContent = isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD 
+            ? msg.content 
+            : msg.content.slice(0, MESSAGE_DISPLAY_THRESHOLD) + '...';
+
         return (
-            <ReactMarkdown components={markdownRenderers}>
-                {msg.content}
-            </ReactMarkdown>
+            <>
+                <ReactMarkdown components={markdownRenderers}>
+                    {displayContent}
+                </ReactMarkdown>
+                {msg.content.length > MESSAGE_DISPLAY_THRESHOLD && (
+                    <Button 
+                        type="link" 
+                        onClick={() => {
+                            const newMode = isExpanded ? undefined : 'expanded';
+                            setMessageViewModes(new Map(messageViewModes).set(msg.timestamp, newMode));
+                        }}
+                        style={{ padding: '4px 0' }}
+                    >
+                        {isExpanded ? '收起' : '展开'}
+                    </Button>
+                )}
+            </>
         );
     }
 

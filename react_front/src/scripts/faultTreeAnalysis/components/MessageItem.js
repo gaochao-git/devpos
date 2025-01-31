@@ -75,7 +75,7 @@ const MessageItem = ({
             const assistantName = msg.command.split(' ')[0].slice(1);
             const assistant = registry.get(assistantName);
             if (assistant) {
-                return assistant.renderMessage(msg, messageViewModes);
+                return assistant.renderMessage(msg, messageViewModes, setMessageViewModes);
             }
         }
 
