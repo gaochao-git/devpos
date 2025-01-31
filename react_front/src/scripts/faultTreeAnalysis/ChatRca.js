@@ -64,6 +64,44 @@ const ChatRca = ({ treeData, style }) => {
     const lastScrollTop = useRef(0);
     const abortControllerRef = useRef(null);
 
+    // 添加获取Zabbix指标的函数
+    const fetchZabbixMetrics = async () => {
+        try {
+            // 从故障树中提取所有服务器
+            const servers = extractServersFromTree(treeData);
+            const metricsMap = new Map();
+
+            // 为每个服务器获取指标
+            for (const server of servers) {
+                const response = await MyAxios.post('/fault_tree/v1/get_all_metric_names_by_ip/', { 
+                    "ip": server.ip 
+                });
+                
+                if (response.data.status === "ok") {
+                    // 只保留需要的字段
+                    const filteredMetrics = response.data.data.map(metric => ({
+                        name: metric.name,
+                        key_: metric.key_,
+                        units: metric.units
+                    }));
+                    metricsMap.set(server.ip, filteredMetrics);
+                }
+            }
+            
+            setZabbixMetrics(metricsMap);
+        } catch (error) {
+            console.error('获取Zabbix指标错误:', error);
+            message.error('获取Zabbix指标失败');
+        }
+    };
+
+    // 监听上下文选择变化
+    useEffect(() => {
+        if (selectedContext.includes('zabbix')) {
+            fetchZabbixMetrics();
+        }
+    }, [selectedContext]);
+
     // 初始化助手列表
     useEffect(() => {
         const allAssistants = registry.getAll().map(assistant => ({
@@ -166,20 +204,29 @@ const ChatRca = ({ treeData, style }) => {
                         content = JSON.stringify(treeData, null, 2);
                         break;
                     case 'zabbix':
-                        // 将所有服务器的 Zabbix 指标合并成一个数组
-                        const allMetrics = Array.from(zabbixMetrics.values()).flat();
+                        // 将所有服务器的 Zabbix 指标合并成一个数组，只保留关键信息
+                        const allMetrics = Array.from(zabbixMetrics.values())
+                            .flat()
+                            .map(metric => ({
+                                name: metric.name,
+                                key_: metric.key_,
+                                units: metric.units
+                            }))
+                            .filter((metric, index, self) => 
+                                index === self.findIndex(m => m.key_ === metric.key_)
+                            ); // 基于key_去重
                         content = JSON.stringify(allMetrics, null, 2);
                         break;
                     case 'ssh':
                         content = JSON.stringify(SSH_COMMANDS.map(cmd => ({
-                    command: cmd.value,
-                    description: cmd.label
+                            command: cmd.value,
+                            description: cmd.label
                         })), null, 2);
                         break;
                     case 'mysql':
                         content = JSON.stringify(MYSQL_COMMANDS.map(cmd => ({
-                    command: cmd.value,
-                    description: cmd.label
+                            command: cmd.value,
+                            description: cmd.label
                         })), null, 2);
                         break;
                 }
