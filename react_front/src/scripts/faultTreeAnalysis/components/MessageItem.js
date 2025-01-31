@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { Button, Tag, Checkbox, Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
-import { markdownRenderers,MESSAGE_DISPLAY_THRESHOLD } from '../util';
+import { markdownRenderers, MESSAGE_DISPLAY_THRESHOLD } from '../util';
 import { registry } from '../assistants';
-
-
+import CodeBlock from './CodeBlock';
 
 const MessageItem = ({
     msg,
@@ -17,7 +16,8 @@ const MessageItem = ({
     isExpanded,
     onExpandChange,
     messages,
-    isLatestMessage
+    isLatestMessage,
+    executeCommand
 }) => {
     const [expandedContext, setExpandedContext] = useState(null);
     
@@ -71,7 +71,32 @@ const MessageItem = ({
         }
     };
 
-    // 获取消息内容的渲染方法
+    // 在MessageItem组件内部修改markdown渲染器配置
+    const customRenderers = {
+        ...markdownRenderers,
+        code: ({ node, inline, className, children, ...props }) => {
+            const match = /language-(\w+)/.exec(className || '');
+            const codeContent = String(children).replace(/\n$/, '');
+            
+            if (!inline && match) {
+                return (
+                    <CodeBlock
+                        content={codeContent}
+                        language={match[1]}
+                        executeCommand={executeCommand}
+                    />
+                );
+            }
+
+            return (
+                <code className={className} {...props}>
+                    {children}
+                </code>
+            );
+        }
+    };
+
+    // 在渲染消息内容的部分使用新的渲染器
     const renderMessageContent = () => {
         // 如果是助手消息，使用对应助手的渲染方法
         if (msg.type === 'assistant' && msg.command) {
@@ -82,22 +107,34 @@ const MessageItem = ({
             }
         }
 
-        // 默认渲染方式
+        // 如果是大模型消息，使用代码块渲染
+        if (msg.type === 'llm') {
+            return (
+                <div className="message-content">
+                    <ReactMarkdown components={customRenderers}>
+                        {displayContent}
+                    </ReactMarkdown>
+                    {!shouldDisplayFull && (
+                        <Button type="link" onClick={() => onExpandChange(true)}>
+                            显示更多
+                        </Button>
+                    )}
+                </div>
+            );
+        }
+
+        // 其他类型消息的默认渲染
         return (
-            <>
+            <div className="message-content">
                 <ReactMarkdown components={markdownRenderers}>
                     {displayContent}
                 </ReactMarkdown>
-                {!isLatestMessage && msg.content.length > MESSAGE_DISPLAY_THRESHOLD && (
-                    <Button 
-                        type="link" 
-                        onClick={() => onExpandChange(!isExpanded)}
-                        style={{ padding: '4px 0' }}
-                    >
-                        {isExpanded ? '收起' : '展开'}
+                {!shouldDisplayFull && (
+                    <Button type="link" onClick={() => onExpandChange(true)}>
+                        显示更多
                     </Button>
                 )}
-            </>
+            </div>
         );
     };
 

@@ -947,6 +947,7 @@ const ChatRca = ({ treeData, style }) => {
                         onExpandChange={(expanded) => handleMessageExpand(msg.timestamp, expanded)}
                         messages={messages}
                         isLatestMessage={index === messages.length - 1}
+                        executeCommand={executeCommand}
                     />
                 ))}
             </div>

@@ -78,3 +78,48 @@
 .react-resizable-handle-w {
     left: -5px;
 }
+
+/* 代码块样式 */
+.code-block-wrapper {
+    margin: 16px 0;
+}
+
+.code-block-buttons {
+    opacity: 0;
+    transition: opacity 0.2s;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.code-block-wrapper:hover .code-block-buttons {
+    opacity: 1;
+}
+
+/* 按钮样式 */
+.code-block-buttons .ant-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.code-block-buttons .ant-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: white;
+}
+
+.code-block-buttons .ant-btn-primary {
+    background: #1890ff;
+    border: 1px solid #1890ff;
+}
+
+.code-block-buttons .ant-btn-primary:hover {
+    background: #40a9ff;
+    border: 1px solid #40a9ff;
+}
+
+/* 代码高亮器样式调整 */
+.code-block-wrapper pre {
+    margin: 0 !important;
+}
