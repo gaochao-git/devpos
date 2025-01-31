@@ -1,11 +1,28 @@
 import React, { useState } from 'react';
-import { Select, Button, Modal, Radio, DatePicker, Input, Icon, message } from 'antd';
+import { Select, Button, Modal, Input, Icon, message } from 'antd';
 import moment from 'moment';
 import BaseAssistant from './BaseAssistant';
 import { ES_MOCK_INDICES, ES_MOCK_FIELDS, ES_OPERATORS, getStandardTime, markdownRenderers } from '../util';
 import ReactMarkdown from 'react-markdown';
+import TimeRangePicker from '../components/TimeRangePicker';
+import MyAxios from "../../common/interface";
 
-const { RangePicker } = DatePicker;
+// Mock数据
+const MOCK_ES_RESPONSE = {
+    took: 123,
+    hits: {
+        total: 100,
+        hits: Array(10).fill(null).map((_, index) => ({
+            _source: {
+                timestamp: moment().subtract(index * 5, 'minutes').format('YYYY-MM-DD HH:mm:ss'),
+                level: ['INFO', 'WARN', 'ERROR'][Math.floor(Math.random() * 3)],
+                message: `This is a sample log message ${index + 1}`,
+                service: 'test-service',
+                host: '192.168.1.100'
+            }
+        }))
+    }
+};
 
 export default class ESAssistant extends BaseAssistant {
     constructor() {
@@ -24,12 +41,124 @@ export default class ESAssistant extends BaseAssistant {
     }
 
     // 重写构建执行参数方法
-    buildExecuteParams(value, config) {
+    buildExecuteParams(value, config, { timeRange, selectedFields, conditions } = {}) {
         return {
             tool: 'es',
             address: config.ip,
-            cmd: value
+            index: value,
+            time_from: timeRange ? timeRange[0].format('YYYY-MM-DD HH:mm:ss') : moment().subtract(15, 'minutes').format('YYYY-MM-DD HH:mm:ss'),
+            time_to: timeRange ? timeRange[1].format('YYYY-MM-DD HH:mm:ss') : moment().format('YYYY-MM-DD HH:mm:ss'),
+            fields: selectedFields || [],
+            conditions: (conditions || []).filter(c => c.field && c.operator && c.value)
         };
+    }
+
+    // Mock ES查询
+    async mockEsQuery(params) {
+        // 模拟网络延迟
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // 解析时间范围
+        const timeFrom = moment(params.time_from);
+        const timeTo = moment(params.time_to);
+        const duration = moment.duration(timeTo.diff(timeFrom));
+        const intervalMinutes = Math.max(1, Math.floor(duration.asMinutes() / 10)); // 生成10个数据点
+
+        // 根据参数修改mock数据
+        const response = {
+            ...MOCK_ES_RESPONSE,
+            query_params: params, // 添加查询参数以便调试
+            hits: {
+                total: 100,
+                hits: Array(10).fill(null).map((_, index) => ({
+                    _source: {
+                        timestamp: moment(timeFrom).add(index * intervalMinutes, 'minutes').format('YYYY-MM-DD HH:mm:ss'),
+                        level: ['INFO', 'WARN', 'ERROR'][Math.floor(Math.random() * 3)],
+                        message: `This is a sample log message ${index + 1}`,
+                        service: 'test-service',
+                        host: '192.168.1.100'
+                    }
+                })).map(hit => ({
+                    ...hit,
+                    _source: {
+                        ...hit._source,
+                        // 如果有选择的字段，只返回这些字段
+                        ...(params.fields.length > 0 && {
+                            ...Object.fromEntries(
+                                params.fields.map(field => [field, hit._source[field]])
+                            )
+                        })
+                    }
+                }))
+            }
+        };
+
+        return {
+            status: "ok",
+            data: response
+        };
+    }
+
+    // 重写执行命令方法
+    async handleExecute({ assistantInputs, config, executingAssistants, executeCommand, timeRange, selectedFields, conditions }) {
+        const isExecuting = executingAssistants.has(this.name);
+        const value = assistantInputs.get(this.name);
+        
+        if (isExecuting) {
+            return;
+        }
+
+        if (!value) {
+            message.warning('请选择要执行的命令');
+            return;
+        }
+        if (!config?.ip) {
+            message.warning('请先选择服务器');
+            return;
+        }
+
+        try {
+            const params = this.buildExecuteParams(value, config, { timeRange, selectedFields, conditions });
+            
+            // 使用mock数据而不是实际调用接口
+            const response = await this.mockEsQuery(params);
+            
+            if (response.status === "ok") {
+                const formattedCommand = `> @${this.name} ${config.ip} ${value}`;
+                const timestamp = getStandardTime();
+                
+                executeCommand({
+                    type: 'assistant',
+                    content: formattedCommand + '\n```json\n' + JSON.stringify(response.data, null, 2) + '\n```',
+                    rawContent: response.data,
+                    command: `@${this.name} ${config.ip} ${value}`,
+                    timestamp: timestamp,
+                    status: 'ok'
+                });
+            } else {
+                executeCommand({
+                    type: 'assistant',
+                    content: `执行失败: ${response.message || '未知错误'}`,
+                    rawContent: response.message || '未知错误',
+                    command: `@${this.name} ${config.ip} ${value}`,
+                    timestamp: getStandardTime(),
+                    isError: true,
+                    status: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('执行命令失败:', error);
+            message.error(error.message || '执行命令失败');
+            executeCommand({
+                type: 'assistant',
+                content: `执行失败: ${error.message || '未知错误'}`,
+                rawContent: error.message || '未知错误',
+                command: `@${this.name} ${config.ip} ${value}`,
+                timestamp: getStandardTime(),
+                isError: true,
+                status: 'error'
+            });
+        }
     }
 
     // 重写服务器选择处理方法
@@ -60,64 +189,36 @@ export default class ESAssistant extends BaseAssistant {
         const [selectedIndex, setSelectedIndex] = useState('');
         const [selectedFields, setSelectedFields] = useState([]);
         const [conditions, setConditions] = useState([]);
-        const [timeRange, setTimeRange] = useState({
-            type: 'relative',
-            value: 'last_15_minutes'
-        });
-        const [customTimeRange, setCustomTimeRange] = useState([null, null]);
+        const [timeRange, setTimeRange] = useState([moment().subtract(15, 'minutes'), moment()]);
         const [isClusterLoading, setIsClusterLoading] = useState(false);
         const [isIndicesLoading, setIsIndicesLoading] = useState(false);
 
-        const RELATIVE_TIME_RANGES = [
-            { label: '最近15分钟', value: 'last_15_minutes' },
-            { label: '最近1小时', value: 'last_1_hour' },
-            { label: '最近3小时', value: 'last_3_hours' },
-            { label: '最近6小时', value: 'last_6_hours' },
-            { label: '最近12小时', value: 'last_12_hours' },
-            { label: '最近24小时', value: 'last_24_hours' },
-            { label: '最近7天', value: 'last_7_days' },
-            { label: '今天', value: 'today' },
-            { label: '本周', value: 'this_week' },
-            { label: '本月', value: 'this_month' },
-            { label: '自定义', value: 'custom' }
-        ];
+        const handleTimeRangeOk = (range) => {
+            if (!range || !range[0] || !range[1]) {
+                message.warning('请选择有效的时间范围');
+                return;
+            }
+            setTimeRange([moment(range[0]), moment(range[1])]);
+        };
 
-        const renderTimeRangePicker = () => (
-            <div style={{ marginBottom: 16, display: 'flex', gap: 8, alignItems: 'center' }}>
-                <Radio.Group
-                    value={timeRange.type}
-                    onChange={(e) => setTimeRange({ ...timeRange, type: e.target.value })}
-                    style={{ marginRight: 16 }}
-                >
-                    <Radio.Button value="relative">相对时间</Radio.Button>
-                    <Radio.Button value="absolute">绝对时间</Radio.Button>
-                </Radio.Group>
+        const handleSearch = () => {
+            if (!selectedIndex) {
+                message.warning('请选择索引');
+                return;
+            }
 
-                {timeRange.type === 'relative' ? (
-                    <Select
-                        style={{ width: 200 }}
-                        value={timeRange.value}
-                        onChange={(value) => setTimeRange({ ...timeRange, value })}
-                    >
-                        {RELATIVE_TIME_RANGES.map(range => (
-                            <Select.Option key={range.value} value={range.value}>
-                                {range.label}
-                            </Select.Option>
-                        ))}
-                    </Select>
-                ) : (
-                    <RangePicker
-                        showTime
-                        value={customTimeRange}
-                        onChange={(dates) => {
-                            setCustomTimeRange(dates);
-                            setTimeRange({ type: 'absolute', value: 'custom' });
-                        }}
-                        style={{ width: 400 }}
-                    />
-                )}
-            </div>
-        );
+            // 构建查询参数对象
+            const queryParams = {
+                index: selectedIndex,
+                timeRange: timeRange.map(t => t.valueOf()),  // 存储时间戳
+                selectedFields,
+                conditions
+            };
+
+            // 将查询参数序列化后存储
+            setAssistantInputs(prev => new Map(prev).set(this.name, JSON.stringify(queryParams)));
+            setSearchModal(false);
+        };
 
         const renderSearchModal = () => (
             <Modal
@@ -132,25 +233,46 @@ export default class ESAssistant extends BaseAssistant {
                     <Button 
                         key="confirm" 
                         type="primary"
-                        onClick={() => {
-                            // 构建查询并设置到输入中
-                            setAssistantInputs(prev => new Map(prev).set(this.name, selectedIndex));
-                            setSearchModal(false);
-                        }}
+                        onClick={handleSearch}
                     >
                         确认
                     </Button>
                 ]}
             >
-                {renderTimeRangePicker()}
+                <div style={{ marginBottom: '16px' }}>
+                    <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>索引选择</div>
+                    <Select
+                        style={{ width: '100%' }}
+                        placeholder="选择索引"
+                        value={selectedIndex}
+                        onChange={setSelectedIndex}
+                    >
+                        {ES_MOCK_INDICES.map(index => (
+                            <Select.Option key={index.value} value={index.value}>
+                                {index.label}
+                            </Select.Option>
+                        ))}
+                    </Select>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                    <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>时间范围</div>
+                    <TimeRangePicker
+                        timeRange={timeRange}
+                        onTimeRangeChange={setTimeRange}
+                        onOk={handleTimeRangeOk}
+                    />
+                </div>
 
                 <div style={{ marginBottom: 16 }}>
+                    <div style={{ marginBottom: '8px', fontWeight: 'bold' }}>查询字段</div>
                     <Select
                         mode="multiple"
                         style={{ width: '100%' }}
                         placeholder="选择查询字段"
                         value={selectedFields}
                         onChange={setSelectedFields}
+                        allowClear
                     >
                         {ES_MOCK_FIELDS[selectedIndex]?.map(field => (
                             <Select.Option 
@@ -249,26 +371,38 @@ export default class ESAssistant extends BaseAssistant {
                     ))}
                 </Select>
 
-                <Select
-                    style={{ width: '30%', marginRight: '12px' }}
-                    placeholder={isIndicesLoading ? "加载索引中..." : "选择索引"}
-                    value={selectedIndex}
-                    onChange={setSelectedIndex}
-                    loading={isIndicesLoading}
-                    disabled={isIndicesLoading || !config?.ip}
-                >
-                    {ES_MOCK_INDICES.map(index => (
-                        <Select.Option key={index.value} value={index.value}>
-                            {index.label}
-                        </Select.Option>
-                    ))}
-                </Select>
-
                 <Button 
                     type="primary"
-                    disabled={!selectedIndex || isClusterLoading || isIndicesLoading}
-                    onClick={() => setSearchModal(true)}
-                    style={{ marginRight: '12px' }}
+                    disabled={isClusterLoading || isIndicesLoading}
+                    onClick={() => {
+                        if (!config?.ip) {
+                            message.warning('请先选择服务器');
+                            return;
+                        }
+                        setSearchModal(true);
+                        // 从存储的值中恢复查询参数
+                        const savedValue = assistantInputs.get(this.name);
+                        if (savedValue) {
+                            try {
+                                const queryParams = JSON.parse(savedValue);
+                                setSelectedIndex(queryParams.index);
+                                // 从时间戳恢复moment对象
+                                setTimeRange(queryParams.timeRange 
+                                    ? queryParams.timeRange.map(t => moment(t))
+                                    : [moment().subtract(15, 'minutes'), moment()]
+                                );
+                                setSelectedFields(queryParams.selectedFields || []);
+                                setConditions(queryParams.conditions || []);
+                            } catch (e) {
+                                // 如果解析失败，重置所有状态
+                                setSelectedIndex('');
+                                setTimeRange([moment().subtract(15, 'minutes'), moment()]);
+                                setSelectedFields([]);
+                                setConditions([]);
+                            }
+                        }
+                    }}
+                    style={{ marginRight: 'auto' }}
                 >
                     构建查询
                 </Button>
@@ -288,26 +422,45 @@ export default class ESAssistant extends BaseAssistant {
                             gap: '4px'
                         }}
                         onClick={() => {
-                            const value = assistantInputs.get(this.name);
-                            if (!value) {
+                            const savedValue = assistantInputs.get(this.name);
+                            if (!savedValue) {
                                 message.warning('请先构建查询');
                                 return;
                             }
-                            // 先添加用户消息
-                            const userCommand = `@${this.name} ${config?.ip} ${value}`;
-                            setMessages(prev => [...prev, {
-                                type: 'user',
-                                content: userCommand,
-                                timestamp: getStandardTime()
-                            }]);
 
-                            // 然后执行命令
+                            let queryParams;
+                            try {
+                                queryParams = JSON.parse(savedValue);
+                                // 从时间戳恢复moment对象
+                                queryParams.timeRange = queryParams.timeRange 
+                                    ? queryParams.timeRange.map(t => moment(t))
+                                    : [moment().subtract(15, 'minutes'), moment()];
+                            } catch (e) {
+                                message.error('查询参数格式错误');
+                                return;
+                            }
+
+                            // 构建用户命令
+                            const userCommand = `@${this.name} ${config?.ip} ${queryParams.index}`;
+
+                            // 执行命令
                             this.handleExecute({
-                                assistantInputs,
+                                assistantInputs: new Map([[this.name, queryParams.index]]),
                                 config,
                                 executingAssistants,
-                                executeCommand,
-                                setExecutingAssistants
+                                executeCommand: (msg) => {
+                                    if (msg.type === 'assistant') {
+                                        setMessages(prev => [...prev, {
+                                            type: 'user',
+                                            content: userCommand,
+                                            timestamp: getStandardTime()
+                                        }, msg]);
+                                    }
+                                },
+                                setExecutingAssistants,
+                                timeRange: queryParams.timeRange,
+                                selectedFields: queryParams.selectedFields || [],
+                                conditions: queryParams.conditions || []
                             });
                         }}
                     >

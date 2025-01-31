@@ -67,8 +67,8 @@ class ZabbixAssistant extends BaseAssistant {
             const params = {
                 address: config.ip,
                 cmd: value,
-                time_from: Math.floor(timeRange[0].valueOf() / 1000),
-                time_till: Math.floor(timeRange[1].valueOf() / 1000)
+                time_from: timeRange ? timeRange[0] : moment().subtract(1, 'hours').format('YYYY-MM-DD HH:mm:ss'),
+                time_till: timeRange ? timeRange[1] : moment().format('YYYY-MM-DD HH:mm:ss')
             };
 
             const response = await MyAxios.post('/fault_tree/v1/get_metric_history_by_ip/', params);
@@ -136,7 +136,7 @@ class ZabbixAssistant extends BaseAssistant {
         setMessages
     }) {
         const [searchModal, setSearchModal] = useState(false);
-        const [timeRange, setTimeRange] = useState([moment().subtract(1, 'hours'), moment()]);
+        const [timeRange, setTimeRange] = useState([moment().subtract(1, 'hours').format('YYYY-MM-DD HH:mm:ss'), moment().format('YYYY-MM-DD HH:mm:ss')]);
         const [selectedMetrics, setSelectedMetrics] = useState([]);
 
         const handleTimeRangeOk = (range) => {
@@ -342,6 +342,7 @@ class ZabbixAssistant extends BaseAssistant {
                                     executingAssistants,
                                     executeCommand,
                                     setExecutingAssistants,
+                                    // 直接使用字符串格式的时间
                                     timeRange
                                 });
                             }
@@ -459,6 +460,23 @@ class ZabbixAssistant extends BaseAssistant {
                 )}
             </div>
         );
+    }
+
+    // 重写构建执行参数方法
+    buildExecuteParams(value, config, { timeRange, selectedFields, conditions } = {}) {
+        const defaultTimeRange = [
+            moment().subtract(1, 'hours').format('YYYY-MM-DD HH:mm:ss'),
+            moment().format('YYYY-MM-DD HH:mm:ss')
+        ];
+
+        return {
+            tool: 'zabbix',
+            address: config.ip,
+            cmd: value,
+            // 直接使用字符串格式的时间，如果没有则使用默认值
+            time_from: timeRange ? timeRange[0] : defaultTimeRange[0],
+            time_till: timeRange ? timeRange[1] : defaultTimeRange[1]
+        };
     }
 }
 
