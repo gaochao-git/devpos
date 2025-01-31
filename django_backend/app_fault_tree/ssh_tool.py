@@ -76,7 +76,7 @@ class CommandExecutor:
         channel = None
         stop_event = Event()
         output = []
-        
+        process_id = None
         try:
             # 建立 SSH 连接
             ssh = paramiko.SSHClient()
@@ -123,20 +123,17 @@ class CommandExecutor:
                 # 检查是否超时
                 if time.time() - self.running_processes[process_id]['start_time'] > COMMAND_TIMEOUT:
                     raise TimeoutError(f"命令执行超时（{COMMAND_TIMEOUT}秒）")
-            
-            return ''.join(output)
-            
+            result = ''.join(output)
+            return result
         except Exception as e:
             logger.error(f"Command execution error: {str(e)}")
-            raise
+            result = f"执行失败: {str(e)}"
+            return result
         finally:
             # 清理资源
-            if process_id in self.running_processes:
-                self.terminate_process(process_id)
-            if channel:
-                channel.close()
-            if ssh:
-                ssh.close()
+            if process_id in self.running_processes:self.terminate_process(process_id)
+            if channel: channel.close()
+            if ssh: ssh.close()
 
     def terminate_process(self, process_id: str) -> bool:
         """终止指定的进程"""
@@ -311,11 +308,6 @@ def execute_mysql_command(host: str, port: int, sql: str) -> str:
                 
         finally:
             connection.close()
-            
-    except pymysql.err.OperationalError as e:
-        if e.args[0] in (2013, 2003):  # MySQL 超时错误码
-            raise Exception(f"MySQL命令执行超时（{COMMAND_TIMEOUT}秒）")
-        raise
     except Exception as e:
         logger.error(f"MySQL execution error: {str(e)}")
         raise
@@ -342,33 +334,15 @@ async def execute_command(command_request: CommandRequest):
         if tool == 'ssh':
             result = execute_ssh_command(host, cmd)
         elif tool == 'mysql':
-            if port is None:
-                port = 3306
+            if port is None:port = 3306
             result = execute_mysql_command(host, port, cmd)
-        elif tool == 'zabbix':
-            # TODO: 实现 Zabbix 命令执行
-            raise HTTPException(status_code=400, detail="Zabbix 命令暂未实现")
         else:
-            raise HTTPException(status_code=400, detail=f"不支持的工具类型: {tool}")
-
-        return {
-            "status": "ok",
-            "message": "success",
-            "data": result
-        }
-
-    except TimeoutError as te:
-        raise HTTPException(status_code=408, detail=str(te))
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
-    except HTTPException as he:
-        raise he
+            return {"status": "error","message": "不支持的工具类型: " + tool}
+        return {"status": "ok", "message": "success", "data": result}
     except Exception as e:
         logger.error(f"Execution error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"执行出错: {str(e)}"
-        )
+        return {"status": "error", "message": "执行出错: " + str(e)}
+        
 
 @app.get("/health")
 async def health_check():

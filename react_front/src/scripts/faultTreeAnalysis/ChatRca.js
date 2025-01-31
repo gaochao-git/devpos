@@ -669,9 +669,8 @@ const ChatRca = ({ treeData, style }) => {
             });
 
             const result = await response.json();
-            
+            const formattedCommand = `> @${params.tool}助手 ${params.address} ${params.cmd}`;
             if (result.status === "ok") {
-                const formattedCommand = `> @${params.tool}助手 ${params.address} ${params.cmd}`;
                 const formattedResult = `\`\`\`bash\n${result.data}\n\`\`\``;
                 const formatMessage = `${formattedCommand}\n${formattedResult}`;
                 setMessages(prev => [...prev, {
@@ -683,9 +682,11 @@ const ChatRca = ({ treeData, style }) => {
                     isError: false
                 }]);
             } else {
+                const formattedResult = `\`\`\`bash\n执行失败: ${result.message || '未知错误'}\n\`\`\``;
+                const formatMessage = `${formattedCommand}\n\n${formattedResult}`;
                 setMessages(prev => [...prev, {
                     type: 'assistant',
-                    content: `执行失败: ${result.message || '未知错误'}`,
+                    content: formatMessage,
                     rawContent: result.message || '未知错误',
                     command: `@${params.tool}助手 ${params.address} ${params.cmd}`,
                     timestamp: getStandardTime(),
