@@ -297,9 +297,10 @@ export default class BaseAssistant {
     }
 
     // 渲染消息内容（可被子类重写）
-    renderMessage(msg, messageViewModes, setMessageViewModes) {
+    renderMessage(msg, messageViewModes, setMessageViewModes, isLatestMessage) {
         const isExpanded = messageViewModes.get(msg.timestamp) === 'expanded';
-        const displayContent = isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD 
+        const shouldDisplayFull = isLatestMessage || isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD;
+        const displayContent = shouldDisplayFull
             ? msg.content 
             : msg.content.slice(0, MESSAGE_DISPLAY_THRESHOLD) + '...';
 
@@ -308,7 +309,7 @@ export default class BaseAssistant {
                 <ReactMarkdown components={markdownRenderers}>
                     {displayContent}
                 </ReactMarkdown>
-                {msg.content.length > MESSAGE_DISPLAY_THRESHOLD && (
+                {!isLatestMessage && msg.content.length > MESSAGE_DISPLAY_THRESHOLD && (
                     <Button 
                         type="link" 
                         onClick={() => {

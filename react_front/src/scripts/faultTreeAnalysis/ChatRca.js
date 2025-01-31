@@ -282,6 +282,9 @@ const ChatRca = ({ treeData, style }) => {
         if (!inputValue.trim() || isStreaming) return;
         setIsUserScrolling(false);
 
+        // 折叠所有现有消息
+        setExpandedMessages(new Set());
+
         const timestamp = getStandardTime();
         const isAssistantCommand = filteredAssistants.some(assistant => 
             inputValue.includes('@' + assistant.name)
@@ -932,7 +935,7 @@ const ChatRca = ({ treeData, style }) => {
             >
                 {messages.map((msg, index) => (
                     <MessageItem
-                        key={index}
+                        key={msg.timestamp}
                         msg={msg}
                         index={index}
                         selectedResults={selectedResults}
@@ -943,6 +946,7 @@ const ChatRca = ({ treeData, style }) => {
                         isExpanded={expandedMessages.has(msg.timestamp)}
                         onExpandChange={(expanded) => handleMessageExpand(msg.timestamp, expanded)}
                         messages={messages}
+                        isLatestMessage={index === messages.length - 1}
                     />
                 ))}
             </div>

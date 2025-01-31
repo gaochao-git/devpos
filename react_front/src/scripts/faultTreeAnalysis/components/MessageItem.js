@@ -16,11 +16,14 @@ const MessageItem = ({
     copyToClipboard,
     isExpanded,
     onExpandChange,
-    messages
+    messages,
+    isLatestMessage
 }) => {
     const [expandedContext, setExpandedContext] = useState(null);
     
-    const displayContent = isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD 
+    // 如果是最新消息，则始终展开
+    const shouldDisplayFull = isLatestMessage || isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD;
+    const displayContent = shouldDisplayFull
         ? msg.content 
         : msg.content.slice(0, MESSAGE_DISPLAY_THRESHOLD) + '...';
 
@@ -75,21 +78,17 @@ const MessageItem = ({
             const assistantName = msg.command.split(' ')[0].slice(1);
             const assistant = registry.get(assistantName);
             if (assistant) {
-                return assistant.renderMessage(msg, messageViewModes, setMessageViewModes);
+                return assistant.renderMessage(msg, messageViewModes, setMessageViewModes, isLatestMessage);
             }
         }
 
         // 默认渲染方式
-        const displayContent = isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD 
-            ? msg.content 
-            : msg.content.slice(0, MESSAGE_DISPLAY_THRESHOLD) + '...';
-
         return (
             <>
                 <ReactMarkdown components={markdownRenderers}>
                     {displayContent}
                 </ReactMarkdown>
-                {msg.content.length > MESSAGE_DISPLAY_THRESHOLD && (
+                {!isLatestMessage && msg.content.length > MESSAGE_DISPLAY_THRESHOLD && (
                     <Button 
                         type="link" 
                         onClick={() => onExpandChange(!isExpanded)}
