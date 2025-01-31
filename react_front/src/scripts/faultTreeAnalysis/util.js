@@ -241,3 +241,4 @@ export const ES_QUERY_TEMPLATES = [
         }
     }
 ];
+export const MESSAGE_DISPLAY_THRESHOLD = 500;
