@@ -73,9 +73,9 @@ const CodeBlock = ({ content, language, executeCommand, executedCommands, execut
                     const dataRows = metricsData.map(point => 
                         `${point.metric_time} | ${point.value}${firstItem.units}`
                     ).join('\n');
-
+                    const formattedResult = `\`\`\`bash\n${headerRow}${dataRows}\n\`\`\``;
                     const formattedCommand = `> ${userCommand}`;
-                    const formatMessage = `${formattedCommand}\n\`\`\`\n${headerRow}${dataRows}\n\`\`\``;
+                    const formatMessage = `${formattedCommand}\n${formattedResult}`;
 
                     executeCommand({
                         type: 'assistant',
@@ -117,8 +117,9 @@ const CodeBlock = ({ content, language, executeCommand, executedCommands, execut
                 const data = await response.json();
                 
                 if (data.status === "ok") {
+                    const formattedResult = `\`\`\`bash\n${data.data}\n\`\`\``;
                     const formattedCommand = `> ${userCommand}`;
-                    const formatMessage = `${formattedCommand}\n\`\`\`\n${data.data}\n\`\`\``;
+                    const formatMessage = `${formattedCommand}\n${formattedResult}`;
 
                     executeCommand({
                         type: 'assistant',
