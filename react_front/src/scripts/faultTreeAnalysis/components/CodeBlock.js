@@ -47,7 +47,7 @@ const CodeBlock = ({ content, language, executeCommand, executedCommands, execut
         executeCommand({
             type: 'user',
             content: userCommand,
-            timestamp
+            timestamp: getStandardTime()
         });
 
         // 添加到执行中的命令
@@ -82,7 +82,7 @@ const CodeBlock = ({ content, language, executeCommand, executedCommands, execut
                         content: formatMessage,
                         rawContent: response.data.data,
                         command: userCommand,
-                        timestamp,
+                        timestamp: getStandardTime(),
                         isZabbix: true,
                         status: 'ok',
                         viewMode: 'chart'
@@ -93,7 +93,7 @@ const CodeBlock = ({ content, language, executeCommand, executedCommands, execut
                         content: `执行失败: ${response.data.message || '未知错误'}`,
                         rawContent: response.data.message || '未知错误',
                         command: userCommand,
-                        timestamp,
+                        timestamp: getStandardTime(),
                         isError: true,
                         status: 'error'
                     });
@@ -125,7 +125,7 @@ const CodeBlock = ({ content, language, executeCommand, executedCommands, execut
                         content: formatMessage,
                         rawContent: data.data,
                         command: userCommand,
-                        timestamp,
+                        timestamp: getStandardTime(),
                         status: 'ok'
                     });
                 } else {
@@ -134,7 +134,7 @@ const CodeBlock = ({ content, language, executeCommand, executedCommands, execut
                         content: `执行失败: ${data.message || '未知错误'}`,
                         rawContent: data.message || '未知错误',
                         command: userCommand,
-                        timestamp,
+                        timestamp: getStandardTime(),
                         isError: true,
                         status: 'error'
                     });
@@ -147,7 +147,7 @@ const CodeBlock = ({ content, language, executeCommand, executedCommands, execut
                 type: 'assistant',
                 content: `执行失败: ${error.message || '未知错误'}`,
                 command: userCommand,
-                timestamp,
+                timestamp: getStandardTime(),
                 isError: true
             });
         } finally {
@@ -169,10 +169,9 @@ const CodeBlock = ({ content, language, executeCommand, executedCommands, execut
     }) : null;
 
     // 构建命令键，加入时间戳确保唯一性
-    const timestamp = getStandardTime();
     const commandKey = command ? JSON.stringify({
         ...command,
-        timestamp
+        timestamp: getStandardTime()
     }) : null;
 
     const isExecuting = commandKey && executingCommands.has(commandKey);
