@@ -11,7 +11,7 @@ import moment from 'moment';
 class ZabbixAssistant extends BaseAssistant {
     constructor() {
         super({
-            name: 'Zabbix助手',
+            name: 'zabbix',
             prefix: 'zabbix> ',
             commands: [],  // 命令列表会动态更新
             serverFormat: (ip) => ip

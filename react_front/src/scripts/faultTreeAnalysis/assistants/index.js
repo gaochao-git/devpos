@@ -27,10 +27,10 @@ class AssistantRegistry {
 const registry = new AssistantRegistry();
 
 // 注册助手
-registry.register('SSH助手', new SSHAssistant());
-registry.register('MySQL助手', new MySQLAssistant());
-registry.register('Zabbix助手', new ZabbixAssistant());
-registry.register('ES助手', new ESAssistant());
+registry.register('ssh', new SSHAssistant());
+registry.register('mysql', new MySQLAssistant());
+registry.register('zabbix', new ZabbixAssistant());
+registry.register('es', new ESAssistant());
 
 // 助手容器组件
 const AssistantContainer = ({

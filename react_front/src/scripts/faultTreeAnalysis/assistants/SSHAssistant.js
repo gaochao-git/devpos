@@ -6,7 +6,7 @@ import { SSH_COMMANDS } from '../util';
 class SSHAssistant extends BaseAssistant {
     constructor() {
         super({
-            name: 'SSH助手',
+            name: 'ssh',
             prefix: 'ssh> ',
             commands: SSH_COMMANDS,
             serverFormat: (ip) => ip

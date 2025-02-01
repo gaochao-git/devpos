@@ -27,7 +27,7 @@ const MOCK_ES_RESPONSE = {
 export default class ESAssistant extends BaseAssistant {
     constructor() {
         super();
-        this.name = 'ES助手';
+        this.name = 'es';
         this.prefix = 'es>';
         this.commands = [];
         this.updateCommands();

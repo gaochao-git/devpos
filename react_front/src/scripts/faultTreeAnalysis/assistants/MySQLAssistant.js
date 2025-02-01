@@ -6,7 +6,7 @@ import { MYSQL_COMMANDS } from '../util';
 class MySQLAssistant extends BaseAssistant {
     constructor() {
         super({
-            name: 'MySQL助手',
+            name: 'mysql',
             prefix: 'mysql> ',
             commands: MYSQL_COMMANDS,
             serverFormat: (ip, port) => `${ip}:${port || '3306'}`
