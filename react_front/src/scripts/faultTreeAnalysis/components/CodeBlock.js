@@ -3,7 +3,7 @@ import { Button, message } from 'antd';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-const CodeBlock = ({ content, language, executeCommand }) => {
+const CodeBlock = ({ content, language, executeCommand, executedCommands, executingCommands }) => {
     // 尝试解析JSON命令
     const parseCommand = (codeContent) => {
         try {
@@ -36,7 +36,20 @@ const CodeBlock = ({ content, language, executeCommand }) => {
         });
     };
 
+    // 处理中断
+    const handleInterrupt = () => {
+        executeCommand({ type: 'interrupt' });
+    };
+
     const command = parseCommand(content);
+    const commandKey = command ? JSON.stringify({
+        tool: command.tool,
+        address: command.server,
+        cmd: command.command
+    }) : null;
+
+    const isExecuting = commandKey && executingCommands.has(commandKey);
+    const hasExecuted = commandKey && executedCommands.has(commandKey);
 
     return (
         <div className="code-block-wrapper" style={{ position: 'relative' }}>
@@ -49,14 +62,26 @@ const CodeBlock = ({ content, language, executeCommand }) => {
                 zIndex: 1
             }}>
                 {command && (
-                    <Button
-                        type="primary"
-                        size="small"
-                        icon="thunderbolt"
-                        onClick={() => handleExecute(command)}
-                    >
-                        执行
-                    </Button>
+                    isExecuting ? (
+                        <Button
+                            type="primary"
+                            danger
+                            size="small"
+                            icon="stop"
+                            onClick={handleInterrupt}
+                        >
+                            终止
+                        </Button>
+                    ) : (
+                        <Button
+                            type="primary"
+                            size="small"
+                            icon={hasExecuted ? "check" : "thunderbolt"}
+                            onClick={() => handleExecute(command)}
+                        >
+                            {hasExecuted ? '再次执行' : '执行'}
+                        </Button>
+                    )
                 )}
                 <Button
                     size="small"

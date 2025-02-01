@@ -64,6 +64,10 @@ const ChatRca = ({ treeData, style }) => {
     const lastScrollTop = useRef(0);
     const abortControllerRef = useRef(null);
 
+    // 添加命令执行状态管理
+    const [executedCommands, setExecutedCommands] = useState(new Map());
+    const [executingCommands, setExecutingCommands] = useState(new Set());
+
     // 添加获取Zabbix指标的函数
     const fetchZabbixMetrics = async () => {
         try {
@@ -643,6 +647,17 @@ const ChatRca = ({ treeData, style }) => {
     // 处理命令执行
     const executeCommand = async (params) => {
         try {
+            // 如果是中断命令
+            if (params.type === 'interrupt') {
+                const commandKey = JSON.stringify(params);
+                setExecutingCommands(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(commandKey);
+                    return newSet;
+                });
+                return;
+            }
+
             // 如果是用户消息，直接添加到消息列表
             if (params.type === 'user') {
                 setMessages(prev => [...prev, params]);
@@ -659,7 +674,17 @@ const ChatRca = ({ treeData, style }) => {
                 return;
             }
 
-            // 否则是普通的命令执行
+            // 生成命令的唯一标识
+            const commandKey = JSON.stringify({
+                tool: params.tool,
+                address: params.address,
+                cmd: params.cmd
+            });
+
+            // 设置执行状态
+            setExecutingCommands(prev => new Set(prev).add(commandKey));
+
+            // 执行命令
             const response = await fetch(COMMAND_EXECUTE_URL, {
                 method: 'POST',
                 headers: {
@@ -670,6 +695,7 @@ const ChatRca = ({ treeData, style }) => {
 
             const result = await response.json();
             const formattedCommand = `> @${params.tool}助手 ${params.address} ${params.cmd}`;
+            
             if (result.status === "ok") {
                 const formattedResult = `\`\`\`bash\n${result.data}\n\`\`\``;
                 const formatMessage = `${formattedCommand}\n${formattedResult}`;
@@ -681,6 +707,8 @@ const ChatRca = ({ treeData, style }) => {
                     timestamp: getStandardTime(),
                     isError: false
                 }]);
+                // 记录执行成功的命令
+                setExecutedCommands(prev => new Map(prev).set(commandKey, true));
             } else {
                 const formattedResult = `\`\`\`bash\n执行失败: ${result.message || '未知错误'}\n\`\`\``;
                 const formatMessage = `${formattedCommand}\n\n${formattedResult}`;
@@ -693,6 +721,13 @@ const ChatRca = ({ treeData, style }) => {
                     isError: true
                 }]);
             }
+
+            // 清除执行状态
+            setExecutingCommands(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(commandKey);
+                return newSet;
+            });
             setExecutingAssistants(new Set());
             return result;
         } catch (error) {
@@ -995,6 +1030,8 @@ const ChatRca = ({ treeData, style }) => {
                         onExpandChange={(expanded) => handleMessageExpand(msg.timestamp, expanded)}
                         messages={messages}
                         isLatestMessage={index === messages.length - 1}
+                        executedCommands={executedCommands}
+                        executingCommands={executingCommands}
                         executeCommand={executeCommand}
                     />
                 ))}

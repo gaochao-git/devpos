@@ -17,7 +17,9 @@ const MessageItem = ({
     onExpandChange,
     messages,
     isLatestMessage,
-    executeCommand
+    executeCommand,
+    executedCommands,
+    executingCommands
 }) => {
     const [expandedContext, setExpandedContext] = useState(null);
     
@@ -74,21 +76,17 @@ const MessageItem = ({
     // 在MessageItem组件内部修改markdown渲染器配置
     const customRenderers = {
         ...markdownRenderers,
-        code: ({ node, inline, className, children, ...props }) => {
+        code: ({node, inline, className, children, ...props}) => {
             const match = /language-(\w+)/.exec(className || '');
-            const codeContent = String(children).replace(/\n$/, '');
-            
-            if (!inline && match) {
-                return (
-                    <CodeBlock
-                        content={codeContent}
-                        language={match[1]}
-                        executeCommand={executeCommand}
-                    />
-                );
-            }
-
-            return (
+            return !inline ? (
+                <CodeBlock
+                    content={String(children).replace(/\n$/, '')}
+                    language={match ? match[1] : ''}
+                    executeCommand={executeCommand}
+                    executedCommands={executedCommands}
+                    executingCommands={executingCommands}
+                />
+            ) : (
                 <code className={className} {...props}>
                     {children}
                 </code>
