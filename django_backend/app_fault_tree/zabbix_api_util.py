@@ -4,6 +4,7 @@ from typing_extensions import Literal
 from datetime import datetime
 import time
 
+zabbix_url = 'http://82.156.146.51/zabbix/'
 class ZabbixClient:
     def __init__(self, url, user, password):
         """初始化Zabbix客户端"""
@@ -382,7 +383,7 @@ def get_zabbix_metrics(
         limit: 返回的历史数据条数，默认100条
     """
     client = ZabbixClient(
-        url='http://47.95.3.120:3301/zabbix',
+        url=zabbix_url,
         user='Admin',
         password='zabbix'
     )
@@ -406,7 +407,7 @@ def get_zabbix_discovery_rules(
         Dict: 包含规则信息的字典
     """
     client = ZabbixClient(
-        url='http://47.95.3.120:3301/zabbix',
+        url=zabbix_url,
         user='Admin',
         password='zabbix'
     )
@@ -430,7 +431,7 @@ def get_zabbix_discovery_prototypes(
         Dict: 包含原型信息的字典
     """
     client = ZabbixClient(
-        url='http://47.95.3.120:3301/zabbix',
+        url=zabbix_url,
         user='Admin',
         password='zabbix'
     )
@@ -448,7 +449,7 @@ def get_disk_free_space(host_ip: str) -> Dict[str, Any]:
         Dict: 包含磁盘空间信息的字典
     """
     client = ZabbixClient(
-        url='http://47.95.3.120:3301/zabbix',
+        url=zabbix_url,
         user='Admin',
         password='zabbix'
     )
@@ -511,7 +512,7 @@ def get_prototype_metrics(host_ip: str, discovery_rule_name: Optional[str] = Non
         Dict: 包含监控数据的字典
     """
     client = ZabbixClient(
-        url='http://47.95.3.120:3301/zabbix',
+        url=zabbix_url,
         user='Admin',
         password='zabbix'
     )
@@ -602,7 +603,7 @@ def get_all_host_metrics(host_ip: str) -> Dict[str, Any]:
         Dict: 包含所有监控项信息的字典
     """
     client = ZabbixClient(
-        url='http://47.95.3.120:3301/zabbix',
+        url=zabbix_url,
         user='Admin',
         password='zabbix'
     )
