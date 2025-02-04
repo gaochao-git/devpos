@@ -513,7 +513,11 @@ class GetAllMetricNamesByIp(BaseView):
         # ip = request_body.get('ip')
         ip = "127.0.0.1"
         result = get_all_host_metrics(ip)
-        
+        # 去掉最近值和时间戳,防止污染大模型思考,获取值需要单独的方法获取
+        if result.get('data'):
+            for item in result['data']:
+                item.pop('lastclock', None)
+                item.pop('lastvalue', None)
         # 处理 result 中的嵌套结构
         if result.get('status') == 'error':
             return self.my_response({
