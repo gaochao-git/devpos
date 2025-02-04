@@ -68,7 +68,7 @@ def auth_cloud(request):
         pass
     else:
         ret = {"status": "error", "message": StatusCode.ERR_NO_LOGIN.msg, "code": StatusCode.ERR_NO_LOGIN.code}
-        auth_ignore_path = ['/api/login/v1/auth_api/', '/api/login/v1/auth_web/', '/api/login/v1/auth_refresh/','/api/fault_tree/v1/get_all_metric_names_by_ip/']
+        auth_ignore_path = ['/api/login/v1/auth_api/', '/api/login/v1/auth_web/', '/api/login/v1/auth_refresh/','/api/fault_tree/v1/get_all_metric_names_by_ip/','/api/fault_tree/v1/get_metric_history_by_ip/']
         # if request.path not in auth_ignore_path:
         #     try:
         #         bearer_token = request.META.get('HTTP_AUTHORIZATION')  # Bearer undefined || Bearer xxxxxx
