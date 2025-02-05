@@ -1,0 +1,317 @@
+get_metric_history_by_ip:
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Get Zabbix Metric History By IP",
+    "description": "Retrieves historical metric data based on the server IP address and specific metric command.",
+    "version": "v1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://172.20.10.2:8000"
+    }
+  ],
+  "paths": {
+    "/api/fault_tree/v1/get_metric_history_by_ip/": {
+      "post": {
+        "description": "Retrieves historical metric data for a given IP address, metric command, and time range.",
+        "operationId": "getZabbixMetricHistory",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "format": "ipv4",
+                    "description": "The server IP address to retrieve the metric history for."
+                  },
+                  "cmd": {
+                    "type": "string",
+                    "description": "The key identifying the specific metric in Zabbix."
+                  },
+                  "time_from": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Start timestamp of the period to retrieve metric history."
+                  },
+                  "time_till": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "End timestamp of the period to retrieve metric history."
+                  }
+                },
+                "required": ["address", "cmd", "time_from", "time_till"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A JSON object containing status, message, data, and code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "description": "Status of the request (e.g., 'ok')"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Message describing the result (e.g., 'success')"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "itemid": {
+                            "type": "string",
+                            "description": "The unique identifier of the metric item"
+                          },
+                          "clock": {
+                            "type": "string",
+                            "description": "Timestamp of the metric value capture."
+                          },
+                          "value": {
+                            "type": "string",
+                            "description": "Value of the metric at the given timestamp."
+                          },
+                          "ns": {
+                            "type": "string",
+                            "description": "Nanoseconds part of the timestamp"
+                          },
+                          "key_": {
+                            "type": "string",
+                            "description": "The key identifying the metric in Zabbix"
+                          },
+                          "units": {
+                            "type": "string",
+                            "description": "The unit of measurement for the metric"
+                          },
+                          "value_type": {
+                            "type": "string",
+                            "description": "The type of value stored by the metric"
+                          },
+                          "metric_time": {
+                            "type": "string",
+                            "description": "Formatted date-time of the metric value capture"
+                          }
+                        }
+                      }
+                    },
+                    "code": {
+                      "type": "integer",
+                      "description": "HTTP status code"
+                    }
+                  },
+                  "required": ["status", "message", "data", "code"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters supplied"
+          },
+          "404": {
+            "description": "Metric history not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}
+
+get_zabbix_metric_name:
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Get Zabbix Metric Names",
+    "description": "Retrieves Zabbix Metric Names.",
+    "version": "v1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://172.20.10.2:8000"
+    }
+  ],
+  "paths": {
+    "/api/fault_tree/v1/get_all_metric_names_by_ip/": {
+      "post": {
+        "description": "Retrieves Zabbix Metric Names based on the server IP address.",
+        "operationId": "getZabbixMetricNames",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ip": {
+                    "type": "string",
+                    "format": "ipv4",
+                    "description": "The server IP address to retrieve the metric names for"
+                  }
+                },
+                "required": ["ip"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A JSON object containing status, message, data, and code.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "description": "Status of the request (e.g., 'ok')"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Message describing the result (e.g., 'success')"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "itemid": {
+                            "type": "string",
+                            "description": "The unique identifier of the metric item"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "The name of the metric"
+                          },
+                          "key_": {
+                            "type": "string",
+                            "description": "The key identifying the metric in Zabbix"
+                          },
+                          "units": {
+                            "type": "string",
+                            "description": "The unit of measurement for the metric"
+                          },
+                          "value_type": {
+                            "type": "string",
+                            "description": "The type of value stored by the metric"
+                          },
+                          "description": {
+                            "type": "string",
+                            "description": "Detailed description of the metric"
+                          },
+                          "lastclock": {
+                            "type": "string",
+                            "description": "Timestamp of the last metric value capture"
+                          },
+                          "lastvalue": {
+                            "type": "string",
+                            "description": "The most recent value of the metric"
+                          }
+                        }
+                      }
+                    },
+                    "code": {
+                      "type": "integer",
+                      "description": "HTTP status code"
+                    }
+                  },
+                  "required": ["status", "message", "data", "code"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid IP supplied"
+          },
+          "404": {
+            "description": "Metric names not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}
+
+提示词：
+您是一个远程 MySQL 数据库专家，专注于帮助用户分析和解决 MySQL 数据库集群的问题。您具备 10 年以上的数据库优化、故障排查和性能调优经验，熟悉 MySQL 的常见问题场景（如性能下降、复制延迟、连接超时、锁等待等）。您的任务是帮助用户分析问题，并提供可行的解决方案。
+## 技能
+### 使用'time' 获取具体时间
+### 使用'get_zabbix_metric_name'获取某台机器所有可用监控指标
+### 使用'get_metric_history_by_ip'获取某台机器监控项历史数据(用户让自动分析才允许调用)
+
+## 工作流程
+1. 判断用户问题
+数据库专家模式：当用户提及MySQL、数据库性能、复制延迟或连接超时等关键词时，进入此模式。
+普通对话模式：若问题与数据库无关，则采用日常交流方式处理。
+2. 数据库专家模式
+第一步：了解基本信息
+- 目标：收集必要的环境和问题详情。
+- 方法：通过友好的提问逐步获取信息，避免一次性要求过多。
+- 关键信息：
+a. 数据库拓扑关系
+b. 可用工具（例如SSH、MySQL客户端、Zabbix）及对应白名单命令
+c. 具体问题表现（如性能下降、复制延迟、连接超时等）
+第二步：逐步排查问题
+- 原则：每次提供不超过3个具体的排查命令，并基于用户的反馈进行下一步操作。
+- 方法：历史问题主要通过zabbix来排查，当前问题可以用所有工具
+- 向用户获取数据需要这种格式：建议排查问题的命令格式需要遵循以下格式
+a. SSH工具获取排查信息请求格式示例:
+```shell
+{
+    "tool": "ssh",
+    "server": "数据库服务器地址ip",
+    "command": "具体命令",
+    "purpose": "命令用途说明"
+}
+```
+b. MySQL工具获取排查信息请求格式示例:
+```shell
+{
+    "tool": "mysql",
+    "server": "数据库服务器地址ip:port",
+    "command": "具体命令",
+    "purpose": "命令用途说明"
+}
+```
+c. Zabbix工具获取监控项信息请求格式示例:
+```shell
+{
+    "tool": "工具名(zabbix)",
+    "server": "数据库服务器地址ip",       # 依据用户问题结合"getZabbixMetricNames工具获取"
+    "command": "监控项key_名称",
+    "time_from": "起始时间",              # 依据用户问题结合"time工具获取"，格式为%Y-%m-%d %H:%M:%S
+    "time_till": "结束时间"                   # 依据用户问题结合"time工具获取"，格式为%Y-%m-%d %H:%M:%S
+}
+```
+- 注意事项
+a. 环境确认：所有操作均需基于用户已确认的环境配置，不假设任何设置。
+b. 日志路径确认：查看日志前，务必先核实日志路径。
+c. 灵活性：根据用户反馈实时调整策略，避免不必要的步骤。
+第三步：提供解决方案
+直接解决：一旦确定问题根源，立即提供具体优化建议或解决方案。
+进一步分析：对于复杂问题，继续指导用户进行更深入的检查直至找到原因。
+
+3. 普通对话模式
+如果用户的问题与数据库无关，则以普通对话模式进行交流，无需输出数据库专家模式的内容。
