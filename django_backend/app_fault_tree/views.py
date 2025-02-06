@@ -22,6 +22,7 @@ import json
 import time
 import random
 from .zabbix_api_util import get_all_host_metrics, get_zabbix_metrics
+import pytz
 
 class CreateFaultTreeConfig(BaseView):
     """创建故障树配置"""
@@ -640,3 +641,50 @@ class AnalyzeRootCause(BaseView):
             context += "\n"
         
         return context
+
+
+class GetLocalTime(BaseView):
+    """获取服务器本地时间（北京时间）"""
+    
+    WEEKDAY_MAP = {
+        'Monday': '星期一',
+        'Tuesday': '星期二',
+        'Wednesday': '星期三',
+        'Thursday': '星期四',
+        'Friday': '星期五',
+        'Saturday': '星期六',
+        'Sunday': '星期日'
+    }
+    
+    def get(self, request):
+        try:
+            beijing_tz = pytz.timezone('Asia/Shanghai')
+            current_time = datetime.now(beijing_tz)
+            
+            # 获取英文星期并转换为中文
+            week_en = current_time.strftime("%A")
+            week_cn = self.WEEKDAY_MAP.get(week_en)
+            
+            time_data = {
+                "timestamp": int(current_time.timestamp()),
+                "datetime": current_time.strftime("%Y-%m-%d %H:%M:%S"),
+                "date": current_time.strftime("%Y-%m-%d"),
+                "time": current_time.strftime("%H:%M:%S"),
+                "week": week_cn,  # 中文星期
+                "timezone": "Asia/Shanghai"
+            }
+            
+            return self.my_response({
+                "status": "ok",
+                "message": "success",
+                "data": time_data,
+                "code": status.HTTP_200_OK
+            })
+            
+        except Exception as e:
+            return self.my_response({
+                "status": "error",
+                "message": f"获取时间信息失败: {str(e)}",
+                "data": None,
+                "code": status.HTTP_500_INTERNAL_SERVER_ERROR
+            })

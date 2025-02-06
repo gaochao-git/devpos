@@ -1,7 +1,7 @@
 import BaseAssistant from './BaseAssistant';
 import { getStandardTime } from '../util';
 import { message } from 'antd';
-import { MYSQL_COMMANDS } from '../util';
+import { MYSQL_COMMANDS,COMMAND_EXECUTE_URL } from '../util';
 
 class MySQLAssistant extends BaseAssistant {
     constructor() {
@@ -44,7 +44,7 @@ class MySQLAssistant extends BaseAssistant {
                 cmd: value
             };
 
-            const response = await fetch('http://127.0.0.1:8002/execute/', {
+            const response = await fetch(COMMAND_EXECUTE_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

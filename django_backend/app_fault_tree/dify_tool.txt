@@ -1,4 +1,4 @@
-get_metric_history_by_ip:
+# get_metric_history_by_ip
 {
   "openapi": "3.1.0",
   "info": {
@@ -11,6 +11,16 @@ get_metric_history_by_ip:
       "url": "http://172.20.10.2:8000"
     }
   ],
+"components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your Bearer token in the format **Bearer <token>**"
+      }
+    }
+  },
   "paths": {
     "/api/fault_tree/v1/get_metric_history_by_ip/": {
       "post": {
@@ -133,7 +143,7 @@ get_metric_history_by_ip:
   }
 }
 
-get_zabbix_metric_name:
+# get_zabbix_metric_name
 {
   "openapi": "3.1.0",
   "info": {
@@ -146,6 +156,16 @@ get_zabbix_metric_name:
       "url": "http://172.20.10.2:8000"
     }
   ],
+"components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your Bearer token in the format **Bearer <token>**"
+      }
+    }
+  },
   "paths": {
     "/api/fault_tree/v1/get_all_metric_names_by_ip/": {
       "post": {
@@ -254,64 +274,129 @@ get_zabbix_metric_name:
   }
 }
 
-提示词：
-您是一个远程 MySQL 数据库专家，专注于帮助用户分析和解决 MySQL 数据库集群的问题。您具备 10 年以上的数据库优化、故障排查和性能调优经验，熟悉 MySQL 的常见问题场景（如性能下降、复制延迟、连接超时、锁等待等）。您的任务是帮助用户分析问题，并提供可行的解决方案。
-## 技能
-### 使用'time' 获取具体时间
-### 使用'get_zabbix_metric_name'获取某台机器所有可用监控指标
-### 使用'get_metric_history_by_ip'获取某台机器监控项历史数据(用户让自动分析才允许调用)
-
-## 工作流程
-1. 判断用户问题
-数据库专家模式：当用户提及MySQL、数据库性能、复制延迟或连接超时等关键词时，进入此模式。
-普通对话模式：若问题与数据库无关，则采用日常交流方式处理。
-2. 数据库专家模式
-第一步：了解基本信息
-- 目标：收集必要的环境和问题详情。
-- 方法：通过友好的提问逐步获取信息，避免一次性要求过多。
-- 关键信息：
-a. 数据库拓扑关系
-b. 可用工具（例如SSH、MySQL客户端、Zabbix）及对应白名单命令
-c. 具体问题表现（如性能下降、复制延迟、连接超时等）
-第二步：逐步排查问题
-- 原则：每次提供不超过3个具体的排查命令，并基于用户的反馈进行下一步操作。
-- 方法：历史问题主要通过zabbix来排查，当前问题可以用所有工具
-- 向用户获取数据需要这种格式：建议排查问题的命令格式需要遵循以下格式
-a. SSH工具获取排查信息请求格式示例:
-```shell
+# get_local_time
 {
-    "tool": "ssh",
-    "server": "数据库服务器地址ip",
-    "command": "具体命令",
-    "purpose": "命令用途说明"
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Get Local Time",
+    "description": "获取服务器本地时间（北京时间）",
+    "version": "v1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://172.20.10.2:8000"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your Bearer token in the format **Bearer <token>**"
+      }
+    }
+  },
+  "paths": {
+    "/api/fault_tree/v1/get_local_time/": {
+      "get": {
+        "description": "获取服务器当前的北京时间信息",
+        "operationId": "getLocalTime",
+        "responses": {
+          "200": {
+            "description": "成功获取时间信息",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "description": "请求状态",
+                      "example": "ok"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "timestamp": {
+                          "type": "integer",
+                          "description": "Unix时间戳",
+                          "example": 1710400000
+                        },
+                        "datetime": {
+                          "type": "string",
+                          "description": "格式化的日期时间",
+                          "example": "2024-03-14 15:30:45"
+                        },
+                        "date": {
+                          "type": "string",
+                          "description": "日期部分",
+                          "example": "2024-03-14"
+                        },
+                        "time": {
+                          "type": "string",
+                          "description": "时间部分",
+                          "example": "15:30:45"
+                        },
+                        "week": {
+                          "type": "string",
+                          "description": "星期几（中文）",
+                          "example": "星期四"
+                        },
+                        "timezone": {
+                          "type": "string",
+                          "description": "时区信息",
+                          "example": "Asia/Shanghai"
+                        }
+                      },
+                      "required": ["timestamp", "datetime", "date", "time", "week", "timezone"]
+                    },
+                    "code": {
+                      "type": "integer",
+                      "description": "HTTP状态码",
+                      "example": 200
+                    }
+                  },
+                  "required": ["status", "message", "data", "code"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "服务器错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "获取时间信息失败"
+                    },
+                    "data": {
+                      "type": "null"
+                    },
+                    "code": {
+                      "type": "integer",
+                      "example": 500
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    }
+  }
 }
-```
-b. MySQL工具获取排查信息请求格式示例:
-```shell
-{
-    "tool": "mysql",
-    "server": "数据库服务器地址ip:port",
-    "command": "具体命令",
-    "purpose": "命令用途说明"
-}
-```
-c. Zabbix工具获取监控项信息请求格式示例:
-```shell
-{
-    "tool": "工具名(zabbix)",
-    "server": "数据库服务器地址ip",       # 依据用户问题结合"getZabbixMetricNames工具获取"
-    "command": "监控项key_名称",
-    "time_from": "起始时间",              # 依据用户问题结合"time工具获取"，格式为%Y-%m-%d %H:%M:%S
-    "time_till": "结束时间"                   # 依据用户问题结合"time工具获取"，格式为%Y-%m-%d %H:%M:%S
-}
-```
-- 注意事项
-a. 环境确认：所有操作均需基于用户已确认的环境配置，不假设任何设置。
-b. 日志路径确认：查看日志前，务必先核实日志路径。
-c. 灵活性：根据用户反馈实时调整策略，避免不必要的步骤。
-第三步：提供解决方案
-直接解决：一旦确定问题根源，立即提供具体优化建议或解决方案。
-进一步分析：对于复杂问题，继续指导用户进行更深入的检查直至找到原因。
-
-3. 普通对话模式
-如果用户的问题与数据库无关，则以普通对话模式进行交流，无需输出数据库专家模式的内容。

@@ -15,7 +15,8 @@ from .views import (
     AnalyzeRootCause,
     GetMetricHistory,
     GetAllMetricNamesByIp,
-    GetMetricHistoryByIp
+    GetMetricHistoryByIp,
+    GetLocalTime
 )
 
 urlpatterns = [
@@ -39,4 +40,5 @@ urlpatterns = [
     path('v1/get_metric_history/', GetMetricHistory.as_view()),             # 获取某个指标历史数据
     path('v1/get_metric_history_by_ip/', GetMetricHistoryByIp.as_view()),   # 获取某个机器所有指标历史数据
     path('v1/get_all_metric_names_by_ip/', GetAllMetricNamesByIp.as_view()),         # 获取某个机器所有指标名称
+    path('v1/get_local_time/', GetLocalTime.as_view()),         # 获取服务器本地时间
 ]

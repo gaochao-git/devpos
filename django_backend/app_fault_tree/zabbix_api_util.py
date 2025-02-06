@@ -318,7 +318,7 @@ class ZabbixClient:
                 'data': None
             }
 
-    def get_all_metrics(self, host_ip: str) -> Dict[str, Any]:
+    def get_all_metrics(self, host_ip):
         """
         获取主机的所有已启用的监控项
         Args:
@@ -594,7 +594,7 @@ def get_prototype_metrics(host_ip: str, discovery_rule_name: Optional[str] = Non
     finally:
         client.close()
 
-def get_all_host_metrics(host_ip: str) -> Dict[str, Any]:
+def get_all_host_metrics(host_ip):
     """
     获取主机所有监控项的封装方法
     Args:
