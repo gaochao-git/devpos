@@ -3,7 +3,7 @@ import { Button, message } from 'antd';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { registry } from '../assistants';
-import { getStandardTime } from '../util';
+import { getStandardTime,COMMAND_EXECUTE_URL } from '../util';
 import moment from 'moment';
 import MyAxios from '../../common/interface';
 
@@ -106,7 +106,7 @@ const CodeBlock = ({ content, language, executeCommand, executedCommands, execut
                     cmd: command.command
                 };
 
-                const response = await fetch('http://127.0.0.1:8002/execute/', {
+                const response = await fetch(COMMAND_EXECUTE_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
