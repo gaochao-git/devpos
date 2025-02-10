@@ -63,11 +63,11 @@
   color: #333;
 }
 
-.react-resizable {
+/* .react-resizable {
     position: relative;
-}
+} */
 
-.react-resizable-handle {
+/* .react-resizable-handle {
     position: absolute;
     width: 10px;
     height: 100%;
@@ -77,7 +77,7 @@
 
 .react-resizable-handle-w {
     left: -5px;
-}
+} */
 
 /* 代码块样式 */
 .code-block-wrapper {

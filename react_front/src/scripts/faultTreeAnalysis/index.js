@@ -354,9 +354,9 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                 {/* 对话助手区域 */}
                                 <ResizableBox
                                     width={isChatCollapsed ? 40 : chatWidth}
-                                    height={'calc(100vh - 328px)'}
-                                    minConstraints={[40, 100]}
-                                    maxConstraints={[800, 1000]}
+                                    height={`calc(100vh - 10px)`}
+                                    minConstraints={[20, 1000]}
+                                    maxConstraints={[1200, 1000]}
                                     axis="x"
                                     resizeHandles={['w']}
                                     onResize={(e, { size }) => {
