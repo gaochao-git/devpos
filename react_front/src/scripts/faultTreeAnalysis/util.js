@@ -7,7 +7,7 @@ export const DIFY_BASE_URL = 'http://127.0.0.1/v1';
 export const DIFY_API_KEY = 'Bearer app-WvbP3X71cuYGevw523ecNOb2';
 export const DIFY_CHAT_URL = `${DIFY_BASE_URL}/chat-messages`;
 export const DIFY_CONVERSATIONS_URL = `${DIFY_BASE_URL}/conversations`;
-export const COMMAND_EXECUTE_URL = 'http://localhost:8002/execute';
+export const COMMAND_EXECUTE_URL = 'http://localhost:8002/execute/';
 
 // Markdown renderer configuration
 export const markdownRenderers = {
