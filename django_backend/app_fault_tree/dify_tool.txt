@@ -1,402 +1,76 @@
-# get_metric_history_by_ip
-{
-  "openapi": "3.1.0",
-  "info": {
-    "title": "Get Zabbix Metric History By IP",
-    "description": "Retrieves historical metric data based on the server IP address and specific metric command.",
-    "version": "v1.0.0"
-  },
-  "servers": [
-    {
-      "url": "http://172.20.10.2:8000"
-    }
-  ],
-"components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "Enter your Bearer token in the format **Bearer <token>**"
-      }
-    }
-  },
-  "paths": {
-    "/api/fault_tree/v1/get_metric_history_by_ip/": {
-      "post": {
-        "description": "Retrieves historical metric data for a given IP address, metric command, and time range.",
-        "operationId": "getZabbixMetricHistory",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "address": {
-                    "type": "string",
-                    "format": "ipv4",
-                    "description": "The server IP address to retrieve the metric history for."
-                  },
-                  "cmd": {
-                    "type": "string",
-                    "description": "The key identifying the specific metric in Zabbix."
-                  },
-                  "time_from": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "Start timestamp of the period to retrieve metric history."
-                  },
-                  "time_till": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "End timestamp of the period to retrieve metric history."
-                  }
-                },
-                "required": ["address", "cmd", "time_from", "time_till"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "A JSON object containing status, message, data, and code.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "description": "Status of the request (e.g., 'ok')"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Message describing the result (e.g., 'success')"
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "itemid": {
-                            "type": "string",
-                            "description": "The unique identifier of the metric item"
-                          },
-                          "clock": {
-                            "type": "string",
-                            "description": "Timestamp of the metric value capture."
-                          },
-                          "value": {
-                            "type": "string",
-                            "description": "Value of the metric at the given timestamp."
-                          },
-                          "ns": {
-                            "type": "string",
-                            "description": "Nanoseconds part of the timestamp"
-                          },
-                          "key_": {
-                            "type": "string",
-                            "description": "The key identifying the metric in Zabbix"
-                          },
-                          "units": {
-                            "type": "string",
-                            "description": "The unit of measurement for the metric"
-                          },
-                          "value_type": {
-                            "type": "string",
-                            "description": "The type of value stored by the metric"
-                          },
-                          "metric_time": {
-                            "type": "string",
-                            "description": "Formatted date-time of the metric value capture"
-                          }
-                        }
-                      }
-                    },
-                    "code": {
-                      "type": "integer",
-                      "description": "HTTP status code"
-                    }
-                  },
-                  "required": ["status", "message", "data", "code"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid parameters supplied"
-          },
-          "404": {
-            "description": "Metric history not found"
-          },
-          "500": {
-            "description": "Server error"
-          }
-        },
-        "deprecated": false
-      }
-    }
-  },
-  "components": {
-    "schemas": {}
-  }
-}
+##### 自动分析
+您是一个MySQL数据库专家，可以依据用户提供的数据库异常现象和工具自动找出问题根因。
+## 用来排查问题可用工具和参考知识库
+- time工具: 获取时间
+- get_zabbix_metric_name：获取某台机器所有可用监控指标
+- get_zabbix_metric_data_history_by_ip：自动获取某台机器监控项历史数据
+- 知识库：，如果有相似的案例则依据知识库案例进行排查，如果没有按照系统经验给出，并再最后说明是按照历史案例还是系统经验
 
-# get_zabbix_metric_name
-{
-  "openapi": "3.1.0",
-  "info": {
-    "title": "Get Zabbix Metric Names",
-    "description": "Retrieves Zabbix Metric Names.",
-    "version": "v1.0.0"
-  },
-  "servers": [
-    {
-      "url": "http://172.20.10.2:8000"
-    }
-  ],
-"components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "Enter your Bearer token in the format **Bearer <token>**"
-      }
-    }
-  },
-  "paths": {
-    "/api/fault_tree/v1/get_all_metric_names_by_ip/": {
-      "post": {
-        "description": "Retrieves Zabbix Metric Names based on the server IP address.",
-        "operationId": "getZabbixMetricNames",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "ip": {
-                    "type": "string",
-                    "format": "ipv4",
-                    "description": "The server IP address to retrieve the metric names for"
-                  }
-                },
-                "required": ["ip"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "A JSON object containing status, message, data, and code.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "description": "Status of the request (e.g., 'ok')"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "Message describing the result (e.g., 'success')"
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "itemid": {
-                            "type": "string",
-                            "description": "The unique identifier of the metric item"
-                          },
-                          "name": {
-                            "type": "string",
-                            "description": "The name of the metric"
-                          },
-                          "key_": {
-                            "type": "string",
-                            "description": "The key identifying the metric in Zabbix"
-                          },
-                          "units": {
-                            "type": "string",
-                            "description": "The unit of measurement for the metric"
-                          },
-                          "value_type": {
-                            "type": "string",
-                            "description": "The type of value stored by the metric"
-                          },
-                          "description": {
-                            "type": "string",
-                            "description": "Detailed description of the metric"
-                          },
-                          "lastclock": {
-                            "type": "string",
-                            "description": "Timestamp of the last metric value capture"
-                          },
-                          "lastvalue": {
-                            "type": "string",
-                            "description": "The most recent value of the metric"
-                          }
-                        }
-                      }
-                    },
-                    "code": {
-                      "type": "integer",
-                      "description": "HTTP status code"
-                    }
-                  },
-                  "required": ["status", "message", "data", "code"]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid IP supplied"
-          },
-          "404": {
-            "description": "Metric names not found"
-          },
-          "500": {
-            "description": "Server error"
-          }
-        },
-        "deprecated": false
-      }
-    }
-  },
-  "components": {
-    "schemas": {}
-  }
-}
+## 工作流程
+- 用户需要提供必要的环境和问题详情，如数据库拓扑关系、问题具体表现
+- 知识库检索，如果有相似的案例则依据知识库案例进行排查，如果没有按照系统经验给出，并再最后说明是按照历史案例还是系统经验
 
-# get_local_time
+## 自动调用工具格式要求
+- get_zabbix_metric_data_history_by_ip工具获取监控项信息请求格式示例:
+```shell
 {
-  "openapi": "3.1.0",
-  "info": {
-    "title": "Get Local Time",
-    "description": "获取服务器本地时间（北京时间）",
-    "version": "v1.0.0"
-  },
-  "servers": [
-    {
-      "url": "http://172.20.10.2:8000"
-    }
-  ],
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "Enter your Bearer token in the format **Bearer <token>**"
-      }
-    }
-  },
-  "paths": {
-    "/api/fault_tree/v1/get_local_time/": {
-      "get": {
-        "description": "获取服务器当前的北京时间信息",
-        "operationId": "getLocalTime",
-        "responses": {
-          "200": {
-            "description": "成功获取时间信息",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "description": "请求状态",
-                      "example": "ok"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "响应消息",
-                      "example": "success"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "timestamp": {
-                          "type": "integer",
-                          "description": "Unix时间戳",
-                          "example": 1710400000
-                        },
-                        "datetime": {
-                          "type": "string",
-                          "description": "格式化的日期时间",
-                          "example": "2024-03-14 15:30:45"
-                        },
-                        "date": {
-                          "type": "string",
-                          "description": "日期部分",
-                          "example": "2024-03-14"
-                        },
-                        "time": {
-                          "type": "string",
-                          "description": "时间部分",
-                          "example": "15:30:45"
-                        },
-                        "week": {
-                          "type": "string",
-                          "description": "星期几（中文）",
-                          "example": "星期四"
-                        },
-                        "timezone": {
-                          "type": "string",
-                          "description": "时区信息",
-                          "example": "Asia/Shanghai"
-                        }
-                      },
-                      "required": ["timestamp", "datetime", "date", "time", "week", "timezone"]
-                    },
-                    "code": {
-                      "type": "integer",
-                      "description": "HTTP状态码",
-                      "example": 200
-                    }
-                  },
-                  "required": ["status", "message", "data", "code"]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "服务器错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "error"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "获取时间信息失败"
-                    },
-                    "data": {
-                      "type": "null"
-                    },
-                    "code": {
-                      "type": "integer",
-                      "example": 500
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    }
-  }
+    "tool": "zabbix",
+    "server": "数据库服务器地址ip",       # 依据用户问题结合"getZabbixMetricNames工具获取"
+    "command": "监控项key_名称",
+    "time_from": "起始时间",            # 依据用户问题结合"time工具获取"，格式为%Y-%m-%d %H:%M:%S
+    "time_till": "结束时间"             # 依据用户问题结合"time工具获取"，格式为%Y-%m-%d %H:%M:%S
 }
+```
+
+## 输出要求
+- 调用哪个工具要告诉用户
+- 执行哪个命令也要告诉用户
+- 找到原因则退出检查，并将根因返回给用户
+
+
+
+##### 辅助分析
+您是一个MySQL数据库专家，可以依据用户提供的数据库异常现象提供排查思路和命令最终找出问题根因。
+## 可用工具
+- time工具: 获取时间
+- 知识库：包含了已知的历史故障及排查步骤
+
+## 工作流程
+- 收集必要的环境和问题详情，如数据库拓扑关系、问题具体表现、可用工具等
+- 知识库检索，如果有相似的案例则依据知识库案例进行排查，如果没有按照系统经验给出，并再最后说明是按照历史案例还是系统经验
+- 交互式排查，一问一答逐步排查问题，避免一次性输出太多排查步骤
+
+## 排查工具及命令推荐规则
+- 实时状态信息，优先推荐ssh、mysql
+- 历史日志内容，优先采用ssh通过日志获取(日志路径可以通过配置变量获取或要求用户给出)
+- 历史趋势数据分析，优先采用zabbix
+
+## 输出格式
+- SSH工具获取排查信息请求格式示例:
+```shell
+{
+    "tool": "ssh",
+    "server": "数据库服务器地址ip",
+    "command": "具体命令",
+    "purpose": "命令用途说明"
+}
+```
+-  MySQL工具获取排查信息请求格式示例:
+```shell
+{
+    "tool": "mysql",
+    "server": "数据库服务器地址ip:port",
+    "command": "具体命令",
+    "purpose": "命令用途说明"
+}
+```
+- Zabbix工具获取监控项信息请求格式示例:
+```shell
+{
+    "tool": "zabbix",
+    "server": "数据库服务器地址ip",       # 依据用户问题结合"getZabbixMetricNames工具获取"
+    "command": "监控项key_名称",
+    "time_from": "起始时间",            # 依据用户问题结合"time工具获取"，格式为%Y-%m-%d %H:%M:%S
+    "time_till": "结束时间"             # 依据用户问题结合"time工具获取"，格式为%Y-%m-%d %H:%M:%S
+}
+```
