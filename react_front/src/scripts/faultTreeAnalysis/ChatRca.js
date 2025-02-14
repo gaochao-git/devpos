@@ -6,6 +6,7 @@ import { AssistantContainer, registry } from './assistants';
 import {
     DIFY_BASE_URL,
     DIFY_API_KEY,
+    DIFY_API_KEY_AUTO,
     DIFY_CHAT_URL,
     DIFY_CONVERSATIONS_URL,
     COMMAND_EXECUTE_URL,
@@ -67,6 +68,9 @@ const ChatRca = ({ treeData, style }) => {
     // 添加命令执行状态管理
     const [executedCommands, setExecutedCommands] = useState(new Map());
     const [executingCommands, setExecutingCommands] = useState(new Set());
+
+    // 添加自动驾驶模式状态
+    const [isAutoMode, setIsAutoMode] = useState(false);
 
     // 添加获取Zabbix指标的函数
     const fetchZabbixMetrics = async () => {
@@ -250,7 +254,7 @@ const ChatRca = ({ treeData, style }) => {
             const response = await fetch(DIFY_CHAT_URL, {
                 method: 'POST',
                 headers: {
-                    'Authorization': DIFY_API_KEY,
+                    'Authorization': isAutoMode ? DIFY_API_KEY_AUTO : DIFY_API_KEY,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
@@ -975,32 +979,49 @@ const ChatRca = ({ treeData, style }) => {
                 borderBottom: '1px solid #e8e8e8',
                 background: '#fff',
                 display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '16px',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 zIndex: 1000
             }}>
-                <Tooltip title="新开会话">
-                    <Icon 
-                        type="plus-circle" 
+                <Tooltip title={isAutoMode ? "AI将自动分析故障原因并提供解决方案" : "AI将协助人工分析故障原因"}>
+                    <div 
+                        onClick={() => setIsAutoMode(!isAutoMode)}
                         style={{ 
-                            fontSize: '18px',
                             cursor: 'pointer',
-                            color: '#1890ff'
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            color: isAutoMode ? '#1890ff' : '#595959'
                         }}
-                        onClick={handleNewChat}
-                    />
+                    >
+                        <Icon type="robot" />
+                        <span>{isAutoMode ? "AI自动分析" : "AI辅助分析"}</span>
+                    </div>
                 </Tooltip>
-                <Tooltip title="历史会话">
-                    <Icon 
-                        type={isHistoryLoading ? "loading" : "history"}
-                        style={{ 
-                            fontSize: '18px',
-                            cursor: isHistoryLoading ? 'not-allowed' : 'pointer',
-                            color: '#1890ff'
-                        }}
-                        onClick={!isHistoryLoading ? handleViewHistory : undefined}
-                    />
-                </Tooltip>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                    <Tooltip title="新开会话">
+                        <Icon 
+                            type="plus-circle" 
+                            style={{ 
+                                fontSize: '18px',
+                                cursor: 'pointer',
+                                color: '#1890ff'
+                            }}
+                            onClick={handleNewChat}
+                        />
+                    </Tooltip>
+                    <Tooltip title="历史会话">
+                        <Icon 
+                            type={isHistoryLoading ? "loading" : "history"}
+                            style={{ 
+                                fontSize: '18px',
+                                cursor: isHistoryLoading ? 'not-allowed' : 'pointer',
+                                color: '#1890ff'
+                            }}
+                            onClick={!isHistoryLoading ? handleViewHistory : undefined}
+                        />
+                    </Tooltip>
+                </div>
             </div>
 
             {/* 消息列表区域 */}
