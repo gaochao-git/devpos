@@ -232,10 +232,76 @@ export default function LinkSentinel() {
             tooltip: {
                 trigger: 'axis',
                 axisPointer: {
-                    type: 'cross',
-                    label: {
-                        backgroundColor: '#6a7985'
-                    }
+                    type: 'cross'
+                },
+                enterable: true,
+                confine: true,
+                appendToBody: false,
+                formatter: function(params) {
+                    const sortedParams = [...params].sort((a, b) => {
+                        const valueA = Array.isArray(a.value) ? a.value[1] : a.value;
+                        const valueB = Array.isArray(b.value) ? b.value[1] : b.value;
+                        return valueB - valueA;
+                    });
+
+                    // antd button 样式
+                    const antdButtonStyle = `
+                        line-height: 1.5715;
+                        position: relative;
+                        display: inline-block;
+                        font-weight: 400;
+                        white-space: nowrap;
+                        text-align: center;
+                        background-image: none;
+                        border: 1px solid transparent;
+                        box-shadow: 0 2px 0 rgba(0, 0, 0, 0.015);
+                        cursor: pointer;
+                        transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+                        user-select: none;
+                        touch-action: manipulation;
+                        height: 24px;
+                        padding: 0px 7px;
+                        font-size: 12px;
+                        border-radius: 2px;
+                        color: rgba(0, 0, 0, 0.85);
+                        border-color: #d9d9d9;
+                        background: #fff;
+                        margin-left: 4px;
+                    `;
+
+                    let content = `<div style="max-height: 400px; overflow-y: auto;">`;
+                    content += `<div style="margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #eee;">`;
+                    content += `<div style="font-size: 12px; color: #666;">${params[0].axisValueLabel}</div>`;
+                    content += `</div>`;
+                    
+                    sortedParams.forEach((param, index) => {
+                        const marker = param.marker;
+                        let value = Array.isArray(param.value) ? param.value[1] : param.value;
+                        if (isResponseTime) {
+                            value = `${Math.round(value)}ms`;
+                        }
+                        content += `
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span>${marker} ${param.seriesName}: ${value}</span>
+                                <div>
+                                    <button 
+                                        onclick="window.handleBusinessDetailClick && window.handleBusinessDetailClick({
+                                            datacenter: '${param.seriesName}',
+                                            business: '${business.name}'
+                                        })"
+                                        style="${antdButtonStyle}"
+                                        onmouseover="this.style.color='#40a9ff';this.style.borderColor='#40a9ff'"
+                                        onmouseout="this.style.color='rgba(0, 0, 0, 0.85)';this.style.borderColor='#d9d9d9'"
+                                    >
+                                        详情
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    content += '</div>';
+                    return content;
                 }
             },
             legend: {
@@ -571,6 +637,31 @@ export default function LinkSentinel() {
         };
     };
 
+    // 添加新的处理函数用于第一级图表的详情点击
+    const handleBusinessDetailClick = useCallback((data) => {
+        try {
+            setLoading(true);
+            setDrawerVisible(true);
+            
+            // Mock API response
+            const detailData = generateMockDetailedData(data.business);
+            
+            // 延迟设置数据，等待抽屉动画完成
+            setTimeout(() => {
+                setDetailedData(detailData);
+                setSelectedBusiness({ name: data.business });
+                setSelectedDatacenter(data.datacenter);
+                setDrawerTitle(`${data.business} - ${data.datacenter} - 分库监控`);
+                setDrawerWidth('80%');
+                setLoading(false);
+            }, 300);
+            
+        } catch (error) {
+            message.error('获取详细数据失败');
+            setLoading(false);
+        }
+    }, []);
+
     // 处理分析点击
     const handleAnalyzeClick = useCallback((data) => {
         setShowFaultTree(true);
@@ -582,10 +673,15 @@ export default function LinkSentinel() {
         setDetailsLoading(true);
         setShowDetails(true);
         
+        // 根据是否有datacenter属性来区分是第一级还是第二级图表
+        const title = data.datacenter 
+            ? `${data.business} - ${data.datacenter} - ${data.time}`
+            : `${data.shard} - ${data.time}`;
+        
         // 模拟 API 调用延迟
         setTimeout(() => {
             setDetailsData({
-                title: `${data.shard} - ${data.time}`,
+                title: title,
                 data: mockFailureData
             });
             setDetailsLoading(false);
@@ -594,15 +690,17 @@ export default function LinkSentinel() {
 
     // 在组件挂载时设置全局函数
     useEffect(() => {
+        window.handleBusinessDetailClick = handleBusinessDetailClick;
         window.handleAnalyzeClick = handleAnalyzeClick;
         window.handleDetailClick = handleDetailClick;
         
         // 清理函数
         return () => {
+            window.handleBusinessDetailClick = undefined;
             window.handleAnalyzeClick = undefined;
             window.handleDetailClick = undefined;
         };
-    }, [handleAnalyzeClick, handleDetailClick]);
+    }, [handleBusinessDetailClick, handleAnalyzeClick, handleDetailClick]);
 
     // 详情表格列定义
     const detailColumns = [
