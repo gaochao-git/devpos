@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Tag, Checkbox, Icon } from 'antd';
+import { Button, Tag, Checkbox, Icon, Collapse } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { markdownRenderers, MESSAGE_DISPLAY_THRESHOLD } from '../util';
 import { registry } from '../assistants';
@@ -22,6 +22,7 @@ const MessageItem = ({
     executingCommands
 }) => {
     const [expandedContext, setExpandedContext] = useState(null);
+    const [expandedSteps, setExpandedSteps] = useState(new Set());
     
     // 如果是最新消息，则始终展开
     const shouldDisplayFull = isLatestMessage || isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD;
@@ -94,21 +95,91 @@ const MessageItem = ({
         }
     };
 
-    // 在渲染消息内容的部分使用新的渲染器
-    const renderMessageContent = () => {
-        // 如果是助手消息，使用对应助手的渲染方法
-        if (msg.type === 'assistant' && msg.command) {
-            const assistantName = msg.command.split(' ')[0].slice(1);
-            const assistant = registry.get(assistantName);
-            if (assistant) {
-                return assistant.renderMessage(msg, messageViewModes, setMessageViewModes, isLatestMessage);
-            }
-        }
+    // 添加工具步骤的展示逻辑
+    const renderSteps = () => {
+        if (!msg.steps || msg.steps.length === 0) return null;
 
-        // 如果是大模型消息，使用代码块渲染
+        return (
+            <div style={{ marginBottom: '12px' }}>
+                {msg.steps.map((step, index) => (
+                    <div 
+                        key={index} 
+                        style={{ 
+                            marginBottom: '8px',
+                            border: '1px solid #e8e8e8',
+                            borderRadius: '4px',
+                            background: '#fafafa'
+                        }}
+                    >
+                        <div 
+                            onClick={() => {
+                                setExpandedSteps(prev => {
+                                    const newSet = new Set(prev);
+                                    if (newSet.has(step.position)) {
+                                        newSet.delete(step.position);
+                                    } else {
+                                        newSet.add(step.position);
+                                    }
+                                    return newSet;
+                                });
+                            }}
+                            style={{ 
+                                padding: '8px 12px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                borderBottom: expandedSteps.has(step.position) ? '1px solid #e8e8e8' : 'none'
+                            }}
+                        >
+                            <Icon 
+                                type={expandedSteps.has(step.position) ? 'caret-down' : 'caret-right'} 
+                                style={{ marginRight: '8px' }}
+                            />
+                            <Tag color="blue" style={{ marginRight: '8px' }}>工具{step.position}</Tag>
+                            <span>{step.tool}</span>
+                        </div>
+                        
+                        {expandedSteps.has(step.position) && (
+                            <div style={{ padding: '12px' }}>
+                                <div style={{ marginBottom: '8px' }}>
+                                    <strong>输入参数：</strong>
+                                    <div style={{ 
+                                        background: '#fff',
+                                        padding: '8px',
+                                        borderRadius: '4px',
+                                        marginTop: '4px'
+                                    }}>
+                                        <code>{step.input}</code>
+                                    </div>
+                                </div>
+                                <div>
+                                    <strong>执行结果：</strong>
+                                    <div style={{ 
+                                        background: '#fff',
+                                        padding: '8px',
+                                        borderRadius: '4px',
+                                        marginTop: '4px'
+                                    }}>
+                                        <ReactMarkdown components={customRenderers}>
+                                            {step.observation}
+                                        </ReactMarkdown>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
+    // 修改 renderMessageContent 函数
+    const renderMessageContent = () => {
+        // 如果是大模型消息，先显示工具步骤
         if (msg.type === 'llm') {
             return (
                 <div className="message-content">
+                    {renderSteps()}
                     <ReactMarkdown components={customRenderers}>
                         {displayContent}
                     </ReactMarkdown>
@@ -119,6 +190,15 @@ const MessageItem = ({
                     )}
                 </div>
             );
+        }
+
+        // 如果是助手消息，使用对应助手的渲染方法
+        if (msg.type === 'assistant' && msg.command) {
+            const assistantName = msg.command.split(' ')[0].slice(1);
+            const assistant = registry.get(assistantName);
+            if (assistant) {
+                return assistant.renderMessage(msg, messageViewModes, setMessageViewModes, isLatestMessage);
+            }
         }
 
         // 其他类型消息的默认渲染

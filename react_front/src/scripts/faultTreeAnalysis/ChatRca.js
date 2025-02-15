@@ -133,12 +133,13 @@ const ChatRca = ({ treeData, style }) => {
         const decoder = new TextDecoder();
         let buffer = '';
         let fullContent = '';
+        let steps = new Map(); // 使用 Map 来存储步骤，以 position 为 key
         let lastUpdateTime = Date.now();
         
-        // 先添加一个空的助手消息，只显示标签
         setMessages(prev => [...prev, {
             type: 'llm',
             content: '',
+            steps: [],
             timestamp: getStandardTime()
         }]);
 
@@ -164,20 +165,35 @@ const ChatRca = ({ treeData, style }) => {
                             setConversationId(data.conversation_id);
                         }
 
+                        // 收集工具执行步骤，使用 Map 来去重
+                        if (data.tool) {
+                            const position = data.position || steps.size + 1;
+                            steps.set(position, {
+                                position,
+                                tool: data.tool,
+                                input: data.tool_input,
+                                observation: data.observation
+                            });
+                        }
+
+                        // 更新内容
                         if (data.answer) {
                             fullContent += data.answer;
-                            
-                            // 使用时间阈值来控制更新频率
-                            const currentTime = Date.now();
-                            if (currentTime - lastUpdateTime > 100) {
-                                // 更新最后一条消息的内容
-                                setMessages(prev => {
-                                    const newMessages = [...prev];
-                                    newMessages[newMessages.length - 1].content = fullContent;
-                                    return newMessages;
-                                });
-                                lastUpdateTime = currentTime;
-                            }
+                        }
+
+                        // 更新消息
+                        const currentTime = Date.now();
+                        if (currentTime - lastUpdateTime > 100) {
+                            setMessages(prev => {
+                                const newMessages = [...prev];
+                                newMessages[newMessages.length - 1] = {
+                                    ...newMessages[newMessages.length - 1],
+                                    content: fullContent,
+                                    steps: Array.from(steps.values()) // 将 Map 转换回数组
+                                };
+                                return newMessages;
+                            });
+                            lastUpdateTime = currentTime;
                         }
                     } catch (e) {
                         console.warn('JSON parse error:', e);
@@ -185,13 +201,17 @@ const ChatRca = ({ treeData, style }) => {
                 }
             }
 
-            // 确保最后一次更新能立即显示
+            // 最终更新
             setMessages(prev => {
                 const newMessages = [...prev];
-                newMessages[newMessages.length - 1].content = fullContent;
+                newMessages[newMessages.length - 1] = {
+                    ...newMessages[newMessages.length - 1],
+                    content: fullContent,
+                    steps: Array.from(steps.values())
+                };
                 return newMessages;
             });
-            setStreamContent(''); // 清空流式内容
+            setStreamContent('');
 
         } catch (error) {
             console.error('Stream processing error:', error);
