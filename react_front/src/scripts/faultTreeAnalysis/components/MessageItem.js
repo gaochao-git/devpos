@@ -175,7 +175,6 @@ const MessageItem = ({
 
     // 修改 renderMessageContent 函数
     const renderMessageContent = () => {
-        // 如果是大模型消息，先显示工具步骤
         if (msg.type === 'llm') {
             return (
                 <div className="message-content">
@@ -187,6 +186,20 @@ const MessageItem = ({
                         <Button type="link" onClick={() => onExpandChange(true)}>
                             显示更多
                         </Button>
+                    )}
+                    {msg.metadata?.usage && (
+                        <div style={{ 
+                            marginTop: '8px',
+                            padding: '8px',
+                            background: '#fafafa',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            color: '#999'
+                        }}>
+                            <div>Tokens: {msg.metadata.usage.total_tokens} (Prompt: {msg.metadata.usage.prompt_tokens}, Completion: {msg.metadata.usage.completion_tokens})</div>
+                            <div>Cost: ¥{msg.metadata.usage.total_price} (Prompt: ¥{msg.metadata.usage.prompt_price}, Completion: ¥{msg.metadata.usage.completion_price})</div>
+                            <div>Response Time: {msg.metadata.usage.latency.toFixed(2)}s</div>
+                        </div>
                     )}
                 </div>
             );
