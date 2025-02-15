@@ -29,7 +29,7 @@ class NavService extends Component {
                     <Menu.Item key="mysqlCluster">
                         <Link to="/service/mysql/mysqlCluster">集群</Link >
                     </Menu.Item>
-                    <Menu.Item key="链路哨兵">
+                    <Menu.Item key="linkSentinel">
                         <Link to="/service/mysql/linkSentinel">链路哨兵</Link >
                     </Menu.Item>
                 </SubMenu>
