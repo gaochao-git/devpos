@@ -69,13 +69,58 @@ const generateMockDetailedData = (businessName) => {
         return Array.from({ length: 35 }, (_, i) => `${prefix}_shard${(i + 1).toString().padStart(2, '0')}`);
     };
 
+    // 添加随机波动的辅助函数
+    const addJitter = (baseValue, jitterPercent = 10) => {
+        const jitterRange = (baseValue * jitterPercent) / 100;
+        return baseValue + (Math.random() * jitterRange * 2 - jitterRange);
+    };
+
+    // 生成随机失败点
+    const generateRandomFailures = (length) => {
+        const failures = new Array(length).fill(0);
+        // 随机选择2-3个时间点出现失败
+        const failureCount = 2 + Math.floor(Math.random() * 2); // 2或3
+        for (let i = 0; i < failureCount; i++) {
+            const index = Math.floor(Math.random() * length);
+            failures[index] = Math.floor(Math.random() * 2) + 1; // 1或2次失败
+        }
+        return failures;
+    };
+
     const shardNames = getShardNames(businessName);
-    return shardNames.map((shardName) => ({
-        id: `${businessName}_${shardName}`,
-        name: shardName,
-        responseTime: timePoints.map(time => [time, Math.floor(Math.random() * 1000)]),
-        failureCount: timePoints.map(time => [time, Math.floor(Math.random() * 5)])
-    }));
+    return shardNames.map((shardName) => {
+        const shardNumber = parseInt(shardName.slice(-2));
+        let baseFailureCount = 0;
+        let baseResponseTime = 3; // 默认响应时间为3ms
+
+        // 设置特定分库的失败笔数
+        if (shardNumber === 1) baseFailureCount = 4;
+        if (shardNumber === 5) baseFailureCount = 9;
+
+        // 设置特定分库的响应时间
+        if (shardNumber === 3) baseResponseTime = 220;
+        if (shardNumber === 8) baseResponseTime = 330;
+
+        // 为正常库生成随机失败点
+        const randomFailures = generateRandomFailures(timePoints.length);
+
+        return {
+            id: `${businessName}_${shardName}`,
+            name: shardName,
+            responseTime: timePoints.map(time => [
+                time, 
+                shardNumber === 3 || shardNumber === 8
+                    ? Math.max(1, Math.round(addJitter(baseResponseTime, 15))) // 问题库保持15%波动
+                    : Math.max(1, Math.round(3 + Math.random())) // 正常库在3-4ms之间波动
+            ]),
+            failureCount: timePoints.map((time, index) => [
+                time,
+                shardNumber === 1 || shardNumber === 5
+                    ? Math.max(0, Math.round(addJitter(baseFailureCount, 20))) // 问题库保持原有波动
+                    : randomFailures[index] // 正常库随机出现1-2次失败
+            ])
+        };
+    });
 };
 
 export default function LinkSentinel() {
@@ -95,8 +140,8 @@ export default function LinkSentinel() {
     const [showDetails, setShowDetails] = useState(false);
     const [detailsData, setDetailsData] = useState(null);
     const [detailsLoading, setDetailsLoading] = useState(false);
-    const [responseTimeThreshold, setResponseTimeThreshold] = useState(0);
-    const [failureCountThreshold, setFailureCountThreshold] = useState(0);
+    const [responseTimeThreshold, setResponseTimeThreshold] = useState({ min: 0, max: Infinity });
+    const [failureCountThreshold, setFailureCountThreshold] = useState({ min: 0, max: Infinity });
 
     // Mock 数据
     const mockFailureData = [
@@ -345,15 +390,11 @@ export default function LinkSentinel() {
 
         const colors = generateColors(35);
 
-        // Add threshold filtering logic
+        // 修改过滤逻辑为范围判断
         const filteredData = data.filter(db => {
-            // Calculate the maximum value for the current metric
             const maxValue = Math.max(...db[type].map(point => point[1]));
-            
-            // Filter based on the appropriate threshold
-            return isResponseTime 
-                ? maxValue >= responseTimeThreshold
-                : maxValue >= failureCountThreshold;
+            const threshold = isResponseTime ? responseTimeThreshold : failureCountThreshold;
+            return maxValue >= threshold.min && maxValue <= threshold.max;
         });
 
         return {
@@ -569,6 +610,15 @@ export default function LinkSentinel() {
         }
     ];
 
+    // 处理范围输入的变化
+    const handleThresholdChange = (type, field, value) => {
+        const setValue = type === 'responseTime' ? setResponseTimeThreshold : setFailureCountThreshold;
+        setValue(prev => ({
+            ...prev,
+            [field]: value === '' ? (field === 'min' ? 0 : Infinity) : Number(value)
+        }));
+    };
+
     return (
         <div className="link-sentinel">
             <div className="sub-title">
@@ -664,15 +714,30 @@ export default function LinkSentinel() {
                             <div>
                                 {detailMetricType === 'responseTime' ? (
                                     <span>
-                                        响应时间阈值：
+                                        响应时间范围：
                                         <input
                                             type="number"
                                             min="0"
-                                            value={responseTimeThreshold}
-                                            onChange={(e) => setResponseTimeThreshold(Number(e.target.value))}
+                                            value={responseTimeThreshold.min}
+                                            onChange={(e) => handleThresholdChange('responseTime', 'min', e.target.value)}
                                             style={{ 
-                                                width: '80px',
+                                                width: '60px',
                                                 marginLeft: '8px',
+                                                marginRight: '4px',
+                                                padding: '4px 8px',
+                                                border: '1px solid #d9d9d9',
+                                                borderRadius: '2px'
+                                            }}
+                                        />
+                                        {' - '}
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={responseTimeThreshold.max === Infinity ? '' : responseTimeThreshold.max}
+                                            onChange={(e) => handleThresholdChange('responseTime', 'max', e.target.value)}
+                                            style={{ 
+                                                width: '60px',
+                                                marginLeft: '4px',
                                                 marginRight: '4px',
                                                 padding: '4px 8px',
                                                 border: '1px solid #d9d9d9',
@@ -682,15 +747,30 @@ export default function LinkSentinel() {
                                     </span>
                                 ) : (
                                     <span>
-                                        失败笔数阈值：
+                                        失败笔数范围：
                                         <input
                                             type="number"
                                             min="0"
-                                            value={failureCountThreshold}
-                                            onChange={(e) => setFailureCountThreshold(Number(e.target.value))}
+                                            value={failureCountThreshold.min}
+                                            onChange={(e) => handleThresholdChange('failureCount', 'min', e.target.value)}
                                             style={{ 
-                                                width: '80px',
+                                                width: '60px',
                                                 marginLeft: '8px',
+                                                marginRight: '4px',
+                                                padding: '4px 8px',
+                                                border: '1px solid #d9d9d9',
+                                                borderRadius: '2px'
+                                            }}
+                                        />
+                                        {' - '}
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={failureCountThreshold.max === Infinity ? '' : failureCountThreshold.max}
+                                            onChange={(e) => handleThresholdChange('failureCount', 'max', e.target.value)}
+                                            style={{ 
+                                                width: '60px',
+                                                marginLeft: '4px',
                                                 marginRight: '4px',
                                                 padding: '4px 8px',
                                                 border: '1px solid #d9d9d9',
