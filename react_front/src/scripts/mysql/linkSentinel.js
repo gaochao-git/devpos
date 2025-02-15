@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Row, Col, Button, Spin, message, Drawer, Dropdown, Menu, Checkbox, Space, Icon, Table } from 'antd';
+import { Card, Row, Col, Button, Spin, message, Drawer, Dropdown, Menu, Checkbox, Space, Icon, Table, DatePicker } from 'antd';
 import ReactEcharts from 'echarts-for-react';
 import MyAxios from "../common/interface";
 import { Link } from 'react-router-dom';
@@ -142,6 +142,24 @@ export default function LinkSentinel() {
     const [detailsLoading, setDetailsLoading] = useState(false);
     const [responseTimeThreshold, setResponseTimeThreshold] = useState({ min: 0, max: Infinity });
     const [failureCountThreshold, setFailureCountThreshold] = useState({ min: 0, max: Infinity });
+    const [timeRange, setTimeRange] = useState([moment().subtract(30, 'minutes'), moment()]);
+    
+    // 添加快速选择选项
+    const quickRanges = {
+        '最近30分钟': [moment().subtract(30, 'minutes'), moment()],
+        '最近1小时': [moment().subtract(1, 'hour'), moment()],
+        '最近3小时': [moment().subtract(3, 'hours'), moment()],
+        '最近6小时': [moment().subtract(6, 'hours'), moment()],
+        '最近12小时': [moment().subtract(12, 'hours'), moment()],
+        '最近24小时': [moment().subtract(24, 'hours'), moment()],
+    };
+
+    // 处理时间范围变化
+    const handleTimeRangeChange = (dates) => {
+        setTimeRange(dates);
+        // 这里可以添加获取新时间范围的数据逻辑
+        fetchBusinessData();
+    };
 
     // Mock 数据
     const mockFailureData = [
@@ -185,9 +203,11 @@ export default function LinkSentinel() {
     const fetchBusinessData = async () => {
         setLoading(true);
         try {
-            // Mock API response
+            // Mock API response with timeRange
             setTimeout(() => {
-                setBusinessData(generateMockBusinessData());
+                const data = generateMockBusinessData();
+                // 这里可以使用 timeRange[0] 和 timeRange[1] 来获取开始和结束时间
+                setBusinessData(data);
                 setLoading(false);
             }, 500);
         } catch (error) {
@@ -627,8 +647,8 @@ export default function LinkSentinel() {
                     {' >> '}
                     <Link className="title-text" to="/linkSentinel">链路哨兵</Link>
                 </div>
-                <div>
-                    <Button.Group style={{ marginRight: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <Button.Group>
                         <Button 
                             type={metricType === 'responseTime' ? 'primary' : 'default'}
                             onClick={() => setMetricType('responseTime')}
@@ -642,7 +662,20 @@ export default function LinkSentinel() {
                             失败笔数
                         </Button>
                     </Button.Group>
-                    <Button type="primary" onClick={fetchBusinessData}>刷新</Button>
+
+                    <DatePicker.RangePicker
+                        showTime
+                        value={timeRange}
+                        onChange={handleTimeRangeChange}
+                        ranges={quickRanges}
+                        allowClear={false}
+                        format="YYYY-MM-DD HH:mm:ss"
+                        style={{ width: '400px' }}
+                    />
+
+                    <Button type="primary" onClick={fetchBusinessData}>
+                        刷新
+                    </Button>
                 </div>
             </div>
             
