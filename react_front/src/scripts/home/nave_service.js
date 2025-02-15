@@ -29,6 +29,9 @@ class NavService extends Component {
                     <Menu.Item key="mysqlCluster">
                         <Link to="/service/mysql/mysqlCluster">集群</Link >
                     </Menu.Item>
+                    <Menu.Item key="链路哨兵">
+                        <Link to="/service/mysql/linkSentinel">集群</Link >
+                    </Menu.Item>
                 </SubMenu>
                 <SubMenu key="redis" title={<span><Icon type="database" /><span>Redis</span></span>}>
                     <Menu.Item key="redisInstance">

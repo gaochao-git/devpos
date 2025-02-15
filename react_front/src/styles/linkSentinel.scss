@@ -1,0 +1,32 @@
+.link-sentinel {
+    padding: 24px;
+
+    .sub-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+
+        .title-text {
+            color: #1890ff;
+            margin: 0 8px;
+        }
+    }
+
+    .ant-card {
+        .ant-card-head {
+            background: #fafafa;
+        }
+    }
+
+    .metrics-drawer {
+        .ant-drawer-body {
+            padding: 24px;
+            overflow: auto;
+        }
+
+        .ant-card {
+            margin-bottom: 16px;
+        }
+    }
+} 

@@ -39,7 +39,7 @@ import JksCommonJob from './scripts/jks/jksCommonJob'
 import { backendServerApiRoot } from "./scripts/common/util";
 import FaultTreeConfig from  "./scripts/faultTreeConfig/index"
 import KbRag from './scripts/console/kb_rag'
-
+import LinkSentinel from './scripts/mysql/linkSentinel'
 
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
@@ -219,6 +219,7 @@ class App extends Component {
                                         <Route exact path="/ops/deploy/jksCommonJob" component={JksCommonJob} />
                                         <Route exact path="/manage/config/faultTreeConfig" component={FaultTreeConfig} />
                                         <Route exact path="/service/console/rag" component={KbRag} />
+                                        <Route exact path="/service/mysql/linkSentinel" component={LinkSentinel} />
                                     </WaterMark>}
                                 </Content>
                             </Layout>
