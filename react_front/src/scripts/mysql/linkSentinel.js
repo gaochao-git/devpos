@@ -5,6 +5,7 @@ import MyAxios from "../common/interface";
 import { Link } from 'react-router-dom';
 import moment from 'moment';
 import { SearchOutlined } from '@ant-design/icons';
+import FaultTreeIndex from '../faultTreeAnalysis/index';
 
 // Mock data generator functions
 const generateTimeSeriesData = () => {
@@ -89,6 +90,8 @@ export default function LinkSentinel() {
     const [metricType, setMetricType] = useState('responseTime'); // 'responseTime' or 'failureCount'
     const [selectedShards, setSelectedShards] = useState(new Set()); // 跟踪选中的分库
     const [detailMetricType, setDetailMetricType] = useState('responseTime'); // 第二级指标类型
+    const [showFaultTree, setShowFaultTree] = useState(false);
+    const [faultTreeKey, setFaultTreeKey] = useState(0);
 
     useEffect(() => {
         fetchBusinessData();
@@ -440,9 +443,8 @@ export default function LinkSentinel() {
 
     // 添加全局处理函数
     window.handleAnalyzeClick = (data) => {
-        console.log('分析数据:', data);
-        // TODO: 后续实现分析功能
-        message.info(`分析 ${data.shard} 在 ${data.time} 的${data.type === 'responseTime' ? '响应时间' : '失败笔数'}: ${data.value}`);
+        setShowFaultTree(true);
+        setFaultTreeKey(prev => prev + 1);
     };
 
     return (
@@ -507,6 +509,7 @@ export default function LinkSentinel() {
                     setSelectedBusiness(null);
                     setDetailedData(null);
                     setDetailMetricType('responseTime');
+                    setShowFaultTree(false);
                 }}
                 visible={drawerVisible}
                 className="metrics-drawer"
@@ -563,6 +566,36 @@ export default function LinkSentinel() {
                                 />
                             </div>
                         </Spin>
+
+                        {/* 添加故障树分析 */}
+                        {showFaultTree && (
+                            <div style={{ 
+                                marginTop: '16px', 
+                                padding: '16px',
+                                background: '#fafafa',
+                                border: '1px solid #f0f0f0',
+                                borderRadius: '2px'
+                            }}>
+                                <div style={{ 
+                                    marginBottom: '16px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <h4 style={{ margin: 0 }}>故障分析</h4>
+                                    <Button 
+                                        type="text" 
+                                        icon={<Icon type="close" />}
+                                        onClick={() => setShowFaultTree(false)}
+                                    />
+                                </div>
+                                <FaultTreeIndex
+                                    // cluster_name={selectedBusiness?.name}
+                                    cluster_name='devops_test'
+                                    key={`fault-tree-new-${faultTreeKey}`}
+                                />
+                            </div>
+                        )}
 
                         <Row gutter={[16, 16]} style={{ marginTop: '24px' }}>
                             {detailedData.map(shard => (
