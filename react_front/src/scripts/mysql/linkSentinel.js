@@ -295,21 +295,19 @@ export default function LinkSentinel() {
     const handleBusinessClick = async (business) => {
         try {
             setLoading(true);
-            setDrawerVisible(true); // 先打开抽屉
+            setDrawerVisible(true);
             
             // Mock API response
-            const data = generateMockDetailedData(business.name); // 注意这里传入business.name而不是id
+            const data = generateMockDetailedData(business.name);
             
-            // 使用setTimeout模拟API调用，但确保状态更新是同步的
-            setDetailedData(data);
-            setSelectedBusiness(business);
-            setDrawerTitle(`${business.name} - 分库监控`);
-            setDrawerWidth('80%');
-            
-            // 延迟关闭loading状态，确保数据已经渲染
+            // 延迟设置数据，等待抽屉动画完成
             setTimeout(() => {
+                setDetailedData(data);
+                setSelectedBusiness(business);
+                setDrawerTitle(`${business.name} - 分库监控`);
+                setDrawerWidth('80%');
                 setLoading(false);
-            }, 100);
+            }, 300); // 等待抽屉动画完成
             
         } catch (error) {
             message.error('获取详细数据失败');
@@ -711,16 +709,25 @@ export default function LinkSentinel() {
                 width="90%"
                 onClose={() => {
                     setDrawerVisible(false);
-                    setSelectedBusiness(null);
-                    setDetailedData(null);
-                    setDetailMetricType('responseTime');
-                    setShowFaultTree(false);
-                    setShowDetails(false);
-                    setDetailsData(null);
+                    // 延迟清除数据，等待抽屉关闭动画完成
+                    setTimeout(() => {
+                        setSelectedBusiness(null);
+                        setDetailedData(null);
+                        setDetailMetricType('responseTime');
+                        setShowFaultTree(false);
+                        setShowDetails(false);
+                        setDetailsData(null);
+                    }, 300);
                 }}
                 visible={drawerVisible}
                 className="metrics-drawer"
                 destroyOnClose={true}
+                afterVisibleChange={(visible) => {
+                    if (visible) {
+                        // 强制重新计算图表大小
+                        window.dispatchEvent(new Event('resize'));
+                    }
+                }}
             >
                 {selectedBusiness && detailedData && (
                     <div>
