@@ -123,6 +123,22 @@ const generateMockDetailedData = (businessName) => {
     });
 };
 
+// 修改生成防火墙流量数据的函数，只生成指定机房的数据
+const generateFirewallData = (datacenter) => {
+    const now = moment();
+    return {
+        name: datacenter,
+        inbound: generateTimeSeriesData().map(item => [
+            item[0],
+            Math.floor(Math.random() * 1000 + 500) // 入方向流量 500-1500 Mbps
+        ]),
+        outbound: generateTimeSeriesData().map(item => [
+            item[0],
+            Math.floor(Math.random() * 800 + 300) // 出方向流量 300-1100 Mbps
+        ])
+    };
+};
+
 export default function LinkSentinel() {
     const [businessData, setBusinessData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -144,6 +160,8 @@ export default function LinkSentinel() {
     const [failureCountThreshold, setFailureCountThreshold] = useState({ min: 0, max: Infinity });
     const [timeRange, setTimeRange] = useState([moment().subtract(30, 'minutes'), moment()]);
     const [autoRefresh, setAutoRefresh] = useState(true);
+    const [showFirewall, setShowFirewall] = useState(false);
+    const [firewallData, setFirewallData] = useState(null);
     
     // 添加快速选择选项
     const quickRanges = {
@@ -374,10 +392,11 @@ export default function LinkSentinel() {
             setTimeout(() => {
                 setDetailedData(data);
                 setSelectedBusiness(business);
-                setDrawerTitle(`${business.name} - 分库监控`);
+                setSelectedDatacenter(business.datacenters[0].name); // 设置默认选中的机房
+                setDrawerTitle(`${business.name} - ${business.datacenters[0].name} - 分库监控`);
                 setDrawerWidth('80%');
                 setLoading(false);
-            }, 300); // 等待抽屉动画完成
+            }, 300);
             
         } catch (error) {
             message.error('获取详细数据失败');
@@ -539,7 +558,17 @@ export default function LinkSentinel() {
                     let content = `<div style="max-height: 400px; overflow-y: auto;">`;
                     content += `<div style="margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #eee;">`;
                     content += `<div style="font-size: 12px; color: #666;">${params[0].axisValueLabel}</div>`;
-                    content += `<div style="font-weight: bold; margin-top: 4px;">总${isResponseTime ? '响应时间' : '失败笔数'}: ${isResponseTime ? Math.round(totalCount) + 'ms' : totalCount}</div>`;
+                    content += `<div style="font-weight: bold; margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>总${isResponseTime ? '响应时间' : '失败笔数'}: ${isResponseTime ? Math.round(totalCount) + 'ms' : totalCount}</span>
+                        <button 
+                            onclick="window.handleFirewallClick && window.handleFirewallClick()"
+                            style="${antdButtonStyle}"
+                            onmouseover="this.style.color='#40a9ff';this.style.borderColor='#40a9ff'"
+                            onmouseout="this.style.color='rgba(0, 0, 0, 0.85)';this.style.borderColor='#d9d9d9'"
+                        >
+                            网络防火墙流量
+                        </button>
+                    </div>`;
                     content += `</div>`;
                     
                     sortedParams.forEach((param, index) => {
@@ -688,19 +717,91 @@ export default function LinkSentinel() {
         }, 500);
     }, []);
 
+    // 修改处理防火墙数据的函数
+    const handleFirewallClick = useCallback(() => {
+        if (selectedDatacenter) {
+            setShowFirewall(true);
+            setFirewallData(generateFirewallData(selectedDatacenter));
+        }
+    }, [selectedDatacenter]);
+
+    // 修改防火墙流量图表配置
+    const getFirewallChartOption = (data) => {
+        return {
+            title: {
+                text: `${data.name}网络防火墙流量监控`,
+                left: 'center',
+                top: 0,
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross'
+                }
+            },
+            legend: {
+                data: ['入方向', '出方向'],
+                top: 25
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                top: 60,
+                containLabel: true
+            },
+            xAxis: {
+                type: 'time',
+                boundaryGap: false,
+                axisLabel: {
+                    formatter: (value) => moment(value).format('HH:mm')
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: '流量(Mbps)',
+                axisLabel: {
+                    formatter: '{value} Mbps'
+                }
+            },
+            series: [
+                {
+                    name: '入方向',
+                    type: 'line',
+                    smooth: true,
+                    data: data.inbound,
+                    itemStyle: {
+                        color: '#1890ff'
+                    }
+                },
+                {
+                    name: '出方向',
+                    type: 'line',
+                    smooth: true,
+                    data: data.outbound,
+                    itemStyle: {
+                        color: '#69c0ff'
+                    }
+                }
+            ]
+        };
+    };
+
     // 在组件挂载时设置全局函数
     useEffect(() => {
         window.handleBusinessDetailClick = handleBusinessDetailClick;
         window.handleAnalyzeClick = handleAnalyzeClick;
         window.handleDetailClick = handleDetailClick;
+        window.handleFirewallClick = () => handleFirewallClick();
         
         // 清理函数
         return () => {
             window.handleBusinessDetailClick = undefined;
             window.handleAnalyzeClick = undefined;
             window.handleDetailClick = undefined;
+            window.handleFirewallClick = undefined;
         };
-    }, [handleBusinessDetailClick, handleAnalyzeClick, handleDetailClick]);
+    }, [handleBusinessDetailClick, handleAnalyzeClick, handleDetailClick, handleFirewallClick]);
 
     // 详情表格列定义
     const detailColumns = [
@@ -1015,6 +1116,36 @@ export default function LinkSentinel() {
                                     // cluster_name={selectedBusiness?.name}
                                     cluster_name="devops_test"
                                     key={`fault-tree-new-${faultTreeKey}`}
+                                />
+                            </div>
+                        )}
+
+                        {/* 防火墙流量图表 */}
+                        {showFirewall && firewallData && (
+                            <div style={{ 
+                                marginTop: '16px', 
+                                padding: '16px',
+                                background: '#fff',
+                                border: '1px solid #f0f0f0',
+                                borderRadius: '2px'
+                            }}>
+                                <div style={{ 
+                                    marginBottom: '16px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <h4 style={{ margin: 0 }}>{firewallData.name}网络防火墙流量监控</h4>
+                                    <Button 
+                                        type="text" 
+                                        icon={<Icon type="close" />}
+                                        onClick={() => setShowFirewall(false)}
+                                    />
+                                </div>
+                                <ReactEcharts
+                                    option={getFirewallChartOption(firewallData)}
+                                    style={{ height: '300px' }}
+                                    notMerge={true}
                                 />
                             </div>
                         )}
