@@ -95,6 +95,8 @@ export default function LinkSentinel() {
     const [showDetails, setShowDetails] = useState(false);
     const [detailsData, setDetailsData] = useState(null);
     const [detailsLoading, setDetailsLoading] = useState(false);
+    const [responseTimeThreshold, setResponseTimeThreshold] = useState(0);
+    const [failureCountThreshold, setFailureCountThreshold] = useState(0);
 
     // Mock 数据
     const mockFailureData = [
@@ -343,6 +345,17 @@ export default function LinkSentinel() {
 
         const colors = generateColors(35);
 
+        // Add threshold filtering logic
+        const filteredData = data.filter(db => {
+            // Calculate the maximum value for the current metric
+            const maxValue = Math.max(...db[type].map(point => point[1]));
+            
+            // Filter based on the appropriate threshold
+            return isResponseTime 
+                ? maxValue >= responseTimeThreshold
+                : maxValue >= failureCountThreshold;
+        });
+
         return {
             title: {
                 text: isResponseTime ? '各分库平均响应时间' : '各分库失败笔数',
@@ -469,7 +482,7 @@ export default function LinkSentinel() {
                     formatter: '{value}' + (isResponseTime ? 'ms' : '')
                 }
             },
-            series: data
+            series: filteredData
                 .filter(db => selectedShards.has(db.name))
                 .map((db, index) => ({
                     name: db.name,
@@ -631,39 +644,62 @@ export default function LinkSentinel() {
                         <div style={{ 
                             marginBottom: '16px',
                             display: 'flex',
-                            justifyContent: 'space-between',
                             alignItems: 'center'
                         }}>
-                            <div>
-                                <Button.Group style={{ marginRight: '8px' }}>
-                                    <Button 
-                                        type={detailMetricType === 'responseTime' ? 'primary' : 'default'}
-                                        onClick={() => setDetailMetricType('responseTime')}
-                                    >
-                                        响应时间
-                                    </Button>
-                                    <Button 
-                                        type={detailMetricType === 'failureCount' ? 'primary' : 'default'}
-                                        onClick={() => setDetailMetricType('failureCount')}
-                                    >
-                                        失败笔数
-                                    </Button>
-                                </Button.Group>
+                            <Button.Group style={{ marginRight: '16px' }}>
                                 <Button 
-                                    onClick={handleDetailClick}
+                                    type={detailMetricType === 'responseTime' ? 'primary' : 'default'}
+                                    onClick={() => setDetailMetricType('responseTime')}
                                 >
-                                    <Icon type="search" /> 查看原因
+                                    响应时间
                                 </Button>
-                            </div>
+                                <Button 
+                                    type={detailMetricType === 'failureCount' ? 'primary' : 'default'}
+                                    onClick={() => setDetailMetricType('failureCount')}
+                                >
+                                    失败笔数
+                                </Button>
+                            </Button.Group>
 
-                            <Dropdown 
-                                overlay={getLegendMenu(detailedData)}
-                                trigger={['click']}
-                            >
-                                <Button>
-                                    选择显示分库 ({selectedShards.size}/{detailedData.length})
-                                </Button>
-                            </Dropdown>
+                            <div>
+                                {detailMetricType === 'responseTime' ? (
+                                    <span>
+                                        响应时间阈值：
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={responseTimeThreshold}
+                                            onChange={(e) => setResponseTimeThreshold(Number(e.target.value))}
+                                            style={{ 
+                                                width: '80px',
+                                                marginLeft: '8px',
+                                                marginRight: '4px',
+                                                padding: '4px 8px',
+                                                border: '1px solid #d9d9d9',
+                                                borderRadius: '2px'
+                                            }}
+                                        /> ms
+                                    </span>
+                                ) : (
+                                    <span>
+                                        失败笔数阈值：
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={failureCountThreshold}
+                                            onChange={(e) => setFailureCountThreshold(Number(e.target.value))}
+                                            style={{ 
+                                                width: '80px',
+                                                marginLeft: '8px',
+                                                marginRight: '4px',
+                                                padding: '4px 8px',
+                                                border: '1px solid #d9d9d9',
+                                                borderRadius: '2px'
+                                            }}
+                                        /> 笔
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
                         <Spin spinning={loading}>
@@ -673,7 +709,7 @@ export default function LinkSentinel() {
                                     style={{ height: '500px' }}
                                     notMerge={true}
                                     lazyUpdate={false}
-                                    key={`${selectedBusiness.id}-${detailMetricType}-${selectedShards.size}`}
+                                    key={`${selectedBusiness.id}-${detailMetricType}`}
                                 />
                             </div>
                         </Spin>
