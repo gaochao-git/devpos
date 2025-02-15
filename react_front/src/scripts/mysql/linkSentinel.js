@@ -143,6 +143,7 @@ export default function LinkSentinel() {
     const [responseTimeThreshold, setResponseTimeThreshold] = useState({ min: 0, max: Infinity });
     const [failureCountThreshold, setFailureCountThreshold] = useState({ min: 0, max: Infinity });
     const [timeRange, setTimeRange] = useState([moment().subtract(30, 'minutes'), moment()]);
+    const [autoRefresh, setAutoRefresh] = useState(true);
     
     // 添加快速选择选项
     const quickRanges = {
@@ -188,10 +189,13 @@ export default function LinkSentinel() {
 
     useEffect(() => {
         fetchBusinessData();
-        // 设置定时刷新，每分钟更新一次数据
-        const timer = setInterval(fetchBusinessData, 60000);
-        return () => clearInterval(timer);
-    }, []);
+        
+        let timer;
+        if (autoRefresh) {
+            timer = setInterval(fetchBusinessData, 60000);
+        }
+        return () => timer && clearInterval(timer);
+    }, [autoRefresh]);
 
     useEffect(() => {
         if (detailedData) {
@@ -671,9 +675,18 @@ export default function LinkSentinel() {
                         style={{ width: '400px' }}
                     />
 
-                    <Button type="primary" onClick={fetchBusinessData}>
-                        刷新
-                    </Button>
+                    <Button.Group>
+                        <Button 
+                            type={autoRefresh ? 'primary' : 'default'}
+                            onClick={() => setAutoRefresh(!autoRefresh)}
+                            icon={autoRefresh ? <Icon type="pause-circle" /> : <Icon type="play-circle" />}
+                        >
+                            {autoRefresh ? '停止自动刷新' : '开启自动刷新'}
+                        </Button>
+                        <Button type="primary" onClick={fetchBusinessData}>
+                            刷新
+                        </Button>
+                    </Button.Group>
                 </div>
             </div>
             
