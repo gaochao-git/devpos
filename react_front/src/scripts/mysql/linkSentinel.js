@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Button, Spin, message, Drawer, Dropdown, Menu, Checkbox, Space, Icon } from 'antd';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Card, Row, Col, Button, Spin, message, Drawer, Dropdown, Menu, Checkbox, Space, Icon, Table } from 'antd';
 import ReactEcharts from 'echarts-for-react';
 import MyAxios from "../common/interface";
 import { Link } from 'react-router-dom';
@@ -92,6 +92,34 @@ export default function LinkSentinel() {
     const [detailMetricType, setDetailMetricType] = useState('responseTime'); // 第二级指标类型
     const [showFaultTree, setShowFaultTree] = useState(false);
     const [faultTreeKey, setFaultTreeKey] = useState(0);
+    const [showDetails, setShowDetails] = useState(false);
+    const [detailsData, setDetailsData] = useState(null);
+    const [detailsLoading, setDetailsLoading] = useState(false);
+
+    // Mock 数据
+    const mockFailureData = [
+        {
+            id: 1,
+            failureTime: '2025-02-15 08:28:30',
+            failureType: 'Connection Timeout',
+            errorMessage: '连接超时，无法访问数据库',
+            sqlStatement: 'SELECT * FROM orders WHERE user_id = 123'
+        },
+        {
+            id: 2,
+            failureTime: '2025-02-15 08:28:35',
+            errorMessage: '死锁，事务回滚',
+            failureType: 'Deadlock',
+            sqlStatement: 'UPDATE orders SET status = "paid" WHERE order_id = 456'
+        },
+        {
+            id: 3,
+            failureTime: '2025-02-15 08:28:40',
+            failureType: 'Query Error',
+            errorMessage: 'SQL语法错误',
+            sqlStatement: 'INSERT INTO orders (id, user_id, amount) VALUES (789, 234, 100.00)'
+        }
+    ];
 
     useEffect(() => {
         fetchBusinessData();
@@ -341,6 +369,31 @@ export default function LinkSentinel() {
                         return sum + value;
                     }, 0);
 
+                    // antd button 样式
+                    const antdButtonStyle = `
+                        line-height: 1.5715;
+                        position: relative;
+                        display: inline-block;
+                        font-weight: 400;
+                        white-space: nowrap;
+                        text-align: center;
+                        background-image: none;
+                        border: 1px solid transparent;
+                        box-shadow: 0 2px 0 rgba(0, 0, 0, 0.015);
+                        cursor: pointer;
+                        transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+                        user-select: none;
+                        touch-action: manipulation;
+                        height: 24px;
+                        padding: 0px 7px;
+                        font-size: 12px;
+                        border-radius: 2px;
+                        color: rgba(0, 0, 0, 0.85);
+                        border-color: #d9d9d9;
+                        background: #fff;
+                        margin-left: 4px;
+                    `;
+
                     let content = `<div style="max-height: 400px; overflow-y: auto;">`;
                     content += `<div style="margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #eee;">`;
                     content += `<div style="font-size: 12px; color: #666;">${params[0].axisValueLabel}</div>`;
@@ -356,28 +409,34 @@ export default function LinkSentinel() {
                         content += `
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                 <span>${marker} ${param.seriesName}: ${value}</span>
-                                <button 
-                                    onclick="window.handleAnalyzeClick && window.handleAnalyzeClick({
-                                        shard: '${param.seriesName}',
-                                        time: '${params[0].axisValueLabel}',
-                                        value: '${value}',
-                                        type: '${isResponseTime ? 'responseTime' : 'failureCount'}'
-                                    })"
-                                    style="
-                                        border: 1px solid #d9d9d9;
-                                        border-radius: 2px;
-                                        padding: 1px 6px;
-                                        background: #fff;
-                                        font-size: 12px;
-                                        cursor: pointer;
-                                        color: #666;
-                                        margin-left: 8px;
-                                    "
-                                    onmouseover="this.style.borderColor='#40a9ff';this.style.color='#40a9ff'"
-                                    onmouseout="this.style.borderColor='#d9d9d9';this.style.color='#666'"
-                                >
-                                    分析
-                                </button>
+                                <div>
+                                    <button 
+                                        onclick="window.handleAnalyzeClick && window.handleAnalyzeClick({
+                                            shard: '${param.seriesName}',
+                                            time: '${params[0].axisValueLabel}',
+                                            value: '${value}',
+                                            type: '${isResponseTime ? 'responseTime' : 'failureCount'}'
+                                        })"
+                                        style="${antdButtonStyle}"
+                                        onmouseover="this.style.color='#40a9ff';this.style.borderColor='#40a9ff'"
+                                        onmouseout="this.style.color='rgba(0, 0, 0, 0.85)';this.style.borderColor='#d9d9d9'"
+                                    >
+                                        分析
+                                    </button>
+                                    <button 
+                                        onclick="window.handleDetailClick && window.handleDetailClick({
+                                            shard: '${param.seriesName}',
+                                            time: '${params[0].axisValueLabel}',
+                                            value: '${value}',
+                                            type: '${isResponseTime ? 'responseTime' : 'failureCount'}'
+                                        })"
+                                        style="${antdButtonStyle}"
+                                        onmouseover="this.style.color='#40a9ff';this.style.borderColor='#40a9ff'"
+                                        onmouseout="this.style.color='rgba(0, 0, 0, 0.85)';this.style.borderColor='#d9d9d9'"
+                                    >
+                                        详情
+                                    </button>
+                                </div>
                             </div>
                         `;
                     });
@@ -436,16 +495,66 @@ export default function LinkSentinel() {
         };
     };
 
-    const handleDetailClick = () => {
-        // TODO: 后续实现查看原因的功能
-        message.info('查看原因功能开发中...');
-    };
-
-    // 添加全局处理函数
-    window.handleAnalyzeClick = (data) => {
+    // 处理分析点击
+    const handleAnalyzeClick = useCallback((data) => {
         setShowFaultTree(true);
         setFaultTreeKey(prev => prev + 1);
-    };
+    }, []);
+
+    // 处理详情点击
+    const handleDetailClick = useCallback((data) => {
+        setDetailsLoading(true);
+        setShowDetails(true);
+        
+        // 模拟 API 调用延迟
+        setTimeout(() => {
+            setDetailsData({
+                title: `${data.shard} - ${data.time}`,
+                data: mockFailureData
+            });
+            setDetailsLoading(false);
+        }, 500);
+    }, []);
+
+    // 在组件挂载时设置全局函数
+    useEffect(() => {
+        window.handleAnalyzeClick = handleAnalyzeClick;
+        window.handleDetailClick = handleDetailClick;
+        
+        // 清理函数
+        return () => {
+            window.handleAnalyzeClick = undefined;
+            window.handleDetailClick = undefined;
+        };
+    }, [handleAnalyzeClick, handleDetailClick]);
+
+    // 详情表格列定义
+    const detailColumns = [
+        {
+            title: '失败时间',
+            dataIndex: 'failureTime',
+            key: 'failureTime',
+            width: 180,
+        },
+        {
+            title: '失败类型',
+            dataIndex: 'failureType',
+            key: 'failureType',
+            width: 120,
+        },
+        {
+            title: '错误信息',
+            dataIndex: 'errorMessage',
+            key: 'errorMessage',
+            width: 200,
+        },
+        {
+            title: 'SQL语句',
+            dataIndex: 'sqlStatement',
+            key: 'sqlStatement',
+            ellipsis: true,
+        }
+    ];
 
     return (
         <div className="link-sentinel">
@@ -510,6 +619,8 @@ export default function LinkSentinel() {
                     setDetailedData(null);
                     setDetailMetricType('responseTime');
                     setShowFaultTree(false);
+                    setShowDetails(false);
+                    setDetailsData(null);
                 }}
                 visible={drawerVisible}
                 className="metrics-drawer"
@@ -590,10 +701,53 @@ export default function LinkSentinel() {
                                     />
                                 </div>
                                 <FaultTreeIndex
-                                    // cluster_name={selectedBusiness?.name}
-                                    cluster_name='devops_test'
+                                    cluster_name={selectedBusiness?.name}
                                     key={`fault-tree-new-${faultTreeKey}`}
                                 />
+                            </div>
+                        )}
+
+                        {/* 失败详情 */}
+                        {showDetails && (
+                            <div style={{ 
+                                marginTop: '16px', 
+                                padding: '16px',
+                                background: '#fff',
+                                border: '1px solid #f0f0f0',
+                                borderRadius: '2px'
+                            }}>
+                                <div style={{ 
+                                    marginBottom: '16px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <h4 style={{ margin: 0 }}>
+                                        失败详情: {detailsData?.title}
+                                    </h4>
+                                    <Button 
+                                        type="text" 
+                                        icon={<Icon type="close" />}
+                                        onClick={() => {
+                                            setShowDetails(false);
+                                            setDetailsData(null);
+                                        }}
+                                    />
+                                </div>
+                                <Spin spinning={detailsLoading}>
+                                    <Table
+                                        columns={detailColumns}
+                                        dataSource={detailsData?.data || []}
+                                        rowKey="id"
+                                        size="small"
+                                        pagination={{
+                                            pageSize: 10,
+                                            showSizeChanger: true,
+                                            showQuickJumper: true
+                                        }}
+                                        scroll={{ x: 'max-content' }}
+                                    />
+                                </Spin>
                             </div>
                         )}
 
