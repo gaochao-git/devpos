@@ -678,37 +678,8 @@ export default function LinkSentinel() {
                             </div>
                         </Spin>
 
-                        {/* 添加故障树分析 */}
-                        {showFaultTree && (
-                            <div style={{ 
-                                marginTop: '16px', 
-                                padding: '16px',
-                                background: '#fafafa',
-                                border: '1px solid #f0f0f0',
-                                borderRadius: '2px'
-                            }}>
-                                <div style={{ 
-                                    marginBottom: '16px',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center'
-                                }}>
-                                    <h4 style={{ margin: 0 }}>故障分析</h4>
-                                    <Button 
-                                        type="text" 
-                                        icon={<Icon type="close" />}
-                                        onClick={() => setShowFaultTree(false)}
-                                    />
-                                </div>
-                                <FaultTreeIndex
-                                    cluster_name={selectedBusiness?.name}
-                                    key={`fault-tree-new-${faultTreeKey}`}
-                                />
-                            </div>
-                        )}
-
-                        {/* 失败详情 */}
-                        {showDetails && (
+                                                {/* 失败详情 */}
+                                                {showDetails && (
                             <div style={{ 
                                 marginTop: '16px', 
                                 padding: '16px',
@@ -751,29 +722,35 @@ export default function LinkSentinel() {
                             </div>
                         )}
 
-                        <Row gutter={[16, 16]} style={{ marginTop: '24px' }}>
-                            {detailedData.map(shard => (
-                                <Col span={4} key={shard.id}>
-                                    <Card 
-                                        title={shard.name}
-                                        size="small"
-                                        style={{
-                                            opacity: selectedShards.has(shard.name) ? 1 : 0.5
-                                        }}
-                                    >
-                                        <div style={{ marginBottom: '8px' }}>
-                                            <strong>
-                                                {detailMetricType === 'responseTime' ? '平均响应时间：' : '失败笔数：'}
-                                            </strong>
-                                            {detailMetricType === 'responseTime' 
-                                                ? `${Math.round(shard.responseTime[shard.responseTime.length - 1][1])} ms`
-                                                : shard.failureCount[shard.failureCount.length - 1][1]
-                                            }
-                                        </div>
-                                    </Card>
-                                </Col>
-                            ))}
-                        </Row>
+                        {/* 添加故障树分析 */}
+                        {showFaultTree && (
+                            <div style={{ 
+                                marginTop: '16px', 
+                                padding: '16px',
+                                background: '#fafafa',
+                                border: '1px solid #f0f0f0',
+                                borderRadius: '2px'
+                            }}>
+                                <div style={{ 
+                                    marginBottom: '16px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <h4 style={{ margin: 0 }}>故障分析</h4>
+                                    <Button 
+                                        type="text" 
+                                        icon={<Icon type="close" />}
+                                        onClick={() => setShowFaultTree(false)}
+                                    />
+                                </div>
+                                <FaultTreeIndex
+                                    // cluster_name={selectedBusiness?.name}
+                                    cluster_name="devops_test"
+                                    key={`fault-tree-new-${faultTreeKey}`}
+                                />
+                            </div>
+                        )}
                     </div>
                 )}
             </Drawer>
