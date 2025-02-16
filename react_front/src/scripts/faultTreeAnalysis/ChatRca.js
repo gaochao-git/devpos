@@ -72,6 +72,19 @@ const ChatRca = ({ treeData, style }) => {
     // 添加自动驾驶模式状态
     const [isAutoMode, setIsAutoMode] = useState(false);
 
+    // 添加懒加载相关状态（添加在其他 state 声明之后）
+    const MESSAGES_PER_LOAD = 5;
+    const [displayLimit, setDisplayLimit] = useState(MESSAGES_PER_LOAD);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    // 获取要显示的消息
+    const getDisplayMessages = useCallback(() => {
+        if (messages.length <= displayLimit) {
+            return messages;
+        }
+        return messages.slice(-displayLimit);
+    }, [messages, displayLimit]);
+
     // 添加获取Zabbix指标的函数
     const fetchZabbixMetrics = async () => {
         try {
@@ -195,7 +208,7 @@ const ChatRca = ({ treeData, style }) => {
                         }
 
                         const currentTime = Date.now();
-                        if (currentTime - lastUpdateTime > 100) {
+                        if (currentTime - lastUpdateTime > 30) {
                             setMessages(prev => {
                                 const newMessages = [...prev];
                                 newMessages[newMessages.length - 1] = {
@@ -312,19 +325,36 @@ const ChatRca = ({ treeData, style }) => {
         }
     };
 
-    // 处理用户滚动
+    // 修改现有的 handleScroll 函数
     const handleScroll = () => {
         if (!messagesContainerRef.current) return;
         
         const container = messagesContainerRef.current;
-        const currentScrollTop = container.scrollTop;
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        
+        // 检测是否滚动到顶部
+        if (scrollTop === 0 && messages.length > displayLimit && !isLoadingMore) {
+            setIsLoadingMore(true);
+            
+            // 使用 setTimeout 模拟加载延迟，可以移除
+            setTimeout(() => {
+                setDisplayLimit(prev => Math.min(prev + MESSAGES_PER_LOAD, messages.length));
+                setIsLoadingMore(false);
+            }, 300);
+        }
         
         // 检测向上滚动
-        if (currentScrollTop < lastScrollTop.current) {
+        if (scrollTop < lastScrollTop.current) {
             setIsUserScrolling(true);
         }
         
-        lastScrollTop.current = currentScrollTop;
+        // 检测是否滚动到底部
+        const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 10;
+        if (isAtBottom) {
+            setIsUserScrolling(false);
+        }
+        
+        lastScrollTop.current = scrollTop;
     };
 
     // 自动滚动函数
@@ -357,7 +387,10 @@ const ChatRca = ({ treeData, style }) => {
     // 修改 handleSend 函数
     const handleSend = async () => {
         if (!inputValue.trim() || isStreaming) return;
+        
         setIsUserScrolling(false);
+        // 确保发送新消息时显示最新消息
+        setDisplayLimit(MESSAGES_PER_LOAD);
 
         // 折叠所有现有消息
         setExpandedMessages(new Set());
@@ -1059,7 +1092,24 @@ const ChatRca = ({ treeData, style }) => {
                     marginBottom: `${inputAreaHeight + assistantsHeight}px`,
                 }}
             >
-                {messages.map((msg, index) => (
+                {/* 加载更多提示 */}
+                {messages.length > displayLimit && (
+                    <div style={{
+                        textAlign: 'center',
+                        padding: '10px',
+                        color: '#999',
+                        fontSize: '14px'
+                    }}>
+                        {isLoadingMore ? (
+                            <span>加载中...</span>
+                        ) : (
+                            <span>向上滚动加载更多</span>
+                        )}
+                    </div>
+                )}
+
+                {/* 消息列表 */}
+                {getDisplayMessages().map((msg, index) => (
                     <MessageItem
                         key={msg.timestamp}
                         msg={msg}
@@ -1072,7 +1122,7 @@ const ChatRca = ({ treeData, style }) => {
                         isExpanded={expandedMessages.has(msg.timestamp)}
                         onExpandChange={(expanded) => handleMessageExpand(msg.timestamp, expanded)}
                         messages={messages}
-                        isLatestMessage={index === messages.length - 1}
+                        isLatestMessage={index === getDisplayMessages().length - 1}
                         executedCommands={executedCommands}
                         executingCommands={executingCommands}
                         executeCommand={executeCommand}
