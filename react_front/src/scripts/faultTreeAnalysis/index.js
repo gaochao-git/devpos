@@ -25,26 +25,34 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
     const [isChatCollapsed, setIsChatCollapsed] = useState(false);
     const [chatWidth, setChatWidth] = useState(400);
 
-    // 更新时间范围的通用函数
-    const updateTimeRange = (value) => {
-        const end = moment();
-        let start;
-        let newTimeRange;
+    // 定义快捷时间范围
+    const ranges = {
+        '实时': [null, null],
+        '1分钟': [moment().subtract(1, 'minutes'), moment()],
+        '5分钟': [moment().subtract(5, 'minutes'), moment()],
+        '10分钟': [moment().subtract(10, 'minutes'), moment()],
+        '15分钟': [moment().subtract(15, 'minutes'), moment()],
+        '30分钟': [moment().subtract(30, 'minutes'), moment()],
+        '1小时': [moment().subtract(1, 'hours'), moment()],
+        '2小时': [moment().subtract(2, 'hours'), moment()],
+    };
 
-        if (value === 'realtime') {
-            newTimeRange = null;
-        } else if (value.endsWith('min')) {
-            start = moment().subtract(parseInt(value), 'minutes');
-            newTimeRange = [start, end];
-        } else if (value.endsWith('h')) {
-            start = moment().subtract(parseInt(value), 'hours');
-            newTimeRange = [start, end];
-        } else if (value.endsWith('d')) {
-            start = moment().subtract(parseInt(value), 'days');
-            newTimeRange = [start, end];
+    // 修改时间选择处理函数
+    const handleTimeChange = (dates, dateStrings) => {
+        if (!dates) {
+            setTimeMode('realtime');
+            setTimeRange(null);
+            if (selectedCase) {
+                handleCaseChange(selectedCase, null);
+            }
+            return;
         }
 
-        return newTimeRange;
+        setTimeMode('custom');
+        setTimeRange(dates);
+        if (selectedCase) {
+            handleCaseChange(selectedCase, dates);
+        }
     };
 
     const handleCaseChange = async (value, selectedTimeRange = timeRange) => {
@@ -123,33 +131,6 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
         }
     };
 
-    // 处理自义时间范围选择（手动输入）
-    const handleCustomRangeChange = (dates) => {
-        if (!dates) {
-            setTimeMode('realtime');
-            setTimeRange(null);
-            return;
-        }
-
-        setTimeMode('custom');
-        setTimeRange(dates);
-        // 手动输入时不调用接口
-    };
-
-    // 快速时间范围选择处理
-    const handleQuickRangeChange = (value) => {
-        setTimeMode(value);
-        
-        // 先更新时间范围
-        const newTimeRange = updateTimeRange(value);
-        setTimeRange(newTimeRange);
-        
-        // 如果有选中的场景，则更新数据
-        if (selectedCase) {
-            handleCaseChange(selectedCase, newTimeRange);
-        }
-    };
-
     // 刷新按钮处理函数
     const handleRefresh = () => {
         handleCaseChange(selectedCase, timeRange);
@@ -204,123 +185,47 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
 
     return (
         <Layout className="fault-tree-analysis">
-            <Content style={{ padding: '24px' }}>
+            <Content style={{ padding: '5px' }}>
                 <Card bordered={false}>
                     {/* 顶部工具栏 */}
                     <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             {/* 左侧分析按钮组 */}
                             <div style={{ display: 'flex', alignItems: 'center' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', marginRight: '24px' }}>
-                                    <div 
-                                      style={{
-                                        width: '80px',
-                                        height: '80px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        overflow: 'hidden',
-                                        cursor: 'pointer'
-                                      }}
-                                    >
-                                      <img 
-                                        src={aiGif} 
-                                        alt="AI"
-                                        style={{
-                                          width: '100%',
-                                          height: '100%',
-                                          objectFit: 'cover'
-                                        }}
-                                      />
-                                    </div>
-                                    <div style={{ marginLeft: '16px' }}>
-                                        <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' }}>
-                                            故障诊断分析
-                                        </div>
-                                        <div style={{ color: '#666' }}>
-                                            实时监控 · 智能分析 · 快速定位
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {/* 场景选择和按钮组 */}
                                 <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', gap: '12px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px', gap: '12px' }}>
                                         <Select
                                             value={selectedCase}
                                             onChange={handleCaseSelect}
                                             style={{ width: '178px' }}
-                                            size="large"
+                                            size="middle"
                                             placeholder="选择故障场景"
                                         >
                                             <Option value="数据库无法连接">数据库无法连接</Option>
                                             <Option value="数据库无法写入">数据库无法写入</Option>
                                             <Option value="数据库响应升高">数据库响应升高</Option>
                                         </Select>
-                                            <Switch
+                                            {/* <Switch
                                                 checkedChildren="流式"
                                                 unCheckedChildren="阻塞"
                                                 onChange={(checked) => setEnableStream(checked)}
                                                 style={{ width: '58px' }}
-                                            />
-                                    </div>
-                                    
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <Button
-                                            type="primary"
-                                            icon="fullscreen"
-                                            onClick={handleExpandAll}
-                                            disabled={!treeData}
-                                            size="large"
-                                            style={{ width: '120px' }}
-                                        >
-                                            全局视图
-                                        </Button>
-                                        <Button
-                                            type="danger"
-                                            icon="warning"
-                                            onClick={handleExpandError}
-                                            disabled={!treeData}
-                                            size="large"
-                                            style={{ width: '120px' }}
-                                        >
-                                            异常链路
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 右侧时间选择器 */}
-                            <div style={{ background: 'white', padding: '12px 16px', borderRadius: '12px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <Radio.Group
-                                        value={timeMode}
-                                        onChange={(e) => handleQuickRangeChange(e.target.value)}
-                                        buttonStyle="solid"
-                                        size="default"
-                                    >
-                                        <Radio.Button value="realtime">实时</Radio.Button>
-                                        <Radio.Button value="1min">1分钟</Radio.Button>
-                                        <Radio.Button value="5min">5分钟</Radio.Button>
-                                        <Radio.Button value="10min">10分钟</Radio.Button>
-                                        <Radio.Button value="15min">15分钟</Radio.Button>
-                                        <Radio.Button value="30min">30分钟</Radio.Button>
-                                        <Radio.Button value="1h">1小时</Radio.Button>
-                                        <Radio.Button value="2h">2小时</Radio.Button>
-                                    </Radio.Group>
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                            /> */}
+                                            <div style={{ display: 'flex', gap: '8px' }}>
                                         <RangePicker
                                             showTime
                                             value={timeRange}
-                                            onChange={handleCustomRangeChange}
-                                            style={{ width: '360px', marginRight: '8px' }}
+                                            onChange={handleTimeChange}
+                                            ranges={ranges}
+                                            style={{ flex: 1 }}
                                         />
-                                        <Button
-                                            type="primary"
-                                            onClick={handleRefresh}
-                                        >
-                                            分析
+                                        <Button type="primary" onClick={handleRefresh}>
+                                            刷新
                                         </Button>
+                                    </div>
+                                        <Button type="primary" icon="fullscreen" onClick={handleExpandAll} disabled={!treeData} size="middle"></Button>
+                                        <Button type="danger" icon="warning" onClick={handleExpandError} disabled={!treeData} size="middle"></Button>
                                     </div>
                                 </div>
                             </div>
@@ -331,7 +236,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                     <div style={{ 
                         background: 'white',
                         borderRadius: '12px',
-                        padding: '24px',
+                        padding: '5px',
                         minHeight: 'calc(100vh - 280px)',
                         display: 'flex',
                         position: 'relative',
@@ -342,7 +247,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                 {/* 故障树区域 */}
                                 <div style={{
                                     width: `calc(100% - ${isChatCollapsed ? 40 : chatWidth}px)`,
-                                    height: 'calc(100vh - 328px)',
+                                    height: 'calc(115vh - 328px)',
                                     overflow: 'hidden'
                                 }}>
                                     <G6Tree 
@@ -354,7 +259,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                 {/* 对话助手区域 */}
                                 <ResizableBox
                                     width={isChatCollapsed ? 40 : chatWidth}
-                                    height={`calc(100vh - 10px)`}
+                                    height={`calc(115vh - 10px)`}
                                     minConstraints={[20, 1000]}
                                     maxConstraints={[1200, 1000]}
                                     axis="x"
@@ -368,7 +273,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                     }}
                                 >
                                     <div style={{
-                                        height: 'calc(100vh - 328px)',
+                                        height: 'calc(115vh - 328px)',
                                         background: 'white',
                                         borderRadius: '8px',
                                         border: '1px solid #e5e7eb',
