@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import { markdownRenderers, MESSAGE_DISPLAY_THRESHOLD } from '../util';
 import { registry } from '../assistants';
 import CodeBlock from './CodeBlock';
+import ZabbixChart from './ZabbixChart';
 
 const MessageItem = ({
     msg,
@@ -118,14 +119,12 @@ const MessageItem = ({
         
         return parts.map((part, index) => {
             if (part.startsWith('<tool>') && part.endsWith('</tool>')) {
-                // 提取工具调用内容
                 const toolContent = part.slice(6, -7);
                 const [toolName, toolInput, toolOutput, position] = toolContent.split('\n').map(s => s.trim());
                 
                 // 解析工具输入
                 let parsedInput = toolInput;
                 try {
-                    // 格式化 JSON 显示
                     parsedInput = JSON.stringify(JSON.parse(toolInput), null, 2);
                 } catch (e) {
                     console.warn('Failed to parse tool input:', e);
@@ -133,23 +132,37 @@ const MessageItem = ({
 
                 // 解析工具输出
                 let parsedOutput = toolOutput;
+                let zabbixData = null;
+
                 try {
-                    // 首先解析外层对象
+                    console.log('Tool name:', toolName);
+                    console.log('Raw tool output:', toolOutput);
+
                     const outputObj = JSON.parse(toolOutput);
-                    // 对于每个工具的输出值，尝试进行二次解析
-                    const formattedOutput = {};
-                    for (const [key, value] of Object.entries(outputObj)) {
-                        try {
-                            // 尝试解析字符串值为JSON
-                            formattedOutput[key] = JSON.parse(value);
-                        } catch (e) {
-                            // 如果解析失败，保持原值
-                            formattedOutput[key] = value;
+                    console.log('First parse:', outputObj);
+
+                    // 对 getZabbixMetricHistory 的值进行二次解析
+                    if (toolName === 'getZabbixMetricHistory' && outputObj.getZabbixMetricHistory) {
+                        const zabbixResult = JSON.parse(outputObj.getZabbixMetricHistory);
+                        console.log('Second parse:', zabbixResult);
+                        
+                        if (zabbixResult.status === 'ok' && Array.isArray(zabbixResult.data)) {
+                            zabbixData = zabbixResult.data;
+                            console.log('Final Zabbix data:', zabbixData);
                         }
                     }
-                    parsedOutput = JSON.stringify(formattedOutput, null, 2);
+                    
+                    // 格式化显示的输出
+                    if (zabbixData) {
+                        parsedOutput = JSON.stringify({
+                            getZabbixMetricHistory: JSON.parse(outputObj.getZabbixMetricHistory)
+                        }, null, 2);
+                    } else {
+                        parsedOutput = JSON.stringify(outputObj, null, 2);
+                    }
                 } catch (e) {
-                    console.warn('Failed to parse tool output:', e);
+                    console.error('Error parsing tool output:', e);
+                    console.error('Tool output that failed to parse:', toolOutput);
                 }
 
                 return (
@@ -177,10 +190,22 @@ const MessageItem = ({
                             <span>{toolName}</span>
                         </div>
                         
+                        {/* 将 Zabbix 图表移到折叠区域外 */}
+                        {zabbixData && (
+                            <div style={{ padding: '12px', borderBottom: '1px solid #e8e8e8' }}>
+                                {console.log('Rendering Zabbix chart with data:', zabbixData)}
+                                <ZabbixChart 
+                                    data={zabbixData}
+                                    showHeader={true}
+                                />
+                            </div>
+                        )}
+                        
                         {expandedTools.has(index) && (
                             <div style={{ padding: '12px' }}>
+                                {/* 输入和输出部分保持不变 */}
                                 <div style={{ marginBottom: '8px' }}>
-                                    <strong>输入：</strong>
+                                    <strong>请求：</strong>
                                     <div style={{ 
                                         background: '#fff',
                                         padding: '8px',
@@ -191,22 +216,20 @@ const MessageItem = ({
                                         <pre style={{ margin: 0 }}>{parsedInput}</pre>
                                     </div>
                                 </div>
-                                {parsedOutput && (
-                                    <div>
-                                        <strong>输出：</strong>
-                                        <div style={{ 
-                                            background: '#fff',
-                                            padding: '8px',
-                                            borderRadius: '4px',
-                                            marginTop: '4px',
-                                            fontFamily: 'monospace',
-                                            whiteSpace: 'pre-wrap',
-                                            wordBreak: 'break-word'
-                                        }}>
-                                            <pre style={{ margin: 0 }}>{parsedOutput}</pre>
-                                        </div>
+                                <div>
+                                    <strong>响应：</strong>
+                                    <div style={{ 
+                                        background: '#fff',
+                                        padding: '8px',
+                                        borderRadius: '4px',
+                                        marginTop: '4px',
+                                        fontFamily: 'monospace',
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-word'
+                                    }}>
+                                        <pre style={{ margin: 0 }}>{parsedOutput}</pre>
                                     </div>
-                                )}
+                                </div>
                             </div>
                         )}
                     </div>
