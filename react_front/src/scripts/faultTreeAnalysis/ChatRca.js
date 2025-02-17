@@ -194,13 +194,24 @@ const ChatRca = ({ treeData, style }) => {
                         }
 
                         if (data.tool) {
-                            const position = data.position || steps.size + 1;
-                            steps.set(position, {
-                                position,
-                                tool: data.tool,
-                                input: data.tool_input,
-                                observation: data.observation
-                            });
+                            const toolId = data.tool_id || data.tool;
+                            let step = steps.get(toolId);
+                            
+                            if (!step) {
+                                // 新的工具调用
+                                step = {
+                                    position: steps.size + 1,
+                                    tool: data.tool,
+                                    input: data.tool_input,
+                                    observation: ''
+                                };
+                            }
+                            
+                            // 更新工具调用的结果
+                            if (data.observation) {
+                                step.observation = data.observation;
+                                steps.set(toolId, step);
+                            }
                         }
 
                         if (data.answer) {
