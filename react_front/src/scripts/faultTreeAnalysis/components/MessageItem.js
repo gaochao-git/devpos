@@ -23,6 +23,7 @@ const MessageItem = ({
 }) => {
     const [expandedContext, setExpandedContext] = useState(null);
     const [expandedSteps, setExpandedSteps] = useState(new Set());
+    const [expandedTools, setExpandedTools] = useState(new Set());
     
     // 如果是最新消息，则始终展开
     const shouldDisplayFull = isLatestMessage || isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD;
@@ -95,82 +96,130 @@ const MessageItem = ({
         }
     };
 
-    // 添加工具步骤的展示逻辑
-    const renderSteps = () => {
-        if (!msg.steps || msg.steps.length === 0) return null;
+    // 处理工具展开/收起
+    const handleToolToggle = (index) => {
+        setExpandedTools(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(index)) {
+                newSet.delete(index);
+            } else {
+                newSet.add(index);
+            }
+            return newSet;
+        });
+    };
 
-        return (
-            <div style={{ marginBottom: '12px' }}>
-                {msg.steps.map((step, index) => (
-                    <div 
-                        key={index} 
-                        style={{ 
-                            marginBottom: '8px',
-                            border: '1px solid #e8e8e8',
-                            borderRadius: '4px',
-                            background: '#fafafa'
-                        }}
-                    >
+    // 渲染消息内容
+    const renderContent = (content) => {
+        if (!content) return null;
+
+        // 分割工具调用和普通文本
+        const parts = content.split(/(<tool>.*?<\/tool>)/s);
+        
+        return parts.map((part, index) => {
+            if (part.startsWith('<tool>') && part.endsWith('</tool>')) {
+                // 提取工具调用内容
+                const toolContent = part.slice(6, -7);
+                const [toolName, toolInput, toolOutput, position] = toolContent.split('\n').map(s => s.trim());
+                
+                // 解析工具输入
+                let parsedInput = toolInput;
+                try {
+                    // 格式化 JSON 显示
+                    parsedInput = JSON.stringify(JSON.parse(toolInput), null, 2);
+                } catch (e) {
+                    console.warn('Failed to parse tool input:', e);
+                }
+
+                // 解析工具输出
+                let parsedOutput = toolOutput;
+                try {
+                    // 首先解析外层对象
+                    const outputObj = JSON.parse(toolOutput);
+                    // 对于每个工具的输出值，尝试进行二次解析
+                    const formattedOutput = {};
+                    for (const [key, value] of Object.entries(outputObj)) {
+                        try {
+                            // 尝试解析字符串值为JSON
+                            formattedOutput[key] = JSON.parse(value);
+                        } catch (e) {
+                            // 如果解析失败，保持原值
+                            formattedOutput[key] = value;
+                        }
+                    }
+                    parsedOutput = JSON.stringify(formattedOutput, null, 2);
+                } catch (e) {
+                    console.warn('Failed to parse tool output:', e);
+                }
+
+                return (
+                    <div key={index} style={{
+                        marginBottom: '12px',
+                        border: '1px solid #e8e8e8',
+                        borderRadius: '4px',
+                        background: '#fafafa'
+                    }}>
                         <div 
-                            onClick={() => {
-                                setExpandedSteps(prev => {
-                                    const newSet = new Set(prev);
-                                    if (newSet.has(step.position)) {
-                                        newSet.delete(step.position);
-                                    } else {
-                                        newSet.add(step.position);
-                                    }
-                                    return newSet;
-                                });
-                            }}
+                            onClick={() => handleToolToggle(index)}
                             style={{ 
                                 padding: '8px 12px',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                borderBottom: expandedSteps.has(step.position) ? '1px solid #e8e8e8' : 'none'
+                                borderBottom: expandedTools.has(index) ? '1px solid #e8e8e8' : 'none'
                             }}
                         >
                             <Icon 
-                                type={expandedSteps.has(step.position) ? 'caret-down' : 'caret-right'} 
+                                type={expandedTools.has(index) ? 'caret-down' : 'caret-right'} 
                                 style={{ marginRight: '8px' }}
                             />
-                            <Tag color="blue" style={{ marginRight: '8px' }}>工具{step.position}</Tag>
-                            <span>{step.tool}</span>
+                            <Tag color="blue" style={{ marginRight: '8px' }}>工具{position}</Tag>
+                            <span>{toolName}</span>
                         </div>
                         
-                        {expandedSteps.has(step.position) && (
+                        {expandedTools.has(index) && (
                             <div style={{ padding: '12px' }}>
                                 <div style={{ marginBottom: '8px' }}>
-                                    <strong>输入参数：</strong>
+                                    <strong>输入：</strong>
                                     <div style={{ 
                                         background: '#fff',
                                         padding: '8px',
                                         borderRadius: '4px',
-                                        marginTop: '4px'
+                                        marginTop: '4px',
+                                        fontFamily: 'monospace'
                                     }}>
-                                        <code>{step.input}</code>
+                                        <pre style={{ margin: 0 }}>{parsedInput}</pre>
                                     </div>
                                 </div>
-                                <div>
-                                    <strong>执行结果：</strong>
-                                    <div style={{ 
-                                        background: '#fff',
-                                        padding: '8px',
-                                        borderRadius: '4px',
-                                        marginTop: '4px'
-                                    }}>
-                                        <ReactMarkdown components={customRenderers}>
-                                            {step.observation}
-                                        </ReactMarkdown>
+                                {parsedOutput && (
+                                    <div>
+                                        <strong>输出：</strong>
+                                        <div style={{ 
+                                            background: '#fff',
+                                            padding: '8px',
+                                            borderRadius: '4px',
+                                            marginTop: '4px',
+                                            fontFamily: 'monospace',
+                                            whiteSpace: 'pre-wrap',
+                                            wordBreak: 'break-word'
+                                        }}>
+                                            <pre style={{ margin: 0 }}>{parsedOutput}</pre>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         )}
                     </div>
-                ))}
-            </div>
-        );
+                );
+            }
+            
+            // 渲染普通文本
+            return (
+                <ReactMarkdown key={index} components={customRenderers}>
+                    {part}
+                </ReactMarkdown>
+            );
+        });
     };
 
     // 修改 renderMessageContent 函数
@@ -178,10 +227,7 @@ const MessageItem = ({
         if (msg.type === 'llm') {
             return (
                 <div className="message-content">
-                    {renderSteps()}
-                    <ReactMarkdown components={customRenderers}>
-                        {displayContent}
-                    </ReactMarkdown>
+                    {renderContent(displayContent)}
                     {!shouldDisplayFull && (
                         <Button type="link" onClick={() => onExpandChange(true)}>
                             显示更多
@@ -217,9 +263,7 @@ const MessageItem = ({
         // 其他类型消息的默认渲染
         return (
             <div className="message-content">
-                <ReactMarkdown components={markdownRenderers}>
-                    {displayContent}
-                </ReactMarkdown>
+                {renderContent(displayContent)}
                 {!shouldDisplayFull && (
                     <Button type="link" onClick={() => onExpandChange(true)}>
                         显示更多

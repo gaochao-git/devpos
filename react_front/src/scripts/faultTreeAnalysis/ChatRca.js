@@ -146,13 +146,12 @@ const ChatRca = ({ treeData, style }) => {
         const decoder = new TextDecoder();
         let buffer = '';
         let fullContent = '';
-        let steps = new Map();
+        let currentTool = null;
         let lastUpdateTime = Date.now();
         
         setMessages(prev => [...prev, {
             type: 'llm',
             content: '',
-            steps: [],
             timestamp: getStandardTime()
         }]);
 
@@ -174,7 +173,6 @@ const ChatRca = ({ treeData, style }) => {
                         const jsonStr = line.slice(6);
                         const data = JSON.parse(jsonStr);
 
-                        // 添加对 message_end 事件的处理
                         if (data.event === 'message_end') {
                             setMessages(prev => {
                                 const newMessages = [...prev];
@@ -188,34 +186,25 @@ const ChatRca = ({ treeData, style }) => {
                             continue;
                         }
 
-                        // 保持现有的其他处理逻辑不变
                         if (data.conversation_id && !conversationId) {
                             setConversationId(data.conversation_id);
                         }
 
-                        if (data.tool) {
-                            const toolId = data.tool_id || data.tool;
-                            let step = steps.get(toolId);
-                            
-                            if (!step) {
-                                // 新的工具调用
-                                step = {
-                                    position: steps.size + 1,
-                                    tool: data.tool,
-                                    input: data.tool_input,
-                                    observation: ''
-                                };
+                        // 首先判断是否为 agent_thought 事件
+                        if (data.event === 'agent_thought') {
+                            if (data.tool && data.tool_input && data.observation) {
+                                // 直接使用原始的 tool_input，不添加 position
+                                const toolInput = data.tool_input;
+                                
+                                // 构建工具调用的完整内容，position 作为单独的属性
+                                const toolContent = `<tool>${data.tool}\n${toolInput}\n${data.observation}\n${data.position}</tool>\n\n`;
+                                fullContent += toolContent;
                             }
-                            
-                            // 更新工具调用的结果
-                            if (data.observation) {
-                                step.observation = data.observation;
-                                steps.set(toolId, step);
+                        } else {
+                            // 处理普通回答
+                            if (data.answer) {
+                                fullContent += data.answer;
                             }
-                        }
-
-                        if (data.answer) {
-                            fullContent += data.answer;
                         }
 
                         const currentTime = Date.now();
@@ -224,8 +213,7 @@ const ChatRca = ({ treeData, style }) => {
                                 const newMessages = [...prev];
                                 newMessages[newMessages.length - 1] = {
                                     ...newMessages[newMessages.length - 1],
-                                    content: fullContent,
-                                    steps: Array.from(steps.values())
+                                    content: fullContent
                                 };
                                 return newMessages;
                             });
