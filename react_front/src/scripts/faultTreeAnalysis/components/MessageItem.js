@@ -25,6 +25,7 @@ const MessageItem = ({
     const [expandedContext, setExpandedContext] = useState(null);
     const [expandedSteps, setExpandedSteps] = useState(new Set());
     const [expandedTools, setExpandedTools] = useState(new Set());
+    const [expandedThoughts, setExpandedThoughts] = useState(new Set());
     
     // 如果是最新消息，则始终展开
     const shouldDisplayFull = isLatestMessage || isExpanded || msg.content.length <= MESSAGE_DISPLAY_THRESHOLD;
@@ -114,10 +115,57 @@ const MessageItem = ({
     const renderContent = (content) => {
         if (!content) return null;
 
-        // 分割工具调用和普通文本
-        const parts = content.split(/(<tool>.*?<\/tool>)/s);
+        // 分割思考过程和工具调用
+        const parts = content.split(/(<think>.*?<\/think>|<tool>.*?<\/tool>)/s);
         
         return parts.map((part, index) => {
+            // 处理思考过程
+            if (part.startsWith('<think>') && part.endsWith('</think>')) {
+                const thoughtContent = part.slice(7, -8);
+                const isExpanded = expandedThoughts.has(index);
+                
+                return (
+                    <div key={index} style={{
+                        marginBottom: '12px',
+                        padding: '8px',
+                        background: '#fafafa',
+                        borderRadius: '4px',
+                        border: '1px solid #e8e8e8',
+                        fontSize: '12px',
+                        color: '#999'  // 使用与 metadata 相同的颜色
+                    }}>
+                        <div 
+                            onClick={() => setExpandedThoughts(prev => {
+                                const newSet = new Set(prev);
+                                if (newSet.has(index)) {
+                                    newSet.delete(index);
+                                } else {
+                                    newSet.add(index);
+                                }
+                                return newSet;
+                            })}
+                            style={{ 
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}
+                        >
+                            <Icon type={isExpanded ? 'caret-down' : 'caret-right'} />
+                            <span>AI 分析过程</span>
+                        </div>
+                        {isExpanded && (
+                            <div style={{ marginTop: '8px' }}>
+                                <ReactMarkdown components={customRenderers}>
+                                    {thoughtContent}
+                                </ReactMarkdown>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+            
+            // 处理工具调用
             if (part.startsWith('<tool>') && part.endsWith('</tool>')) {
                 const toolContent = part.slice(6, -7);
                 const [toolName, toolInput, toolOutput, position] = toolContent.split('\n').map(s => s.trim());
