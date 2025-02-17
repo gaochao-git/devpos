@@ -135,20 +135,14 @@ const MessageItem = ({
                 let zabbixData = null;
 
                 try {
-                    console.log('Tool name:', toolName);
-                    console.log('Raw tool output:', toolOutput);
-
                     const outputObj = JSON.parse(toolOutput);
-                    console.log('First parse:', outputObj);
 
                     // 对 getZabbixMetricHistory 的值进行二次解析
                     if (toolName === 'getZabbixMetricHistory' && outputObj.getZabbixMetricHistory) {
                         const zabbixResult = JSON.parse(outputObj.getZabbixMetricHistory);
-                        console.log('Second parse:', zabbixResult);
                         
                         if (zabbixResult.status === 'ok' && Array.isArray(zabbixResult.data)) {
                             zabbixData = zabbixResult.data;
-                            console.log('Final Zabbix data:', zabbixData);
                         }
                     }
                     
@@ -162,7 +156,6 @@ const MessageItem = ({
                     }
                 } catch (e) {
                     console.error('Error parsing tool output:', e);
-                    console.error('Tool output that failed to parse:', toolOutput);
                 }
 
                 return (
@@ -193,7 +186,6 @@ const MessageItem = ({
                         {/* 将 Zabbix 图表移到折叠区域外 */}
                         {zabbixData && (
                             <div style={{ padding: '12px', borderBottom: '1px solid #e8e8e8' }}>
-                                {console.log('Rendering Zabbix chart with data:', zabbixData)}
                                 <ZabbixChart 
                                     data={zabbixData}
                                     showHeader={true}
