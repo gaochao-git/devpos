@@ -202,9 +202,9 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                             size="middle"
                                             placeholder="选择故障场景"
                                         >
-                                            <Option value="数据库无法连接">数据库无法连接</Option>
-                                            <Option value="数据库无法写入">数据库无法写入</Option>
+                                            <Option value="数据库写入超时">数据库写入超时</Option>
                                             <Option value="数据库响应升高">数据库响应升高</Option>
+                                            <Option value="数据库无法连接">数据库无法连接</Option>
                                         </Select>
                                             {/* <Switch
                                                 checkedChildren="流式"
