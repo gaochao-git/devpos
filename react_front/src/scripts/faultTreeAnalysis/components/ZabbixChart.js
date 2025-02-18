@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactEcharts from 'echarts-for-react';
 
-const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
+const ZabbixChart = ({ data, style = {}, showHeader = true }) => {
     // 确保数据存在且有效
     if (!Array.isArray(data) || data.length === 0) {
         return <div>No data available</div>;
@@ -26,14 +26,18 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
 
         return {
             title: {
-                text: firstItem.key_,
+                text: `${firstItem.key_} (${data.length} 个数据点)`,  // 第一行：指标名称和数据点数量
+                subtext: `最小值: ${minValue.toFixed(2)}${firstItem.units} • 平均值: ${avgValue.toFixed(2)}${firstItem.units} • 最大值: ${maxValue.toFixed(2)}${firstItem.units}`,  // 第二行：统计信息
                 left: 'center',
                 top: 5,
                 textStyle: {
                     color: '#666',
                     fontSize: 13
                 },
-                subtext: `min: ${minValue.toFixed(2)}${firstItem.units} • avg: ${avgValue.toFixed(2)}${firstItem.units} • max: ${maxValue.toFixed(2)}${firstItem.units}`
+                subtextStyle: {
+                    color: '#666',
+                    fontSize: 12
+                }
             },
             tooltip: {
                 trigger: 'axis',
@@ -51,7 +55,7 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
                 }
             },
             grid: {
-                top: 70,  // 增加顶部空间以显示统计信息
+                top: 70,  // 确保有足够空间显示两行标题
                 left: '3%',
                 right: '4%',
                 bottom: '3%',
@@ -136,16 +140,6 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
 
     return (
         <div style={{ width: '100%', padding: '5px 0' }}>
-            {showHeader && (
-                <div style={{ 
-                    textAlign: 'center', 
-                    marginBottom: '5px',
-                    color: '#666',
-                    fontSize: '12px'
-                }}>
-                    数据点数量: {data.length}
-                </div>
-            )}
             <ReactEcharts 
                 option={getChartOption()} 
                 style={{ height: '200px', ...style }}

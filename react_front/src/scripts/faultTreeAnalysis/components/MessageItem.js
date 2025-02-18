@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Tag, Checkbox, Icon, Collapse } from 'antd';
 import ReactMarkdown from 'react-markdown';
-import { markdownRenderers, MESSAGE_DISPLAY_THRESHOLD } from '../util';
+import { markdownRenderers, MESSAGE_DISPLAY_THRESHOLD, formatValueWithUnit } from '../util';
 import { registry } from '../assistants';
 import CodeBlock from './CodeBlock';
 import ZabbixChart from './ZabbixChart';
@@ -379,6 +379,21 @@ const MessageItem = ({
                 )}
             </div>
         );
+    };
+
+    const formatZabbixData = (content) => {
+        try {
+            const data = JSON.parse(content);
+            if (data.status === 'ok' && Array.isArray(data.data)) {
+                const firstItem = data.data[0];
+                return `指标名称: ${firstItem.key_}\n` + 
+                       data.data.map(point => {
+                           const formatted = formatValueWithUnit(parseFloat(point.value), point.units);
+                           return `${point.metric_time} | ${formatted.value}${formatted.unit}`;
+                       }).join('\n');
+            }
+        } catch (e) {}
+        return content;
     };
 
     return (

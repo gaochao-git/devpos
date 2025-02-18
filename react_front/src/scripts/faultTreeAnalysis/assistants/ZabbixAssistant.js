@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Select, Icon, message, Checkbox, Button, Modal } from 'antd';
 import BaseAssistant from './BaseAssistant';
-import { getStandardTime, markdownRenderers } from '../util';
+import { getStandardTime, markdownRenderers, formatValueWithUnit } from '../util';
 import MyAxios from "../../common/interface";
 import ReactMarkdown from 'react-markdown';
 import ZabbixChart from '../components/ZabbixChart';
@@ -45,46 +45,6 @@ class ZabbixAssistant extends BaseAssistant {
         await this.fetchMetrics(ip);
     }
 
-    /**
-     * 格式化数值和单位
-     * @param {number} value - 原始数值
-     * @param {string} originalUnit - 原始单位
-     * @returns {{value: string, unit: string}} 转换后的数值和单位
-     */
-    formatValueWithUnit(value, originalUnit) {
-        const conversionRules = {
-            'B': [
-                { threshold: 1024 ** 4, unit: 'TB', divisor: 1024 ** 4 },
-                { threshold: 1024 ** 3, unit: 'GB', divisor: 1024 ** 3 },
-                { threshold: 1024 ** 2, unit: 'MB', divisor: 1024 ** 2 },
-                { threshold: 1024, unit: 'KB', divisor: 1024 },
-                { threshold: 0, unit: 'B', divisor: 1 }
-            ],
-            'bps': [
-                { threshold: 1000 ** 4, unit: 'Tbps', divisor: 1000 ** 4 },
-                { threshold: 1000 ** 3, unit: 'Gbps', divisor: 1000 ** 3 },
-                { threshold: 1000 ** 2, unit: 'Mbps', divisor: 1000 ** 2 },
-                { threshold: 1000, unit: 'Kbps', divisor: 1000 },
-                { threshold: 0, unit: 'bps', divisor: 1 }
-            ]
-        };
-
-        // 获取对应单位的转换规则
-        const rules = conversionRules[originalUnit] || [{ threshold: 0, unit: originalUnit, divisor: 1 }];
-        
-        // 查找适合的转换规则
-        const rule = rules.find(r => Math.abs(value) >= r.threshold);
-        
-        // 转换值和单位
-        const convertedValue = rule ? (value / rule.divisor).toFixed(2) : value;
-        const finalUnit = rule ? rule.unit : originalUnit;
-
-        return {
-            value: convertedValue,
-            unit: finalUnit
-        };
-    }
-
     // 重写执行命令方法
     async handleExecute({ assistantInputs, config, executingAssistants, executeCommand, timeRange }) {
         const isExecuting = executingAssistants.has(this.name);
@@ -118,9 +78,9 @@ class ZabbixAssistant extends BaseAssistant {
                 const metricsData = response.data.data;
                 const firstItem = metricsData[0];
                 
-                // 如果涉及到单位换算的,直接替换所有数据点的值和单位
+                // 使用公共方法进行格式化
                 response.data.data = metricsData.map(point => {
-                    const formatted = this.formatValueWithUnit(point.value, firstItem.units);
+                    const formatted = formatValueWithUnit(point.value, firstItem.units);
                     return {
                         ...point,
                         value: formatted.value,
@@ -198,7 +158,7 @@ class ZabbixAssistant extends BaseAssistant {
                 <ZabbixChart 
                     data={msg.rawContent} 
                     style={{ height: '220px' }}
-                    showHeader={false}
+                    showHeader={true}
                 />
             </div>
         );

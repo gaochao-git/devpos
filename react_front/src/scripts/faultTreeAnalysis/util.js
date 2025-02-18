@@ -243,3 +243,35 @@ export const ES_QUERY_TEMPLATES = [
     }
 ];
 export const MESSAGE_DISPLAY_THRESHOLD = 500;
+
+/**
+ * 格式化数值和单位为人类可读的格式
+ * @param {number} value - 原始数值
+ * @param {string} originalUnit - 原始单位
+ * @returns {{value: string, unit: string}} 转换后的数值和单位
+ */
+export const formatValueWithUnit = (value, originalUnit) => {
+    const conversionRules = {
+        'B': [
+            { threshold: 1024 ** 4, unit: 'TB', divisor: 1024 ** 4 },
+            { threshold: 1024 ** 3, unit: 'GB', divisor: 1024 ** 3 },
+            { threshold: 1024 ** 2, unit: 'MB', divisor: 1024 ** 2 },
+            { threshold: 1024, unit: 'KB', divisor: 1024 },
+            { threshold: 0, unit: 'B', divisor: 1 }
+        ],
+        'bps': [
+            { threshold: 1000 ** 4, unit: 'Tbps', divisor: 1000 ** 4 },
+            { threshold: 1000 ** 3, unit: 'Gbps', divisor: 1000 ** 3 },
+            { threshold: 1000 ** 2, unit: 'Mbps', divisor: 1000 ** 2 },
+            { threshold: 1000, unit: 'Kbps', divisor: 1000 },
+            { threshold: 0, unit: 'bps', divisor: 1 }
+        ]
+    };
+
+    const rules = conversionRules[originalUnit] || [{ threshold: 0, unit: originalUnit, divisor: 1 }];
+    const rule = rules.find(r => Math.abs(value) >= r.threshold);
+    const convertedValue = rule ? (value / rule.divisor).toFixed(2) : value;
+    const finalUnit = rule ? rule.unit : originalUnit;
+
+    return { value: convertedValue, unit: finalUnit };
+};
