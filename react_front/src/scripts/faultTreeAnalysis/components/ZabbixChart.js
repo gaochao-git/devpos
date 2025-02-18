@@ -15,6 +15,15 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
         // 使用第一个数据点获取基本信息
         const firstItem = data[0];
 
+        // 计算统计值
+        const minValue = Math.min(...values);
+        const maxValue = Math.max(...values);
+        const avgValue = values.reduce((a, b) => a + b, 0) / values.length;
+
+        // 确定是否从0开始
+        const shouldStartFromZero = minValue <= maxValue * 0.1;  // 如果最小值小于最大值的10%，则从0开始
+        const yAxisMin = shouldStartFromZero ? 0 : minValue * 0.95;
+
         return {
             title: {
                 text: firstItem.key_,
@@ -23,7 +32,8 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
                 textStyle: {
                     color: '#666',
                     fontSize: 13
-                }
+                },
+                subtext: `min: ${minValue.toFixed(2)}${firstItem.units} • avg: ${avgValue.toFixed(2)}${firstItem.units} • max: ${maxValue.toFixed(2)}${firstItem.units}`
             },
             tooltip: {
                 trigger: 'axis',
@@ -31,10 +41,17 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
                     const value = params[0].value;
                     const time = params[0].axisValue;
                     return `${time}<br/>${value}${firstItem.units}`;
+                },
+                axisPointer: {
+                    type: 'line',
+                    lineStyle: {
+                        color: '#666',
+                        type: 'dashed'
+                    }
                 }
             },
             grid: {
-                top: 30,
+                top: 70,  // 增加顶部空间以显示统计信息
                 left: '3%',
                 right: '4%',
                 bottom: '3%',
@@ -49,16 +66,26 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
                         // 只显示时间部分，如果需要
                         return value.split(' ')[1];
                     }
+                },
+                splitLine: {
+                    show: false
                 }
             },
             yAxis: {
                 type: 'value',
+                min: yAxisMin,
                 axisLabel: {
                     formatter: (value) => {
                         return value + firstItem.units;
                     }
                 },
-                scale: true
+                splitLine: {
+                    show: true,
+                    lineStyle: {
+                        type: 'dashed',
+                        color: '#E5E5E5'
+                    }
+                }
             },
             dataZoom: [
                 {
@@ -69,21 +96,23 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
                 {
                     type: 'slider',
                     start: 0,
-                    end: 100
+                    end: 100,
+                    height: 20
                 }
             ],
             series: [{
                 type: 'line',
                 data: values,
-                smooth: true,
+                smooth: false,  // 改为false以更准确显示数据点
                 symbol: 'circle',
-                symbolSize: 6,
+                symbolSize: 4,
                 sampling: 'lttb',
                 lineStyle: {
-                    width: 2
+                    width: 1.5,
+                    color: '#1F78C1'  // Zabbix默认的蓝色
                 },
                 itemStyle: {
-                    color: '#1890ff'
+                    color: '#1F78C1'
                 },
                 areaStyle: {
                     color: {
@@ -94,10 +123,10 @@ const ZabbixChart = ({ data, style = {}, showHeader = false }) => {
                         y2: 1,
                         colorStops: [{
                             offset: 0,
-                            color: 'rgba(24,144,255,0.3)'
+                            color: 'rgba(31,120,193,0.2)'
                         }, {
                             offset: 1,
-                            color: 'rgba(24,144,255,0.1)'
+                            color: 'rgba(31,120,193,0.02)'
                         }]
                     }
                 }
