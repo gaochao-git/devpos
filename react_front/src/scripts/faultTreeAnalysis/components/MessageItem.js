@@ -190,7 +190,14 @@ const MessageItem = ({
                         const zabbixResult = JSON.parse(outputObj.getZabbixMetricHistory);
                         
                         if (zabbixResult.status === 'ok' && Array.isArray(zabbixResult.data)) {
-                            zabbixData = zabbixResult.data;
+                            zabbixData = zabbixResult.data.map(point => {
+                                const formatted = formatValueWithUnit(point.value, point.units);
+                                return {
+                                    ...point,
+                                    value: formatted.value,
+                                    units: formatted.unit
+                                };
+                            });
                         }
                     }
                     
@@ -379,21 +386,6 @@ const MessageItem = ({
                 )}
             </div>
         );
-    };
-
-    const formatZabbixData = (content) => {
-        try {
-            const data = JSON.parse(content);
-            if (data.status === 'ok' && Array.isArray(data.data)) {
-                const firstItem = data.data[0];
-                return `指标名称: ${firstItem.key_}\n` + 
-                       data.data.map(point => {
-                           const formatted = formatValueWithUnit(parseFloat(point.value), point.units);
-                           return `${point.metric_time} | ${formatted.value}${formatted.unit}`;
-                       }).join('\n');
-            }
-        } catch (e) {}
-        return content;
     };
 
     return (
