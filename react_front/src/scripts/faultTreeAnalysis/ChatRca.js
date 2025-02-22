@@ -183,6 +183,7 @@ const ChatRca = ({ treeData, style }) => {
                                 };
                                 return newMessages;
                             });
+                            setIsStreaming(false);  // 立即设置为 false，让输入框可用
                             continue;
                         }
 

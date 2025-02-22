@@ -4,7 +4,7 @@ import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 // API URLs and Configuration
 export const DIFY_BASE_URL = 'http://127.0.0.1/v1';
-export const DIFY_API_KEY = 'Bearer app-0ZN3lcs7Cb9i1LfR1q5nrcZr';
+export const DIFY_API_KEY = 'Bearer app-QRsieDqaH0hPtzE3kBqzwSAZ';
 export const DIFY_API_KEY_AUTO = 'Bearer app-XheJMMFqvNlkgS7TjbU2OC2h';
 export const DIFY_CHAT_URL = `${DIFY_BASE_URL}/chat-messages`;
 export const DIFY_CONVERSATIONS_URL = `${DIFY_BASE_URL}/conversations`;
