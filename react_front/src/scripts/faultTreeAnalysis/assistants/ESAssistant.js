@@ -118,19 +118,26 @@ export default class ESAssistant extends BaseAssistant {
         }
 
         try {
-            const params = this.buildExecuteParams(value, config, { timeRange, selectedFields, conditions });
+            const params = {
+                index: value,
+                ip: config.ip,
+                time_from: timeRange ? timeRange[0].format('YYYY-MM-DD HH:mm:ss') : moment().subtract(15, 'minutes').format('YYYY-MM-DD HH:mm:ss'),
+                time_to: timeRange ? timeRange[1].format('YYYY-MM-DD HH:mm:ss') : moment().format('YYYY-MM-DD HH:mm:ss'),
+                fields: selectedFields || [],
+                conditions: (conditions || []).filter(c => c.field && c.operator && c.value)
+            };
             
-            // 使用mock数据而不是实际调用接口
-            const response = await this.mockEsQuery(params);
+            // 调用实际的ES API
+            const response = await MyAxios.post('/fault_tree/v1/get_es_metrics/', params);
             
-            if (response.status === "ok") {
+            if (response.data.status === "ok") {
                 const formattedCommand = `> @${this.name} ${config.ip} ${value}`;
                 const timestamp = getStandardTime();
                 
                 executeCommand({
                     type: 'assistant',
-                    content: formattedCommand + '\n```json\n' + JSON.stringify(response.data, null, 2) + '\n```',
-                    rawContent: response.data,
+                    content: formattedCommand + '\n```json\n' + JSON.stringify(response.data.data, null, 2) + '\n```',
+                    rawContent: response.data.data,
                     command: `@${this.name} ${config.ip} ${value}`,
                     timestamp: timestamp,
                     status: 'ok'
@@ -138,8 +145,8 @@ export default class ESAssistant extends BaseAssistant {
             } else {
                 executeCommand({
                     type: 'assistant',
-                    content: `执行失败: ${response.message || '未知错误'}`,
-                    rawContent: response.message || '未知错误',
+                    content: `执行失败: ${response.data.message || '未知错误'}`,
+                    rawContent: response.data.message || '未知错误',
                     command: `@${this.name} ${config.ip} ${value}`,
                     timestamp: getStandardTime(),
                     isError: true,

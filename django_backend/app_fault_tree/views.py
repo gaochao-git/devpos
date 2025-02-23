@@ -746,3 +746,38 @@ class GetESIndexFields(BaseView):
                 "message": f"获取索引字段失败: {str(e)}",
                 "code": status.HTTP_500_INTERNAL_SERVER_ERROR
             })
+
+
+class GetESMetrics(BaseView):
+    def post(self, request):
+        try:
+            request_body = self.request_params
+            rules = {
+                "index": [Required],  # 索引名称
+                "ip": [Required],     # ES服务器IP
+            }
+            valid_ret = validate(rules, request_body)
+            if not valid_ret.valid:
+                return self.my_response({
+                    "status": "error",
+                    "message": str(valid_ret.errors),
+                    "code": status.HTTP_400_BAD_REQUEST
+                })
+
+            index = request_body.get('index')
+            ip = request_body.get('ip')
+
+            # 调用ES API获取一条数据
+            results = get_es_metrics(ip, index, size=10)
+
+            return self.my_response({
+                "status": "ok",
+                "message": "success",
+                "data": results
+            })
+        except Exception as e:
+            return self.my_response({
+                "status": "error",
+                "message": f"获取索引字段失败: {str(e)}",
+                "code": status.HTTP_500_INTERNAL_SERVER_ERROR
+            })
