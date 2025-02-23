@@ -30,8 +30,8 @@ class ESLogFetcher:
                 must_conditions.append({
                     "range": {
                         "@timestamp": {
-                            "gte": time_range.get("start"),
-                            "lte": time_range.get("end")
+                            "gte": time_range.get("start").replace(" ", "T") + "Z",
+                            "lte": time_range.get("end").replace(" ", "T") + "Z"
                         }
                     }
                 })
