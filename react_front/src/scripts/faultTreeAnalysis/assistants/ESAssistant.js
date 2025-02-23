@@ -119,8 +119,8 @@ export default class ESAssistant extends BaseAssistant {
 
         try {
             const params = {
-                index: value,
-                ip: config.ip,
+                command: value,
+                server: config.ip,
                 time_from: timeRange ? timeRange[0].format('YYYY-MM-DD HH:mm:ss') : moment().subtract(15, 'minutes').format('YYYY-MM-DD HH:mm:ss'),
                 time_to: timeRange ? timeRange[1].format('YYYY-MM-DD HH:mm:ss') : moment().format('YYYY-MM-DD HH:mm:ss'),
                 fields: selectedFields || [],
