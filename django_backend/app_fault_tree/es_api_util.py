@@ -65,6 +65,8 @@ class ESLogFetcher:
 
         try:
             url = f"{self.base_url}/{index_pattern}/_search"
+            print(url)
+            print(query_body)
             response = requests.post(url, headers=self.headers, json=query_body)
             response.raise_for_status()
             return response.json()
