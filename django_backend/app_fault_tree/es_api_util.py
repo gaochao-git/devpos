@@ -138,14 +138,39 @@ if __name__ == "__main__":
     es_host = "http://82.156.146.51:9200"
     fetcher = ESLogFetcher(es_host)
     
-    # 示例1：查询慢查询日志
-    print("\n示例1：查询最近的慢查询日志")
+    print("===================== 示例1：查询最近的慢查询日志 =====================")
     slow_logs = fetcher.get_mysql_slow_logs(size=2)
-    hits = format_slow_logs(slow_logs)
-    print(hits)
-
-    # 示例2：查询错误日志
-    print("\n示例2：查询最近的错误日志")
+    slow_list = format_slow_logs(slow_logs)
+    print("\n慢查询日志数据:")
+    print(json.dumps(slow_list, indent=2, ensure_ascii=False))
+    print(f"获取到 {len(slow_list)} 条慢查询记录")
+    
+    print("\n===================== 示例2：查询最近的错误日志 =====================")
     error_logs = fetcher.get_mysql_error_logs(size=2)
-    hits = format_error_logs(error_logs)
-    print(hits)
+    error_list = format_error_logs(error_logs)
+    print("\n错误日志数据:")
+    print(json.dumps(error_list, indent=2, ensure_ascii=False))
+    print(f"获取到 {len(error_list)} 条错误记录")
+
+    print("\n===================== 示例3：查询指定时间范围和IP的日志 =====================")
+    query_conditions = {
+        "time_range": {
+            "start": "2025-02-23 01:00:00",
+            "end": "2025-02-23 11:00:00"
+        },
+        "ip": "82.156.146.51"
+    }
+    
+    print("\n指定条件的错误日志:")
+    error_logs = fetcher.get_mysql_error_logs(size=2, query_conditions=query_conditions)
+    error_list = format_error_logs(error_logs)
+    print(json.dumps(error_list, indent=2, ensure_ascii=False))
+    print(f"获取到 {len(error_list)} 条错误记录")
+    
+    print("\n指定条件的慢查询日志:")
+    slow_logs = fetcher.get_mysql_slow_logs(size=2, query_conditions=query_conditions)
+    slow_list = format_slow_logs(slow_logs)
+    print(json.dumps(slow_list, indent=2, ensure_ascii=False))
+    print(f"获取到 {len(slow_list)} 条慢查询记录")
+    
+    print("\n===================== 示例结束 =====================")
