@@ -142,6 +142,7 @@ if __name__ == "__main__":
     print("\n示例1：查询最近的慢查询日志")
     slow_logs = fetcher.get_mysql_slow_logs(size=2)
     hits = format_slow_logs(slow_logs)
+    print(hits)
 
     # 示例2：查询错误日志
     print("\n示例2：查询最近的错误日志")
