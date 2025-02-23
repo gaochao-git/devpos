@@ -353,7 +353,13 @@ export const ESAssistantUI = ({
                         value={condition.operator}
                         onChange={(value) => {
                             const newConditions = [...conditions];
-                            newConditions[index] = { ...newConditions[index], operator: value };
+                            newConditions[index] = { 
+                                ...newConditions[index], 
+                                operator: value,
+                                // 根据操作符重置 value
+                                value: value === 'between' ? { min: '', max: '' } :
+                                       value === 'in' ? [] : ''
+                            };
                             setConditions(newConditions);
                         }}
                     >
@@ -363,16 +369,62 @@ export const ESAssistantUI = ({
                             <Select.Option key={op} value={op}>{op}</Select.Option>
                         ))}
                     </Select>
-                    <Input
-                        style={{ width: 200 }}
-                        value={condition.value}
-                        onChange={(e) => {
-                            const newConditions = [...conditions];
-                            newConditions[index] = { ...newConditions[index], value: e.target.value };
-                            setConditions(newConditions);
-                        }}
-                        placeholder="输入值"
-                    />
+                    
+                    {/* 根据操作符类型渲染不同的输入组件 */}
+                    {condition.operator === 'between' ? (
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <Input
+                                style={{ width: 100 }}
+                                value={condition.value?.min}
+                                onChange={(e) => {
+                                    const newConditions = [...conditions];
+                                    newConditions[index] = {
+                                        ...newConditions[index],
+                                        value: { ...condition.value, min: e.target.value }
+                                    };
+                                    setConditions(newConditions);
+                                }}
+                                placeholder="最小值"
+                            />
+                            <Input
+                                style={{ width: 100 }}
+                                value={condition.value?.max}
+                                onChange={(e) => {
+                                    const newConditions = [...conditions];
+                                    newConditions[index] = {
+                                        ...newConditions[index],
+                                        value: { ...condition.value, max: e.target.value }
+                                    };
+                                    setConditions(newConditions);
+                                }}
+                                placeholder="最大值"
+                            />
+                        </div>
+                    ) : condition.operator === 'in' ? (
+                        <Select
+                            mode="tags"
+                            style={{ width: 200 }}
+                            value={Array.isArray(condition.value) ? condition.value : []}
+                            onChange={(values) => {
+                                const newConditions = [...conditions];
+                                newConditions[index] = { ...newConditions[index], value: values };
+                                setConditions(newConditions);
+                            }}
+                            placeholder="输入值后按回车"
+                        />
+                    ) : (
+                        <Input
+                            style={{ width: 200 }}
+                            value={condition.value}
+                            onChange={(e) => {
+                                const newConditions = [...conditions];
+                                newConditions[index] = { ...newConditions[index], value: e.target.value };
+                                setConditions(newConditions);
+                            }}
+                            placeholder="输入值"
+                        />
+                    )}
+
                     <Button 
                         type="link" 
                         danger
