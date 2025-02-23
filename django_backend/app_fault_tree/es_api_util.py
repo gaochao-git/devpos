@@ -15,11 +15,12 @@ class ESLogFetcher:
         """
         基础查询方法
         :param index_pattern: ES索引模式
-        :param query_conditions: 过滤条件
+        :param query_conditions: 过滤条件,[]
         :param size: 返回的记录数量
         :param sort_field: 排序字段
         :param sort_order: 排序顺序
         """
+        print(query_conditions,size)
         # 构建查询体
         if query_conditions:
             must_conditions = []
@@ -37,6 +38,7 @@ class ESLogFetcher:
                 })
             
             # 处理其他精确匹配条件
+            print(88888, must_conditions)
             for key, value in query_conditions.items():
                 if key != "time_range" and value:
                     must_conditions.append({
@@ -62,7 +64,7 @@ class ESLogFetcher:
                 "size": size,
                 "sort": [{sort_field: sort_order}]
             }
-
+        print(77777777, query_body)
         try:
             url = f"{self.base_url}/{index_pattern}/_search"
             print(url)
@@ -88,12 +90,13 @@ class ESLogFetcher:
                 }
             }
         """
-        print(query_conditions,size)
-        return self.fetch_logs(
+        aaa = self.fetch_logs(
             index_pattern="mysql-slow*",
             query_conditions=query_conditions,
             size=size
         )
+        print(aaa)
+        return aaa
 
     def get_mysql_error_logs(self, size=100, query_conditions=None):
         """
@@ -135,10 +138,11 @@ def format_error_logs(logs):
     hits = logs.get("hits", {}).get("hits", [])
     return [hit["_source"] for hit in hits]
 
-def get_es_metrics(host_ip, index_pattern, time_from=None, time_till=None, query_conditions=None, size=100):
+def get_es_metrics(host_ip, index_pattern, query_conditions=None, size=100):
     """
     获取ES指标的封装方法
     """
+    print(host_ip, index_pattern, query_conditions, size)
     es_host = "http://82.156.146.51:9200"
     fetcher = ESLogFetcher(es_host)
     if index_pattern == "mysql-slow*":

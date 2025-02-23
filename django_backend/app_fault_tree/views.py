@@ -3,7 +3,7 @@ from rest_framework import status
 from apps.utils.common import CheckValidators,BaseView,my_response
 from apps.utils import db_helper
 from django.db import transaction
-from datetime import datetime
+from datetime import datetime, timedelta
 from .models import FaultTreeConfig, FaultTreeConfigHistory
 from .fault_tree_utils import FaultTreeProcessor, generate_tree_data
 from .serializers import (
@@ -753,8 +753,12 @@ class GetESMetrics(BaseView):
         try:
             request_body = self.request_params
             rules = {
-                "index": [Required],  # 索引名称
-                "ip": [Required],     # ES服务器IP
+                "index": [Required],      # 索引名称，必填
+                "ip": [Required],         # ES服务器IP，必填
+                "time_from": [],          # 开始时间，可选
+                "time_to": [],            # 结束时间，可选
+                "fields": [],             # 查询字段列表，可选
+                "conditions": []          # 查询条件列表，可选
             }
             valid_ret = validate(rules, request_body)
             if not valid_ret.valid:
@@ -766,9 +770,63 @@ class GetESMetrics(BaseView):
 
             index = request_body.get('index')
             ip = request_body.get('ip')
+            time_from = request_body.get('time_from')
+            time_to = request_body.get('time_to')
+            
+            # 如果没有传递时间，设置默认时间范围为最近5分钟
+            if not time_from or not time_to:
+                time_to = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                time_from = (datetime.now() - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S')
+            # 验证结束时间必须大于开始时间
+            elif datetime.strptime(time_to, '%Y-%m-%d %H:%M:%S') <= datetime.strptime(time_from, '%Y-%m-%d %H:%M:%S'):
+                return self.my_response({
+                    "status": "error",
+                    "message": "结束时间必须大于开始时间",
+                    "code": status.HTTP_400_BAD_REQUEST
+                })
 
-            # 调用ES API获取一条数据
-            results = get_es_metrics(ip, index, size=10)
+            fields = request_body.get('fields', [])
+            conditions = request_body.get('conditions', [])
+
+            # 构建查询条件
+            query_conditions = []
+            
+            # 添加时间范围条件
+            if time_from and time_to:
+                query_conditions.append({
+                    "time_range": {
+                        "@timestamp": {
+                            "gte": time_from,
+                            "lte": time_to
+                        }
+                    }
+                })
+            
+            # 添加其他条件
+            if conditions:
+                for condition in conditions:
+                    query_conditions.append({
+                        "field": condition.get('field'),
+                        "operator": condition.get('operator'),
+                        "value": condition.get('value')
+                    })
+
+            # 调用ES API获取数据
+            results = get_es_metrics(
+                ip, 
+                index,
+                query_conditions=query_conditions
+            )
+            if fields:
+                results['hits']['hits'] = [
+                    {
+                        '_source': {
+                            field: hit['_source'][field] for field in fields
+                            if field in hit['_source']  # 添加字段存在检查
+                        }
+                    }
+                    for hit in results['hits']['hits']  # 遍历所有hits
+                ]
 
             return self.my_response({
                 "status": "ok",
