@@ -816,21 +816,22 @@ class GetESMetrics(BaseView):
                 index,
                 query_conditions=query_conditions
             )
+            
+            # 直接获取文档内容，去掉 _source 层
+            simplified_results = [hit['_source'] for hit in results.get('hits', {}).get('hits', [])]
             if fields:
-                results['hits']['hits'] = [
+                simplified_results = [
                     {
-                        '_source': {
-                            field: hit['_source'][field] for field in fields
-                            if field in hit['_source']  # 添加字段存在检查
-                        }
+                        field: doc[field] for field in fields
+                        if field in doc
                     }
-                    for hit in results['hits']['hits']  # 遍历所有hits
+                    for doc in simplified_results
                 ]
 
             return self.my_response({
                 "status": "ok",
                 "message": "success",
-                "data": results
+                "data": simplified_results
             })
         except Exception as e:
             return self.my_response({
