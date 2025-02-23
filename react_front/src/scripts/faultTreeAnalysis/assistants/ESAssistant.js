@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Select, Button, Modal, Input, Icon, message } from 'antd';
 import moment from 'moment';
 import BaseAssistant from './BaseAssistant';
@@ -199,6 +199,7 @@ export const ESAssistantUI = ({
     const [timeRange, setTimeRange] = useState([moment().subtract(15, 'minutes'), moment()]);
     const [isClusterLoading, setIsClusterLoading] = useState(false);
     const [isIndicesLoading, setIsIndicesLoading] = useState(false);
+    const [indexFields, setIndexFields] = useState([]);
 
     const handleTimeRangeOk = (range) => {
         if (!range || !range[0] || !range[1]) {
@@ -226,6 +227,36 @@ export const ESAssistantUI = ({
         setAssistantInputs(prev => new Map(prev).set(assistant.name, JSON.stringify(queryParams)));
         setSearchModal(false);
     };
+
+    // 获取索引字段
+    const fetchIndexFields = async (index) => {
+        if (!config?.ip || !index) return;
+        
+        try {
+            const response = await MyAxios.post('/fault_tree/v1/get_es_index_fields/', {
+                index: index,
+                ip: config.ip
+            });
+            
+            if (response.data.status === 'ok') {
+                setIndexFields(response.data.data);
+            } else {
+                message.error(response.data.message || '获取字段失败');
+            }
+        } catch (error) {
+            console.error('获取索引字段失败:', error);
+            message.error('获取字段失败');
+        }
+    };
+
+    // 监听索引选择变化
+    useEffect(() => {
+        if (selectedIndex) {
+            fetchIndexFields(selectedIndex);
+        } else {
+            setIndexFields([]);
+        }
+    }, [selectedIndex, config?.ip]);
 
     const renderSearchModal = () => (
         <Modal
@@ -281,13 +312,13 @@ export const ESAssistantUI = ({
                     onChange={setSelectedFields}
                     allowClear
                 >
-                    {ES_MOCK_FIELDS[selectedIndex]?.map(field => (
+                    {indexFields.map(field => (
                         <Select.Option 
                             key={field.field} 
                             value={field.field}
                             title={`${field.field} (${field.type}) - ${field.description}`}
                         >
-                            {field.field} - {field.description}
+                            {field.field}
                         </Select.Option>
                     ))}
                 </Select>

@@ -69,6 +69,7 @@ class ESLogFetcher:
             print(query_body)
             response = requests.post(url, headers=self.headers, json=query_body)
             response.raise_for_status()
+            print(response.json())
             return response.json()
         except Exception as e:
             return {"error": str(e)}
@@ -87,6 +88,7 @@ class ESLogFetcher:
                 }
             }
         """
+        print(query_conditions,size)
         return self.fetch_logs(
             index_pattern="mysql-slow*",
             query_conditions=query_conditions,
@@ -133,13 +135,16 @@ def format_error_logs(logs):
     hits = logs.get("hits", {}).get("hits", [])
     return [hit["_source"] for hit in hits]
 
-def get_es_metrics(host_ip, index_pattern, time_from=None, time_till=None, query_conditions=None, limit=100):
+def get_es_metrics(host_ip, index_pattern, time_from=None, time_till=None, query_conditions=None, size=100):
     """
     获取ES指标的封装方法
     """
     es_host = "http://82.156.146.51:9200"
     fetcher = ESLogFetcher(es_host)
-    return fetcher.get_mysql_slow_logs(size=limit, query_conditions=query_conditions)
+    if index_pattern == "mysql-slow*":
+        return fetcher.get_mysql_slow_logs(size=size, query_conditions=query_conditions)
+    elif index_pattern == "mysql-error*":
+        return fetcher.get_mysql_error_logs(size=size, query_conditions=query_conditions)
 
 # 使用示例
 if __name__ == "__main__":
