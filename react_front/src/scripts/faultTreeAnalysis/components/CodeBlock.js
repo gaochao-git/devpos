@@ -98,6 +98,42 @@ const CodeBlock = ({ content, language, executeCommand, executedCommands, execut
                         status: 'error'
                     });
                 }
+            } else if (command.tool === 'es') {  // 添加 ES 助手的处理
+                const params = {
+                    index: command.command,
+                    server: command.server,
+                    time_from: command.time_from,
+                    time_to: command.time_to,
+                    fields: command.fields || [],
+                    conditions: command.conditions || []
+                };
+
+                const response = await MyAxios.post('/fault_tree/v1/get_es_metrics/', params);
+                
+                if (response.data.status === "ok") {
+                    const formattedCommand = `> ${userCommand}`;
+                    const formattedResult = `\`\`\`json\n${JSON.stringify(response.data.data, null, 2)}\n\`\`\``;
+                    const formatMessage = `${formattedCommand}\n${formattedResult}`;
+
+                    executeCommand({
+                        type: 'assistant',
+                        content: formatMessage,
+                        rawContent: response.data.data,
+                        command: userCommand,
+                        timestamp: getStandardTime(),
+                        status: 'ok'
+                    });
+                } else {
+                    executeCommand({
+                        type: 'assistant',
+                        content: `执行失败: ${response.data.message || '未知错误'}`,
+                        rawContent: response.data.message || '未知错误',
+                        command: userCommand,
+                        timestamp: getStandardTime(),
+                        isError: true,
+                        status: 'error'
+                    });
+                }
             } else {
                 // 其他助手使用通用执行方法
                 const params = {

@@ -752,8 +752,8 @@ class GetESMetrics(BaseView):
         try:
             request_body = self.request_params
             rules = {
-                "command": [Required],      # 索引名称，必填
-                "servrer": [Required],         # ES服务器IP，必填
+                "index": [Required],      # 索引名称，必填
+                "server": [Required],     # ES服务器IP，必填
                 "time_from": [],          # 开始时间，可选
                 "time_to": [],            # 结束时间，可选
                 "fields": [],             # 查询字段列表，可选
@@ -767,7 +767,7 @@ class GetESMetrics(BaseView):
                     "code": status.HTTP_400_BAD_REQUEST
                 })
 
-            index = request_body.get('command')
+            index = request_body.get('index')
             ip = request_body.get('servrer')
             time_from = request_body.get('time_from')
             time_to = request_body.get('time_to')
