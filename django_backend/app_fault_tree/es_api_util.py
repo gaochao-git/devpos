@@ -20,30 +20,53 @@ class ESLogFetcher:
         :param sort_field: 排序字段
         :param sort_order: 排序顺序
         """
-        print(query_conditions,size)
         # 构建查询体
         if query_conditions:
+            # 处理查询条件列表
             must_conditions = []
             
-            # 处理时间范围
-            if "time_range" in query_conditions:
-                time_range = query_conditions["time_range"]
-                must_conditions.append({
-                    "range": {
-                        "@timestamp": {
-                            "gte": time_range.get("start").replace(" ", "T") + "Z",
-                            "lte": time_range.get("end").replace(" ", "T") + "Z"
+            for condition in query_conditions:
+                field = condition.get("field")
+                operator = condition.get("operator")
+                value = condition.get("value")
+
+                if not all([field, operator, value]):
+                    continue
+
+                # 特殊处理时间字段
+                if field == "@timestamp" or field == "timestamp":
+                    if operator == "between":
+                        must_conditions.append({
+                            "range": {
+                                "@timestamp": {
+                                    "gte": value.get("min").replace(" ", "T") + "Z",
+                                    "lte": value.get("max").replace(" ", "T") + "Z"
+                                }
+                            }
+                        })
+                    continue
+
+                # 处理其他字段
+                if operator == "in":
+                    must_conditions.append({
+                        "terms": {
+                            field: value
                         }
-                    }
-                })
-            
-            # 处理其他精确匹配条件
-            print(88888, must_conditions)
-            for key, value in query_conditions.items():
-                if key != "time_range" and value:
+                    })
+                elif operator == "between":
+                    must_conditions.append({
+                        "range": {
+                            field: {
+                                "gte": value.get("min"),
+                                "lte": value.get("max")
+                            }
+                        }
+                    })
+                else:
+                    # 处理其他操作符（=, >, <, etc.）
                     must_conditions.append({
                         "match": {
-                            key: value
+                            field: value
                         }
                     })
             
@@ -64,7 +87,6 @@ class ESLogFetcher:
                 "size": size,
                 "sort": [{sort_field: sort_order}]
             }
-        print(77777777, query_body)
         try:
             url = f"{self.base_url}/{index_pattern}/_search"
             print(url)
@@ -90,12 +112,11 @@ class ESLogFetcher:
                 }
             }
         """
-        aaa = self.fetch_logs(
+        return self.fetch_logs(
             index_pattern="mysql-slow*",
             query_conditions=query_conditions,
             size=size
         )
-        print(aaa)
         return aaa
 
     def get_mysql_error_logs(self, size=100, query_conditions=None):

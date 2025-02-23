@@ -467,7 +467,6 @@ class GetMetricHistoryByIp(BaseView):
                 time_from = int(datetime.strptime(time_from, '%Y-%m-%d %H:%M:%S').timestamp())
             if isinstance(time_till, str):
                 time_till = int(datetime.strptime(time_till, '%Y-%m-%d %H:%M:%S').timestamp())
-        print(time_from,time_till)
 
         try:
             result = get_zabbix_metrics(
