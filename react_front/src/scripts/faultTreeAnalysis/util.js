@@ -185,31 +185,24 @@ export const MYSQL_COMMANDS = [
 
 // 添加ES相关常量配置
 export const ES_MOCK_INDICES = [
-    { value: 'logs-*', label: '日志索引' },
-    { value: 'metrics-*', label: '指标索引' },
-    { value: 'traces-*', label: '链路追踪索引' }
+    { value: 'mysql-error*', label: '错误日志索引' },
+    { value: 'mysql-slow*', label: '慢查询日志索引' },
 ];
 
 export const ES_MOCK_FIELDS = {
-    'logs-*': [
+    'mysql-error*': [
         { field: 'timestamp', type: 'date', description: '时间戳' },
         { field: 'level', type: 'keyword', description: '日志级别' },
         { field: 'message', type: 'text', description: '日志内容' },
         { field: 'service', type: 'keyword', description: '服务名称' },
         { field: 'host', type: 'keyword', description: '主机名' }
     ],
-    'metrics-*': [
+    'mysql-slow*': [
         { field: 'timestamp', type: 'date', description: '时间戳' },
         { field: 'metric_name', type: 'keyword', description: '指标名称' },
         { field: 'value', type: 'float', description: '指标值' },
         { field: 'tags', type: 'object', description: '标签' }
     ],
-    'traces-*': [
-        { field: 'timestamp', type: 'date', description: '时间戳' },
-        { field: 'trace_id', type: 'keyword', description: '追踪ID' },
-        { field: 'span_id', type: 'keyword', description: '跨度ID' },
-        { field: 'service', type: 'keyword', description: '服务名称' }
-    ]
 };
 
 export const ES_OPERATORS = {
