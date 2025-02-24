@@ -2,27 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Select, Button, Modal, Input, Icon, message } from 'antd';
 import moment from 'moment';
 import BaseAssistant from './BaseAssistant';
-import { ES_MOCK_INDICES, ES_MOCK_FIELDS, ES_OPERATORS, getStandardTime, markdownRenderers } from '../util';
-import ReactMarkdown from 'react-markdown';
+import { ES_MOCK_INDICES, ES_OPERATORS, getStandardTime } from '../util';
 import TimeRangePicker from '../components/TimeRangePicker';
 import MyAxios from "../../common/interface";
 
-// Mock数据
-const MOCK_ES_RESPONSE = {
-    took: 123,
-    hits: {
-        total: 100,
-        hits: Array(10).fill(null).map((_, index) => ({
-            _source: {
-                timestamp: moment().subtract(index * 5, 'minutes').format('YYYY-MM-DD HH:mm:ss'),
-                level: ['INFO', 'WARN', 'ERROR'][Math.floor(Math.random() * 3)],
-                message: `This is a sample log message ${index + 1}`,
-                service: 'test-service',
-                host: '192.168.1.100'
-            }
-        }))
-    }
-};
 
 export default class ESAssistant extends BaseAssistant {
     constructor() {
@@ -50,52 +33,6 @@ export default class ESAssistant extends BaseAssistant {
             time_to: timeRange ? timeRange[1].format('YYYY-MM-DD HH:mm:ss') : moment().format('YYYY-MM-DD HH:mm:ss'),
             fields: selectedFields || [],
             conditions: (conditions || []).filter(c => c.field && c.operator && c.value)
-        };
-    }
-
-    // Mock ES查询
-    async mockEsQuery(params) {
-        // 模拟网络延迟
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // 解析时间范围
-        const timeFrom = moment(params.time_from);
-        const timeTo = moment(params.time_to);
-        const duration = moment.duration(timeTo.diff(timeFrom));
-        const intervalMinutes = Math.max(1, Math.floor(duration.asMinutes() / 10)); // 生成10个数据点
-
-        // 根据参数修改mock数据
-        const response = {
-            ...MOCK_ES_RESPONSE,
-            query_params: params, // 添加查询参数以便调试
-            hits: {
-                total: 100,
-                hits: Array(10).fill(null).map((_, index) => ({
-                    _source: {
-                        timestamp: moment(timeFrom).add(index * intervalMinutes, 'minutes').format('YYYY-MM-DD HH:mm:ss'),
-                        level: ['INFO', 'WARN', 'ERROR'][Math.floor(Math.random() * 3)],
-                        message: `This is a sample log message ${index + 1}`,
-                        service: 'test-service',
-                        host: '192.168.1.100'
-                    }
-                })).map(hit => ({
-                    ...hit,
-                    _source: {
-                        ...hit._source,
-                        // 如果有选择的字段，只返回这些字段
-                        ...(params.fields.length > 0 && {
-                            ...Object.fromEntries(
-                                params.fields.map(field => [field, hit._source[field]])
-                            )
-                        })
-                    }
-                }))
-            }
-        };
-
-        return {
-            status: "ok",
-            data: response
         };
     }
 
@@ -241,8 +178,7 @@ export const ESAssistantUI = ({
         
         try {
             const response = await MyAxios.post('/fault_tree/v1/get_es_index_fields/', {
-                index: index,
-                ip: config.ip
+                index: index
             });
             
             if (response.data.status === 'ok') {
@@ -342,9 +278,9 @@ export const ESAssistantUI = ({
                             setConditions(newConditions);
                         }}
                     >
-                        {ES_MOCK_FIELDS[selectedIndex]?.map(field => (
+                        {indexFields.map(field => (
                             <Select.Option key={field.field} value={field.field}>
-                                {field.field}
+                                {field.field} ({field.type})
                             </Select.Option>
                         ))}
                     </Select>
@@ -353,21 +289,15 @@ export const ESAssistantUI = ({
                         value={condition.operator}
                         onChange={(value) => {
                             const newConditions = [...conditions];
-                            newConditions[index] = { 
-                                ...newConditions[index], 
-                                operator: value,
-                                // 根据操作符重置 value
-                                value: value === 'between' ? { min: '', max: '' } :
-                                       value === 'in' ? [] : ''
-                            };
+                            newConditions[index] = { ...newConditions[index], operator: value };
                             setConditions(newConditions);
                         }}
                     >
-                        {condition.field && ES_OPERATORS[
-                            ES_MOCK_FIELDS[selectedIndex]?.find(f => f.field === condition.field)?.type
-                        ]?.map(op => (
-                            <Select.Option key={op} value={op}>{op}</Select.Option>
-                        ))}
+                        {condition.field && indexFields.find(f => f.field === condition.field)?.type &&
+                            ES_OPERATORS[indexFields.find(f => f.field === condition.field).type]?.map(op => (
+                                <Select.Option key={op} value={op}>{op}</Select.Option>
+                            ))
+                        }
                     </Select>
                     
                     {/* 根据操作符类型渲染不同的输入组件 */}
