@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import json
 
 ES_SERVER_URL = "http://82.156.146.51:9200"
+INDEX_PATTEN_SLOW_LOG = "mysql-slow*"
+INDEX_PATTEN_ERROR_LOG = "mysql-error*"
 
 class ESLogFetcher:
     def __init__(self, hosts='http://localhost:9200'):
@@ -11,7 +13,7 @@ class ESLogFetcher:
         :param hosts: ES 主机地址
         """
         self.base_url = hosts.rstrip('/')
-        self.headers = {'Content-Type': 'application/json'}
+        self.headers = {'Content-Type': 'application/json', 'kbn-xsrf': '1'}
 
     def fetch_logs(self, index_pattern, query_conditions=None, size=100, sort_field="@timestamp", sort_order="desc"):
         """
@@ -115,7 +117,7 @@ class ESLogFetcher:
             }
         """
         return self.fetch_logs(
-            index_pattern="mysql-slow*",
+            index_pattern=INDEX_PATTEN_SLOW_LOG,
             query_conditions=query_conditions,
             size=size
         )
@@ -135,7 +137,7 @@ class ESLogFetcher:
             }
         """
         return self.fetch_logs(
-            index_pattern="mysql-error*",
+            index_pattern=INDEX_PATTEN_ERROR_LOG,
             query_conditions=query_conditions,
             size=size
         )
