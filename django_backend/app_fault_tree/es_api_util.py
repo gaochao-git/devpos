@@ -1,10 +1,10 @@
 import requests
-from datetime import datetime, timedelta
 import json
 
 ES_SERVER_URL = "http://82.156.146.51:9200"
 INDEX_PATTEN_SLOW_LOG = "mysql-slow*"
 INDEX_PATTEN_ERROR_LOG = "mysql-error*"
+ENV = 'chinax'
 
 class ESLogFetcher:
     def __init__(self, hosts='http://localhost:9200'):
@@ -96,51 +96,50 @@ class ESLogFetcher:
             print(url)
             print(query_body)
             response = requests.post(url, headers=self.headers, json=query_body)
-            response.raise_for_status()
             print(response.json())
             return response.json()
         except Exception as e:
             return {"error": str(e)}
 
-    def get_mysql_slow_logs(self, size=100, query_conditions=None):
-        """
-        获取MySQL慢查询日志
-        :param size: 返回的记录数量
-        :param query_conditions: 过滤条件，例如：
-            {
-                "user": "specific-user",
-                "host": "specific-host",
-                "time_range": {
-                    "start": "2024-01-01",
-                    "end": "2024-01-02"
-                }
-            }
-        """
-        return self.fetch_logs(
-            index_pattern=INDEX_PATTEN_SLOW_LOG,
-            query_conditions=query_conditions,
-            size=size
-        )
+    # def get_mysql_slow_logs(self, size=100, query_conditions=None):
+    #     """
+    #     获取MySQL慢查询日志
+    #     :param size: 返回的记录数量
+    #     :param query_conditions: 过滤条件，例如：
+    #         {
+    #             "user": "specific-user",
+    #             "host": "specific-host",
+    #             "time_range": {
+    #                 "start": "2024-01-01",
+    #                 "end": "2024-01-02"
+    #             }
+    #         }
+    #     """
+    #     return self.fetch_logs(
+    #         index_pattern=INDEX_PATTEN_SLOW_LOG,
+    #         query_conditions=query_conditions,
+    #         size=size
+    #     )
 
-    def get_mysql_error_logs(self, size=100, query_conditions=None):
-        """
-        获取MySQL错误日志
-        :param size: 返回的记录数量
-        :param query_conditions: 过滤条件，例如：
-            {
-                "level": "Error",
-                "host": "specific-host",
-                "time_range": {
-                    "start": "2024-01-01",
-                    "end": "2024-01-02"
-                }
-            }
-        """
-        return self.fetch_logs(
-            index_pattern=INDEX_PATTEN_ERROR_LOG,
-            query_conditions=query_conditions,
-            size=size
-        )
+    # def get_mysql_error_logs(self, size=100, query_conditions=None):
+    #     """
+    #     获取MySQL错误日志
+    #     :param size: 返回的记录数量
+    #     :param query_conditions: 过滤条件，例如：
+    #         {
+    #             "level": "Error",
+    #             "host": "specific-host",
+    #             "time_range": {
+    #                 "start": "2024-01-01",
+    #                 "end": "2024-01-02"
+    #             }
+    #         }
+    #     """
+    #     return self.fetch_logs(
+    #         index_pattern=INDEX_PATTEN_ERROR_LOG,
+    #         query_conditions=query_conditions,
+    #         size=size
+    #     )
 
     def get_index_fields(self, index_pattern):
         """
@@ -151,28 +150,47 @@ class ESLogFetcher:
         try:
             url = f"{self.base_url}/{index_pattern}/_mapping"
             response = requests.get(url, headers=self.headers)
-            response.raise_for_status()
             mapping = response.json()
             
             fields = []
             if mapping:
                 # 获取第一个索引的映射信息
                 first_index = list(mapping.keys())[0]
-                properties = mapping[first_index]['mappings'].get('properties', {})
-                
-                for field_name, field_info in properties.items():
-                    field_type = field_info.get('type', 'unknown')
-                    fields.append({
-                        'field': field_name,
-                        'type': field_type,
-                        'description': field_name
-                    })
+                if ENV == 'china':  # 解决'slowlog.ip'、'error.ip'这种字段命名,及maping路径不一样问题
+                    PROPERTY_MAP = {INDEX_PATTEN_SLOW_LOG: "mysqlerror", INDEX_PATTEN_ERROR_LOG: "mysqlslow"}
+                    property_name = PROPERTY_MAP.get(index_pattern)
+                    properties = mapping[first_index]['mappings'].get(property_name, {}).get('properties', {})
+                    for field_name, field_info in properties.items():
+                        field_type = field_info.get('type', 'unknown')
+                        # 处理特殊字段
+                        if field_name in ["error", "slowlog"]:
+                            for field_name_sub, field_info_sub in field_info.get('properties', {}).items():
+                                field_type_sub = field_info_sub.get('type', 'unknown')
+                                fields.append({
+                                    'field': f"{field_name}.{field_name_sub}",
+                                    'type': field_type_sub,
+                                    'description': ''
+                                })
+                        fields.append({
+                            'field': field_name,
+                            'type': field_type,
+                            'description': field_name
+                        })
+                else: # 标准字段命名
+                    properties = mapping[first_index]['mappings'].get('properties', {})
+                    for field_name, field_info in properties.items():
+                        field_type = field_info.get('type', 'unknown')
+                        fields.append({
+                            'field': field_name,
+                            'type': field_type,
+                            'description': field_name
+                        })
             return fields
         except Exception as e:
             print(f"获取索引字段映射失败: {str(e)}")
             return []
 
-def format_slow_logs(logs):
+def format_logs(logs):
     """
     返回慢查询日志source列表
     """
@@ -182,15 +200,6 @@ def format_slow_logs(logs):
     hits = logs.get("hits", {}).get("hits", [])
     return [hit["_source"] for hit in hits]
 
-def format_error_logs(logs):
-    """
-    返回错误日志source列表
-    """
-    if "error" in logs:
-        return []
-    
-    hits = logs.get("hits", {}).get("hits", [])
-    return [hit["_source"] for hit in hits]
 
 def get_es_metrics(host_ip, index_pattern, query_conditions=None, size=100):
     """
@@ -198,10 +207,11 @@ def get_es_metrics(host_ip, index_pattern, query_conditions=None, size=100):
     """
     print(host_ip, index_pattern, query_conditions, size)
     fetcher = ESLogFetcher(ES_SERVER_URL)
-    if index_pattern == "mysql-slow*":
-        return fetcher.get_mysql_slow_logs(size=size, query_conditions=query_conditions)
-    elif index_pattern == "mysql-error*":
-        return fetcher.get_mysql_error_logs(size=size, query_conditions=query_conditions)
+    return fetcher.fetch_logs(index_pattern, size=size, query_conditions=query_conditions)
+    # if index_pattern == "mysql-slow*":
+    #     return fetcher.get_mysql_slow_logs(size=size, query_conditions=query_conditions)
+    # elif index_pattern == "mysql-error*":
+    #     return fetcher.get_mysql_error_logs(size=size, query_conditions=query_conditions)
 
 def get_es_index_fields(index_pattern):
     """
@@ -218,14 +228,14 @@ if __name__ == "__main__":
     
     print("===================== 示例1：查询最近的慢查询日志 =====================")
     slow_logs = fetcher.get_mysql_slow_logs(size=2)
-    slow_list = format_slow_logs(slow_logs)
+    slow_list = format_logs(slow_logs)
     print("\n慢查询日志数据:")
     print(json.dumps(slow_list, indent=2, ensure_ascii=False))
     print(f"获取到 {len(slow_list)} 条慢查询记录")
     
     print("\n===================== 示例2：查询最近的错误日志 =====================")
     error_logs = fetcher.get_mysql_error_logs(size=2)
-    error_list = format_error_logs(error_logs)
+    error_list = format_logs(error_logs)
     print("\n错误日志数据:")
     print(json.dumps(error_list, indent=2, ensure_ascii=False))
     print(f"获取到 {len(error_list)} 条错误记录")
@@ -241,13 +251,13 @@ if __name__ == "__main__":
     
     print("\n指定条件的错误日志:")
     error_logs = fetcher.get_mysql_error_logs(size=2, query_conditions=query_conditions)
-    error_list = format_error_logs(error_logs)
+    error_list = format_logs(error_logs)
     print(json.dumps(error_list, indent=2, ensure_ascii=False))
     print(f"获取到 {len(error_list)} 条错误记录")
     
     print("\n指定条件的慢查询日志:")
     slow_logs = fetcher.get_mysql_slow_logs(size=2, query_conditions=query_conditions)
-    slow_list = format_slow_logs(slow_logs)
+    slow_list = format_logs(slow_logs)
     print(json.dumps(slow_list, indent=2, ensure_ascii=False))
     print(f"获取到 {len(slow_list)} 条慢查询记录")
     
