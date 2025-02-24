@@ -2,8 +2,10 @@ import requests
 from datetime import datetime, timedelta
 import json
 
+ES_SERVER_URL = "http://82.156.146.51:9200"
+
 class ESLogFetcher:
-    def __init__(self, hosts='localhost:9200'):
+    def __init__(self, hosts='http://localhost:9200'):
         """
         初始化 ES 连接
         :param hosts: ES 主机地址
@@ -164,8 +166,7 @@ def get_es_metrics(host_ip, index_pattern, query_conditions=None, size=100):
     获取ES指标的封装方法
     """
     print(host_ip, index_pattern, query_conditions, size)
-    es_host = "http://82.156.146.51:9200"
-    fetcher = ESLogFetcher(es_host)
+    fetcher = ESLogFetcher(ES_SERVER_URL)
     if index_pattern == "mysql-slow*":
         return fetcher.get_mysql_slow_logs(size=size, query_conditions=query_conditions)
     elif index_pattern == "mysql-error*":
@@ -173,8 +174,7 @@ def get_es_metrics(host_ip, index_pattern, query_conditions=None, size=100):
 
 # 使用示例
 if __name__ == "__main__":
-    es_host = "http://82.156.146.51:9200"
-    fetcher = ESLogFetcher(es_host)
+    fetcher = ESLogFetcher(ES_SERVER_URL)
     
     print("===================== 示例1：查询最近的慢查询日志 =====================")
     slow_logs = fetcher.get_mysql_slow_logs(size=2)
