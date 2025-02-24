@@ -61,7 +61,8 @@
   "server": "数据库服务器ip",
   "command": "mysql-slow*",
   "time_from": "起始时间，格式为%Y-%m-%d %H:%M:%S",
-  "time_till": "结束时间，格式为%Y-%m-%d %H:%M:%S"
+  "time_till": "结束时间，格式为%Y-%m-%d %H:%M:%S",
+  "fields": ["message"]
 }
 ```
 
@@ -73,7 +74,7 @@
   "command": "mysql-error*",
   "time_from": "起始时间，格式为%Y-%m-%d %H:%M:%S",
   "time_till": "结束时间，格式为%Y-%m-%d %H:%M:%S",
-  "fields": ["message"]
+  "fields": ["@timestamp","user","client_ip", "query_time", "lock_time","rows_sent", "rows_examined","sql"]
 }
 ```
 ## 限制
