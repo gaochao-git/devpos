@@ -721,7 +721,7 @@ class GetESIndexFields(BaseView):
                     # 根据值的类型判断字段类型
                     field_type = type(field_value).__name__
                     if isinstance(field_value, str):
-                        if field_name in ['@timestamp', 'slow_time']:  # 特殊处理时间字段
+                        if field_name in ['@timestamp']:  # 特殊处理时间字段
                             field_type = 'date'
                         else:
                             field_type = 'text'
