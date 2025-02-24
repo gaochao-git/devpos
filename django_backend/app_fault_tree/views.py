@@ -703,7 +703,7 @@ class GetESIndexFields(BaseView):
                 return self.my_response({
                     "status": "error",
                     "message": str(valid_ret.errors),
-                    "code": status.HTTP_400_BAD_REQUEST
+                    "code": 400
                 })
 
             index = request_body.get('index')
@@ -743,7 +743,7 @@ class GetESIndexFields(BaseView):
             return self.my_response({
                 "status": "error",
                 "message": f"获取索引字段失败: {str(e)}",
-                "code": status.HTTP_500_INTERNAL_SERVER_ERROR
+                "code": 500
             })
 
 
@@ -764,7 +764,7 @@ class GetESMetrics(BaseView):
                 return self.my_response({
                     "status": "error",
                     "message": str(valid_ret.errors),
-                    "code": status.HTTP_400_BAD_REQUEST
+                    "code": 400
                 })
 
             index = request_body.get('index')
@@ -781,7 +781,7 @@ class GetESMetrics(BaseView):
                 return self.my_response({
                     "status": "error",
                     "message": "结束时间必须大于开始时间",
-                    "code": status.HTTP_400_BAD_REQUEST
+                    "code": 400
                 })
 
             fields = request_body.get('fields', [])
@@ -837,5 +837,5 @@ class GetESMetrics(BaseView):
             return self.my_response({
                 "status": "error",
                 "message": f"获取索引字段失败: {str(e)}",
-                "code": status.HTTP_500_INTERNAL_SERVER_ERROR
+                "code": 500
             })
