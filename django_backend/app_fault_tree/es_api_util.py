@@ -141,6 +141,36 @@ class ESLogFetcher:
             size=size
         )
 
+    def get_index_fields(self, index_pattern):
+        """
+        获取索引的字段映射信息
+        :param index_pattern: ES索引模式
+        :return: 字段列表，每个字段包含名称、类型和描述
+        """
+        try:
+            url = f"{self.base_url}/{index_pattern}/_mapping"
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            mapping = response.json()
+            
+            fields = []
+            if mapping:
+                # 获取第一个索引的映射信息
+                first_index = list(mapping.keys())[0]
+                properties = mapping[first_index]['mappings'].get('properties', {})
+                
+                for field_name, field_info in properties.items():
+                    field_type = field_info.get('type', 'unknown')
+                    fields.append({
+                        'field': field_name,
+                        'type': field_type,
+                        'description': field_name
+                    })
+            return fields
+        except Exception as e:
+            print(f"获取索引字段映射失败: {str(e)}")
+            return []
+
 def format_slow_logs(logs):
     """
     返回慢查询日志source列表
@@ -171,6 +201,15 @@ def get_es_metrics(host_ip, index_pattern, query_conditions=None, size=100):
         return fetcher.get_mysql_slow_logs(size=size, query_conditions=query_conditions)
     elif index_pattern == "mysql-error*":
         return fetcher.get_mysql_error_logs(size=size, query_conditions=query_conditions)
+
+def get_es_index_fields(index_pattern):
+    """
+    获取ES索引字段的封装方法
+    :param index_pattern: 索引模式
+    :return: 字段列表
+    """
+    fetcher = ESLogFetcher(ES_SERVER_URL)
+    return fetcher.get_index_fields(index_pattern)
 
 # 使用示例
 if __name__ == "__main__":

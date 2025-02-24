@@ -23,7 +23,7 @@ import time
 import random
 from .zabbix_api_util import get_all_host_metrics, get_zabbix_metrics
 import pytz
-from .es_api_util import get_es_metrics
+from .es_api_util import get_es_metrics, get_es_index_fields
 
 class CreateFaultTreeConfig(BaseView):
     """创建故障树配置"""
@@ -696,7 +696,6 @@ class GetESIndexFields(BaseView):
             request_body = self.request_params
             rules = {
                 "index": [Required],  # 索引名称
-                "ip": [Required],     # ES服务器IP
             }
             valid_ret = validate(rules, request_body)
             if not valid_ret.valid:
@@ -707,33 +706,8 @@ class GetESIndexFields(BaseView):
                 })
 
             index = request_body.get('index')
-            ip = request_body.get('ip')
-
-            # 调用ES API获取一条数据
-            results = get_es_metrics(ip, index, size=1)
+            fields = get_es_index_fields(index)
             
-            # 处理字段信息
-            fields = []
-            if results and results.get('hits', {}).get('hits'):
-                # 从第一条数据中获取字段信息
-                first_doc = results['hits']['hits'][0]['_source']
-                for field_name, field_value in first_doc.items():
-                    # 根据值的类型判断字段类型
-                    field_type = type(field_value).__name__
-                    if isinstance(field_value, str):
-                        if field_name in ['@timestamp']:  # 特殊处理时间字段
-                            field_type = 'date'
-                        else:
-                            field_type = 'text'
-                    elif isinstance(field_value, (int, float)):
-                        field_type = 'number'
-                    
-                    fields.append({
-                        'field': field_name,
-                        'type': field_type,
-                        'description': field_name  # 可以添加字段描述的映射
-                    })
-
             return self.my_response({
                 "status": "ok",
                 "message": "success",
