@@ -119,7 +119,6 @@ class ESLogFetcher:
             query_conditions=query_conditions,
             size=size
         )
-        return aaa
 
     def get_mysql_error_logs(self, size=100, query_conditions=None):
         """
