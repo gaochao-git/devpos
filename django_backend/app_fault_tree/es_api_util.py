@@ -157,7 +157,7 @@ class ESLogFetcher:
                 # 获取第一个索引的映射信息
                 first_index = list(mapping.keys())[0]
                 if ENV == 'china':  # 解决'slowlog.ip'、'error.ip'这种字段命名,及maping路径不一样问题
-                    PROPERTY_MAP = {INDEX_PATTEN_SLOW_LOG: "mysqlerror", INDEX_PATTEN_ERROR_LOG: "mysqlslow"}
+                    PROPERTY_MAP = {INDEX_PATTEN_SLOW_LOG: "mysqlslow", INDEX_PATTEN_ERROR_LOG: "mysqlerror"}
                     property_name = PROPERTY_MAP.get(index_pattern)
                     properties = mapping[first_index]['mappings'].get(property_name, {}).get('properties', {})
                     for field_name, field_info in properties.items():
