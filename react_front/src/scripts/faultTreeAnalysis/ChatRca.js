@@ -148,12 +148,24 @@ const ChatRca = ({ treeData, style }) => {
         let fullContent = '';
         let currentTool = null;
         let lastUpdateTime = Date.now();
+        const UPDATE_INTERVAL = 150; // 增加更新间隔到150ms，减少渲染频率
         
-        setMessages(prev => [...prev, {
-            type: 'llm',
-            content: '',
-            timestamp: getStandardTime()
-        }]);
+        // 添加新消息，标记为当前消息
+        setMessages(prev => {
+            // 先将所有消息标记为历史消息
+            const updatedMessages = prev.map(msg => ({
+                ...msg,
+                isCurrentMessage: false
+            }));
+            
+            // 添加新消息并标记为当前消息
+            return [...updatedMessages, {
+                type: 'llm',
+                content: '',
+                timestamp: getStandardTime(),
+                isCurrentMessage: true // 标记为当前消息
+            }];
+        });
 
         try {
             while (true) {
@@ -174,12 +186,15 @@ const ChatRca = ({ treeData, style }) => {
                         const data = JSON.parse(jsonStr);
 
                         if (data.event === 'message_end') {
+                            // 流结束时，更新完整内容并保持当前消息标记
                             setMessages(prev => {
                                 const newMessages = [...prev];
                                 const lastMessage = newMessages[newMessages.length - 1];
                                 newMessages[newMessages.length - 1] = {
                                     ...lastMessage,
-                                    metadata: data.metadata
+                                    content: fullContent,
+                                    metadata: data.metadata,
+                                    isCurrentMessage: true // 保持当前消息标记
                                 };
                                 return newMessages;
                             });
@@ -209,12 +224,15 @@ const ChatRca = ({ treeData, style }) => {
                         }
 
                         const currentTime = Date.now();
-                        if (currentTime - lastUpdateTime > 30) {
+                        // 使用更长的更新间隔减少渲染频率
+                        if (currentTime - lastUpdateTime > UPDATE_INTERVAL) {
                             setMessages(prev => {
                                 const newMessages = [...prev];
+                                const lastMessage = newMessages[newMessages.length - 1];
                                 newMessages[newMessages.length - 1] = {
-                                    ...newMessages[newMessages.length - 1],
-                                    content: fullContent
+                                    ...lastMessage,
+                                    content: fullContent,
+                                    isCurrentMessage: true // 保持当前消息标记
                                 };
                                 return newMessages;
                             });
@@ -232,6 +250,17 @@ const ChatRca = ({ treeData, style }) => {
             console.error('Stream processing error:', error);
             throw error;
         } finally {
+            // 确保在流结束时更新最终内容
+            setMessages(prev => {
+                const newMessages = [...prev];
+                const lastMessage = newMessages[newMessages.length - 1];
+                newMessages[newMessages.length - 1] = {
+                    ...lastMessage,
+                    content: fullContent,
+                    isCurrentMessage: false // 流结束后，将其标记为历史消息
+                };
+                return newMessages;
+            });
             setIsStreaming(false);
         }
     };
@@ -448,20 +477,28 @@ const ChatRca = ({ treeData, style }) => {
             };
         });
 
-        // 先添加用户消息
-        const userMessage = {
-            type: 'user',
-            content: inputValue,
-            contexts: contextData,
-            references,
-            timestamp: timestamp
-        };
+        // 先将所有消息标记为历史消息
+        setMessages(prev => {
+            const updatedMessages = prev.map(msg => ({
+                ...msg,
+                isCurrentMessage: false
+            }));
+            
+            // 添加用户消息
+            return [...updatedMessages, {
+                type: 'user',
+                content: inputValue,
+                contexts: contextData,
+                references,
+                timestamp: timestamp,
+                isCurrentMessage: false // 用户消息不是当前消息
+            }];
+        });
         
         // 立即清除上下文选择
         setSelectedContext([]);
         setSelectedResults(new Set());
         
-        setMessages(prev => [...prev, userMessage]);
         setInputValue('');
         setIsStreaming(true);
         setStreamContent('');
@@ -480,12 +517,21 @@ const ChatRca = ({ treeData, style }) => {
             }
         } catch (error) {
             if (error.name !== 'AbortError') {
-                setMessages(prev => [...prev, {
-                    type: 'llm',
-                    content: `调用失败: ${error.message}`,
-                    timestamp: timestamp,
-                    isError: true
-                }]);
+                setMessages(prev => {
+                    // 先将所有消息标记为历史消息
+                    const updatedMessages = prev.map(msg => ({
+                        ...msg,
+                        isCurrentMessage: false
+                    }));
+                    
+                    return [...updatedMessages, {
+                        type: 'llm',
+                        content: `调用失败: ${error.message}`,
+                        timestamp: timestamp,
+                        isError: true,
+                        isCurrentMessage: false // 错误消息不是当前消息
+                    }];
+                });
             }
         } finally {
             setIsStreaming(false);
@@ -1083,6 +1129,7 @@ const ChatRca = ({ treeData, style }) => {
             <div 
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
+                className="message-container"
                 style={{
                     flex: 1,
                     overflowY: 'auto',
@@ -1110,23 +1157,24 @@ const ChatRca = ({ treeData, style }) => {
 
                 {/* 消息列表 */}
                 {getDisplayMessages().map((msg, index) => (
-                    <MessageItem
-                        key={msg.timestamp}
-                        msg={msg}
-                        index={index}
-                        selectedResults={selectedResults}
-                        handleResultSelect={handleResultSelect}
-                        messageViewModes={messageViewModes}
-                        setMessageViewModes={setMessageViewModes}
-                        copyToClipboard={copyToClipboard}
-                        isExpanded={expandedMessages.has(msg.timestamp)}
-                        onExpandChange={(expanded) => handleMessageExpand(msg.timestamp, expanded)}
-                        messages={messages}
-                        isLatestMessage={index === getDisplayMessages().length - 1}
-                        executedCommands={executedCommands}
-                        executingCommands={executingCommands}
-                        executeCommand={executeCommand}
-                    />
+                    <div key={msg.timestamp} className="message-item">
+                        <MessageItem
+                            msg={msg}
+                            index={index}
+                            selectedResults={selectedResults}
+                            handleResultSelect={handleResultSelect}
+                            messageViewModes={messageViewModes}
+                            setMessageViewModes={setMessageViewModes}
+                            copyToClipboard={copyToClipboard}
+                            isExpanded={expandedMessages.has(msg.timestamp)}
+                            onExpandChange={(expanded) => handleMessageExpand(msg.timestamp, expanded)}
+                            messages={messages}
+                            isLatestMessage={index === getDisplayMessages().length - 1}
+                            executedCommands={executedCommands}
+                            executingCommands={executingCommands}
+                            executeCommand={executeCommand}
+                        />
+                    </div>
                 ))}
             </div>
 

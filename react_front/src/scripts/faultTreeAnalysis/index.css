@@ -123,3 +123,30 @@
 .code-block-wrapper pre {
     margin: 0 !important;
 }
+
+/* 消息容器样式 */
+.message-container {
+  contain: content;
+}
+
+/* 消息项样式 */
+.message-item {
+  contain: layout;
+}
+
+/* 当前消息样式 - 优化实时渲染性能 */
+.current-message {
+  /* 使用硬件加速 */
+  transform: translateZ(0);
+  will-change: contents;
+  /* 防止过度重排 */
+  overflow: hidden;
+  /* 简化渲染 */
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 历史消息内容样式 - 优化记忆性能 */
+.message-content {
+  contain: content;
+}

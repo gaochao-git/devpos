@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button, Tag, Checkbox, Icon, Collapse } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { markdownRenderers, MESSAGE_DISPLAY_THRESHOLD, formatValueWithUnit } from '../util';
@@ -292,12 +292,49 @@ const MessageItem = ({
         });
     };
 
+    // 使用 useMemo 缓存历史消息的渲染结果
+    const cachedContent = useMemo(() => {
+        // 只对历史消息使用缓存，当前消息不缓存
+        if (!msg.isCurrentMessage) {
+            return renderContent(displayContent);
+        }
+        return null;
+    }, [displayContent, msg.isCurrentMessage, expandedTools, expandedThoughts]);
+
     // 修改 renderMessageContent 函数
     const renderMessageContent = () => {
+        // 如果是当前消息，直接渲染而不使用缓存
+        if (msg.isCurrentMessage) {
+            return (
+                <div className="message-content current-message">
+                    {renderContent(displayContent)}
+                    {!shouldDisplayFull && (
+                        <Button type="link" onClick={() => onExpandChange(true)}>
+                            显示更多
+                        </Button>
+                    )}
+                    {msg.metadata?.usage && (
+                        <div style={{ 
+                            marginTop: '8px',
+                            padding: '8px',
+                            background: '#fafafa',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            color: '#999'
+                        }}>
+                            <div>Tokens: {msg.metadata.usage.total_tokens} (Prompt: {msg.metadata.usage.prompt_tokens}, Completion: {msg.metadata.usage.completion_tokens})</div>
+                            <div>Cost: ¥{msg.metadata.usage.total_price} (Prompt: ¥{msg.metadata.usage.prompt_price}, Completion: ¥{msg.metadata.usage.completion_price})</div>
+                            <div>Response Time: {msg.metadata.usage.latency.toFixed(2)}s</div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
         if (msg.type === 'llm') {
             return (
                 <div className="message-content">
-                    {renderContent(displayContent)}
+                    {cachedContent}
                     {!shouldDisplayFull && (
                         <Button type="link" onClick={() => onExpandChange(true)}>
                             显示更多
@@ -333,7 +370,7 @@ const MessageItem = ({
         // 其他类型消息的默认渲染
         return (
             <div className="message-content">
-                {renderContent(displayContent)}
+                {cachedContent || renderContent(displayContent)}
                 {!shouldDisplayFull && (
                     <Button type="link" onClick={() => onExpandChange(true)}>
                         显示更多
@@ -514,4 +551,16 @@ const MessageItem = ({
     );
 };
 
-export default MessageItem; 
+// 使用 React.memo 包装组件，但只对历史消息进行记忆
+export default React.memo(MessageItem, (prevProps, nextProps) => {
+    // 如果是当前消息，始终返回false允许重新渲染
+    if (nextProps.msg.isCurrentMessage) {
+        return false;
+    }
+    
+    // 对于历史消息，只有在内容或展开状态变化时才重新渲染
+    const contentUnchanged = prevProps.msg.content === nextProps.msg.content;
+    const expandedStateUnchanged = prevProps.isExpanded === nextProps.isExpanded;
+    
+    return contentUnchanged && expandedStateUnchanged;
+}); 
