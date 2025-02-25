@@ -645,17 +645,62 @@ export const ESAssistantUI = ({
 
 // ES表格视图组件
 const ESTableView = ({ data }) => {
+    // 所有 hooks 必须在组件顶部无条件调用
+    const [visibleColumns, setVisibleColumns] = useState(null);
+    const [columnSelectorVisible, setColumnSelectorVisible] = useState(false);
+
+    // 初始化可见列 - 这个 hook 必须在顶层调用
+    useEffect(() => {
+        if (data && Array.isArray(data) && data.length > 0) {
+            const allFields = new Set();
+            data.forEach(item => {
+                Object.keys(item).forEach(key => allFields.add(key));
+            });
+            const fields = Array.from(allFields);
+            
+            if (!visibleColumns) {
+                setVisibleColumns(new Set(fields));
+            }
+        }
+    }, [data, visibleColumns]);
+
+    // 如果没有数据，提前返回
     if (!data || !Array.isArray(data) || data.length === 0) {
         return <div>无数据</div>;
     }
 
-    // 获取所有字段并构建列定义
+    // 获取所有字段
     const allFields = new Set();
     data.forEach(item => {
         Object.keys(item).forEach(key => allFields.add(key));
     });
+    const fields = Array.from(allFields);
     
-    const columns = Array.from(allFields).map(field => ({
+    // 获取当前可见的字段
+    const getVisibleFields = () => {
+        if (!visibleColumns) return fields;
+        return fields.filter(field => visibleColumns.has(field));
+    };
+    
+    // 切换列可见性
+    const toggleColumnVisibility = (field) => {
+        const newVisibleColumns = new Set(visibleColumns);
+        if (newVisibleColumns.has(field)) {
+            // 确保至少有一列可见
+            if (newVisibleColumns.size > 1) {
+                newVisibleColumns.delete(field);
+            } else {
+                message.warning('至少需要保留一列');
+            }
+        } else {
+            newVisibleColumns.add(field);
+        }
+        setVisibleColumns(newVisibleColumns);
+    };
+    
+    const visibleFields = getVisibleFields();
+    
+    const columns = visibleFields.map(field => ({
         title: field,
         dataIndex: field,
         key: field,
@@ -765,20 +810,101 @@ const ESTableView = ({ data }) => {
             value: value
         }));
     }
+    
+    // 列选择器模态框
+    const renderColumnSelector = () => {
+        return (
+            <Modal
+                title="选择显示列"
+                visible={columnSelectorVisible}
+                onCancel={() => setColumnSelectorVisible(false)}
+                footer={[
+                    <Button 
+                        key="selectAll" 
+                        onClick={() => setVisibleColumns(new Set(fields))}
+                    >
+                        全选
+                    </Button>,
+                    <Button 
+                        key="clear" 
+                        onClick={() => {
+                            // 至少保留一列，选择第一列
+                            const firstColumn = new Set([fields[0]]);
+                            setVisibleColumns(firstColumn);
+                        }}
+                    >
+                        清空
+                    </Button>,
+                    <Button 
+                        key="close" 
+                        type="primary" 
+                        onClick={() => setColumnSelectorVisible(false)}
+                    >
+                        确定
+                    </Button>
+                ]}
+                width={600}
+            >
+                <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    maxHeight: '400px', 
+                    overflowY: 'auto' 
+                }}>
+                    {fields.map(field => (
+                        <div key={field} style={{ width: '33.33%', padding: '8px' }}>
+                            <Checkbox
+                                checked={visibleColumns ? visibleColumns.has(field) : true}
+                                onChange={() => toggleColumnVisibility(field)}
+                                disabled={visibleColumns && visibleColumns.size === 1 && visibleColumns.has(field)}
+                            >
+                                <span title={field} style={{ 
+                                    display: 'inline-block',
+                                    maxWidth: '150px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    verticalAlign: 'middle'
+                                }}>
+                                    {field}
+                                </span>
+                            </Checkbox>
+                        </div>
+                    ))}
+                </div>
+            </Modal>
+        );
+    };
 
     return (
-        <Table 
-            columns={columns} 
-            dataSource={dataWithKeys} 
-            pagination={{ 
-                defaultPageSize: 10, 
-                showSizeChanger: true, 
-                pageSizeOptions: ['10', '20', '50', '100'],
-                showTotal: (total, range) => `${range[0]}-${range[1]} 共 ${total} 条`
-            }}
-            size="middle"
-            scroll={{ x: 'max-content' }}
-            bordered
-        />
+        <div>
+            <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
+                <span>
+                    共 <strong>{data.length}</strong> 条记录，当前显示 <strong>{columns.length}</strong>/{fields.length} 列
+                </span>
+                <Button 
+                    icon="setting" 
+                    onClick={() => setColumnSelectorVisible(true)}
+                >
+                    列设置
+                </Button>
+            </div>
+            
+            <Table 
+                columns={columns} 
+                dataSource={dataWithKeys} 
+                pagination={{ 
+                    defaultPageSize: 10, 
+                    showSizeChanger: true, 
+                    pageSizeOptions: ['10', '20', '50', '100'],
+                    showTotal: (total, range) => `${range[0]}-${range[1]} 共 ${total} 条`
+                }}
+                size="middle"
+                scroll={{ x: 'max-content' }}
+                bordered
+            />
+            
+            {renderColumnSelector()}
+        </div>
     );
 }; 
