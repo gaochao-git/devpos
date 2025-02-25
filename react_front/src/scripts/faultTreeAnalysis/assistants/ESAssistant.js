@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Select, Button, Modal, Input, Icon, message, Checkbox } from 'antd';
+import { Select, Button, Modal, Input, Icon, message, Checkbox, Table } from 'antd';
 import moment from 'moment';
 import BaseAssistant from './BaseAssistant';
 import { ES_MOCK_INDICES, ES_OPERATORS, getStandardTime, markdownRenderers } from '../util';
@@ -645,120 +645,140 @@ export const ESAssistantUI = ({
 
 // ES表格视图组件
 const ESTableView = ({ data }) => {
-    const [sortField, setSortField] = useState(null);
-    const [sortDirection, setSortDirection] = useState('asc');
+    if (!data || !Array.isArray(data) || data.length === 0) {
+        return <div>无数据</div>;
+    }
 
-    // 获取所有字段
+    // 获取所有字段并构建列定义
     const allFields = new Set();
     data.forEach(item => {
         Object.keys(item).forEach(key => allFields.add(key));
     });
-    const fields = Array.from(allFields);
+    
+    const columns = Array.from(allFields).map(field => ({
+        title: field,
+        dataIndex: field,
+        key: field,
+        sorter: (a, b) => {
+            const valueA = a[field];
+            const valueB = b[field];
+            
+            // 处理空值
+            if (valueA === undefined || valueA === null) return -1;
+            if (valueB === undefined || valueB === null) return 1;
+            
+            // 数字比较
+            if (typeof valueA === 'number' && typeof valueB === 'number') {
+                return valueA - valueB;
+            }
+            
+            // 字符串比较
+            const strA = String(valueA).toLowerCase();
+            const strB = String(valueB).toLowerCase();
+            return strA.localeCompare(strB);
+        },
+        filters: getUniqueFilterValues(data, field),
+        onFilter: (value, record) => {
+            const recordValue = record[field];
+            if (recordValue === undefined || recordValue === null) {
+                return false;
+            }
+            return String(recordValue).toLowerCase().includes(value.toLowerCase());
+        },
+        render: (text) => {
+            if (text === undefined || text === null) {
+                return '-';
+            }
+            
+            let displayText;
+            let fullText;
+            
+            if (typeof text === 'object') {
+                fullText = JSON.stringify(text);
+                displayText = fullText.length > 50 ? fullText.substring(0, 47) + '...' : fullText;
+            } else {
+                fullText = String(text);
+                displayText = fullText.length > 50 ? fullText.substring(0, 47) + '...' : fullText;
+            }
+            
+            // 复制功能
+            const handleCopy = (e) => {
+                e.stopPropagation();
+                navigator.clipboard.writeText(fullText)
+                    .then(() => message.success('已复制到剪贴板'))
+                    .catch(() => message.error('复制失败'));
+            };
+            
+            return (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div 
+                        title={fullText} 
+                        style={{ 
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: 'calc(100% - 24px)' // 为复制按钮留出空间
+                        }}
+                    >
+                        {displayText}
+                    </div>
+                    {fullText !== '-' && (
+                        <Button
+                            type="link"
+                            icon="copy"
+                            size="small"
+                            onClick={handleCopy}
+                            style={{ padding: '0 4px', marginLeft: '4px' }}
+                        />
+                    )}
+                </div>
+            );
+        },
+        ellipsis: false, // 关闭内置省略，因为我们自己处理
+        width: 'auto'
+    }));
 
-    // 排序数据
-    const sortedData = [...data].sort((a, b) => {
-        if (!sortField) return 0;
+    // 为数据添加唯一key
+    const dataWithKeys = data.map((item, index) => ({
+        ...item,
+        key: index
+    }));
+
+    // 获取列的唯一值用于过滤
+    function getUniqueFilterValues(data, field) {
+        const uniqueValues = new Set();
         
-        const valueA = a[sortField];
-        const valueB = b[sortField];
+        data.forEach(item => {
+            const value = item[field];
+            if (value !== undefined && value !== null) {
+                uniqueValues.add(String(value));
+            }
+        });
         
-        // 处理空值
-        if (valueA === undefined || valueA === null) return sortDirection === 'asc' ? -1 : 1;
-        if (valueB === undefined || valueB === null) return sortDirection === 'asc' ? 1 : -1;
-        
-        // 数字比较
-        if (typeof valueA === 'number' && typeof valueB === 'number') {
-            return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+        // 如果唯一值太多，就不提供过滤选项
+        if (uniqueValues.size > 50) {
+            return null;
         }
         
-        // 字符串比较
-        const strA = String(valueA).toLowerCase();
-        const strB = String(valueB).toLowerCase();
-        return sortDirection === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
-    });
-
-    // 处理排序点击
-    const handleSort = (field) => {
-        if (sortField === field) {
-            // 切换排序方向
-            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-        } else {
-            // 设置新的排序字段，默认升序
-            setSortField(field);
-            setSortDirection('asc');
-        }
-    };
-
-    // 格式化单元格值
-    const formatCellValue = (value) => {
-        if (value === undefined || value === null) {
-            return '-';
-        } else if (typeof value === 'object') {
-            return JSON.stringify(value);
-        } else {
-            return String(value);
-        }
-    };
-
-    // 获取排序图标
-    const getSortIcon = (field) => {
-        if (sortField !== field) return <Icon type="swap" style={{ opacity: 0.3 }} />;
-        return sortDirection === 'asc' ? <Icon type="caret-up" /> : <Icon type="caret-down" />;
-    };
+        return Array.from(uniqueValues).map(value => ({
+            text: value,
+            value: value
+        }));
+    }
 
     return (
-        <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
-            <table style={{ 
-                width: '100%', 
-                borderCollapse: 'collapse', 
-                fontSize: '14px',
-                tableLayout: 'auto'
-            }}>
-                <thead>
-                    <tr>
-                        {fields.map(field => (
-                            <th 
-                                key={field} 
-                                style={{ 
-                                    padding: '8px', 
-                                    borderBottom: '1px solid #e8e8e8',
-                                    backgroundColor: '#fafafa',
-                                    textAlign: 'left',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    maxWidth: '250px',
-                                    cursor: 'pointer'
-                                }}
-                                onClick={() => handleSort(field)}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <span>{field}</span>
-                                    <span style={{ marginLeft: '4px' }}>{getSortIcon(field)}</span>
-                                </div>
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    {sortedData.map((item, index) => (
-                        <tr key={index}>
-                            {fields.map(field => (
-                                <td key={field} style={{ 
-                                    padding: '8px', 
-                                    borderBottom: '1px solid #e8e8e8',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    maxWidth: '250px'
-                                }}>
-                                    {formatCellValue(item[field])}
-                                </td>
-                            ))}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+        <Table 
+            columns={columns} 
+            dataSource={dataWithKeys} 
+            pagination={{ 
+                defaultPageSize: 10, 
+                showSizeChanger: true, 
+                pageSizeOptions: ['10', '20', '50', '100'],
+                showTotal: (total, range) => `${range[0]}-${range[1]} 共 ${total} 条`
+            }}
+            size="middle"
+            scroll={{ x: 'max-content' }}
+            bordered
+        />
     );
 }; 
