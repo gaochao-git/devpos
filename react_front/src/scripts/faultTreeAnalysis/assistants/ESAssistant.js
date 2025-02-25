@@ -119,7 +119,7 @@ export default class ESAssistant extends BaseAssistant {
 
     // 重写获取默认视图模式方法
     getDefaultViewMode() {
-        return 'json';
+        return 'table';
     }
 
     // 重写消息渲染方法
