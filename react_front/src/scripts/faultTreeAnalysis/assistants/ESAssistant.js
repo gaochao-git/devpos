@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Select, Button, Modal, Input, Icon, message } from 'antd';
+import { Select, Button, Modal, Input, Icon, message, Checkbox } from 'antd';
 import moment from 'moment';
 import BaseAssistant from './BaseAssistant';
-import { ES_MOCK_INDICES, ES_OPERATORS, getStandardTime } from '../util';
+import { ES_MOCK_INDICES, ES_OPERATORS, getStandardTime, markdownRenderers } from '../util';
 import TimeRangePicker from '../components/TimeRangePicker';
 import MyAxios from "../../common/interface";
+import ReactMarkdown from 'react-markdown';
 
 
 export default class ESAssistant extends BaseAssistant {
@@ -116,6 +117,109 @@ export default class ESAssistant extends BaseAssistant {
         }
     }
 
+    // 重写获取默认视图模式方法
+    getDefaultViewMode() {
+        return 'json';
+    }
+
+    // 重写消息渲染方法
+    renderMessage(msg, messageViewModes) {
+        // 初始化视图模式
+        if (!messageViewModes.has(msg.timestamp)) {
+            messageViewModes.set(msg.timestamp, this.getDefaultViewMode());
+        }
+
+        // 根据视图模式选择渲染方式
+        const viewMode = messageViewModes.get(msg.timestamp);
+        
+        if (viewMode === 'json') {
+            return (
+                <ReactMarkdown components={markdownRenderers}>
+                    {msg.content}
+                </ReactMarkdown>
+            );
+        } else if (viewMode === 'table') {
+            return this.renderTableView(msg.rawContent);
+        }
+    }
+
+    // 表格视图渲染方法
+    renderTableView(data) {
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            return <div>无数据</div>;
+        }
+
+        return <ESTableView data={data} />;
+    }
+
+    // 格式化单元格值
+    formatCellValue(value) {
+        if (value === undefined || value === null) {
+            return '-';
+        } else if (typeof value === 'object') {
+            return JSON.stringify(value);
+        } else {
+            return String(value);
+        }
+    }
+
+    // 重写渲染消息操作按钮方法
+    renderMessageActions(msg, messageViewModes, setMessageViewModes, handleResultSelect, selectedResults, copyToClipboard) {
+        return (
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+            }}>
+                {/* 引用勾选框 */}
+                <Checkbox
+                    checked={selectedResults.has(msg.timestamp)}
+                    onChange={(e) => handleResultSelect(msg.timestamp)}
+                    style={{ marginRight: '8px' }}
+                />
+                
+                {/* ES视图切换按钮 */}
+                <Button
+                    type="link"
+                    size="small"
+                    icon="code"
+                    style={{
+                        color: messageViewModes.get(msg.timestamp) === 'json' ? '#1890ff' : '#999',
+                        padding: '4px 8px'
+                    }}
+                    onClick={() => setMessageViewModes(prev => new Map(prev).set(msg.timestamp, 'json'))}
+                >
+                    JSON
+                </Button>
+                <Button
+                    type="link"
+                    size="small"
+                    icon="table"
+                    style={{
+                        color: messageViewModes.get(msg.timestamp) === 'table' ? '#1890ff' : '#999',
+                        padding: '4px 8px'
+                    }}
+                    onClick={() => setMessageViewModes(prev => new Map(prev).set(msg.timestamp, 'table'))}
+                >
+                    表格
+                </Button>
+                
+                {/* 复制按钮 */}
+                {msg.type === 'assistant' && (
+                    <Button
+                        type="link"
+                        size="small"
+                        icon="copy"
+                        style={{ padding: '4px 8px' }}
+                        onClick={() => copyToClipboard(msg)}
+                    >
+                        复制
+                    </Button>
+                )}
+            </div>
+        );
+    }
+
     // 重写渲染内容方法
     render(props) {
         return <ESAssistantUI assistant={this} {...props} />;
@@ -134,7 +238,12 @@ export const ESAssistantUI = ({
     handleServerSelect,
     servers,
     setExecutingAssistants,
-    setMessages
+    setMessages,
+    messageViewModes,
+    setMessageViewModes,
+    handleResultSelect,
+    selectedResults,
+    copyToClipboard
 }) => {
     const [searchModal, setSearchModal] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState('');
@@ -487,6 +596,7 @@ export const ESAssistantUI = ({
 
                         // 构建用户命令
                         const userCommand = `@${assistant.name} ${config?.ip} ${queryParams.index}`;
+                        const userTimestamp = getStandardTime();
 
                         // 执行命令
                         assistant.handleExecute({
@@ -498,7 +608,7 @@ export const ESAssistantUI = ({
                                     setMessages(prev => [...prev, {
                                         type: 'user',
                                         content: userCommand,
-                                        timestamp: getStandardTime()
+                                        timestamp: userTimestamp
                                     }, msg]);
                                 }
                             },
@@ -529,6 +639,126 @@ export const ESAssistantUI = ({
             </div>
 
             {renderSearchModal()}
+        </div>
+    );
+};
+
+// ES表格视图组件
+const ESTableView = ({ data }) => {
+    const [sortField, setSortField] = useState(null);
+    const [sortDirection, setSortDirection] = useState('asc');
+
+    // 获取所有字段
+    const allFields = new Set();
+    data.forEach(item => {
+        Object.keys(item).forEach(key => allFields.add(key));
+    });
+    const fields = Array.from(allFields);
+
+    // 排序数据
+    const sortedData = [...data].sort((a, b) => {
+        if (!sortField) return 0;
+        
+        const valueA = a[sortField];
+        const valueB = b[sortField];
+        
+        // 处理空值
+        if (valueA === undefined || valueA === null) return sortDirection === 'asc' ? -1 : 1;
+        if (valueB === undefined || valueB === null) return sortDirection === 'asc' ? 1 : -1;
+        
+        // 数字比较
+        if (typeof valueA === 'number' && typeof valueB === 'number') {
+            return sortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+        }
+        
+        // 字符串比较
+        const strA = String(valueA).toLowerCase();
+        const strB = String(valueB).toLowerCase();
+        return sortDirection === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
+    });
+
+    // 处理排序点击
+    const handleSort = (field) => {
+        if (sortField === field) {
+            // 切换排序方向
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            // 设置新的排序字段，默认升序
+            setSortField(field);
+            setSortDirection('asc');
+        }
+    };
+
+    // 格式化单元格值
+    const formatCellValue = (value) => {
+        if (value === undefined || value === null) {
+            return '-';
+        } else if (typeof value === 'object') {
+            return JSON.stringify(value);
+        } else {
+            return String(value);
+        }
+    };
+
+    // 获取排序图标
+    const getSortIcon = (field) => {
+        if (sortField !== field) return <Icon type="swap" style={{ opacity: 0.3 }} />;
+        return sortDirection === 'asc' ? <Icon type="caret-up" /> : <Icon type="caret-down" />;
+    };
+
+    return (
+        <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+            <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse', 
+                fontSize: '14px',
+                tableLayout: 'auto'
+            }}>
+                <thead>
+                    <tr>
+                        {fields.map(field => (
+                            <th 
+                                key={field} 
+                                style={{ 
+                                    padding: '8px', 
+                                    borderBottom: '1px solid #e8e8e8',
+                                    backgroundColor: '#fafafa',
+                                    textAlign: 'left',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    maxWidth: '250px',
+                                    cursor: 'pointer'
+                                }}
+                                onClick={() => handleSort(field)}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span>{field}</span>
+                                    <span style={{ marginLeft: '4px' }}>{getSortIcon(field)}</span>
+                                </div>
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {sortedData.map((item, index) => (
+                        <tr key={index}>
+                            {fields.map(field => (
+                                <td key={field} style={{ 
+                                    padding: '8px', 
+                                    borderBottom: '1px solid #e8e8e8',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    maxWidth: '250px'
+                                }}>
+                                    {formatCellValue(item[field])}
+                                </td>
+                            ))}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 }; 
