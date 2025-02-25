@@ -1,19 +1,24 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactEcharts from 'echarts-for-react';
 
-const ZabbixChart = ({ data, style = {}, showHeader = true }) => {
+// 使用React.memo包装组件，避免不必要的重渲染
+const ZabbixChart = React.memo(({ data, style = {}, showHeader = true }) => {
     // 确保数据存在且有效
     if (!Array.isArray(data) || data.length === 0) {
         return <div>No data available</div>;
     }
 
-    const getChartOption = () => {
+    // 使用useMemo缓存图表配置，避免每次渲染都重新计算
+    const chartOption = useMemo(() => {
+        // 使用全量数据，不进行采样
+        const processedData = data;
+
         // 提取时间和值的数组
-        const times = data.map(item => item.metric_time);
-        const values = data.map(item => parseFloat(item.value));
+        const times = processedData.map(item => item.metric_time);
+        const values = processedData.map(item => parseFloat(item.value));
         
         // 使用第一个数据点获取基本信息
-        const firstItem = data[0];
+        const firstItem = processedData[0];
 
         // 计算统计值
         const minValue = Math.min(...values);
@@ -25,9 +30,9 @@ const ZabbixChart = ({ data, style = {}, showHeader = true }) => {
         const yAxisMin = shouldStartFromZero ? 0 : minValue * 0.95;
 
         return {
-            title: {
-                text: `${firstItem.key_} (${data.length} 个数据点)`,  // 第一行：指标名称和数据点数量
-                subtext: `最小值: ${minValue.toFixed(2)}${firstItem.units} • 平均值: ${avgValue.toFixed(2)}${firstItem.units} • 最大值: ${maxValue.toFixed(2)}${firstItem.units}`,  // 第二行：统计信息
+            title: showHeader ? {
+                text: `${firstItem.key_} (${processedData.length} 个数据点)`,
+                subtext: `最小值: ${minValue.toFixed(2)}${firstItem.units} • 平均值: ${avgValue.toFixed(2)}${firstItem.units} • 最大值: ${maxValue.toFixed(2)}${firstItem.units}`,
                 left: 'center',
                 top: 5,
                 textStyle: {
@@ -38,7 +43,7 @@ const ZabbixChart = ({ data, style = {}, showHeader = true }) => {
                     color: '#666',
                     fontSize: 12
                 }
-            },
+            } : undefined,
             tooltip: {
                 trigger: 'axis',
                 formatter: function(params) {
@@ -55,7 +60,7 @@ const ZabbixChart = ({ data, style = {}, showHeader = true }) => {
                 }
             },
             grid: {
-                top: 70,  // 确保有足够空间显示两行标题
+                top: showHeader ? 70 : 30,
                 left: '3%',
                 right: '4%',
                 bottom: '3%',
@@ -107,13 +112,15 @@ const ZabbixChart = ({ data, style = {}, showHeader = true }) => {
             series: [{
                 type: 'line',
                 data: values,
-                smooth: false,  // 改为false以更准确显示数据点
+                smooth: false,
                 symbol: 'circle',
-                symbolSize: 4,
+                // 大数据量时不显示所有点的标记
+                symbolSize: data.length > 100 ? 0 : 4,
+                // 保留LTTB采样算法，但仅在ECharts内部渲染优化时使用
                 sampling: 'lttb',
                 lineStyle: {
                     width: 1.5,
-                    color: '#1F78C1'  // Zabbix默认的蓝色
+                    color: '#1F78C1'
                 },
                 itemStyle: {
                     color: '#1F78C1'
@@ -136,17 +143,22 @@ const ZabbixChart = ({ data, style = {}, showHeader = true }) => {
                 }
             }]
         };
-    };
+    }, [data, showHeader]); // 只有当data或showHeader变化时才重新计算
 
     return (
         <div style={{ width: '100%', padding: '5px 0' }}>
             <ReactEcharts 
-                option={getChartOption()} 
+                option={chartOption} 
                 style={{ height: '200px', ...style }}
-                opts={{ renderer: 'svg' }}
+                opts={{ 
+                    renderer: 'canvas',  // 使用canvas渲染器提高性能
+                    devicePixelRatio: window.devicePixelRatio  // 适配高DPI显示器
+                }}
+                lazyUpdate={true}  // 启用懒更新，减少不必要的图表更新
+                notMerge={true}    // 完全替换配置，避免合并开销
             />
         </div>
     );
-};
+});
 
 export default ZabbixChart; 
