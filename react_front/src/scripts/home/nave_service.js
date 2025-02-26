@@ -32,9 +32,6 @@ class NavService extends Component {
                     <Menu.Item key="linkSentinel">
                         <Link to="/service/mysql/linkSentinel">链路哨兵</Link >
                     </Menu.Item>
-                    <Menu.Item key="chatBot">
-                        <Link to="/service/mysql/chatBot">聊天助手</Link >
-                    </Menu.Item>
                 </SubMenu>
                 <SubMenu key="redis" title={<span><Icon type="database" /><span>Redis</span></span>}>
                     <Menu.Item key="redisInstance">
@@ -64,6 +61,11 @@ class NavService extends Component {
                     </Menu.Item>
                     <Menu.Item key="rag">
                         <Link to="/service/console/rag">知识库问答</Link>
+                    </Menu.Item>
+                </SubMenu>
+                <SubMenu key="aiApp" title={<span><Icon type="robot" /><span>智能工厂</span></span>}>
+                    <Menu.Item key="aiFactory">
+                        <Link to="/service/aiApp/aiFactory">智能工厂</Link>
                     </Menu.Item>
                 </SubMenu>
             </Menu>

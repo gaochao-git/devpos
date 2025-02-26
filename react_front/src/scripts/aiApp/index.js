@@ -71,7 +71,7 @@ const estimateMessageHeight = (message) => {
   return baseHeight + (lines - 1) * lineHeight;
 };
 
-const ChatBot = () => {
+const AiFactory = () => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const listRef = useRef();
@@ -154,4 +154,4 @@ const ChatBot = () => {
   );
 };
 
-export default ChatBot;
+export default AiFactory;
