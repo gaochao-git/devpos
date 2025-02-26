@@ -65,7 +65,7 @@ const AIFactory = () => {
   return (
     <Container>
       <Sidebar>
-        <h2>智能体列表</h2>
+        <h2>智能体工厂</h2>
         {agentConfigs.map(agent => (
           <AgentCard
             key={agent.id}
