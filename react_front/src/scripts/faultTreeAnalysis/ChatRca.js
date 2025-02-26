@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { message, Tooltip } from 'antd';
+import { message, Tooltip, Select } from 'antd';
 import { Icon } from 'antd';
 import MyAxios from "../common/interface"
 import { AssistantContainer, registry } from './assistants';
@@ -23,7 +23,7 @@ import UserInput from './components/UserInput';
 import MessageItem from './components/MessageItem';
 import ContextTags from './components/ContextTags';
 
-const ChatRca = ({ clusterName, style }) => {
+const ChatRca = (props) => {
     // 基础状态
     const [messages, setMessages] = useState([]);
     const [streamContent, setStreamContent] = useState('');
@@ -79,6 +79,30 @@ const ChatRca = ({ clusterName, style }) => {
     const MESSAGES_PER_LOAD = 5;
     const [displayLimit, setDisplayLimit] = useState(MESSAGES_PER_LOAD);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+    // 添加集群相关状态
+    const [clusters, setClusters] = useState([]);
+    const [clusterName, setClusterName] = useState(props.clusterName);
+
+    // 获取集群列表
+    useEffect(() => {
+        const fetchClusters = async () => {
+            try {
+                const response = await MyAxios.get('/db_resource/v1/get_mysql_cluster/');
+                
+                if (response.data.status === "ok") {
+                    setClusters(response.data.data);
+                } else {
+                    message.error('获取集群列表失败');
+                }
+            } catch (error) {
+                console.error('获取集群列表错误:', error);
+                message.error('获取集群列表失败');
+            }
+        };
+        
+        fetchClusters();
+    }, []);
 
     // 获取要显示的消息
     const getDisplayMessages = useCallback(() => {
@@ -1085,7 +1109,7 @@ const ChatRca = ({ clusterName, style }) => {
             background: '#f5f5f5',
             position: 'relative',
             overflow: 'hidden',
-            ...style
+            ...props.style
         }}>
             {/* 顶部工具栏 */}
             <div style={{
@@ -1097,21 +1121,45 @@ const ChatRca = ({ clusterName, style }) => {
                 alignItems: 'center',
                 zIndex: 1000
             }}>
-                <Tooltip title={isAutoMode ? "AI将自动分析故障原因并提供解决方案" : "AI将协助人工分析故障原因"}>
-                    <div 
-                        onClick={() => setIsAutoMode(!isAutoMode)}
-                        style={{ 
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            color: isAutoMode ? '#1890ff' : '#595959'
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <Select
+                        showSearch
+                        style={{ width: 200 }}
+                        placeholder="选择数据库集群"
+                        value={clusterName}
+                        optionFilterProp="children"
+                        onChange={(value) => {
+                            if (window.globalStore) {
+                                window.globalStore.setCurrentCluster(value);
+                            }
+                            setClusterName(value);
                         }}
+                        filterOption={(input, option) =>
+                            option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                        }
                     >
-                        <Icon type="robot" />
-                        <span>{isAutoMode ? "AI自动分析" : "AI辅助分析"}</span>
-                    </div>
-                </Tooltip>
+                        {clusters?.map(cluster => (
+                            <Select.Option key={cluster.id} value={cluster.cluster_name}>
+                                {cluster.cluster_name}
+                            </Select.Option>
+                        ))}
+                    </Select>
+                    <Tooltip title={isAutoMode ? "AI将自动分析故障原因并提供解决方案" : "AI将协助人工分析故障原因"}>
+                        <div 
+                            onClick={() => setIsAutoMode(!isAutoMode)}
+                            style={{ 
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                color: isAutoMode ? '#1890ff' : '#595959'
+                            }}
+                        >
+                            <Icon type="robot" />
+                            <span>{isAutoMode ? "AI自动分析" : "AI辅助分析"}</span>
+                        </div>
+                    </Tooltip>
+                </div>
                 <div style={{ display: 'flex', gap: '16px' }}>
                     <Tooltip title="新开会话">
                         <Icon 
