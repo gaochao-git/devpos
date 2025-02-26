@@ -12,27 +12,6 @@ const Container = styled.div`
   overflow: hidden;
 `;
 
-const Header = styled.div`
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  align-items: center;
-  background: #E91E63;
-  color: white;
-`;
-
-const Icon = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-  font-size: 20px;
-`;
-
 const Content = styled.div`
   flex: 1;
   overflow: auto;
@@ -44,13 +23,6 @@ const FaultAnalysisAgent = ({ config }) => {
 
   return (
     <Container>
-      <Header>
-        <Icon>{config.icon}</Icon>
-        <div>
-          <h2 style={{ margin: 0 }}>{config.name}</h2>
-          <p style={{ margin: '4px 0 0 0', opacity: 0.8 }}>{config.description}</p>
-        </div>
-      </Header>
       <Content>
         <ChatRca
           clusterName={currentCluster?.cluster_name}
