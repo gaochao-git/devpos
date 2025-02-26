@@ -40,7 +40,7 @@ import { backendServerApiRoot } from "./scripts/common/util";
 import FaultTreeConfig from  "./scripts/faultTreeConfig/index"
 import KbRag from './scripts/console/kb_rag'
 import LinkSentinel from './scripts/mysql/linkSentinel'
-import AiFactory from './scripts/aiApp/index'
+import AIFactory from './scripts/aiApp/aIFactory'
 
 const { Header, Footer, Sider, Content } = Layout;
 const { SubMenu } = Menu;
@@ -221,7 +221,7 @@ class App extends Component {
                                         <Route exact path="/manage/config/faultTreeConfig" component={FaultTreeConfig} />
                                         <Route exact path="/service/console/rag" component={KbRag} />
                                         <Route exact path="/service/mysql/linkSentinel" component={LinkSentinel} />
-                                        <Route exact path="/service/aiApp/aiFactory" component={AiFactory} />
+                                        <Route exact path="/service/aiApp/aIFactory" component={AIFactory} />
                                     </WaterMark>}
                                 </Content>
                             </Layout>
