@@ -558,9 +558,14 @@ export default React.memo(MessageItem, (prevProps, nextProps) => {
         return false;
     }
     
-    // 对于历史消息，只有在内容或展开状态变化时才重新渲染
+    // 对于历史消息，检查关键状态是否变化
     const contentUnchanged = prevProps.msg.content === nextProps.msg.content;
     const expandedStateUnchanged = prevProps.isExpanded === nextProps.isExpanded;
+    const messageViewModesUnchanged = prevProps.messageViewModes === nextProps.messageViewModes;
+    const selectedResultsUnchanged = prevProps.selectedResults === nextProps.selectedResults;
     
-    return contentUnchanged && expandedStateUnchanged;
+    return contentUnchanged && 
+           expandedStateUnchanged && 
+           messageViewModesUnchanged && 
+           selectedResultsUnchanged;
 }); 
