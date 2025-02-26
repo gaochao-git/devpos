@@ -284,7 +284,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                                         flexDirection: 'column'
                                     }}>
                                         <ChatRca 
-                                            treeData={treeData}
+                                            clusterName={cluster_name}
                                             style={{
                                                 flex: 1,
                                                 minHeight: 0,

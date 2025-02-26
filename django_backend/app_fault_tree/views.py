@@ -813,3 +813,49 @@ class GetESMetrics(BaseView):
                 "message": f"获取索引字段失败: {str(e)}",
                 "code": 500
             })
+        
+        
+class GetClusterServers(BaseView):
+    def post(self, request):
+        request_body = self.request_params
+        rules = {
+            "cluster_name": [Required],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+                return self.my_response({
+                    "status": "error",
+                    "message": str(valid_ret.errors),
+                    "code": 400
+                })
+        cluster_name = request_body.get('cluster_name')
+        
+        # 查询MySQL集群实例信息
+        sql = f"SELECT cluster_name, instance_name, instance_role FROM mysql_cluster_instance WHERE cluster_name='{cluster_name}'"
+        results = db_helper.find_all(sql)
+        data = results.get('data')
+        
+        # 处理实例数据，提取IP和端口信息
+        servers = []
+        for instance in data:
+            instance_name = instance['instance_name']
+            instance_parts = instance_name.split('_')
+            if len(instance_parts) >= 2:
+                ip = instance_parts[0]
+                port = instance_parts[1]
+                role = "主库" if instance['instance_role'] == 'M' else "从库"
+                
+                servers.append({
+                    "ip": ip,
+                    "port": port,
+                    "role": role,
+                    "name": f"{cluster_name}->{instance_name}->{role}",
+                    "type": "mysql"
+                })
+        
+        return self.my_response({
+            "status": "ok",
+            "data": servers,
+            "message": "获取集群服务器成功"
+        })
+        

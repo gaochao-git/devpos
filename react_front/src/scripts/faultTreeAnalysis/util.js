@@ -1,6 +1,8 @@
 import React from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import MyAxios from "../common/interface";
+import { message } from 'antd';
 
 // API URLs and Configuration
 export const DIFY_BASE_URL = 'http://127.0.0.1/v1';
@@ -33,13 +35,13 @@ export const markdownRenderers = {
 
 // Context types definition
 export const CONTEXT_TYPES = [
-    { key: 'tree', label: '故障树数据', icon: 'cluster', 
-      description: '使用故障树结构和关联信息' },
+    { key: 'tree', label: '集群信息', icon: 'cluster', 
+      description: '集群信息' },
     { key: 'zabbix', label: 'Zabbix可用指标列表', icon: 'line-chart', 
       description: '包含系统性能和状态指标' },
-    { key: 'ssh', label: 'SSH命令列表', icon: 'line-chart', 
+    { key: 'ssh', label: 'SSH命令列表', icon: 'code', 
       description: '执行系统命令' },
-    { key: 'mysql', label: 'MySQL命令列表', icon: 'line-chart', 
+    { key: 'mysql', label: 'MySQL命令列表', icon: 'database', 
       description: '执行MySQL命令' }
 ];
 
@@ -117,6 +119,29 @@ export const extractServersFromTree = (treeData) => {
     traverse(treeData);
     return servers;
 };
+
+
+// 添加获取Zabbix指标的函数
+export const extractServersFromCluster = async (cluster_name) => {
+    try {
+        // 为每个服务器获取指标
+        const response = await MyAxios.post('/fault_tree/v1/get_cluster_servers/', { 
+            "cluster_name": cluster_name 
+        });
+        
+        if (response.data.status === "ok") {
+            // 返回服务器数据
+            console.log(response.data.data);
+            return response.data.data;
+        }
+        return []; // 如果状态不是ok，返回空数组
+    } catch (error) {
+        console.error('获取集群server信息失败:', error);
+        message.error('获取集群server信息失败');
+        return []; // 发生错误时返回空数组
+    }
+};
+
 
 // Get standard time format
 export const getStandardTime = () => {

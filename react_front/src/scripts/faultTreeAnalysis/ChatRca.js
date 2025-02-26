@@ -11,7 +11,7 @@ import {
     DIFY_CONVERSATIONS_URL,
     COMMAND_EXECUTE_URL,
     CONTEXT_TYPES,
-    extractServersFromTree,
+    extractServersFromCluster,
     getStandardTime,
     SSH_COMMANDS,
     MYSQL_COMMANDS,
@@ -23,7 +23,7 @@ import UserInput from './components/UserInput';
 import MessageItem from './components/MessageItem';
 import ContextTags from './components/ContextTags';
 
-const ChatRca = ({ treeData, style }) => {
+const ChatRca = ({ clusterName, style }) => {
     // 基础状态
     const [messages, setMessages] = useState([]);
     const [streamContent, setStreamContent] = useState('');
@@ -31,6 +31,9 @@ const ChatRca = ({ treeData, style }) => {
     const [isStreaming, setIsStreaming] = useState(false);
     const [selectedContext, setSelectedContext] = useState([]);
     const [conversationId, setConversationId] = useState('');
+    
+    // 添加clusterServers状态来存储服务器信息
+    const [clusterServers, setClusterServers] = useState([]);
 
     // 助手相关状态
     const [atPosition, setAtPosition] = useState(null);
@@ -85,11 +88,22 @@ const ChatRca = ({ treeData, style }) => {
         return messages.slice(-displayLimit);
     }, [messages, displayLimit]);
 
+    // 在组件初始化时获取服务器信息
+    useEffect(() => {
+        if (clusterName) {
+            const fetchClusterServers = async () => {
+                const servers = await extractServersFromCluster(clusterName);
+                setClusterServers(servers);
+            };
+            fetchClusterServers();
+        }
+    }, [clusterName]);
+
     // 添加获取Zabbix指标的函数
     const fetchZabbixMetrics = async () => {
         try {
-            // 从故障树中提取所有服务器
-            const servers = extractServersFromTree(treeData);
+            // 使用clusterServers
+            const servers = clusterServers;
             const metricsMap = new Map();
 
             // 为每个服务器获取指标
@@ -273,7 +287,7 @@ const ChatRca = ({ treeData, style }) => {
                 let content = '';
                 switch(key) {
                     case 'tree':
-                        content = JSON.stringify(treeData, null, 2);
+                        content = JSON.stringify(clusterServers, null, 2);
                         break;
                     case 'zabbix':
                         // 将所有服务器的 Zabbix 指标合并成一个数组，只保留关键信息
@@ -449,7 +463,7 @@ const ChatRca = ({ treeData, style }) => {
             let content = '';
             switch(key) {
                 case 'tree':
-                    content = JSON.stringify(treeData, null, 2);
+                    content = JSON.stringify(clusterServers, null, 2);
                     break;
                 case 'zabbix':
                     // 将所有服务器的 Zabbix 指标合并成一个数组
@@ -1210,7 +1224,7 @@ const ChatRca = ({ treeData, style }) => {
                             setExecutingAssistants={setExecutingAssistants}
                             executeCommand={executeCommand}
                             handleServerSelect={handleServerSelect}
-                            servers={extractServersFromTree(treeData)}
+                            servers={clusterServers}
                             setMessages={setMessages}
                             handleSend={handleSend}
                         />
