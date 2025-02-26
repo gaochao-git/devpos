@@ -184,8 +184,8 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
     };
 
     return (
-        <Layout className="fault-tree-analysis">
-            <Content style={{ padding: '5px' }}>
+        <Layout>
+            <Content className="fault-tree-analysis">
                 <Card bordered={false}>
                     {/* 顶部工具栏 */}
                     <div>
@@ -231,71 +231,11 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
                             </div>
                         </div>
                     </div>
-
-                    {/* 故障树和对话助手区域 */}
-                    <div style={{ 
-                        background: 'white',
-                        borderRadius: '12px',
-                        padding: '5px',
-                        minHeight: 'calc(100vh - 280px)',
-                        display: 'flex',
-                        position: 'relative',
-                        overflow: 'hidden'
-                    }}>
-                        {treeData && (
-                            <>
-                                {/* 故障树区域 */}
-                                <div style={{
-                                    width: `calc(100% - ${isChatCollapsed ? 40 : chatWidth}px)`,
-                                    height: 'calc(115vh - 328px)',
-                                    overflow: 'hidden'
-                                }}>
-                                    <G6Tree 
-                                        data={treeData} 
-                                        initialTimeRange={timeRange}
-                                    />
-                                </div>
-
-                                {/* 对话助手区域 */}
-                                <ResizableBox
-                                    width={isChatCollapsed ? 40 : chatWidth}
-                                    height={`calc(115vh - 10px)`}
-                                    minConstraints={[20, 1000]}
-                                    maxConstraints={[1200, 1000]}
-                                    axis="x"
-                                    resizeHandles={['w']}
-                                    onResize={(e, { size }) => {
-                                        setChatWidth(size.width);
-                                    }}
-                                    style={{
-                                        transition: isChatCollapsed ? 'width 0.3s' : 'none',
-                                        position: 'relative'
-                                    }}
-                                >
-                                    <div style={{
-                                        height: 'calc(115vh - 328px)',
-                                        background: 'white',
-                                        borderRadius: '8px',
-                                        border: '1px solid #e5e7eb',
-                                        borderLeft: '4px solid #e5e7eb',
-                                        overflow: 'hidden',
-                                        position: 'relative',
-                                        display: 'flex',
-                                        flexDirection: 'column'
-                                    }}>
-                                        <ChatRca 
-                                            clusterName={cluster_name}
-                                            style={{
-                                                flex: 1,
-                                                minHeight: 0,
-                                                overflow: 'hidden'
-                                            }}
-                                        />
-                                    </div>
-                                </ResizableBox>
-                            </>
-                        )}
-                    </div>
+                    {treeData && (
+                        <div style={{width: '100%',overflow: 'hidden',background: 'white',}}>
+                            <G6Tree data={treeData} initialTimeRange={timeRange}/>
+                        </div>
+                    )}
                 </Card>
             </Content>
         </Layout>
