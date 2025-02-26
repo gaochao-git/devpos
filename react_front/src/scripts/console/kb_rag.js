@@ -239,7 +239,7 @@ export default class KbRag extends Component {
         const allSelected = ragConfig.db_types.length === DB_OPTIONS.length;
         
         return (
-            <div style={{ display: 'flex', height: 'calc(100vh - 64px)', padding: '20px' }}>
+            <div style={{ display: 'flex', height: 'calc(100vh - 128px)', padding: '20px' }}>
                 {/* 左侧面板 */}
                 <div style={{ 
                     width: '30%', 
