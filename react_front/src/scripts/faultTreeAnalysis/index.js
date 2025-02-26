@@ -181,58 +181,54 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
 
     return (
         <Layout>
-            <Content className="fault-tree-analysis">
-                <Card bordered={false}>
-                    {/* 顶部工具栏 */}
-                    <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            {/* 左侧分析按钮组 */}
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                                {/* 场景选择和按钮组 */}
-                                <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px', gap: '12px' }}>
-                                        <Select
-                                            value={selectedCase}
-                                            onChange={handleCaseSelect}
-                                            style={{ width: '178px' }}
-                                            size="middle"
-                                            placeholder="选择故障场景"
-                                        >
-                                            <Option value="数据库写入超时">数据库写入超时</Option>
-                                            <Option value="数据库响应升高">数据库响应升高</Option>
-                                            <Option value="数据库无法连接">数据库无法连接</Option>
-                                        </Select>
-                                            {/* <Switch
-                                                checkedChildren="流式"
-                                                unCheckedChildren="阻塞"
-                                                onChange={(checked) => setEnableStream(checked)}
-                                                style={{ width: '58px' }}
-                                            /> */}
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                        <RangePicker
-                                            showTime
-                                            value={timeRange}
-                                            onChange={handleTimeChange}
-                                            ranges={ranges}
-                                            style={{ flex: 1 }}
-                                        />
-                                        <Button type="primary" onClick={handleRefresh}>
-                                            刷新
-                                        </Button>
-                                    </div>
-                                        <Button type="primary" icon="fullscreen" onClick={handleExpandAll} disabled={!treeData} size="middle"></Button>
-                                        <Button type="danger" icon="warning" onClick={handleExpandError} disabled={!treeData} size="middle"></Button>
-                                    </div>
-                                </div>
+            <Content>
+                {/* 顶部工具栏 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {/* 左侧分析按钮组 */}
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        {/* 场景选择和按钮组 */}
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '5px', gap: '12px',backgroundColor: 'white',padding: '2px' }}>
+                                <Select
+                                    value={selectedCase}
+                                    onChange={handleCaseSelect}
+                                    style={{ width: '178px' }}
+                                    size="middle"
+                                    placeholder="选择故障场景"
+                                >
+                                    <Option value="数据库写入超时">数据库写入超时</Option>
+                                    <Option value="数据库响应升高">数据库响应升高</Option>
+                                    <Option value="数据库无法连接">数据库无法连接</Option>
+                                </Select>
+                                    {/* <Switch
+                                        checkedChildren="流式"
+                                        unCheckedChildren="阻塞"
+                                        onChange={(checked) => setEnableStream(checked)}
+                                        style={{ width: '58px' }}
+                                    /> */}
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                <RangePicker
+                                    showTime
+                                    value={timeRange}
+                                    onChange={handleTimeChange}
+                                    ranges={ranges}
+                                    style={{ flex: 1 }}
+                                />
+                                <Button type="primary" onClick={handleRefresh}>
+                                    刷新
+                                </Button>
+                            </div>
+                                <Button type="primary" icon="fullscreen" onClick={handleExpandAll} disabled={!treeData} size="middle"></Button>
+                                <Button type="danger" icon="warning" onClick={handleExpandError} disabled={!treeData} size="middle"></Button>
                             </div>
                         </div>
                     </div>
-                    {treeData && (
-                        <div style={{width: '100%',overflow: 'hidden',background: 'white',}}>
-                            <G6Tree data={treeData} initialTimeRange={timeRange}/>
-                        </div>
-                    )}
-                </Card>
+                </div>
+                {treeData && (
+                    <div style={{width: '100%', overflow: 'hidden', background: 'white'}}>
+                        <G6Tree data={treeData} initialTimeRange={timeRange}/>
+                    </div>
+                )}
             </Content>
         </Layout>
     );
