@@ -6,6 +6,26 @@ import ChatRca from '../agents/FaultAnalysisAgent';
 
 // 智能体类型到组件的映射
 export const agentComponentMap = {
+    'rca': {
+        component: ChatRca,
+        name: '根因分析助手',
+        description: '协助进行故障根因分析',
+        icon: '🔍',
+        color: '#E75B77',
+        systemPrompt: '你是一个专业的故障分析专家，擅长进行根因分析。',
+        temperature: 0.4,
+        model: 'gpt-4',
+    },
+    'data-analysis': {
+        component: DataAnalysisAgent,
+        name: '国产数据库选型助手',
+        description: '帮助进行国产数据库选型。',
+        icon: '🗄️',
+        color: '#9C27B0',
+        systemPrompt: '你是一个国产数据库选型专家，可以帮助进行国产数据库选型。',
+        temperature: 0.4,
+        model: 'gpt-4',
+    },
   'general': {
     component: GeneralAgent,
     name: '通用助手',
@@ -26,16 +46,6 @@ export const agentComponentMap = {
     temperature: 0.3,
     model: 'gpt-4',
   },
-  'data-analysis': {
-    component: DataAnalysisAgent,
-    name: '数据分析助手',
-    description: '协助数据分析和可视化',
-    icon: '📊',
-    color: '#9C27B0',
-    systemPrompt: '你是一个数据分析专家，可以帮助进行数据分析、统计和可视化。',
-    temperature: 0.4,
-    model: 'gpt-4',
-  },
   'creative': {
     component: CreativeAgent,
     name: '创意助手',
@@ -46,16 +56,7 @@ export const agentComponentMap = {
     temperature: 0.9,
     model: 'gpt-3.5-turbo',
   },
-  'rca': {
-    component: ChatRca,
-    name: '根因分析助手',
-    description: '协助进行故障根因分析',
-    icon: '🔍',
-    color: '#E91E63',
-    systemPrompt: '你是一个专业的故障分析专家，擅长进行根因分析。',
-    temperature: 0.4,
-    model: 'gpt-4',
-  }
+  
 };
 
 // 获取所有智能体配置
