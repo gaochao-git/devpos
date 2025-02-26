@@ -684,23 +684,48 @@ export default class mysqlCluster extends Component  {
                   }}
               >
                   {this.state.modalNewReady && (
-                      <div style={{ display: 'flex'}}>
-                          <ResizableBox
-                              width={800}
-                              axis="x"
-                              resizeHandles={['e']}
-                          >
-                              <ChatRca 
-                                  clusterName={this.state.currentCluster?.cluster_name}
-                                  style={{overflow: 'auto',height: '90vh'}}
-                              />
-                          </ResizableBox>
-                          
-                          <div style={{ flex: 1, overflow: 'auto'}}>
-                              <FaultTreeIndex
-                                  cluster_name={this.state.currentCluster?.cluster_name}
-                                  key={`fault-tree-new-${this.state.faultTreeKey}`}
-                              />
+                      <div style={{ 
+                          padding: '5px',
+                          height: '100%'
+                      }}>
+                          <div style={{ 
+                              display: 'flex', 
+                              height: '80vh',
+                              border: '1px solid #e8e8e8',
+                              borderRadius: '8px',
+                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                              overflow: 'hidden',
+                              background: '#fff'
+                          }}>
+                              <ResizableBox
+                                  width={800}
+                                  axis="x"
+                                  resizeHandles={['e']}
+                                  style={{ 
+                                      borderRight: '1px solid #e8e8e8',
+                                      height: '100%'
+                                  }}
+                              >
+                                  <ChatRca 
+                                      clusterName={this.state.currentCluster?.cluster_name}
+                                      style={{ 
+                                          overflow: 'auto',
+                                          height: '100%',
+                                          width: '100%'
+                                      }}
+                                  />
+                              </ResizableBox>
+                              
+                              <div style={{ 
+                                  flex: 1, 
+                                  overflow: 'auto',
+                                  height: '100%'
+                              }}>
+                                  <FaultTreeIndex
+                                      cluster_name={this.state.currentCluster?.cluster_name}
+                                      key={`fault-tree-new-${this.state.faultTreeKey}`}
+                                  />
+                              </div>
                           </div>
                       </div>
                   )}
