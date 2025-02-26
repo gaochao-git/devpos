@@ -221,7 +221,7 @@ class App extends Component {
                                         <Route exact path="/manage/config/faultTreeConfig" component={FaultTreeConfig} />
                                         <Route exact path="/service/console/rag" component={KbRag} />
                                         <Route exact path="/service/mysql/linkSentinel" component={LinkSentinel} />
-                                        <Route exact path="/service/mysql/aiFactory" component={AiFactory} />
+                                        <Route exact path="/service/aiApp/aiFactory" component={AiFactory} />
                                     </WaterMark>}
                                 </Content>
                             </Layout>
