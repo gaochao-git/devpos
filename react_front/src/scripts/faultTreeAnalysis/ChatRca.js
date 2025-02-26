@@ -223,6 +223,22 @@ const ChatRca = (props) => {
                         const jsonStr = line.slice(6);
                         const data = JSON.parse(jsonStr);
 
+                        // 处理错误事件
+                        if (data.event === 'error') {
+                            setMessages(prev => {
+                                const newMessages = [...prev];
+                                const lastMessage = newMessages[newMessages.length - 1];
+                                newMessages[newMessages.length - 1] = {
+                                    ...lastMessage,
+                                    content: data.message,
+                                    isCurrentMessage: true
+                                };
+                                return newMessages;
+                            });
+                            setIsStreaming(false);
+                            continue;
+                        }
+                        // 处理结束事件
                         if (data.event === 'message_end') {
                             // 流结束时，更新完整内容并保持当前消息标记
                             setMessages(prev => {
