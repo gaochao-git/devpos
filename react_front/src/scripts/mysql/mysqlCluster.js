@@ -689,15 +689,14 @@ export default class mysqlCluster extends Component  {
                               width={800}
                               axis="x"
                               resizeHandles={['e']}
-                              style={{ borderRight: '1px solid #e8e8e8',padding: '5px',height: '90%'}}
                           >
                               <ChatRca 
                                   clusterName={this.state.currentCluster?.cluster_name}
-                                  style={{overflow: 'auto'}}
+                                  style={{overflow: 'auto',height: '90vh'}}
                               />
                           </ResizableBox>
                           
-                          <div style={{ flex: 1, overflow: 'auto' }}>
+                          <div style={{ flex: 1, overflow: 'auto'}}>
                               <FaultTreeIndex
                                   cluster_name={this.state.currentCluster?.cluster_name}
                                   key={`fault-tree-new-${this.state.faultTreeKey}`}

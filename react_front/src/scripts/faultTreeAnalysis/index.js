@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Layout, Card, message, Button, Select, DatePicker, Radio, Modal, Icon, Tooltip, Switch } from 'antd';
+import React, { useState } from 'react';
+import { Layout, Card, message, Button, Select, DatePicker} from 'antd';
 import moment from 'moment';
 import MyAxios from "../common/interface"
 import './index.css';
 import G6Tree from "./components/G6Tree";
-import aiGif from '../../images/AI.gif';
-import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
-import ChatRca from './ChatRca';
 
 
 const { Content } = Layout;
@@ -22,8 +19,7 @@ const FaultTreeAnalysis = ({ cluster_name }) => {
     const [timeRange, setTimeRange] = useState(null);
     const [timeMode, setTimeMode] = useState('realtime');
     const [enableStream, setEnableStream] = useState(false);
-    const [isChatCollapsed, setIsChatCollapsed] = useState(false);
-    const [chatWidth, setChatWidth] = useState(400);
+
 
     // 定义快捷时间范围
     const ranges = {

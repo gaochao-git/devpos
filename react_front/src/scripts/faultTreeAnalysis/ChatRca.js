@@ -1082,7 +1082,6 @@ const ChatRca = ({ clusterName, style }) => {
         <div style={{ 
             display: 'flex',
             flexDirection: 'column',
-            height: '100vh',
             background: '#f5f5f5',
             position: 'relative',
             overflow: 'hidden',
