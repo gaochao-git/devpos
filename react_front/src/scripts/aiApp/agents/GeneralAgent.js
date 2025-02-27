@@ -7,7 +7,8 @@ import {
     createNewConversation, 
     uploadFile,
     getHistoryConversations,  // 确保这个名字和 aIAssistantApi.js 中的导出一致
-    getHistoryMessageDetail  // 添加新的API导入
+    getHistoryMessageDetail,  // 添加新的API导入
+    stopMessageGeneration  // 添加新的导入
 } from '../aIAssistantApi';
 import HistoryConversationModal from '../components/HistoryConversationModal';
 import { agentComponentMap } from '../config/componentMapping';  // 添加这行导入
@@ -162,6 +163,14 @@ const SendButton = styled.button`
   &:disabled {
     color: #ccc;
     cursor: not-allowed;
+  }
+`;
+
+const StopButton = styled(SendButton)`
+  color: #ff4d4f;
+  
+  &:hover {
+    color: #ff7875;
   }
 `;
 
@@ -569,6 +578,19 @@ const GeneralAgent = ({ agentType = 'general' }) => {
     setConversationId('');
   };
 
+  const handleStopGeneration = async () => {
+    console.log('Attempting to stop generation with task ID:', currentTaskId);
+    if (currentTaskId) {
+        try {
+            await stopMessageGeneration(currentTaskId, agentType);
+            setIsStreaming(false);
+            setCurrentTaskId(null);
+        } catch (error) {
+            console.error('Failed to stop generation:', error);
+        }
+    }
+  };
+
   return (
     <ChatContainer>
       <Header>
@@ -659,12 +681,22 @@ const GeneralAgent = ({ agentType = 'general' }) => {
               >
                 📎
               </UploadButton>
-              <SendButton 
-                onClick={handleSend} 
-                disabled={(!input.trim() && files.length === 0) || isStreaming}
-              >
-                ▶
-              </SendButton>
+              {isStreaming ? (
+                <StopButton 
+                  onClick={handleStopGeneration}
+                  title="停止生成"
+                >
+                  ⏹
+                </StopButton>
+              ) : (
+                <SendButton 
+                  onClick={handleSend} 
+                  disabled={(!input.trim() && files.length === 0) || isStreaming}
+                  title="发送消息"
+                >
+                  ▶
+                </SendButton>
+              )}
             </ButtonGroup>
           </InputWithButtons>
           {files.length > 0 && (

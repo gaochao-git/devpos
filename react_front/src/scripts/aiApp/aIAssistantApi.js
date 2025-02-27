@@ -266,6 +266,37 @@ const getHistoryMessageDetail = async (conversationId, agentType) => {
     }
 };
 
+/**
+ * 停止消息生成
+ * @param {string} taskId - 任务ID
+ * @param {string} agentType - 助手类型
+ * @returns {Promise<Object>} 停止结果
+ */
+const stopMessageGeneration = async (taskId, agentType) => {
+    const { baseUrl, apiKey } = getAgentConfig(agentType);
+    try {
+        const response = await fetch(`${baseUrl}/v1/chat-messages/${taskId}/stop`, {
+            method: 'POST',
+            headers: {
+                'Authorization': apiKey,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user: 'system'  // 使用与其他请求一致的 user
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to stop message generation:', error);
+        throw error;
+    }
+};
+
 // 统一导出所有函数
 export {
     uploadFile,
@@ -274,5 +305,7 @@ export {
     getHistoryConversations,
     getConversationMessages,
     getHistoryMessageDetail,
-    renameConversation
+    renameConversation,
+    getAgentConfig,
+    stopMessageGeneration
 }; 
