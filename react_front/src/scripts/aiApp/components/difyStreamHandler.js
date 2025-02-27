@@ -1,0 +1,134 @@
+/**
+ * 处理 Dify 返回的流数据
+ * @param {Response} response - fetch 返回的 Response 对象
+ * @param {Object} options - 配置选项
+ * @param {Function} options.setMessages - 设置消息的函数
+ * @param {Function} options.setIsStreaming - 设置流状态的函数
+ * @param {Function} options.getStandardTime - 获取标准时间的函数
+ * @returns {Promise<void>}
+ */
+export const handleDifyStream = async (response, { setMessages, setIsStreaming, getStandardTime }) => {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullContent = '';
+    let lastUpdateTime = Date.now();
+    const UPDATE_INTERVAL = 150;
+    
+    // 添加新消息，标记为当前消息
+    setMessages(prev => {
+        const updatedMessages = prev.map(msg => ({
+            ...msg,
+            isCurrentMessage: false
+        }));
+        
+        return [...updatedMessages, {
+            type: 'llm',
+            content: '',
+            timestamp: getStandardTime(),
+            isCurrentMessage: true
+        }];
+    });
+
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                if (line.trim() === '' || !line.startsWith('data: ')) continue;
+
+                try {
+                    const jsonStr = line.slice(6);
+                    const data = JSON.parse(jsonStr);
+
+                    // 处理错误事件
+                    if (data.event === 'error') {
+                        setMessages(prev => {
+                            const newMessages = [...prev];
+                            const lastMessage = newMessages[newMessages.length - 1];
+                            newMessages[newMessages.length - 1] = {
+                                ...lastMessage,
+                                content: data.message,
+                                isError: true,
+                                isCurrentMessage: false
+                            };
+                            return newMessages;
+                        });
+                        setIsStreaming(false);
+                        return;
+                    }
+
+                    // 处理结束事件
+                    if (data.event === 'message_end') {
+                        setMessages(prev => {
+                            const newMessages = [...prev];
+                            const lastMessage = newMessages[newMessages.length - 1];
+                            newMessages[newMessages.length - 1] = {
+                                ...lastMessage,
+                                content: fullContent,
+                                metadata: data.metadata,
+                                isCurrentMessage: false
+                            };
+                            return newMessages;
+                        });
+                        setIsStreaming(false);
+                        continue;
+                    }
+
+                    // 处理 agent_thought 事件
+                    if (data.event === 'agent_thought') {
+                        if (data.tool && data.tool_input && data.observation) {
+                            const toolInput = data.tool_input;
+                            const toolContent = `<tool>${data.tool}\n${toolInput}\n${data.observation}\n${data.position}</tool>\n\n`;
+                            fullContent += toolContent;
+                        }
+                    } else {
+                        // 处理普通回答
+                        if (data.answer) {
+                            fullContent += data.answer;
+                        }
+                    }
+
+                    const currentTime = Date.now();
+                    if (currentTime - lastUpdateTime > UPDATE_INTERVAL) {
+                        setMessages(prev => {
+                            const newMessages = [...prev];
+                            const lastMessage = newMessages[newMessages.length - 1];
+                            newMessages[newMessages.length - 1] = {
+                                ...lastMessage,
+                                content: fullContent,
+                                isCurrentMessage: true
+                            };
+                            return newMessages;
+                        });
+                        lastUpdateTime = currentTime;
+                    }
+                } catch (e) {
+                    console.warn('JSON parse error:', e);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Stream processing error:', error);
+        throw error;
+    } finally {
+        setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            newMessages[newMessages.length - 1] = {
+                ...lastMessage,
+                content: fullContent,
+                isCurrentMessage: false
+            };
+            return newMessages;
+        });
+        setIsStreaming(false);
+    }
+};

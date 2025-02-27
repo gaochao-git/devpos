@@ -1,156 +1,239 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
+import { sendMessageToAssistant, createNewConversation } from '../aIAssistantApi';
 
-const Container = styled.div`
-  height: calc(100vh - 100px);
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  height: calc(100vh - 140px);
 `;
 
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-`;
-
-const Avatar = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 20px;
-  background-color: #4CAF50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 20px;
-  margin-right: 12px;
-`;
-
-const ChatArea = styled.div`
+const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
-  background: #f8f9fa;
+  padding: 20px;
+  background-color: #ffffff;
   border-radius: 8px;
   margin-bottom: 20px;
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
 `;
 
 const MessageBubble = styled.div`
-  max-width: 80%;
-  margin: ${props => props.isUser ? '10px 0 10px auto' : '10px auto 10px 0'};
+  max-width: 70%;
+  margin: 10px 0;
   padding: 12px 16px;
-  border-radius: ${props => props.isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px'};
-  background-color: ${props => props.isUser ? '#4CAF50' : 'white'};
-  color: ${props => props.isUser ? 'white' : '#333'};
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  position: relative;
+  border-radius: 12px;
+  white-space: pre-wrap;
+  align-self: ${props => props.isUser ? 'flex-end' : 'flex-start'};
+  background-color: ${props => props.isUser ? '#007AFF' : props.isError ? '#ffebee' : '#F0F0F0'};
+  color: ${props => props.isUser ? 'white' : props.isError ? '#d32f2f' : '#333'};
+`;
 
-  &:after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    ${props => props.isUser ? 'right: -8px' : 'left: -8px'};
-    width: 16px;
-    height: 16px;
-    background-color: ${props => props.isUser ? '#4CAF50' : 'white'};
-    clip-path: ${props => props.isUser ? 'polygon(0 0, 0% 100%, 100% 100%)' : 'polygon(100% 0, 0% 100%, 100% 100%)'};
-  }
+const MessageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: ${props => props.isUser ? 'flex-end' : 'flex-start'};
+  margin: 4px 0;
+`;
+
+const Timestamp = styled.div`
+  font-size: 12px;
+  color: #666;
+  margin: ${props => props.isUser ? '4px 8px 0 0' : '4px 0 0 8px'};
 `;
 
 const InputContainer = styled.div`
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 24px;
-  padding: 8px;
   display: flex;
-  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
 `;
 
 const Input = styled.input`
   flex: 1;
-  border: none;
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 16px;
   outline: none;
-  background: transparent;
+
+  &:focus {
+    border-color: #007AFF;
+  }
 `;
 
 const SendButton = styled.button`
-  background: #4CAF50;
+  padding: 12px 24px;
+  background-color: #007AFF;
   color: white;
   border: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 16px;
   transition: background-color 0.2s;
 
   &:hover {
-    background: #388E3C;
+    background-color: #0056b3;
   }
 
   &:disabled {
-    background: #ccc;
+    background-color: #cccccc;
+    cursor: not-allowed;
   }
 `;
 
-const GeneralAgent = () => {
+const GeneralAgent = ({ agent }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [conversationId, setConversationId] = useState(null);
+  const messagesEndRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const getStandardTime = () => {
+    return new Date().toLocaleTimeString();
+  };
 
-    const newMessages = [
-      ...messages,
-      { text: input, isUser: true },
-      { text: '我是通用助手，很高兴为您服务！让我们开始对话吧。', isUser: false }
-    ];
-    
-    setMessages(newMessages);
+  useEffect(() => {
+    // 初始化会话
+    const initConversation = async () => {
+      try {
+        const newConversationId = await createNewConversation();
+        setConversationId(newConversationId);
+        // 添加系统欢迎消息
+        setMessages([{
+          content: "你好！我是通用助手，请问有什么我可以帮你的？",
+          isUser: false,
+          timestamp: getStandardTime()
+        }]);
+      } catch (error) {
+        console.error('初始化会话失败:', error);
+        setMessages([{
+          content: "初始化会话失败，请刷新页面重试。",
+          isError: true,
+          timestamp: getStandardTime()
+        }]);
+      }
+    };
+
+    initConversation();
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end',
+        inline: 'nearest'
+      });
+    }
+  };
+
+  useEffect(() => {
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+      const resizeObserver = new ResizeObserver(scrollToBottom);
+      resizeObserver.observe(messagesContainer);
+      return () => resizeObserver.disconnect();
+    }
+  }, []);
+
+  const handleSend = async () => {
+    if (!input.trim() || isStreaming) return;
+
+    const userMessage = {
+      content: input,
+      isUser: true,
+      timestamp: getStandardTime()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
+    setIsStreaming(true);
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    try {
+      await sendMessageToAssistant(
+        {
+          query: input,
+          conversationId,
+          abortController: abortControllerRef.current
+        },
+        {
+          setMessages,
+          setIsStreaming,
+          getStandardTime
+        }
+      );
+    } catch (error) {
+      console.error('发送消息失败:', error);
+      setMessages(prev => [...prev, {
+        content: '发送消息失败，请重试。',
+        isError: true,
+        timestamp: getStandardTime()
+      }]);
+      setIsStreaming(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
-    <Container>
-      <Header>
-        <Avatar>💬</Avatar>
-        <div>
-          <h2 style={{ margin: 0 }}>通用助手</h2>
-          <p style={{ margin: '4px 0 0 0', color: '#666' }}>随时为您解答各类问题</p>
-        </div>
-      </Header>
-      <ChatArea>
-        {messages.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
-            发送消息开始对话
-          </div>
-        )}
+    <ChatContainer>
+      <MessagesContainer className="messages-container">
         {messages.map((message, index) => (
-          <MessageBubble key={index} isUser={message.isUser}>
-            {message.text}
-          </MessageBubble>
+          <MessageContainer key={index} isUser={message.isUser}>
+            <MessageBubble 
+              isUser={message.isUser}
+              isError={message.isError}
+            >
+              {message.content || '思考中...'}
+            </MessageBubble>
+            <Timestamp isUser={message.isUser}>
+              {message.timestamp}
+            </Timestamp>
+          </MessageContainer>
         ))}
-      </ChatArea>
+        <div ref={messagesEndRef} style={{ height: '1px' }} />
+      </MessagesContainer>
       <InputContainer>
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyPress={handleKeyPress}
           placeholder="输入您的问题..."
-          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+          disabled={isStreaming}
         />
-        <SendButton onClick={handleSend} disabled={!input.trim()}>
-          ➤
+        <SendButton 
+          onClick={handleSend} 
+          disabled={!input.trim() || isStreaming}
+        >
+          {isStreaming ? '发送中...' : '发送'}
         </SendButton>
       </InputContainer>
-    </Container>
+    </ChatContainer>
   );
 };
 

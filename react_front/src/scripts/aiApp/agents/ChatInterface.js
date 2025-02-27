@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
+import { sendMessageToAssistant, createNewConversation } from '../aIAssistantApi';
 
 const ChatContainer = styled.div`
   display: flex;
@@ -21,13 +22,14 @@ const MessageBubble = styled.div`
   margin: 10px 0;
   padding: 12px 16px;
   border-radius: 12px;
+  white-space: pre-wrap;
   ${props => props.isUser ? `
     background-color: #007AFF;
     color: white;
     align-self: flex-end;
   ` : `
-    background-color: #F0F0F0;
-    color: #333;
+    background-color: ${props.isError ? '#ffebee' : '#F0F0F0'};
+    color: ${props.isError ? '#d32f2f' : '#333'};
     align-self: flex-start;
   `}
 `;
@@ -76,40 +78,123 @@ const SendButton = styled.button`
 const ChatInterface = ({ agent }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [conversationId, setConversationId] = useState(null);
+  const abortControllerRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  // 初始化会话
+  useEffect(() => {
+    initializeConversation();
+  }, []);
 
-    // 添加用户消息
-    const newMessages = [
-      ...messages,
-      { text: input, isUser: true },
-      // 模拟AI回复
-      { text: `这是来自${agent.name}的回复...`, isUser: false }
-    ];
-    
-    setMessages(newMessages);
+  // 滚动到最新消息
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const initializeConversation = async () => {
+    try {
+      const newConversationId = await createNewConversation();
+      setConversationId(newConversationId);
+    } catch (error) {
+      console.error('Failed to initialize conversation:', error);
+      setMessages(prev => [...prev, {
+        content: '初始化会话失败，请刷新页面重试。',
+        isError: true,
+        timestamp: getStandardTime()
+      }]);
+    }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const getStandardTime = () => {
+    return new Date().toISOString();
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() || isStreaming) return;
+
+    const userMessage = {
+      content: input,
+      isUser: true,
+      timestamp: getStandardTime()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
+    setIsStreaming(true);
+
+    // 取消之前的请求（如果有）
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // 创建新的 AbortController
+    abortControllerRef.current = new AbortController();
+
+    try {
+      await sendMessageToAssistant(
+        {
+          query: input,
+          inputs: { mode: agent.mode || "通用助手" },
+          conversationId,
+          abortController: abortControllerRef.current
+        },
+        {
+          setMessages,
+          setIsStreaming,
+          getStandardTime
+        }
+      );
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      setMessages(prev => [...prev, {
+        content: '发送消息失败，请重试。',
+        isError: true,
+        timestamp: getStandardTime()
+      }]);
+      setIsStreaming(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
     <ChatContainer>
       <MessagesContainer>
         {messages.map((message, index) => (
-          <MessageBubble key={index} isUser={message.isUser}>
-            {message.text}
+          <MessageBubble 
+            key={index} 
+            isUser={message.isUser}
+            isError={message.isError}
+          >
+            {message.isUser ? message.content : (message.content || '思考中...')}
           </MessageBubble>
         ))}
+        <div ref={messagesEndRef} />
       </MessagesContainer>
       <InputContainer>
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyPress={handleKeyPress}
           placeholder="输入您的问题..."
-          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+          disabled={isStreaming}
         />
-        <SendButton onClick={handleSend} disabled={!input.trim()}>
-          发送
+        <SendButton 
+          onClick={handleSend} 
+          disabled={!input.trim() || isStreaming}
+        >
+          {isStreaming ? '发送中...' : '发送'}
         </SendButton>
       </InputContainer>
     </ChatContainer>
