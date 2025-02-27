@@ -4,33 +4,6 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import styled from 'styled-components';
 
-const MessageBubble = styled.div`
-  max-width: 70%;
-  margin: 10px 0;
-  padding: 16px;
-  border-radius: 8px;
-  word-break: break-word;
-  align-self: ${props => props.isUser ? 'flex-end' : 'flex-start'};
-  background-color: ${props => props.isUser ? '#007AFF' : props.isError ? '#ffebee' : '#f7f7f8'};
-  color: ${props => props.isUser ? 'white' : props.isError ? '#d32f2f' : '#333'};
-
-  .markdown-content {
-    * {
-      color: inherit;
-    }
-
-    p {
-      margin: 8px 0;
-      line-height: 1.6;
-    }
-
-    ul, ol {
-      margin: 8px 0;
-      padding-left: 24px;
-      line-height: 1.6;
-    }
-  }
-`;
 
 const Pre = styled.pre`
   position: relative;
@@ -73,68 +46,6 @@ const CopyButton = styled.button`
   }
 `;
 
-const markdownComponents = {
-  code({ node, inline, className, children, ...props }) {
-    const match = /language-(\w+)/.exec(className || '');
-    const code = String(children).replace(/\n$/, '');
-
-    if (!inline && match) {
-      const language = match[1];
-      
-      const CodeBlock = () => {
-        const [copied, setCopied] = useState(false);
-
-        const handleCopy = async () => {
-          await navigator.clipboard.writeText(code);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        };
-
-        return (
-          <Pre>
-            <CopyButton 
-              onClick={handleCopy}
-              className={`copy-button ${copied ? 'copied' : ''}`}
-            >
-              {copied ? (
-                <>
-                  <span>✓</span>
-                  <span>已复制</span>
-                </>
-              ) : (
-                <>
-                  <span>📋</span>
-                  <span>复制代码</span>
-                </>
-              )}
-            </CopyButton>
-            <SyntaxHighlighter
-              style={oneDark}
-              language={language}
-              PreTag="div"
-              customStyle={{
-                padding: '16px',
-                borderRadius: '8px',
-                margin: 0
-              }}
-              {...props}
-            >
-              {code}
-            </SyntaxHighlighter>
-          </Pre>
-        );
-      };
-
-      return <CodeBlock />;
-    }
-
-    return (
-      <code className={className} {...props}>
-        {children}
-      </code>
-    );
-  }
-};
 
 const MarkdownRenderer = ({ content, isStreaming = false }) => {
   return (
