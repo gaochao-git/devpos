@@ -6,6 +6,16 @@ import ChatRca from '../agents/FaultAnalysisAgent';
 
 // 智能体类型到组件的映射
 export const agentComponentMap = {
+    'general': {
+        component: GeneralAgent,
+        name: '通用助手',
+        description: '可以回答各种常见问题',
+        icon: '🤖',
+        color: '#4CAF50',
+        systemPrompt: '你是一个通用AI助手，可以回答各种日常问题。',
+        temperature: 0.7,
+        model: 'gpt-3.5-turbo',
+    },
     'rca': {
         component: ChatRca,
         name: '根因分析助手',
@@ -26,16 +36,6 @@ export const agentComponentMap = {
         temperature: 0.4,
         model: 'gpt-4',
     },
-  'general': {
-    component: GeneralAgent,
-    name: '通用助手',
-    description: '可以回答各种常见问题',
-    icon: '💬',
-    color: '#4CAF50',
-    systemPrompt: '你是一个通用AI助手，可以回答各种日常问题。',
-    temperature: 0.7,
-    model: 'gpt-3.5-turbo',
-  },
   'code': {
     component: CodeAgent,
     name: 'SQL助手',
