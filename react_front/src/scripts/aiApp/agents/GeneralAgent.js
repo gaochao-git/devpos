@@ -265,6 +265,7 @@ const GeneralAgent = ({ agentType = 'general' }) => {
   const [conversationMessages, setConversationMessages] = useState(new Map());
   const [loadingConversations, setLoadingConversations] = useState(new Set());
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState(null);
 
   // 获取助手配置
   const agentConfig = agentComponentMap[agentType];
@@ -427,7 +428,11 @@ const GeneralAgent = ({ agentType = 'general' }) => {
         {
           setMessages,
           setIsStreaming,
-          getStandardTime
+          getStandardTime,
+          setTaskId: (taskId) => {
+            console.log('Received task ID:', taskId);
+            setCurrentTaskId(taskId);
+          }
         }
       );
     } catch (error) {

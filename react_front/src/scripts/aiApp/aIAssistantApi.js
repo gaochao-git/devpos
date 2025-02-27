@@ -58,11 +58,12 @@ const uploadFile = async (file, agentType) => {
  * @param {Function} handlers.setMessages - 设置消息的函数
  * @param {Function} handlers.setIsStreaming - 设置流状态的函数
  * @param {Function} handlers.getStandardTime - 获取标准时间的函数
+ * @param {Function} handlers.setTaskId - 设置任务ID的函数
  * @returns {Promise<void>}
  */
 const sendMessageToAssistant = async (
     { query, files, conversationId, abortController, agentType },
-    { setMessages, setIsStreaming, getStandardTime }
+    { setMessages, setIsStreaming, getStandardTime, setTaskId }
 ) => {
     const { baseUrl, apiKey } = getAgentConfig(agentType);
     try {
@@ -89,7 +90,12 @@ const sendMessageToAssistant = async (
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        await handleDifyStream(response, { setMessages, setIsStreaming, getStandardTime });
+        await handleDifyStream(response, { 
+            setMessages, 
+            setIsStreaming, 
+            getStandardTime,
+            setTaskId  // 传递 setTaskId 函数
+        });
     } catch (error) {
         console.error('Failed to send message:', error);
         throw error;
