@@ -64,7 +64,8 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
                             newMessages[newMessages.length - 1] = {
                                 ...lastMessage,
                                 content: fullContent,
-                                isCurrentMessage: true
+                                isCurrentMessage: true,
+                                timestamp: getStandardTime()
                             };
                             return newMessages;
                         });
@@ -139,20 +140,23 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
                 }
             }
         }
-    } catch (error) {
-        console.error('Stream processing error:', error);
-        throw error;
-    } finally {
+
+        // 在正常结束时也更新时间戳
         setMessages(prev => {
             const newMessages = [...prev];
             const lastMessage = newMessages[newMessages.length - 1];
             newMessages[newMessages.length - 1] = {
                 ...lastMessage,
                 content: fullContent,
-                isCurrentMessage: false
+                isCurrentMessage: true,
+                timestamp: getStandardTime()
             };
             return newMessages;
         });
         setIsStreaming(false);
+
+    } catch (error) {
+        console.error('Stream processing error:', error);
+        throw error;
     }
 };
