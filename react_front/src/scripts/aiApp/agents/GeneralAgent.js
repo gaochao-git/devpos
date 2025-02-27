@@ -23,7 +23,7 @@ const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  background-color: #ffffff;
+  background-color: #f8fbff;  // 更浅的蓝色背景
   border-radius: 8px;
   margin-bottom: 20px;
   scroll-behavior: smooth;
@@ -38,8 +38,8 @@ const MessageBubble = styled.div`
   border-radius: 12px;
   word-break: break-word;
   align-self: ${props => props.isUser ? 'flex-end' : 'flex-start'};
-  background-color: ${props => props.isUser ? '#007AFF' : props.isError ? '#ffebee' : '#F0F0F0'};
-  color: ${props => props.isUser ? 'white' : props.isError ? '#d32f2f' : '#333'};
+  background-color: ${props => props.isUser ? '#c1e0c1' : props.isError ? '#ffebee' : '#ffffff'};  // 用户消息加深为 #c1e0c1
+  color: ${props => props.isError ? '#d32f2f' : '#333333'};
 
   .markdown-content {
     * {
