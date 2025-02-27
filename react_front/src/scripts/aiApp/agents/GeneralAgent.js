@@ -65,6 +65,15 @@ const MessageBubble = styled.div`
       padding-left: 20px;
     }
   }
+
+  .metadata {
+    margin-top: 8px;
+    padding: 8px;
+    background: #fafafa;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #999;
+  }
 `;
 
 const MessageContainer = styled.div`
@@ -641,6 +650,13 @@ const GeneralAgent = ({ agentType = 'general' }) => {
               ) : (
                 <div className="markdown-content">
                   <MarkdownRenderer content={message.content} />
+                  {message.metadata?.usage && (
+                    <div className="metadata">
+                      <div>Tokens: {message.metadata.usage.total_tokens} (Prompt: {message.metadata.usage.prompt_tokens}, Completion: {message.metadata.usage.completion_tokens})</div>
+                      <div>Cost: ¥{message.metadata.usage.total_price} (Prompt: ¥{message.metadata.usage.prompt_price}, Completion: ¥{message.metadata.usage.completion_price})</div>
+                      <div>Response Time: {message.metadata.usage.latency.toFixed(2)}s</div>
+                    </div>
+                  )}
                 </div>
               )}
               {message.files && message.files.length > 0 && (
