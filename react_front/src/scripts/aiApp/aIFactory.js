@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { getAgentConfigs, getAgentComponent } from './config/componentMapping';
 
@@ -56,8 +56,15 @@ const AgentIcon = styled.div`
 `;
 
 const AIFactory = () => {
-  const [selectedAgent, setSelectedAgent] = useState(null);
   const agentConfigs = getAgentConfigs();
+  const [selectedAgent, setSelectedAgent] = useState(null);
+
+  useEffect(() => {
+    const generalAgent = agentConfigs.find(agent => agent.id === 'general');
+    if (generalAgent) {
+      setSelectedAgent(generalAgent);
+    }
+  }, []);
 
   const renderAgentComponent = () => {
     if (!selectedAgent) return null;
@@ -81,22 +88,7 @@ const AIFactory = () => {
         ))}
       </Sidebar>
       <MainContent>
-        {selectedAgent ? (
-          renderAgentComponent()
-        ) : (
-          <div style={{ 
-            textAlign: 'center', 
-            marginTop: '40px', 
-            color: '#666',
-            padding: '20px',
-            background: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h3>👋 欢迎使用智能助手</h3>
-            <p>请从左侧选择一个智能体开始对话</p>
-          </div>
-        )}
+        {renderAgentComponent()}
       </MainContent>
     </Container>
   );
