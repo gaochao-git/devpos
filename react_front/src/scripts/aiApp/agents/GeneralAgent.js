@@ -143,6 +143,7 @@ const UploadButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 24px;  // 增大字体大小
 
   &:hover {
     color: #007AFF;
@@ -163,7 +164,7 @@ const SendButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 36px;  // 增大字体大小
 
   &:hover {
     color: #0056b3;
