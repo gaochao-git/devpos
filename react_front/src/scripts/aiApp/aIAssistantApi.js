@@ -1,24 +1,36 @@
 import { handleDifyStream } from './components/difyStreamHandler';
+import { agentComponentMap } from './config/componentMapping';
 
 // Dify API 配置
 const DIFY_API_BASE_URL = 'http://127.0.0.1/v1';
 const DIFY_API_KEY = "Bearer app-s1LO3fgBHF0vJc0l9wbmutn8";
 
+// 获取助手配置
+const getAgentConfig = (agentType = 'general') => {
+    const config = agentComponentMap[agentType] || agentComponentMap['general'];
+    return {
+        baseUrl: config.baseUrl,
+        apiKey: config.apiKey
+    };
+};
+
 /**
  * 上传文件到 Dify
  * @param {File} file - 要上传的文件
+ * @param {string} agentType - 助手类型
  * @returns {Promise<Object>} 上传后的文件信息
  */
-export const uploadFile = async (file) => {
+const uploadFile = async (file, agentType) => {
+    const { baseUrl, apiKey } = getAgentConfig(agentType);
     try {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('user', 'system');
 
-        const response = await fetch(`${DIFY_API_BASE_URL}/files/upload`, {
+        const response = await fetch(`${baseUrl}/v1/files/upload`, {
             method: 'POST',
             headers: {
-                'Authorization': DIFY_API_KEY,
+                'Authorization': apiKey,
             },
             body: formData
         });
@@ -41,16 +53,18 @@ export const uploadFile = async (file) => {
  * @param {Object} params.files - 文件列表
  * @param {string} params.conversationId - 会话ID
  * @param {AbortController} params.abortController - 用于取消请求的控制器
+ * @param {string} params.agentType - 助手类型
  * @param {Object} handlers - 处理函数集合
  * @param {Function} handlers.setMessages - 设置消息的函数
  * @param {Function} handlers.setIsStreaming - 设置流状态的函数
  * @param {Function} handlers.getStandardTime - 获取标准时间的函数
  * @returns {Promise<void>}
  */
-export const sendMessageToAssistant = async (
-    { query, files, conversationId, abortController },
+const sendMessageToAssistant = async (
+    { query, files, conversationId, abortController, agentType },
     { setMessages, setIsStreaming, getStandardTime }
 ) => {
+    const { baseUrl, apiKey } = getAgentConfig(agentType);
     try {
         const requestBody = {
             inputs: {},  // 添加空的 inputs 对象
@@ -61,10 +75,10 @@ export const sendMessageToAssistant = async (
             files: files  // 文件对象数组
         };
 
-        const response = await fetch(`${DIFY_API_BASE_URL}/chat-messages`, {
+        const response = await fetch(`${baseUrl}/v1/chat-messages`, {
             method: 'POST',
             headers: {
-                'Authorization': DIFY_API_KEY,
+                'Authorization': apiKey,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(requestBody),
@@ -84,14 +98,16 @@ export const sendMessageToAssistant = async (
 
 /**
  * 创建新的会话
+ * @param {string} agentType - 助手类型
  * @returns {Promise<string>} 返回会话ID
  */
-export const createNewConversation = async () => {
+const createNewConversation = async (agentType) => {
+    const { baseUrl, apiKey } = getAgentConfig(agentType);
     try {
-        const response = await fetch(`${DIFY_API_BASE_URL}/chat-messages`, {
+        const response = await fetch(`${baseUrl}/v1/chat-messages`, {
             method: 'POST',
             headers: {
-                'Authorization': DIFY_API_KEY,
+                'Authorization': apiKey,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
@@ -146,14 +162,16 @@ export const createNewConversation = async () => {
  * 重命名会话
  * @param {string} conversationId - 会话ID
  * @param {string} name - 新的会话名称
+ * @param {string} agentType - 助手类型
  * @returns {Promise<void>}
  */
-export const renameConversation = async (conversationId, name) => {
+const renameConversation = async (conversationId, name, agentType) => {
+    const { baseUrl, apiKey } = getAgentConfig(agentType);
     try {
-        const response = await fetch(`${DIFY_API_BASE_URL}/conversations/${conversationId}`, {
+        const response = await fetch(`${baseUrl}/v1/conversations/${conversationId}`, {
             method: 'PATCH',
             headers: {
-                'Authorization': `Bearer ${DIFY_API_KEY}`,
+                'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ name })
@@ -166,4 +184,89 @@ export const renameConversation = async (conversationId, name) => {
         console.error('Failed to rename conversation:', error);
         throw error;
     }
+};
+
+/**
+ * 获取会话消息列表
+ * @param {string} conversationId - 会话ID
+ * @param {string} agentType - 助手类型
+ * @returns {Promise<Array>} 会话消息列表
+ */
+const getConversationMessages = async (conversationId, agentType) => {
+    const { baseUrl, apiKey } = getAgentConfig(agentType);
+    try {
+        const response = await fetch(
+            `${baseUrl}/v1/messages?user=system&conversation_id=${conversationId}`,
+            {
+                headers: {
+                    'Authorization': apiKey
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('获取会话消息失败:', error);
+        throw error;
+    }
+};
+
+// 获取历史会话列表
+const getHistoryConversations = async (agentType) => {
+    const { baseUrl, apiKey } = getAgentConfig(agentType);
+    try {
+        const response = await fetch(`${baseUrl}/v1/conversations?user=system`, {
+            headers: {
+                'Authorization': apiKey
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('获取历史会话列表失败:', error);
+        throw error;
+    }
+};
+
+// 获取历史消息详情
+const getHistoryMessageDetail = async (conversationId, agentType) => {
+    const { baseUrl, apiKey } = getAgentConfig(agentType);
+    try {
+        const response = await fetch(
+            `${baseUrl}/v1/messages?user=system&conversation_id=${conversationId}`,
+            {
+                headers: {
+                    'Authorization': apiKey
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('获取历史消息详情失败:', error);
+        throw error;
+    }
+};
+
+// 统一导出所有函数
+export {
+    uploadFile,
+    sendMessageToAssistant,
+    createNewConversation,
+    getHistoryConversations,
+    getConversationMessages,
+    getHistoryMessageDetail,
+    renameConversation
 }; 

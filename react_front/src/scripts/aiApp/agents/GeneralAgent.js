@@ -1,7 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
+import { Button, Icon, message, Tooltip } from 'antd';
 import MarkdownRenderer from '../components/MarkdownRenderer';
-import { sendMessageToAssistant, createNewConversation, uploadFile } from '../aIAssistantApi';
+import { 
+    sendMessageToAssistant, 
+    createNewConversation, 
+    uploadFile,
+    getHistoryConversations,  // 确保这个名字和 aIAssistantApi.js 中的导出一致
+    getHistoryMessageDetail  // 添加新的API导入
+} from '../aIAssistantApi';
+import HistoryConversationModal from '../components/HistoryConversationModal';
+import { agentComponentMap } from '../config/componentMapping';  // 添加这行导入
 
 const ChatContainer = styled.div`
   display: flex;
@@ -196,7 +205,49 @@ const RemoveFileButton = styled.button`
   }
 `;
 
-const GeneralAgent = ({ agent }) => {
+// 添加样式组件
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e8e8e8;
+  background: #fff;
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  gap: 16px;  // 增加图标间距
+  align-items: center;
+`;
+
+// 修改图标样式，使用圆形背景
+const AgentIcon = styled.span`
+  font-size: 24px;  // 调整图标大小
+  display: flex;
+  align-items: center;
+  justify-content: center;  // 水平居中
+  color: white;  // 图标颜色改为白色
+  background-color: ${props => props.color};  // 使用传入的颜色作为背景
+  width: 36px;  // 固定宽度
+  height: 36px;  // 固定高度
+  border-radius: 50%;  // 使用 50% 实现圆形
+  margin-right: 8px;  // 与文字的间距
+`;
+
+const AgentName = styled.span`
+  font-size: 16px;
+  color: #333;
+  font-weight: 500;  // 稍微加粗文字
+`;
+
+const GeneralAgent = ({ agentType = 'general' }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
@@ -205,10 +256,18 @@ const GeneralAgent = ({ agent }) => {
   const [fileStatuses, setFileStatuses] = useState({});
   const [uploadedFileIds, setUploadedFileIds] = useState([]);
   const fileInputRef = useRef(null);
-  const messagesEndRef = useRef(null);
   const abortControllerRef = useRef(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesContainerRef = useRef(null);
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [historyData, setHistoryData] = useState([]);
+  const [expandedConversations, setExpandedConversations] = useState(new Set());
+  const [conversationMessages, setConversationMessages] = useState(new Map());
+  const [loadingConversations, setLoadingConversations] = useState(new Set());
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+
+  // 获取助手配置
+  const agentConfig = agentComponentMap[agentType];
 
   const getStandardTime = () => {
     return new Date().toLocaleTimeString();
@@ -410,8 +469,136 @@ const GeneralAgent = ({ agent }) => {
     }
   };
 
+  // 获取历史会话列表
+  const fetchHistoryList = async () => {
+    setIsHistoryLoading(true);
+    try {
+      const data = await getHistoryConversations();
+      if (data.data && data.data.length > 0) {
+        setHistoryData(data.data);
+        setHistoryModalVisible(true);
+      } else {
+        message.info('暂无历史会话记录');
+      }
+    } catch (error) {
+      console.error('获取历史记录失败:', error);
+      message.error('获取历史记录失败，请稍后重试');
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  };
+
+  // 处理展开/收起会话
+  const handleConversationToggle = async (conversationId) => {
+    const isExpanded = expandedConversations.has(conversationId);
+    const messages = conversationMessages.get(conversationId);
+
+    if (!isExpanded && !messages) {
+      setLoadingConversations(prev => new Set(prev).add(conversationId));
+      try {
+        // 使用新的 API 获取历史消息详情
+        const messagesData = await getHistoryMessageDetail(conversationId, 'general');
+        setConversationMessages(prev => new Map(prev).set(conversationId, messagesData.data));
+      } catch (error) {
+        message.error('获取会话详情失败');
+      } finally {
+        setLoadingConversations(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(conversationId);
+          return newSet;
+        });
+      }
+    }
+
+    setExpandedConversations(prev => {
+      const newSet = new Set(prev);
+      if (isExpanded) {
+        newSet.delete(conversationId);
+      } else {
+        newSet.add(conversationId);
+      }
+      return newSet;
+    });
+  };
+
+  // 继续历史会话
+  const handleContinueConversation = async (conversation) => {
+    try {
+      // 使用新的 API 获取历史消息详情
+      const messagesData = await getHistoryMessageDetail(conversation.id, 'general');
+      setConversationId(conversation.id);
+      
+      const convertedMessages = messagesData.data.flatMap(msg => {
+        const messages = [];
+        
+        if (msg.query) {
+          messages.push({
+            content: msg.query,
+            isUser: true,
+            timestamp: new Date(msg.created_at * 1000).toLocaleString()
+          });
+        }
+        
+        if (msg.answer) {
+          messages.push({
+            content: msg.answer,
+            isUser: false,
+            timestamp: new Date(msg.created_at * 1000).toLocaleString()
+          });
+        }
+        
+        return messages;
+      });
+      
+      setMessages(convertedMessages);
+      setHistoryModalVisible(false);
+    } catch (error) {
+      console.error('继续会话失败:', error);
+      message.error('继续会话失败，请稍后重试');
+    }
+  };
+
+  // 添加新开会话处理函数
+  const handleNewConversation = () => {
+    setMessages([]);
+    setConversationId('');
+  };
+
   return (
     <ChatContainer>
+      <Header>
+        <HeaderLeft>
+          <AgentIcon color={agentConfig.color}>
+            {agentConfig.icon}
+          </AgentIcon>
+          <AgentName>{agentConfig.name}</AgentName>
+        </HeaderLeft>
+        <HeaderRight>
+          <Tooltip title="新开会话">
+            <Icon 
+              type="plus-circle" 
+              style={{ 
+                fontSize: '18px',
+                cursor: 'pointer',
+                color: '#1890ff'
+              }}
+              onClick={handleNewConversation}
+            />
+          </Tooltip>
+          <Tooltip title="历史会话">
+            <Icon 
+              type={isHistoryLoading ? "loading" : "history"}
+              style={{ 
+                fontSize: '18px',
+                cursor: isHistoryLoading ? 'not-allowed' : 'pointer',
+                color: '#1890ff'
+              }}
+              onClick={!isHistoryLoading ? fetchHistoryList : undefined}
+            />
+          </Tooltip>
+        </HeaderRight>
+      </Header>
+
       <MessagesContainer 
         className="messages-container"
         ref={messagesContainerRef}
@@ -499,6 +686,18 @@ const GeneralAgent = ({ agent }) => {
           )}
         </InputWrapper>
       </InputContainer>
+
+      {/* 添加历史会话弹窗 */}
+      <HistoryConversationModal
+        visible={historyModalVisible}
+        onCancel={() => setHistoryModalVisible(false)}
+        historyData={historyData}
+        expandedConversations={expandedConversations}
+        conversationMessages={conversationMessages}
+        loadingConversations={loadingConversations}
+        onConversationToggle={handleConversationToggle}
+        onContinueConversation={handleContinueConversation}
+      />
     </ChatContainer>
   );
 };
