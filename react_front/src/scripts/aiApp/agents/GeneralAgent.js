@@ -164,7 +164,7 @@ const SendButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;  // 增大字体大小
+  font-size: 24px;  // 增大字体大小
 
   &:hover {
     color: #0056b3;
@@ -734,14 +734,14 @@ const GeneralAgent = ({ agentType = 'general' }) => {
                 disabled={isStreaming}
                 title="上传图片或文档"
               >
-                📎
+                <Icon type="plus" />
               </UploadButton>
               {isStreaming ? (
                 <StopButton 
                   onClick={handleStopGeneration}
                   title="停止生成"
                 >
-                  ⏹
+                  <Icon type="pause" />
                 </StopButton>
               ) : (
                 <SendButton 
@@ -749,7 +749,7 @@ const GeneralAgent = ({ agentType = 'general' }) => {
                   disabled={(!input.trim() && files.length === 0) || isStreaming}
                   title="发送消息"
                 >
-                  ▶
+                  <Icon type="arrow-up" />
                 </SendButton>
               )}
             </ButtonGroup>
