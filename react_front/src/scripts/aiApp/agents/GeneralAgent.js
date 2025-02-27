@@ -265,6 +265,57 @@ const AgentName = styled.span`
   font-weight: 500;  // 稍微加粗文字
 `;
 
+// 提取消息组件
+const Message = React.memo(({ 
+  message, 
+  isStreaming, 
+  handleStopGeneration 
+}) => (
+  <MessageContainer isUser={message.isUser}>
+    <MessageBubble 
+      isUser={message.isUser}
+      isError={message.isError}
+    >
+      {message.isUser ? (
+        <div>{message.content}</div>
+      ) : (
+        <div className="markdown-content">
+          <MarkdownRenderer content={message.content} />
+          {message.metadata?.usage && (
+            <div className="metadata">
+              <div>Tokens: {message.metadata.usage.total_tokens} (Prompt: {message.metadata.usage.prompt_tokens}, Completion: {message.metadata.usage.completion_tokens})</div>
+              <div>Cost: ¥{message.metadata.usage.total_price} (Prompt: ¥{message.metadata.usage.prompt_price}, Completion: ¥{message.metadata.usage.completion_price})</div>
+              <div>Response Time: {message.metadata.usage.latency.toFixed(2)}s</div>
+            </div>
+          )}
+        </div>
+      )}
+      {message.files && message.files.length > 0 && (
+        <div style={{ marginTop: '8px', fontSize: '14px', opacity: 0.8 }}>
+          📎 {message.files.join(', ')}
+        </div>
+      )}
+    </MessageBubble>
+    {(!message.isCurrentMessage || !isStreaming) && (
+      <Timestamp isUser={message.isUser}>
+        {message.timestamp}
+      </Timestamp>
+    )}
+  </MessageContainer>
+), (prevProps, nextProps) => {
+  // 如果是当前正在生成的消息，不进行记忆化
+  if (nextProps.message.isCurrentMessage) {
+    return false;
+  }
+  
+  // 对于历史消息，比较关键属性
+  return (
+    prevProps.message.content === nextProps.message.content &&
+    prevProps.message.timestamp === nextProps.message.timestamp &&
+    prevProps.isStreaming === nextProps.isStreaming
+  );
+});
+
 const GeneralAgent = ({ agentType = 'general' }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -650,35 +701,12 @@ const GeneralAgent = ({ agentType = 'general' }) => {
         ref={messagesContainerRef}
       >
         {messages.map((message, index) => (
-          <MessageContainer key={index} isUser={message.isUser}>
-            <MessageBubble 
-              isUser={message.isUser}
-              isError={message.isError}
-            >
-              {message.isUser ? (
-                <div>{message.content}</div>
-              ) : (
-                <div className="markdown-content">
-                  <MarkdownRenderer content={message.content} />
-                  {message.metadata?.usage && (
-                    <div className="metadata">
-                      <div>Tokens: {message.metadata.usage.total_tokens} (Prompt: {message.metadata.usage.prompt_tokens}, Completion: {message.metadata.usage.completion_tokens})</div>
-                      <div>Cost: ¥{message.metadata.usage.total_price} (Prompt: ¥{message.metadata.usage.prompt_price}, Completion: ¥{message.metadata.usage.completion_price})</div>
-                      <div>Response Time: {message.metadata.usage.latency.toFixed(2)}s</div>
-                    </div>
-                  )}
-                </div>
-              )}
-              {message.files && message.files.length > 0 && (
-                <div style={{ marginTop: '8px', fontSize: '14px', opacity: 0.8 }}>
-                  📎 {message.files.join(', ')}
-                </div>
-              )}
-            </MessageBubble>
-            <Timestamp isUser={message.isUser}>
-              {message.timestamp}
-            </Timestamp>
-          </MessageContainer>
+          <Message
+            key={message.timestamp}
+            message={message}
+            isStreaming={isStreaming}
+            handleStopGeneration={handleStopGeneration}
+          />
         ))}
       </MessagesContainer>
       <InputContainer>
