@@ -24,13 +24,16 @@ const MainContent = styled.div`
 `;
 
 const AgentCard = styled.div`
-  padding: 15px;
-  margin-bottom: 15px;
+  padding: 12px;
+  margin-bottom: 10px;
   background-color: ${props => props.active ? '#e3f2fd' : '#ffffff'};
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 
   &:hover {
     transform: translateY(-2px);
@@ -40,16 +43,16 @@ const AgentCard = styled.div`
 `;
 
 const AgentIcon = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
   background-color: ${props => props.color};
-  margin-bottom: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 20px;
+  font-size: 16px;
+  flex-shrink: 0;
 `;
 
 const AIFactory = () => {
@@ -73,8 +76,7 @@ const AIFactory = () => {
             onClick={() => setSelectedAgent(agent)}
           >
             <AgentIcon color={agent.color}>{agent.icon}</AgentIcon>
-            <h3 style={{ margin: '0 0 8px 0' }}>{agent.name}</h3>
-            <p style={{ margin: 0, color: '#666' }}>{agent.description}</p>
+            <h3 style={{ margin: 0 }}>{agent.name}</h3>
           </AgentCard>
         ))}
       </Sidebar>
