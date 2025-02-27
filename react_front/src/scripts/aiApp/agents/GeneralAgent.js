@@ -207,6 +207,8 @@ const GeneralAgent = ({ agent }) => {
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const abortControllerRef = useRef(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const messagesContainerRef = useRef(null);
 
   const getStandardTime = () => {
     return new Date().toLocaleTimeString();
@@ -243,28 +245,39 @@ const GeneralAgent = ({ agent }) => {
     };
   }, []);
 
+  // 监听滚动事件
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // 如果用户向上滚动，停止自动滚动
+      // 添加一个小的缓冲区（例如 100px）以使体验更流畅
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShouldAutoScroll(isAtBottom);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // 消息更新时的滚动处理
+  useEffect(() => {
+    if (shouldAutoScroll) {
+      scrollToBottom();
+    }
+  }, [messages, shouldAutoScroll]);
 
   const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'end',
-        inline: 'nearest'
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
       });
     }
   };
-
-  useEffect(() => {
-    const messagesContainer = document.querySelector('.messages-container');
-    if (messagesContainer) {
-      const resizeObserver = new ResizeObserver(scrollToBottom);
-      resizeObserver.observe(messagesContainer);
-      return () => resizeObserver.disconnect();
-    }
-  }, []);
 
   const handleFileUpload = async (event) => {
     const newFiles = Array.from(event.target.files);
@@ -399,7 +412,10 @@ const GeneralAgent = ({ agent }) => {
 
   return (
     <ChatContainer>
-      <MessagesContainer className="messages-container">
+      <MessagesContainer 
+        className="messages-container"
+        ref={messagesContainerRef}
+      >
         {messages.map((message, index) => (
           <MessageContainer key={index} isUser={message.isUser}>
             <MessageBubble 
@@ -424,7 +440,6 @@ const GeneralAgent = ({ agent }) => {
             </Timestamp>
           </MessageContainer>
         ))}
-        <div ref={messagesEndRef} style={{ height: '1px' }} />
       </MessagesContainer>
       <InputContainer>
         <InputWrapper>
