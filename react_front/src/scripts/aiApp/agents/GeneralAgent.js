@@ -433,7 +433,7 @@ const GeneralAgent = ({ agent }) => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="千事不决问通义..."
+              placeholder="智能助手随时待命..."
               disabled={isStreaming}
             />
             <ButtonGroup>
