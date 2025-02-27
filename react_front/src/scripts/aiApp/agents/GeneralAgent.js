@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 import { sendMessageToAssistant, createNewConversation, uploadFile } from '../aIAssistantApi';
 
 const ChatContainer = styled.div`
@@ -25,10 +26,35 @@ const MessageBubble = styled.div`
   margin: 10px 0;
   padding: 12px 16px;
   border-radius: 12px;
-  white-space: pre-wrap;
+  word-break: break-word;
   align-self: ${props => props.isUser ? 'flex-end' : 'flex-start'};
   background-color: ${props => props.isUser ? '#007AFF' : props.isError ? '#ffebee' : '#F0F0F0'};
   color: ${props => props.isUser ? 'white' : props.isError ? '#d32f2f' : '#333'};
+
+  .markdown-content {
+    * {
+      color: inherit;
+    }
+
+    pre {
+      margin: 8px 0;
+      border-radius: 6px;
+      background: ${props => props.isUser ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.05)'};
+    }
+
+    code {
+      font-family: monospace;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    ul, ol {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+  }
 `;
 
 const MessageContainer = styled.div`
@@ -50,7 +76,6 @@ const InputContainer = styled.div`
   padding: 20px;
   background-color: #ffffff;
   border-radius: 8px;
-  align-items: flex-end;
 `;
 
 const InputWrapper = styled.div`
@@ -58,18 +83,76 @@ const InputWrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
+`;
+
+const InputWithButtons = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding-right: 8px;
+
+  &:focus-within {
+    border-color: #007AFF;
+  }
 `;
 
 const Input = styled.input`
-  width: 100%;
+  flex: 1;
   padding: 12px;
-  border: 1px solid #e0e0e0;
+  border: none;
   border-radius: 6px;
   font-size: 16px;
   outline: none;
+`;
 
-  &:focus {
-    border-color: #007AFF;
+const ButtonGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const UploadButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: #007AFF;
+  }
+
+  &:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+  }
+`;
+
+const SendButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #007AFF;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+
+  &:hover {
+    color: #0056b3;
+  }
+
+  &:disabled {
+    color: #ccc;
+    cursor: not-allowed;
   }
 `;
 
@@ -110,44 +193,6 @@ const RemoveFileButton = styled.button`
   padding: 2px;
   &:hover {
     color: #d32f2f;
-  }
-`;
-
-const UploadButton = styled.button`
-  padding: 12px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #666;
-  transition: color 0.2s;
-
-  &:hover {
-    color: #007AFF;
-  }
-
-  &:disabled {
-    color: #ccc;
-    cursor: not-allowed;
-  }
-`;
-
-const SendButton = styled.button`
-  padding: 12px 24px;
-  background-color: #007AFF;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #0056b3;
-  }
-
-  &:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
   }
 `;
 
@@ -280,7 +325,12 @@ const GeneralAgent = ({ agent }) => {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     
-    // 不清除文件列表，保持上传的文件可以继续使用
+    // 发送完消息后清除文件列表
+    const fileIds = [...uploadedFileIds];  // 保存当前的文件ID
+    setFiles([]);  // 清空文件列表
+    setFileStatuses({});  // 清空文件状态
+    setUploadedFileIds([]);  // 清空上传文件ID
+    
     setIsStreaming(true);
 
     if (abortControllerRef.current) {
@@ -289,8 +339,7 @@ const GeneralAgent = ({ agent }) => {
     abortControllerRef.current = new AbortController();
 
     try {
-      // 构建文件对象数组
-      const fileObjects = uploadedFileIds.map(id => ({
+      const fileObjects = fileIds.map(id => ({
         type: "document",
         transfer_method: "local_file",
         upload_file_id: id
@@ -299,7 +348,7 @@ const GeneralAgent = ({ agent }) => {
       await sendMessageToAssistant(
         {
           query: input,
-          files: fileObjects,  // 传递文件ID数组
+          files: fileObjects,
           conversationId,
           abortController: abortControllerRef.current
         },
@@ -327,6 +376,27 @@ const GeneralAgent = ({ agent }) => {
     }
   };
 
+  // 添加 getFileIcon 函数
+  const getFileIcon = (file) => {
+    const extension = file.name.split('.').pop().toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return '📄';
+      case 'doc':
+      case 'docx':
+        return '📝';
+      case 'txt':
+        return '📃';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return '🖼️';
+      default:
+        return '📎';
+    }
+  };
+
   return (
     <ChatContainer>
       <MessagesContainer className="messages-container">
@@ -336,7 +406,13 @@ const GeneralAgent = ({ agent }) => {
               isUser={message.isUser}
               isError={message.isError}
             >
-              {message.content}
+              {message.isUser ? (
+                <div>{message.content}</div>
+              ) : (
+                <div className="markdown-content">
+                  <MarkdownRenderer content={message.content} />
+                </div>
+              )}
               {message.files && message.files.length > 0 && (
                 <div style={{ marginTop: '8px', fontSize: '14px', opacity: 0.8 }}>
                   📎 {message.files.join(', ')}
@@ -352,13 +428,38 @@ const GeneralAgent = ({ agent }) => {
       </MessagesContainer>
       <InputContainer>
         <InputWrapper>
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="输入您的问题，可以上传文件进行文档问答..."
-            disabled={isStreaming}
-          />
+          <InputWithButtons>
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="千事不决问通义..."
+              disabled={isStreaming}
+            />
+            <ButtonGroup>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                style={{ display: 'none' }}
+                multiple
+                accept="image/*,.pdf,.doc,.docx,.txt"
+              />
+              <UploadButton
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isStreaming}
+                title="上传图片或文档"
+              >
+                📎
+              </UploadButton>
+              <SendButton 
+                onClick={handleSend} 
+                disabled={(!input.trim() && files.length === 0) || isStreaming}
+              >
+                ▶
+              </SendButton>
+            </ButtonGroup>
+          </InputWithButtons>
           {files.length > 0 && (
             <FileUploadContainer>
               {files.map((file, index) => (
@@ -366,7 +467,8 @@ const GeneralAgent = ({ agent }) => {
                   key={index}
                   className={fileStatuses[file.name]?.status}
                 >
-                  <span>📎 {file.name}</span>
+                  {getFileIcon(file)}
+                  <span>{file.name}</span>
                   {fileStatuses[file.name]?.status === 'uploading' && (
                     <span className="file-status">上传中...</span>
                   )}
@@ -381,27 +483,6 @@ const GeneralAgent = ({ agent }) => {
             </FileUploadContainer>
           )}
         </InputWrapper>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileUpload}
-          style={{ display: 'none' }}
-          multiple
-          accept=".txt,.pdf,.doc,.docx"
-        />
-        <UploadButton
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isStreaming}
-          title="上传文件（支持 PDF、Word、TXT 等格式）"
-        >
-          📎
-        </UploadButton>
-        <SendButton 
-          onClick={handleSend} 
-          disabled={(!input.trim() && files.length === 0) || isStreaming}
-        >
-          {isStreaming ? '发送中...' : '发送'}
-        </SendButton>
       </InputContainer>
     </ChatContainer>
   );
