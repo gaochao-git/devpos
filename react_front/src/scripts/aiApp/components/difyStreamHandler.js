@@ -55,6 +55,23 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
                         setTaskId(data.task_id);
                     }
 
+                    // 同时判断状态和错误信息
+                    if (data.data?.status === 'stopped' && data.data?.error) {
+                        fullContent += `\n\n_${data.data.error}_`;
+                        setMessages(prev => {
+                            const newMessages = [...prev];
+                            const lastMessage = newMessages[newMessages.length - 1];
+                            newMessages[newMessages.length - 1] = {
+                                ...lastMessage,
+                                content: fullContent,
+                                isCurrentMessage: true
+                            };
+                            return newMessages;
+                        });
+                        setIsStreaming(false);
+                        return;
+                    }
+
                     // 处理错误事件
                     if (data.event === 'error') {
                         setMessages(prev => {
