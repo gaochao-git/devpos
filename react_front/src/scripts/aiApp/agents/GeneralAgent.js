@@ -23,7 +23,7 @@ const MessagesContainer = styled.div`
   overflow-y: auto;
   padding: 20px;
   background-color: #f8fbff;  // 更浅的蓝色背景
-  border-radius: 8px;
+  border-radius: 0 0 8px 8px;
   margin-bottom: 20px;
   scroll-behavior: smooth;
   display: flex;
@@ -231,6 +231,7 @@ const Header = styled.div`
   padding: 12px 24px;
   border-bottom: 1px solid #e8e8e8;
   background: #fff;
+  border-radius: 8px 8px 0 0;
 `;
 
 const HeaderLeft = styled.div`

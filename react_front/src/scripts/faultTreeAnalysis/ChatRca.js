@@ -1129,12 +1129,13 @@ const ChatRca = (props) => {
         }}>
             {/* 顶部工具栏 */}
             <div style={{
-                padding: '8px 16px',
+                padding: '4px 0px',
                 borderBottom: '1px solid #e8e8e8',
                 background: '#fff',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                borderRadius: '0px',
                 zIndex: 1000
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -1213,6 +1214,7 @@ const ChatRca = (props) => {
                     paddingRight: '16px',
                     paddingTop: '16px',
                     marginBottom: `${inputAreaHeight + assistantsHeight}px`,
+                    backgroundColor: '#f8fbff'
                 }}
             >
                 {/* 加载更多提示 */}
@@ -1256,7 +1258,7 @@ const ChatRca = (props) => {
 
             {/* 底部输入区域 */}
             <div style={{
-                padding: '16px',
+                padding: '4px 0px',
                 background: '#fff',
                 borderTop: '1px solid #e8e8e8',
                 position: 'absolute',
