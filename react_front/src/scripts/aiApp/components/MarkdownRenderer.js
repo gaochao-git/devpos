@@ -3,6 +3,8 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import styled from 'styled-components';
+import ThinkBlock from '../../faultTreeAnalysis/components/ThinkBlock';
+import { handler_dify_think } from '../../faultTreeAnalysis/util';
 
 
 const Pre = styled.pre`
@@ -48,75 +50,96 @@ const CopyButton = styled.button`
 
 
 const MarkdownRenderer = ({ content, isStreaming = false }) => {
-  return (
-    <ReactMarkdown
-      components={{
-        code({ node, inline, className, children, ...props }) {
-          // 如果是行内代码，直接返回
-          if (inline) {
-            return (
-              <code className={className} {...props}>
-                {children}
-              </code>
-            );
-          }
+  if (!content) return null;
 
-          // 获取语言，如果没有指定则默认为 plaintext
-          const match = /language-(\w+)/.exec(className || '');
-          const language = match ? match[1] : 'plaintext';
-          const code = String(children).replace(/\n$/, '');
-          
-          const CodeBlock = () => {
-            const [copied, setCopied] = useState(false);
+  // 先处理 Dify 格式
+  const processedContent = handler_dify_think(content);
+  
+  // 处理 think 标签
+  const parts = processedContent.split(/(<think>.*?<\/think>)/s);
+  
+  return parts.map((part, index) => {
+    if (part.startsWith('<think>') && part.endsWith('</think>')) {
+      const thoughtContent = part.slice(7, -8);
+      return (
+        <ThinkBlock key={index}>
+          {thoughtContent}
+        </ThinkBlock>
+      );
+    }
+    
+    return part ? (
+      <ReactMarkdown
+        key={index}
+        components={{
+          code({ node, inline, className, children, ...props }) {
+            // 如果是行内代码，直接返回
+            if (inline) {
+              return (
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              );
+            }
 
-            const handleCopy = async () => {
-              await navigator.clipboard.writeText(code);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
+            // 获取语言，如果没有指定则默认为 plaintext
+            const match = /language-(\w+)/.exec(className || '');
+            const language = match ? match[1] : 'plaintext';
+            const code = String(children).replace(/\n$/, '');
+            
+            const CodeBlock = () => {
+              const [copied, setCopied] = useState(false);
+
+              const handleCopy = async () => {
+                await navigator.clipboard.writeText(code);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              };
+
+              return (
+                <Pre>
+                  <CopyButton 
+                    onClick={handleCopy}
+                    className={`copy-button ${copied ? 'copied' : ''}`}
+                    show={!isStreaming}
+                  >
+                    {copied ? (
+                      <>
+                        <span>✓</span>
+                        <span>已复制</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>📋</span>
+                        <span>复制代码</span>
+                      </>
+                    )}
+                  </CopyButton>
+                  <SyntaxHighlighter
+                    style={oneDark}
+                    language={language}
+                    PreTag="div"
+                    customStyle={{
+                      padding: '16px',
+                      borderRadius: '8px',
+                      margin: 0
+                    }}
+                    {...props}
+                  >
+                    {code}
+                  </SyntaxHighlighter>
+                </Pre>
+              );
             };
 
-            return (
-              <Pre>
-                <CopyButton 
-                  onClick={handleCopy}
-                  className={`copy-button ${copied ? 'copied' : ''}`}
-                  show={!isStreaming}
-                >
-                  {copied ? (
-                    <>
-                      <span>✓</span>
-                      <span>已复制</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>📋</span>
-                      <span>复制代码</span>
-                    </>
-                  )}
-                </CopyButton>
-                <SyntaxHighlighter
-                  style={oneDark}
-                  language={language}
-                  PreTag="div"
-                  customStyle={{
-                    padding: '16px',
-                    borderRadius: '8px',
-                    margin: 0
-                  }}
-                  {...props}
-                >
-                  {code}
-                </SyntaxHighlighter>
-              </Pre>
-            );
-          };
-
-          return <CodeBlock />;
-        }
-      }}
-      children={content}
-    />
-  );
+            return <CodeBlock />;
+          }
+        }}
+      >
+        {part}
+      </ReactMarkdown>
+    ) : null;
+  });
 };
 
 export default MarkdownRenderer; 
