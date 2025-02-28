@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon, Tooltip, Input, Button, Upload } from 'antd';
+import { Icon, Tooltip, Input, Button, Upload, message } from 'antd';
 const { TextArea } = Input;
 
 // 基础Header组件
@@ -221,8 +221,9 @@ export class BaseChatBody extends React.Component {
 
 // 基础Footer组件
 export class BaseChatFooter extends React.Component {
-    static defaultProps = {
-        placeholder: "请输入您的问题..."
+    state = {
+        isSearchHovered: false,
+        isSearchActive: false
     };
 
     render() {
@@ -233,12 +234,18 @@ export class BaseChatFooter extends React.Component {
             onInterrupt,
             onFileSelect,
             isStreaming,
-            disabled,
             placeholder,
             acceptedFileTypes = ".txt,.md,.pdf,.doc,.docx,.xlsx,.xls"
         } = this.props;
 
+        const { isSearchHovered, isSearchActive } = this.state;
         const hasContent = value && value.trim().length > 0;
+
+        const getSearchColor = () => {
+            if (isSearchActive) return '#1890ff';
+            if (isSearchHovered) return '#595959';
+            return '#00000073';
+        };
 
         return (
             <div style={{ 
@@ -247,70 +254,114 @@ export class BaseChatFooter extends React.Component {
             }}>
                 <div style={{ 
                     display: 'flex',
-                    gap: '8px',
+                    flexDirection: 'column',
                     border: '1px solid #d9d9d9',
                     borderRadius: '8px',
-                    padding: '4px 11px'
+                    padding: '8px 11px'
                 }}>
                     <TextArea
                         value={value}
                         onChange={onChange}
                         placeholder={placeholder}
-                        disabled={disabled}
                         style={{ 
                             border: 'none',
                             boxShadow: 'none',
                             padding: '0',
-                            resize: 'none'
+                            resize: 'none',
+                            marginBottom: '4px'
                         }}
                         autoSize={{ minRows: 1, maxRows: 3 }}
                         onPressEnter={(e) => {
-                            if (!e.shiftKey && hasContent && !disabled) {
+                            if (!e.shiftKey && hasContent) {
                                 e.preventDefault();
                                 if (isStreaming && onInterrupt) {
                                     onInterrupt();
-                                } else if (onSend) {
+                                } else if (!isStreaming && onSend) {
                                     onSend();
                                 }
                             }
                         }}
                     />
-                    <Upload
-                        beforeUpload={() => false}
-                        onChange={onFileSelect}
-                        accept={acceptedFileTypes}
-                        multiple
-                        showUploadList={false}
-                    >
-                        <Button 
-                            type="text"
-                            icon="file-add"
-                            disabled={disabled}
-                            style={{ 
-                                border: 'none', 
-                                padding: '0 8px',
-                                fontSize: '18px'
-                            }}
-                        />
-                    </Upload>
-                    <Icon 
-                        type={isStreaming ? "stop" : "arrow-up"}
-                        onClick={() => {
-                            if (isStreaming && onInterrupt) {
-                                onInterrupt();
-                            } else if (hasContent && onSend) {
-                                onSend();
-                            }
-                        }}
-                        style={{ 
-                            fontSize: '18px',
-                            cursor: disabled || (!isStreaming && !hasContent) ? 'not-allowed' : 'pointer',
-                            color: hasContent || isStreaming ? '#1890ff' : '#00000040',
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        alignItems: 'center'
+                    }}>
+                        <div style={{
                             display: 'flex',
-                            alignItems: 'center',
-                            height: '32px'
-                        }}
-                    />
+                            gap: '8px'
+                        }}>
+                            <Button 
+                                style={{ 
+                                    border: '1px solid #e8e8e8',
+                                    background: isSearchHovered ? '#f5f5f5' : '#fff',
+                                    borderRadius: '16px',
+                                    height: '32px',
+                                    padding: '0 12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    color: getSearchColor(),
+                                    transition: 'all 0.3s'
+                                }}
+                                onClick={() => {
+                                    this.setState({ isSearchActive: !isSearchActive });
+                                    message.info('功能开发中...');
+                                }}
+                                onMouseEnter={() => this.setState({ isSearchHovered: true })}
+                                onMouseLeave={() => this.setState({ isSearchHovered: false })}
+                            >
+                                <Icon 
+                                    type="global" 
+                                    style={{
+                                        color: getSearchColor()
+                                    }}
+                                />
+                                <span>联网搜索</span>
+                            </Button>
+                        </div>
+                        <div style={{
+                            display: 'flex',
+                            gap: '8px'
+                        }}>
+                            <Upload
+                                beforeUpload={() => false}
+                                onChange={onFileSelect}
+                                accept={acceptedFileTypes}
+                                multiple
+                                showUploadList={false}
+                            >
+                                <Button 
+                                    type="text"
+                                    icon="file-add"
+                                    style={{ 
+                                        border: 'none', 
+                                        padding: '0 8px',
+                                        fontSize: '18px'
+                                    }}
+                                />
+                            </Upload>
+                            <Icon 
+                                type={isStreaming ? "stop" : "arrow-up"}
+                                onClick={() => {
+                                    if (isStreaming && onInterrupt) {
+                                        onInterrupt();
+                                    } else if (hasContent && !isStreaming && onSend) {
+                                        onSend();
+                                    }
+                                }}
+                                style={{ 
+                                    fontSize: '18px',
+                                    cursor: (!isStreaming && !hasContent) || (hasContent && isStreaming) ? 'not-allowed' : 'pointer',
+                                    color: hasContent || isStreaming ? '#1890ff' : '#00000040',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    height: '32px'
+                                }}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         );
