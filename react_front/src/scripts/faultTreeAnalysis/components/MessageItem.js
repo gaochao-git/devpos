@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Button, Tag, Checkbox, Icon, Collapse } from 'antd';
 import ReactMarkdown from 'react-markdown';
-import { markdownRenderers, MESSAGE_DISPLAY_THRESHOLD, formatValueWithUnit, handler_dify_think } from '../util';
+import { markdownRenderers, MESSAGE_DISPLAY_THRESHOLD, formatValueWithUnit } from '../util';
+import { handler_dify_think } from '../../aiApp/util';
 import { registry } from '../assistants';
 import CodeBlock from './CodeBlock';
 import ZabbixChart from './ZabbixChart';
@@ -119,52 +120,16 @@ const MessageItem = ({
         const processedContent = handler_dify_think(content);
 
         // 分割思考过程和工具调用
-        const parts = processedContent.split(/(<think>.*?<\/think>|<tool>.*?<\/tool>)/s);
+        const parts = processedContent.split(/(<details.*?<\/details>|<tool>.*?<\/tool>)/s);
         
         return parts.map((part, index) => {
             // 处理思考过程
-            if (part.startsWith('<think>') && part.endsWith('</think>')) {
-                const thoughtContent = part.slice(7, -8);
-                const isExpanded = expandedThoughts.has(index);
-                
+            if (part.includes('<details')) {
                 return (
-                    <div key={index} style={{
-                        marginBottom: '12px',
-                        padding: '8px',
-                        background: '#fafafa',
-                        borderRadius: '4px',
-                        border: '1px solid #e8e8e8',
-                        fontSize: '12px',
-                        color: '#999'  // 使用与 metadata 相同的颜色
-                    }}>
-                        <div 
-                            onClick={() => setExpandedThoughts(prev => {
-                                const newSet = new Set(prev);
-                                if (newSet.has(index)) {
-                                    newSet.delete(index);
-                                } else {
-                                    newSet.add(index);
-                                }
-                                return newSet;
-                            })}
-                            style={{ 
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }}
-                        >
-                            <Icon type={isExpanded ? 'caret-down' : 'caret-right'} />
-                            <span>AI 分析过程</span>
-                        </div>
-                        {isExpanded && (
-                            <div style={{ marginTop: '8px' }}>
-                                <ReactMarkdown components={customRenderers}>
-                                    {thoughtContent}
-                                </ReactMarkdown>
-                            </div>
-                        )}
-                    </div>
+                    <div
+                        key={index}
+                        dangerouslySetInnerHTML={{ __html: part }}
+                    />
                 );
             }
             
