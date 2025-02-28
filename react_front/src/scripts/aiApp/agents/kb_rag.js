@@ -5,6 +5,8 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
 import { BaseChatHeader } from '../components/BaseLayout';
+import { ResizableBox } from 'react-resizable';
+import 'react-resizable/css/styles.css';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -277,7 +279,6 @@ export default class DataAnalysisAgent extends Component {
                         }}
                         onViewHistory={() => {
                             this.setState({ isHistoryLoading: true });
-                            // TODO: 实现历史会话查看逻辑
                             setTimeout(() => {
                                 this.setState({ isHistoryLoading: false });
                             }, 1000);
@@ -290,136 +291,117 @@ export default class DataAnalysisAgent extends Component {
                         display: 'flex',
                         overflow: 'hidden'
                     }}>
+                        <ResizableBox
+                            width={400}
+                            axis="x"
+                            resizeHandles={['e']}
+                            style={{ 
+                                borderRight: '1px solid #e8e8e8',
+                                height: '100%'
+                            }}
+                        >
+                            <div style={{ 
+                                height: '100%',
+                                padding: '5px',
+                                overflow: 'auto'
+                            }}>
+                                <Card title="提示词模版" style={{ marginBottom: '20px' }}>
+                                    <div style={{ marginBottom: '10px' }}>
+                                        <Select
+                                            style={{ width: '100%' }}
+                                            value={this.state.selectedTemplate}
+                                            onChange={this.handleTemplateChange}
+                                            placeholder="选择提示词模版"
+                                        >
+                                            {Object.entries(promptTemplate).map(([key, value]) => (
+                                                <Option key={key} value={key}>
+                                                    {value.label}
+                                                </Option>
+                                            ))}
+                                        </Select>
+                                    </div>
+                                    <TextArea
+                                        rows={6}
+                                        value={this.state.promptText}
+                                        onChange={e => this.setState({ promptText: e.target.value })}
+                                        placeholder="提示词内容..."
+                                    />
+                                </Card>
+
+                                <Card title="RAG配置">
+                                    <div style={{ marginBottom: '15px' }}>
+                                        <div style={{ 
+                                            marginBottom: '5px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
+                                        }}>
+                                            <span>选择数据库</span>
+                                            <Checkbox 
+                                                checked={allSelected}
+                                                onChange={this.handleCheckboxChange}
+                                            >
+                                                全选
+                                            </Checkbox>
+                                        </div>
+                                        <Select
+                                            mode="multiple"
+                                            style={{ width: '100%' }}
+                                            placeholder="请选择数据库（可多选）"
+                                            value={ragConfig.db_types}
+                                            onChange={value => this.updateRagConfig({ db_types: value })}
+                                            allowClear
+                                        >
+                                            {DB_OPTIONS.map(db => (
+                                                <Option key={db.value} value={db.value}>{db.label}</Option>
+                                            ))}
+                                        </Select>
+                                    </div>
+
+                                    <div style={{ marginBottom: '15px' }}>
+                                        <div style={{ marginBottom: '5px' }}>矢量搜索</div>
+                                        <Input
+                                            placeholder="输入自然语言描述，用于语义相似度搜索"
+                                            value={ragConfig.vectorQuery}
+                                            onChange={(event) => {
+                                                if (event && event.target) {
+                                                    this.updateRagConfig({ 
+                                                        vectorQuery: event.target.value 
+                                                    });
+                                                }
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div style={{ marginBottom: '15px' }}>
+                                        <div style={{ marginBottom: '5px' }}>标量搜索</div>
+                                        <Input
+                                            placeholder="输入关键词，用于精确/模糊匹配搜索"
+                                            value={ragConfig.scalarQuery}
+                                            onChange={(event) => {
+                                                if (event && event.target) {
+                                                    this.updateRagConfig({ 
+                                                        scalarQuery: event.target.value 
+                                                    });
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                </Card>
+                            </div>
+                        </ResizableBox>
+
                         <div style={{ 
-                            width: '30%', 
-                            marginRight: '5px',
-                            display: 'flex', 
-                            flexDirection: 'column',
+                            flex: 1,
                             height: '100%',
                             padding: '5px',
-                            borderRight: '1px solid #e8e8e8'
-                        }}>
-                            <Card title="提示词模版" style={{ marginBottom: '20px', flex: '0 0 auto' }}>
-                                <div style={{ marginBottom: '10px' }}>
-                                    <Select
-                                        style={{ width: '100%' }}
-                                        value={this.state.selectedTemplate}
-                                        onChange={this.handleTemplateChange}
-                                        placeholder="选择提示词模版"
-                                    >
-                                        {Object.entries(promptTemplate).map(([key, value]) => (
-                                            <Option key={key} value={key}>
-                                                {value.label}
-                                            </Option>
-                                        ))}
-                                    </Select>
-                                </div>
-                                <TextArea
-                                    rows={6}
-                                    value={this.state.promptText}
-                                    onChange={e => this.setState({ promptText: e.target.value })}
-                                    placeholder="提示词内容..."
-                                />
-                            </Card>
-
-                            <Card 
-                                title={
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <span>RAG配置</span>
-                                        <Checkbox 
-                                            checked={ragConfig.enabled}
-                                            onChange={this.handleRagEnableChange}
-                                        >
-                                            启用RAG
-                                        </Checkbox>
-                                    </div>
-                                } 
-                                style={{ flex: '1 1 auto', overflow: 'auto' }}
-                            >
-                                {ragConfig.enabled ? (
-                                    <>
-                                        <div style={{ marginBottom: '15px' }}>
-                                            <div style={{ 
-                                                marginBottom: '5px',
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center'
-                                            }}>
-                                                <span>选择数据库</span>
-                                                <Checkbox 
-                                                    checked={allSelected}
-                                                    onChange={this.handleCheckboxChange}
-                                                >
-                                                    全选
-                                                </Checkbox>
-                                            </div>
-                                            <Select
-                                                mode="multiple"
-                                                style={{ width: '100%' }}
-                                                placeholder="请选择数据库（可多选）"
-                                                value={ragConfig.db_types}
-                                                onChange={value => this.updateRagConfig({ db_types: value })}
-                                                allowClear
-                                            >
-                                                {DB_OPTIONS.map(db => (
-                                                    <Option key={db.value} value={db.value}>{db.label}</Option>
-                                                ))}
-                                            </Select>
-                                        </div>
-
-                                        <div style={{ marginBottom: '15px' }}>
-                                            <div style={{ marginBottom: '5px' }}>矢量搜索</div>
-                                            <Input
-                                                placeholder="输入自然语言描述，用于语义相似度搜索"
-                                                value={ragConfig.vectorQuery}
-                                                onChange={(event) => {
-                                                    if (event && event.target) {
-                                                        this.updateRagConfig({ 
-                                                            vectorQuery: event.target.value 
-                                                        });
-                                                    }
-                                                }}
-                                            />
-                                        </div>
-
-                                        <div style={{ marginBottom: '15px' }}>
-                                            <div style={{ marginBottom: '5px' }}>标量搜索</div>
-                                            <Input
-                                                placeholder="输入关键词，用于精确/模糊匹配搜索"
-                                                value={ragConfig.scalarQuery}
-                                                onChange={(event) => {
-                                                    if (event && event.target) {
-                                                        this.updateRagConfig({ 
-                                                            scalarQuery: event.target.value 
-                                                        });
-                                                    }
-                                                }}
-                                            />
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
-                                        请启用 RAG 以配置搜索选项
-                                    </div>
-                                )}
-                            </Card>
-                        </div>
-
-                        <div style={{ 
-                            width: '70%', 
-                            display: 'flex', 
+                            display: 'flex',
                             flexDirection: 'column',
-                            height: '100%',
-                            padding: '5px'
+                            background: '#F8FBFF'  // 更新为浅蓝色背景
                         }}>
-                            <div style={{ 
-                                flex: '1 1 auto',
-                                marginBottom: '20px', 
-                                border: '1px solid #d9d9d9',
-                                borderRadius: '4px',
-                                backgroundColor: '#f8fbff',
-                                overflow: 'auto',
-                                padding: '5px'
+                            <div style={{
+                                flex: 1,
+                                overflow: 'auto'
                             }}>
                                 {this.state.messages.map((msg, index) => (
                                     <div key={index} style={{
