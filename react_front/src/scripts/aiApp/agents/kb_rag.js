@@ -4,9 +4,17 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
-import { BaseChatHeader, BaseChatFooter } from '../components/BaseLayout';
+import { BaseChatHeader, BaseChatFooter, BaseChatBox } from '../components/BaseLayout';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
+import {
+    sendMessageToAssistant,
+    getHistoryConversations,
+    getConversationMessages,
+    renameConversation,
+    stopMessageGeneration
+} from '../aIAssistantApi';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -19,76 +27,6 @@ const promptTemplate = {
         label: "功能对比分析",
         text: "你是一个专业的数据库功能对比分析专家。本次需要分析的数据库包括：{db_types}。请基于以下规则回答问题：\n\n1. 只使用上下文中提供的信息进行分析和对比\n2. 必须对上述列出的所有数据库进行分析，使用表格形式清晰展示各个数据库对所查询功能的支持情况：\n   - ✓ 表示支持\n   - ✗ 表示不支持\n   - ? 表示上下文中未提及\n3. 明确指出哪些数据库在上下文中完全没有相关信息\n4. 给出信息来源，包括文档名称和页码\n5. 不要推测或编造未在上下文中明确提到的信息\n6. 即使某些数据库在上下文中没有找到相关信息，也要在表格中列出并标记为 ?\n\n上下文信息：\n{context}\n\n问题：{question}\n\n请按照上述规则进行分析和对比。如果是功能对比，请务必使用表格形式展示结果，并确保包含所有指定的数据库。"
     }
-};
-// Markdown 渲染配置
-const markdownComponents = {
-    // 代码块渲染
-    code: ({ node, inline, className, children, ...props }) => {
-        const match = /language-(\w+)/.exec(className || '');
-        return !inline && match ? (
-            <SyntaxHighlighter
-                style={nightOwl}
-                language={match[1]}
-                PreTag="div"
-                {...props}
-            >
-                {String(children).replace(/\n$/, '')}
-            </SyntaxHighlighter>
-        ) : (
-            <code className={className} {...props}>
-                {children}
-            </code>
-        );
-    },
-    // 表格相关组件
-    table: ({ children, ...props }) => (
-        <div style={{ overflowX: 'auto', marginBottom: '1rem' }}>
-            <table style={{ 
-                borderCollapse: 'collapse',
-                width: '100%',
-                border: '1px solid #ddd'
-            }} {...props}>
-                {children}
-            </table>
-        </div>
-    ),
-    thead: ({ children, ...props }) => (
-        <thead style={{ backgroundColor: '#f5f5f5' }} {...props}>
-            {children}
-        </thead>
-    ),
-    th: ({ children, ...props }) => (
-        <th style={{ 
-            border: '1px solid #ddd',
-            padding: '8px',
-            textAlign: 'left'
-        }} {...props}>
-            {children}
-        </th>
-    ),
-    td: ({ children, ...props }) => (
-        <td style={{ 
-            border: '1px solid #ddd',
-            padding: '8px'
-        }} {...props}>
-            {children}
-        </td>
-    ),
-    // 图片渲染
-    img: ({ node, ...props }) => (
-        <img
-            style={{ 
-                maxWidth: '100%',
-                height: 'auto'
-            }}
-            {...props}
-            alt={props.alt || ''}
-            onError={(e) => {
-                e.target.style.display = 'none';
-                message.error(`图片加载失败: ${props.src}`);
-            }}
-        />
-    )
 };
 
 // 常量配置
@@ -117,12 +55,15 @@ export default class DataAnalysisAgent extends Component {
             promptText: promptTemplate.default.text,
             selectedTemplate: 'default',
             streaming: false,
+            taskId: null,
+            inputValue: '',
             // RAG 配置统一管理
             ragConfig: {
-                enabled: false,
-                db_types: [],
-                vectorQuery: "",
-                scalarQuery: ""
+                db_types: [],  // 初始化为空数组
+                vector_store_config: {},
+                rerank_config: {},
+                vectorQuery: '',  // 添加矢量搜索字段
+                scalarQuery: ''   // 添加标量搜索字段
             },
             isUserScrolling: false,
             isHistoryLoading: false // 添加历史加载状态
@@ -238,9 +179,134 @@ export default class DataAnalysisAgent extends Component {
         }));
     };
 
+    // 添加消息格式转换函数
+    formatMessage = (message) => {
+        if (message.type === 'user') {
+            return {
+                role: 'user',
+                content: message.content,
+                isCurrentMessage: false
+            };
+        } else {
+            return {
+                role: 'assistant',
+                content: message.content,
+                isCurrentMessage: false
+            };
+        }
+    };
+
+    handleSend = async (content) => {
+        if (!content?.trim()) return;
+
+        // 先添加用户消息
+        const userMessage = {
+            role: 'user',
+            content: content,
+            isCurrentMessage: false
+        };
+
+        this.setState(prevState => ({
+            messages: [...prevState.messages, userMessage]
+        }));
+
+        try {
+            const inputs = {
+                db_types: this.state.ragConfig.db_types,
+                vector_query: this.state.ragConfig.vectorQuery,
+                scalar_query: this.state.ragConfig.scalarQuery
+            };
+
+            await sendMessageToAssistant(
+                {
+                    query: content,
+                    inputs,
+                    files: [],
+                    conversationId: this.state.conversationId,
+                    abortController: this.abortController,
+                    agentType: 'data-analysis'
+                },
+                {
+                    setMessages: (messages) => {
+                        if (typeof messages === 'function') {
+                            // 如果是函数，执行它来获取新的消息数组
+                            this.setState(prevState => {
+                                const newMessages = messages(prevState.messages);
+                                return { messages: newMessages };
+                            });
+                        } else if (Array.isArray(messages)) {
+                            // 如果是数组，直接设置
+                            this.setState({ messages });
+                        } else {
+                            console.error('Invalid messages format:', messages);
+                        }
+                    },
+                    setIsStreaming: (streaming) => this.setState({ streaming }),
+                    getStandardTime: () => new Date().toLocaleTimeString(),
+                    setTaskId: (taskId) => this.setState({ taskId }),
+                    setConversationId: (conversationId) => this.setState({ conversationId })
+                }
+            );
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            message.error('发送消息失败');
+        }
+    };
+
+    handleInterrupt = async () => {
+        const { taskId } = this.state;
+        if (taskId) {
+            try {
+                await stopMessageGeneration(taskId, 'data-analysis');
+                this.setState({ streaming: false });
+            } catch (error) {
+                console.error('Failed to stop generation:', error);
+            }
+        }
+    };
+
+    loadHistoryMessages = async (conversationId) => {
+        try {
+            const response = await getConversationMessages(conversationId, 'data-analysis');
+            if (response?.data) {
+                // 确保消息格式正确
+                const formattedMessages = response.data.map(msg => this.formatMessage(msg));
+                this.setState({
+                    messages: formattedMessages,
+                    conversationId
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load history messages:', error);
+            message.error('加载历史消息失败');
+        }
+    };
+
+    loadHistoryConversations = async () => {
+        try {
+            const response = await getHistoryConversations('data-analysis');
+            return response?.data || [];
+        } catch (error) {
+            console.error('Failed to load history conversations:', error);
+            message.error('加载历史会话失败');
+            return [];
+        }
+    };
+
+    handleRenameConversation = async (conversationId, name) => {
+        try {
+            await renameConversation(conversationId, name, 'data-analysis');
+            return true;
+        } catch (error) {
+            console.error('Failed to rename conversation:', error);
+            message.error('重命名会话失败');
+            return false;
+        }
+    };
+
     render() {
-        const { ragConfig, isHistoryLoading } = this.state;
-        const allSelected = ragConfig.db_types.length === DB_OPTIONS.length;
+        const { messages, streaming, ragConfig, isHistoryLoading } = this.state;
+        const allSelected = (ragConfig.db_types || []).length === DB_OPTIONS.length;  // 添加空数组作为默认值
         
         return (
             <div style={{ 
@@ -405,12 +471,12 @@ export default class DataAnalysisAgent extends Component {
                                 overflow: 'auto',
                                 padding: '0 15px'
                             }}>
-                                {this.state.messages.map((msg, index) => (
+                                {Array.isArray(messages) && messages.map((msg, index) => (
                                     <div key={index} style={{
                                         marginBottom: '20px',
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        alignItems: msg.type === 'user' ? 'flex-end' : 'flex-start'
+                                        alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start'
                                     }}>
                                         <div style={{
                                             fontSize: '12px',
@@ -424,31 +490,18 @@ export default class DataAnalysisAgent extends Component {
                                             maxWidth: '80%',
                                             padding: '12px 16px',
                                             borderRadius: '8px',
-                                            backgroundColor: msg.type === 'user' ? '#73f0be' : '#f9f9f9',
+                                            backgroundColor: msg.role === 'user' ? '#73f0be' : '#f9f9f9',
                                             color: '#000',
                                             boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
                                             border: '1px solid #e0e0e0'
                                         }}>
-                                            {msg.type === 'user' ? (
+                                            {msg.role === 'user' ? (
                                                 <div>{msg.content}</div>
                                             ) : (
-                                                <div>
-                                                    {msg.searchStatus && msg.searchStatus.map((status, idx) => (
-                                                        <div key={idx} style={{ 
-                                                            marginBottom: '8px', 
-                                                            color: '#666',
-                                                            fontSize: '12px',
-                                                            fontStyle: 'italic'
-                                                        }}>
-                                                            {status}
-                                                        </div>
-                                                    ))}
-                                                    <ReactMarkdown 
-                                                        remarkPlugins={[remarkGfm]}
-                                                        components={markdownComponents}
-                                                        children={msg.content}
-                                                    />
-                                                </div>
+                                                <MarkdownRenderer 
+                                                    content={msg.content}
+                                                    isStreaming={streaming && index === messages.length - 1}
+                                                />
                                             )}
                                         </div>
                                     </div>
@@ -458,11 +511,16 @@ export default class DataAnalysisAgent extends Component {
                             <BaseChatFooter 
                                 value={this.state.question}
                                 onChange={(e) => this.setState({ question: e.target.value })}
-                                onSend={() => this.handleStream()}
+                                onSend={() => {
+                                    const content = this.state.question.trim();
+                                    if (content) {
+                                        this.handleSend(content);
+                                        this.setState({ question: '' });  // 发送后清空输入框
+                                    }
+                                }}
                                 disabled={this.state.streaming}
                                 isStreaming={this.state.streaming}
                                 onInterrupt={this.handleInterrupt}
-                                onFileSelect={this.handleFileSelect}
                             />
                         </div>
                     </div>
@@ -470,126 +528,4 @@ export default class DataAnalysisAgent extends Component {
             </div>
         );
     }
-
-    handleStream = async () => {
-        if (!this.state.question) {
-            message.error("请输入问题");
-            return;
-        }
-
-        // 添加用户问题到对话历史
-        const userMessage = {
-            type: 'user',
-            content: this.state.question,
-            time: new Date().toLocaleTimeString()
-        };
-
-        this.setState(prevState => ({
-            streaming: true,
-            messages: [...prevState.messages, userMessage],
-            answer: "",
-            searchStatus: [],
-            metadata: null,
-            question: ""  // 发送后立即清空输入框
-        }));
-
-        try {
-            const { ragConfig } = this.state;
-            
-            // 构建请求体，直接使用 ragConfig
-            const requestBody = {
-                question: this.state.question,
-                prompt: this.state.promptText,
-                conversation_id: this.state.conversationId,
-                rag_config: ragConfig
-            };
-
-            const response = await fetch('http://127.0.0.1:8001/api/db/qa/stream', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody)
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            // 添加 AI 回答到对话历史
-            const aiMessage = {
-                type: 'assistant',
-                content: '',
-                searchStatus: [],
-                time: new Date().toLocaleTimeString()
-            };
-
-            this.setState(prevState => ({
-                messages: [...prevState.messages, aiMessage]
-            }));
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (line.trim() && line.startsWith('data: ')) {
-                        const data = line.slice(5).trim();
-                        try {
-                            const parsedData = JSON.parse(data);
-                            const { event, answer, conversation_id } = parsedData;
-
-                            if (conversation_id && conversation_id !== this.state.conversationId) {
-                                this.setState({ conversationId: conversation_id });
-                            }
-
-                            this.setState(prevState => {
-                                const messages = [...prevState.messages];
-                                const lastMessage = messages[messages.length - 1];
-                                
-                                if (lastMessage && lastMessage.type === 'assistant') {
-                                    if (event === 'message') {
-                                        if (answer.startsWith('正在')) {
-                                            lastMessage.searchStatus = [...(lastMessage.searchStatus || []), answer];
-                                        } else {
-                                            lastMessage.content = (lastMessage.content || '') + answer;
-                                        }
-                                    } else if (event === 'message_end' && parsedData.metadata?.usage) {
-                                        const usage = parsedData.metadata.usage;
-                                        const statsText = "\n\n---\n\n**统计信息**:\n" +
-                                            "- 总Token数: " + usage.total_tokens + "\n" +
-                                            "- 延迟: " + usage.latency.toFixed(2) + "s\n";
-                                        lastMessage.content += statsText;
-                                    }
-                                }
-                                return { messages };
-                            }, () => {
-                                // 在状态更新完成后触发滚动
-                                this.scrollToBottom();
-                            });
-                        } catch (error) {
-                            console.error('Error parsing SSE data:', error);
-                        }
-                    }
-                }
-            }
-
-            this.setState({ 
-                streaming: false,
-                question: "" // 清空输入框
-            });
-
-        } catch (error) {
-            message.error("请求失败: " + error.message);
-            this.setState({ streaming: false });
-        }
-    };
 }

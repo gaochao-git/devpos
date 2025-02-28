@@ -39,8 +39,8 @@ export const agentComponentMap = {
         icon: <img src={dbIcon} alt="数据库选型助手" style={{ width: '32px', height: '32px' }} />,
         color: '#efdbff',
         systemPrompt: '你是一个国产数据库选型专家，可以帮助进行国产数据库选型。',
-        baseUrl: 'http://127.0.0.1:5002',
-        apiKey: 'Bearer app-data-xxx',
+        baseUrl: 'http://127.0.0.1',
+        apiKey: 'Bearer app-NOEvLqgeuuhpzUtzTif00KMO',
     },
     'code': {
         component: CodeAgent,
