@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Button, Tag, Checkbox, Icon, Collapse } from 'antd';
 import ReactMarkdown from 'react-markdown';
-import { markdownRenderers, MESSAGE_DISPLAY_THRESHOLD, formatValueWithUnit } from '../util';
+import { markdownRenderers, MESSAGE_DISPLAY_THRESHOLD, formatValueWithUnit, handler_dify_think } from '../util';
 import { registry } from '../assistants';
 import CodeBlock from './CodeBlock';
 import ZabbixChart from './ZabbixChart';
@@ -115,8 +115,11 @@ const MessageItem = ({
     const renderContent = (content) => {
         if (!content) return null;
 
+        // 预处理内容，转换思考格式
+        const processedContent = handler_dify_think(content);
+
         // 分割思考过程和工具调用
-        const parts = content.split(/(<think>.*?<\/think>|<tool>.*?<\/tool>)/s);
+        const parts = processedContent.split(/(<think>.*?<\/think>|<tool>.*?<\/tool>)/s);
         
         return parts.map((part, index) => {
             // 处理思考过程

@@ -293,3 +293,23 @@ export const formatValueWithUnit = (value, originalUnit) => {
 
     return { value: convertedValue, unit: finalUnit };
 };
+
+/**
+ * 将 Dify 格式的思考内容转换为标准格式
+ * @param {string} content - 原始消息内容
+ * @returns {string} - 转换后的内容
+ */
+export const handler_dify_think = (content) => {
+    if (!content) return content;
+
+    return content.replace(
+        /<details\s+style="[^"]*"\s+open>/g,
+        '<think>'
+    ).replace(
+        /<\/details>/g,
+        '</think>'
+    ).replace(
+        /<summary>\s*Thinking\.\.\.\s*<\/summary>/g,
+        ''
+    ).trim();
+};
