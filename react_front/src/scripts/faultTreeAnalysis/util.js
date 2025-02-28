@@ -301,15 +301,12 @@ export const formatValueWithUnit = (value, originalUnit) => {
  */
 export const handler_dify_think = (content) => {
     if (!content) return content;
-
+    
     return content.replace(
-        /<details\s+style="[^"]*"\s+open>/g,
-        '<think>'
+        /<think>/g,
+        '<details style="color:gray;background-color: #f8f8f8;padding: 8px;border-radius: 4px;" open><summary>Thinking...</summary>'
     ).replace(
-        /<\/details>/g,
-        '</think>'
-    ).replace(
-        /<summary>\s*Thinking\.\.\.\s*<\/summary>/g,
-        ''
+        /<\/think>/g,
+        '</details>'
     ).trim();
 };
