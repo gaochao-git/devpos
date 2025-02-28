@@ -506,6 +506,8 @@ const GeneralAgent = ({ agentType = 'general' }) => {
         timestamp: getStandardTime()
       }]);
       setIsStreaming(false);
+    } finally {
+      document.querySelector('input').focus(); // 在 finally 中聚焦输入框
     }
   };
 
