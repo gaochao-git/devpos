@@ -6,9 +6,10 @@
  * @param {Function} options.setIsStreaming - 设置流状态的函数
  * @param {Function} options.getStandardTime - 获取标准时间的函数
  * @param {Function} options.setTaskId - 设置任务 ID 的函数
+ * @param {Function} options.setConversationId - 设置会话 ID 的函数
  * @returns {Promise<void>}
  */
-export const handleDifyStream = async (response, { setMessages, setIsStreaming, getStandardTime, setTaskId }) => {
+export const handleDifyStream = async (response, { setMessages, setIsStreaming, getStandardTime, setTaskId, setConversationId }) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -49,6 +50,11 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
                     const jsonStr = line.slice(6);
                     const data = JSON.parse(jsonStr);
                     
+                    // 处理会话ID
+                    if (data.conversation_id && setConversationId) {
+                        setConversationId(data.conversation_id);
+                    }
+
                     // 从消息体中获取 task_id
                     if (data.task_id && setTaskId) {
                         console.log('Task ID from message:', data.task_id);

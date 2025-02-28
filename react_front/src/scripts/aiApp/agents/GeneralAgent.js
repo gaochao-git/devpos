@@ -461,11 +461,10 @@ const GeneralAgent = ({ agentType = 'general' }) => {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     
-    // 发送完消息后清除文件列表
-    const fileIds = [...uploadedFileIds];  // 保存当前的文件ID
-    setFiles([]);  // 清空文件列表
-    setFileStatuses({});  // 清空文件状态
-    setUploadedFileIds([]);  // 清空上传文件ID
+    const fileIds = [...uploadedFileIds];
+    setFiles([]);
+    setFileStatuses({});
+    setUploadedFileIds([]);
     
     setIsStreaming(true);
 
@@ -486,7 +485,8 @@ const GeneralAgent = ({ agentType = 'general' }) => {
           query: input,
           files: fileObjects,
           conversationId,
-          abortController: abortControllerRef.current
+          abortController: abortControllerRef.current,
+          agentType
         },
         {
           setMessages,
@@ -495,7 +495,8 @@ const GeneralAgent = ({ agentType = 'general' }) => {
           setTaskId: (taskId) => {
             console.log('Received task ID:', taskId);
             setCurrentTaskId(taskId);
-          }
+          },
+          setConversationId
         }
       );
     } catch (error) {

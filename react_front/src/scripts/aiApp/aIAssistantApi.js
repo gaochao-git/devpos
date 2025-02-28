@@ -59,21 +59,22 @@ const uploadFile = async (file, agentType) => {
  * @param {Function} handlers.setIsStreaming - 设置流状态的函数
  * @param {Function} handlers.getStandardTime - 获取标准时间的函数
  * @param {Function} handlers.setTaskId - 设置任务ID的函数
+ * @param {Function} handlers.setConversationId - 设置会话ID的函数
  * @returns {Promise<void>}
  */
 const sendMessageToAssistant = async (
     { query, files, conversationId, abortController, agentType },
-    { setMessages, setIsStreaming, getStandardTime, setTaskId }
+    { setMessages, setIsStreaming, getStandardTime, setTaskId, setConversationId }
 ) => {
     const { baseUrl, apiKey } = getAgentConfig(agentType);
     try {
         const requestBody = {
-            inputs: {},  // 添加空的 inputs 对象
+            inputs: {},
             query,
             response_mode: 'streaming',
             conversation_id: conversationId,
             user: 'system',
-            files: files  // 文件对象数组
+            files: files
         };
 
         const response = await fetch(`${baseUrl}/v1/chat-messages`, {
@@ -94,7 +95,8 @@ const sendMessageToAssistant = async (
             setMessages, 
             setIsStreaming, 
             getStandardTime,
-            setTaskId  // 传递 setTaskId 函数
+            setTaskId,
+            setConversationId
         });
     } catch (error) {
         console.error('Failed to send message:', error);
