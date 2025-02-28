@@ -245,7 +245,7 @@ export default class DataAnalysisAgent extends Component {
                 display: 'flex',
                 flexDirection: 'column',
                 height: 'calc(100vh - 128px)', 
-                padding: '5px',
+                padding: '0px',
                 background: '#f5f5f5'
             }}>
                 <div style={{
