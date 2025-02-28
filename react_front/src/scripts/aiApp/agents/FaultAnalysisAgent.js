@@ -15,7 +15,7 @@ const Container = styled.div`
 const Content = styled.div`
   flex: 1;
   overflow: auto;
-  padding: 20px;
+  padding: 0px;
 `;
 
 const FaultAnalysisAgent = ({ config }) => {

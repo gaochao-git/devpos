@@ -22,6 +22,7 @@ import HistoryConversationModal from './components/historyConversation';
 import UserInput from './components/UserInput';
 import MessageItem from './components/MessageItem';
 import ContextTags from './components/ContextTags';
+import rcaIcon from '../../images/monitor.gif';  // 根因分析用 monitor.gif
 
 const ChatRca = (props) => {
     // 基础状态
@@ -1129,16 +1130,54 @@ const ChatRca = (props) => {
         }}>
             {/* 顶部工具栏 */}
             <div style={{
-                padding: '4px 0px',
+                padding: '12px 24px',
                 borderBottom: '1px solid #e8e8e8',
                 background: '#fff',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                borderRadius: '0px',
+                borderRadius: '8px 8px 0 0',
                 zIndex: 1000
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                {/* 左侧图标和标题 */}
+                <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '12px' 
+                }}>
+                    <div style={{
+                        width: '36px',
+                        height: '36px',
+                        backgroundColor: '#ffd6e7', // 更改为粉色背景，与左侧导航保持一致
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        <img 
+                            src={rcaIcon} 
+                            alt="RCA Icon" 
+                            style={{
+                                width: '24px',
+                                height: '24px'
+                            }}
+                        />
+                    </div>
+                    <span style={{
+                        fontSize: '16px',
+                        fontWeight: '500',
+                        color: '#333'
+                    }}>
+                        故障分析助手
+                    </span>
+                </div>
+
+                {/* 右侧工具栏 */}
+                <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    gap: '16px' 
+                }}>
                     <Select
                         showSearch
                         style={{ width: 200 }}
@@ -1175,8 +1214,6 @@ const ChatRca = (props) => {
                             <span>{isAutoMode ? "AI自动分析" : "AI辅助分析"}</span>
                         </div>
                     </Tooltip>
-                </div>
-                <div style={{ display: 'flex', gap: '16px' }}>
                     <Tooltip title="新开会话">
                         <Icon 
                             type="plus-circle" 
