@@ -296,7 +296,7 @@ export default class DataAnalysisAgent extends Component {
                             display: 'flex', 
                             flexDirection: 'column',
                             height: '100%',
-                            padding: '20px',
+                            padding: '5px',
                             borderRight: '1px solid #e8e8e8'
                         }}>
                             <Card title="提示词模版" style={{ marginBottom: '20px', flex: '0 0 auto' }}>
@@ -411,7 +411,7 @@ export default class DataAnalysisAgent extends Component {
                             display: 'flex', 
                             flexDirection: 'column',
                             height: '100%',
-                            padding: '20px'
+                            padding: '5px'
                         }}>
                             <div style={{ 
                                 flex: '1 1 auto',
