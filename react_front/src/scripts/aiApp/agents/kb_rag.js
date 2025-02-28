@@ -394,14 +394,16 @@ export default class DataAnalysisAgent extends Component {
                         <div style={{ 
                             flex: 1,
                             height: '100%',
-                            padding: '5px',
+                            margin: '5px 0 0 0',  // 改为 5px
                             display: 'flex',
                             flexDirection: 'column',
-                            background: '#F8FBFF'
+                            background: '#F8FBFF',
+                            borderTopRightRadius: '8px'
                         }}>
                             <div style={{
                                 flex: 1,
-                                overflow: 'auto'
+                                overflow: 'auto',
+                                padding: '0 15px'
                             }}>
                                 {this.state.messages.map((msg, index) => (
                                     <div key={index} style={{
@@ -487,7 +489,8 @@ export default class DataAnalysisAgent extends Component {
             messages: [...prevState.messages, userMessage],
             answer: "",
             searchStatus: [],
-            metadata: null
+            metadata: null,
+            question: ""  // 发送后立即清空输入框
         }));
 
         try {
