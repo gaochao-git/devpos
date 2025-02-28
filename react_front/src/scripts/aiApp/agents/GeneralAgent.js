@@ -727,7 +727,7 @@ const GeneralAgent = ({ agentType = 'general' }) => {
                 onChange={handleFileUpload}
                 style={{ display: 'none' }}
                 multiple
-                accept="image/*,.pdf,.doc,.docx,.txt"
+                accept=".txt,.md,.mdx,.pdf,.html,.htm,.xlsx,.xls,.docx,.csv"
               />
               <UploadButton
                 onClick={() => fileInputRef.current?.click()}
