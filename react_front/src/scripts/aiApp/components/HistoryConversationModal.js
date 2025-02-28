@@ -1,13 +1,64 @@
 import React from 'react';
 import { Modal, Button, Spin } from 'antd';
 import styled from 'styled-components';
+import MarkdownRenderer from './MarkdownRenderer';
 
-const MessageContent = styled.div`
-  padding: 12px;
-  background: ${props => props.isUser ? '#f0f5ff' : '#f6ffed'};
+const MessageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: ${props => props.isUser ? 'flex-end' : 'flex-start'};
+  margin: 4px 0;
+`;
+
+const MessageBubble = styled.div`
+  max-width: 70%;
+  margin: 10px 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  word-break: break-word;
+  background-color: ${props => props.isUser ? '#c1e0c1' : '#ffffff'};
+  
+  .markdown-content {
+    * {
+      color: inherit;
+    }
+
+    pre {
+      margin: 8px 0;
+      border-radius: 6px;
+      background: ${props => props.isUser ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.05)'};
+    }
+
+    code {
+      font-family: monospace;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    ul, ol {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+  }
+`;
+
+const Timestamp = styled.div`
+  font-size: 12px;
+  color: #666;
+  margin: ${props => props.isUser ? '4px 8px 0 0' : '4px 0 0 8px'};
+`;
+
+const ResourceContainer = styled.div`
+  margin-top: 8px;
+  padding: 8px;
+  background: #f5f5f5;
   border-radius: 4px;
-  border: 1px solid ${props => props.isUser ? '#d6e4ff' : '#b7eb8f'};
-  margin-bottom: 8px;
+  font-size: 12px;
+  color: #666;
+  max-width: 70%;
+  align-self: flex-start;
 `;
 
 const HistoryConversationModal = ({
@@ -76,22 +127,40 @@ const HistoryConversationModal = ({
                       </div>
                     ) : (
                       messages?.map((message, index) => (
-                        <MessageContent key={index} isUser={message.role === 'user'}>
-                          <div>{message.query || message.answer}</div>
+                        <div key={index}>
+                          {/* 用户提问 */}
+                          {message.query && (
+                            <MessageContainer isUser={true}>
+                              <MessageBubble isUser={true}>
+                                <div>{message.query}</div>
+                              </MessageBubble>
+                              <Timestamp isUser={true}>
+                                {new Date(message.created_at * 1000).toLocaleString()}
+                              </Timestamp>
+                            </MessageContainer>
+                          )}
+                          {/* 助手回复 */}
+                          {message.answer && (
+                            <MessageContainer isUser={false}>
+                              <MessageBubble isUser={false}>
+                                <div className="markdown-content">
+                                  <MarkdownRenderer content={message.answer} />
+                                </div>
+                              </MessageBubble>
+                              <Timestamp isUser={false}>
+                                {new Date(message.created_at * 1000).toLocaleString()}
+                              </Timestamp>
+                            </MessageContainer>
+                          )}
+                          {/* 相关资源 */}
                           {message.retriever_resources?.map((resource, idx) => (
-                            <div key={idx} style={{ 
-                              marginTop: '8px',
-                              padding: '8px',
-                              background: '#fff',
-                              borderRadius: '4px',
-                              fontSize: '12px'
-                            }}>
+                            <ResourceContainer key={idx}>
                               <div>来源：{resource.dataset_name} - {resource.document_name}</div>
                               <div>相关度：{(resource.score * 100).toFixed(1)}%</div>
                               <div>{resource.content}</div>
-                            </div>
+                            </ResourceContainer>
                           ))}
-                        </MessageContent>
+                        </div>
                       ))
                     )}
                   </div>
