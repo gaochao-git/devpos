@@ -247,7 +247,7 @@ const HeaderRight = styled.div`
 
 // 修改图标样式，使用圆形背景
 const AgentIcon = styled.span`
-  font-size: 24px;  // 调整图标大小
+  font-size: 32px;  // 调整图标大小
   display: flex;
   align-items: center;
   justify-content: center;  // 水平居中
@@ -255,8 +255,8 @@ const AgentIcon = styled.span`
   background-color: ${props => props.color};  // 使用传入的颜色作为背景
   width: 36px;  // 固定宽度
   height: 36px;  // 固定高度
-  border-radius: 50%;  // 使用 50% 实现圆形
-  margin-right: 8px;  // 与文字的间距
+  border-radius: 4px;  // 使用 50% 实现圆形
+  margin-right: 2px;  // 与文字的间距
 `;
 
 const AgentName = styled.span`

@@ -27,7 +27,7 @@ const AgentCard = styled.div`
   padding: 12px;
   margin-bottom: 10px;
   background-color: ${props => props.active ? '#e3f2fd' : '#ffffff'};
-  border-radius: 8px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid #e0e0e0;
@@ -45,13 +45,13 @@ const AgentCard = styled.div`
 const AgentIcon = styled.div`
   width: 32px;
   height: 32px;
-  border-radius: 16px;
+  border-radius: 4px;
   background-color: ${props => props.color};
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 24px;
+  font-size: 36px;
   flex-shrink: 0;
 `;
 
