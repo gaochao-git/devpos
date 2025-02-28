@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import styled from 'styled-components';
+import { handler_dify_think } from '../util';
 
 
 const Pre = styled.pre`
@@ -49,7 +50,9 @@ const CopyButton = styled.button`
 const MarkdownRenderer = ({ content, isStreaming = false }) => {
   if (!content) return null;
 
-  const parts = content.split(/(<details.*?<\/details>)/s);
+  const processedContent = handler_dify_think(content);
+  
+  const parts = processedContent.split(/(<details.*?<\/details>)/s);
   
   return parts.map((part, index) => {
     if (part.startsWith('<details')) {
