@@ -4,7 +4,6 @@ import { Button, Icon, message, Tooltip } from 'antd';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { 
     sendMessageToAssistant, 
-    createNewConversation, 
     uploadFile,
     getHistoryConversations,  // 确保这个名字和 aIAssistantApi.js 中的导出一致
     getHistoryMessageDetail,  // 添加新的API导入

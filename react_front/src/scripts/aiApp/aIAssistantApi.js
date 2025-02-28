@@ -103,68 +103,6 @@ const sendMessageToAssistant = async (
 };
 
 /**
- * 创建新的会话
- * @param {string} agentType - 助手类型
- * @returns {Promise<string>} 返回会话ID
- */
-const createNewConversation = async (agentType) => {
-    const { baseUrl, apiKey } = getAgentConfig(agentType);
-    try {
-        const response = await fetch(`${baseUrl}/v1/chat-messages`, {
-            method: 'POST',
-            headers: {
-                'Authorization': apiKey,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                inputs: {},
-                query: "你好",
-                response_mode: 'streaming',
-                user: 'system'
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        // 处理流式响应
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let conversationId = null;
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-
-            for (const line of lines) {
-                if (line.trim() === '' || !line.startsWith('data: ')) continue;
-                
-                const jsonStr = line.replace('data: ', '');
-                const data = JSON.parse(jsonStr);
-
-                if (data.conversation_id) {
-                    conversationId = data.conversation_id;
-                    return conversationId;
-                }
-            }
-        }
-
-        if (!conversationId) {
-            throw new Error('No conversation ID received');
-        }
-
-        return conversationId;
-    } catch (error) {
-        console.error('Failed to create new conversation:', error);
-        throw error;
-    }
-};
-
-/**
  * 重命名会话
  * @param {string} conversationId - 会话ID
  * @param {string} name - 新的会话名称
@@ -301,7 +239,6 @@ const stopMessageGeneration = async (taskId, agentType) => {
 export {
     uploadFile,
     sendMessageToAssistant,
-    createNewConversation,
     getHistoryConversations,
     getConversationMessages,
     getHistoryMessageDetail,
