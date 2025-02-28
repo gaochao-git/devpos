@@ -221,11 +221,6 @@ export class BaseChatBody extends React.Component {
 
 // 基础Footer组件
 export class BaseChatFooter extends React.Component {
-    state = {
-        isSearchHovered: false,
-        isSearchActive: false
-    };
-
     render() {
         const { 
             value, 
@@ -238,14 +233,7 @@ export class BaseChatFooter extends React.Component {
             acceptedFileTypes = ".txt,.md,.pdf,.doc,.docx,.xlsx,.xls"
         } = this.props;
 
-        const { isSearchHovered, isSearchActive } = this.state;
         const hasContent = value && value.trim().length > 0;
-
-        const getSearchColor = () => {
-            if (isSearchActive) return '#1890ff';
-            if (isSearchHovered) return '#595959';
-            return '#00000073';
-        };
 
         return (
             <div style={{ 
@@ -285,42 +273,18 @@ export class BaseChatFooter extends React.Component {
                     <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        gap: '8px',
-                        alignItems: 'center'
+                        gap: '8px'
                     }}>
-                        <div style={{
-                            display: 'flex',
-                            gap: '8px'
-                        }}>
-                            <Button 
-                                style={{ 
-                                    border: '1px solid #e8e8e8',
-                                    background: isSearchHovered ? '#f5f5f5' : '#fff',
-                                    borderRadius: '16px',
-                                    height: '32px',
-                                    padding: '0 12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    color: getSearchColor(),
-                                    transition: 'all 0.3s'
-                                }}
-                                onClick={() => {
-                                    this.setState({ isSearchActive: !isSearchActive });
-                                    message.info('功能开发中...');
-                                }}
-                                onMouseEnter={() => this.setState({ isSearchHovered: true })}
-                                onMouseLeave={() => this.setState({ isSearchHovered: false })}
-                            >
-                                <Icon 
-                                    type="global" 
-                                    style={{
-                                        color: getSearchColor()
-                                    }}
-                                />
-                                <span>联网搜索</span>
-                            </Button>
-                        </div>
+                        <Button 
+                            type="text"
+                            icon="search"
+                            onClick={() => message.info('功能开发中...')}
+                            style={{ 
+                                border: 'none', 
+                                padding: '0 8px',
+                                fontSize: '18px'
+                            }}
+                        />
                         <div style={{
                             display: 'flex',
                             gap: '8px'
@@ -343,7 +307,7 @@ export class BaseChatFooter extends React.Component {
                                 />
                             </Upload>
                             <Icon 
-                                type={isStreaming ? "stop" : "arrow-up"}
+                                type={isStreaming ? "pause" : "arrow-up"}
                                 onClick={() => {
                                     if (isStreaming && onInterrupt) {
                                         onInterrupt();
@@ -353,11 +317,16 @@ export class BaseChatFooter extends React.Component {
                                 }}
                                 style={{ 
                                     fontSize: '18px',
-                                    cursor: (!isStreaming && !hasContent) || (hasContent && isStreaming) ? 'not-allowed' : 'pointer',
+                                    cursor: isStreaming ? 'pointer' : (hasContent ? 'pointer' : 'not-allowed'),
                                     color: hasContent || isStreaming ? '#1890ff' : '#00000040',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    height: '32px'
+                                    justifyContent: 'center',
+                                    width: '32px',
+                                    height: '32px',
+                                    background: hasContent || isStreaming ? '#bae0ff' : '#f5f5f5',
+                                    borderRadius: '50%',
+                                    transition: 'all 0.3s'
                                 }}
                             />
                         </div>
