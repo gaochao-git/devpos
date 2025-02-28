@@ -275,16 +275,32 @@ export class BaseChatFooter extends React.Component {
                         justifyContent: 'space-between',
                         gap: '8px'
                     }}>
-                        <Button 
-                            type="text"
-                            icon="search"
-                            onClick={() => message.info('功能开发中...')}
-                            style={{ 
-                                border: 'none', 
-                                padding: '0 8px',
-                                fontSize: '18px'
+                        <div 
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '8px',
+                                backgroundColor: '#f5f5f5',
+                                padding: '4px 12px',
+                                borderRadius: '16px',
+                                color: '#666',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
                             }}
-                        />
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e8e8e8'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                            onClick={() => message.info('功能开发中...')}
+                        >
+                            <Icon 
+                                type="global"
+                                style={{ 
+                                    fontSize: '14px',
+                                    color: '#666'
+                                }}
+                            />
+                            联网搜索
+                        </div>
                         <div style={{
                             display: 'flex',
                             gap: '8px'
