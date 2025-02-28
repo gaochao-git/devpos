@@ -69,6 +69,7 @@ export default class DataAnalysisAgent extends Component {
             isHistoryLoading: false // 添加历史加载状态
         };
         this.messagesEndRef = React.createRef();
+        this.abortController = null;
     }
 
     // 添加自动滚动方法
@@ -199,6 +200,9 @@ export default class DataAnalysisAgent extends Component {
     handleSend = async (content) => {
         if (!content?.trim()) return;
 
+        // 创建新的 abortController
+        this.abortController = new AbortController();
+
         // 先添加用户消息
         const userMessage = {
             role: 'user',
@@ -207,7 +211,8 @@ export default class DataAnalysisAgent extends Component {
         };
 
         this.setState(prevState => ({
-            messages: [...prevState.messages, userMessage]
+            messages: [...prevState.messages, userMessage],
+            streaming: true  // 设置 streaming 状态
         }));
 
         try {
@@ -229,16 +234,12 @@ export default class DataAnalysisAgent extends Component {
                 {
                     setMessages: (messages) => {
                         if (typeof messages === 'function') {
-                            // 如果是函数，执行它来获取新的消息数组
                             this.setState(prevState => {
                                 const newMessages = messages(prevState.messages);
                                 return { messages: newMessages };
                             });
                         } else if (Array.isArray(messages)) {
-                            // 如果是数组，直接设置
                             this.setState({ messages });
-                        } else {
-                            console.error('Invalid messages format:', messages);
                         }
                     },
                     setIsStreaming: (streaming) => this.setState({ streaming }),
@@ -250,6 +251,9 @@ export default class DataAnalysisAgent extends Component {
         } catch (error) {
             console.error('Failed to send message:', error);
             message.error('发送消息失败');
+        } finally {
+            this.setState({ streaming: false });
+            this.abortController = null;
         }
     };
 
@@ -306,7 +310,7 @@ export default class DataAnalysisAgent extends Component {
 
     render() {
         const { messages, streaming, ragConfig, isHistoryLoading } = this.state;
-        const allSelected = (ragConfig.db_types || []).length === DB_OPTIONS.length;  // 添加空数组作为默认值
+        const allSelected = (ragConfig.db_types || []).length === DB_OPTIONS.length;
         
         return (
             <div style={{ 
@@ -515,11 +519,11 @@ export default class DataAnalysisAgent extends Component {
                                     const content = this.state.question.trim();
                                     if (content) {
                                         this.handleSend(content);
-                                        this.setState({ question: '' });  // 发送后清空输入框
+                                        this.setState({ question: '' });
                                     }
                                 }}
-                                disabled={this.state.streaming}
-                                isStreaming={this.state.streaming}
+                                disabled={streaming}
+                                isStreaming={streaming}
                                 onInterrupt={this.handleInterrupt}
                             />
                         </div>
