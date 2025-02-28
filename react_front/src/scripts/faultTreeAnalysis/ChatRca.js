@@ -88,7 +88,7 @@ const ChatRca = (props) => {
     useEffect(() => {
         const fetchClusters = async () => {
             try {
-                const response = await MyAxios.get('/db_resource/v1/get_mysql_cluster/');
+                const response = await MyAxios.post('/fault_tree/v1/get_cluster/');
                 
                 if (response.data.status === "ok") {
                     setClusters(response.data.data);
@@ -1143,7 +1143,6 @@ const ChatRca = (props) => {
                         style={{ width: 200 }}
                         placeholder="选择数据库集群"
                         value={clusterName}
-                        optionFilterProp="children"
                         onChange={(value) => {
                             if (window.globalStore) {
                                 window.globalStore.setCurrentCluster(value);
@@ -1151,7 +1150,7 @@ const ChatRca = (props) => {
                             setClusterName(value);
                         }}
                         filterOption={(input, option) =>
-                            option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                            option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
                         }
                     >
                         {clusters?.map(cluster => (

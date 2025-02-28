@@ -859,3 +859,13 @@ class GetClusterServers(BaseView):
             "message": "获取集群服务器成功"
         })
         
+class GetCluster(BaseView):
+    def post(self, request):
+        sql = "SELECT cluster_name FROM mysql_cluster"
+        results = db_helper.find_all(sql)
+        data = results.get('data')
+        return self.my_response({
+            "status": "ok",
+            "data": data,
+            "message": "获取集群成功"
+        })

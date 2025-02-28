@@ -20,6 +20,7 @@ from .views import (
     GetESIndexFields,
     GetESMetrics,
     GetClusterServers,
+    GetCluster
 )
 
 urlpatterns = [
@@ -46,5 +47,6 @@ urlpatterns = [
     path('v1/get_local_time/', GetLocalTime.as_view()),         # 获取服务器本地时间
     path('v1/get_es_index_fields/', GetESIndexFields.as_view()),
     path('v1/get_es_metrics/', GetESMetrics.as_view()),
+    path('v1/get_cluster/', GetCluster.as_view()),
     path('v1/get_cluster_servers/', GetClusterServers.as_view()),
 ]
