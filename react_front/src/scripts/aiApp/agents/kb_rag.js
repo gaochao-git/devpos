@@ -239,221 +239,235 @@ export default class DataAnalysisAgent extends Component {
         const allSelected = ragConfig.db_types.length === DB_OPTIONS.length;
         
         return (
-            <div style={{ display: 'flex', height: 'calc(100vh - 128px)', padding: '20px' }}>
-                {/* 左侧面板 */}
-                <div style={{ 
-                    width: '30%', 
-                    marginRight: '20px', 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    height: '100%'
+            <div style={{ 
+                display: 'flex', 
+                height: 'calc(100vh - 128px)', 
+                padding: '20px',
+                background: '#f5f5f5'  // 添加背景色
+            }}>
+                {/* 整体内容区域添加白色背景和边框 */}
+                <div style={{
+                    flex: 1,
+                    background: '#fff',
+                    borderRadius: '8px',
+                    border: '1px solid #e8e8e8',
+                    display: 'flex'
                 }}>
-                    {/* 提示词模版 Card */}
-                    <Card title="提示词模版" style={{ marginBottom: '20px', flex: '0 0 auto' }}>
-                        <div style={{ marginBottom: '10px' }}>
-                            <Select
-                                style={{ width: '100%' }}
-                                value={this.state.selectedTemplate}
-                                onChange={this.handleTemplateChange}
-                                placeholder="选择提示词模版"
-                            >
-                                {Object.entries(promptTemplate).map(([key, value]) => (
-                                    <Option key={key} value={key}>
-                                        {value.label}
-                                    </Option>
-                                ))}
-                            </Select>
-                        </div>
-                        <TextArea
-                            rows={6}
-                            value={this.state.promptText}
-                            onChange={e => this.setState({ promptText: e.target.value })}
-                            placeholder="提示词内容..."
-                        />
-                    </Card>
-
-                    {/* RAG配置 Card */}
-                    <Card 
-                        title={
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <span>RAG配置</span>
-                                <Checkbox 
-                                    checked={ragConfig.enabled}
-                                    onChange={this.handleRagEnableChange}
+                    {/* 左侧面板 */}
+                    <div style={{ 
+                        width: '30%', 
+                        marginRight: '5px',  // 改为 5px
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        height: '100%',
+                        padding: '5px',
+                        borderRight: '1px solid #e8e8e8'
+                    }}>
+                        {/* 提示词模版 Card */}
+                        <Card title="提示词模版" style={{ marginBottom: '20px', flex: '0 0 auto' }}>
+                            <div style={{ marginBottom: '10px' }}>
+                                <Select
+                                    style={{ width: '100%' }}
+                                    value={this.state.selectedTemplate}
+                                    onChange={this.handleTemplateChange}
+                                    placeholder="选择提示词模版"
                                 >
-                                    启用RAG
-                                </Checkbox>
+                                    {Object.entries(promptTemplate).map(([key, value]) => (
+                                        <Option key={key} value={key}>
+                                            {value.label}
+                                        </Option>
+                                    ))}
+                                </Select>
                             </div>
-                        } 
-                        style={{ flex: '1 1 auto', overflow: 'auto' }}
-                    >
-                        {ragConfig.enabled ? (
-                            <>
-                                <div style={{ marginBottom: '15px' }}>
-                                    <div style={{ 
-                                        marginBottom: '5px',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center'
-                                    }}>
-                                        <span>选择数据库</span>
-                                        <Checkbox 
-                                            checked={allSelected}
-                                            onChange={this.handleCheckboxChange}
-                                        >
-                                            全选
-                                        </Checkbox>
-                                    </div>
-                                    <Select
-                                        mode="multiple"
-                                        style={{ width: '100%' }}
-                                        placeholder="请选择数据库（可多选）"
-                                        value={ragConfig.db_types}
-                                        onChange={value => this.updateRagConfig({ db_types: value })}
-                                        allowClear
+                            <TextArea
+                                rows={6}
+                                value={this.state.promptText}
+                                onChange={e => this.setState({ promptText: e.target.value })}
+                                placeholder="提示词内容..."
+                            />
+                        </Card>
+
+                        {/* RAG配置 Card */}
+                        <Card 
+                            title={
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span>RAG配置</span>
+                                    <Checkbox 
+                                        checked={ragConfig.enabled}
+                                        onChange={this.handleRagEnableChange}
                                     >
-                                        {DB_OPTIONS.map(db => (
-                                            <Option key={db.value} value={db.value}>{db.label}</Option>
-                                        ))}
-                                    </Select>
+                                        启用RAG
+                                    </Checkbox>
                                 </div>
+                            } 
+                            style={{ flex: '1 1 auto', overflow: 'auto' }}
+                        >
+                            {ragConfig.enabled ? (
+                                <>
+                                    <div style={{ marginBottom: '15px' }}>
+                                        <div style={{ 
+                                            marginBottom: '5px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
+                                        }}>
+                                            <span>选择数据库</span>
+                                            <Checkbox 
+                                                checked={allSelected}
+                                                onChange={this.handleCheckboxChange}
+                                            >
+                                                全选
+                                            </Checkbox>
+                                        </div>
+                                        <Select
+                                            mode="multiple"
+                                            style={{ width: '100%' }}
+                                            placeholder="请选择数据库（可多选）"
+                                            value={ragConfig.db_types}
+                                            onChange={value => this.updateRagConfig({ db_types: value })}
+                                            allowClear
+                                        >
+                                            {DB_OPTIONS.map(db => (
+                                                <Option key={db.value} value={db.value}>{db.label}</Option>
+                                            ))}
+                                        </Select>
+                                    </div>
 
-                                <div style={{ marginBottom: '15px' }}>
-                                    <div style={{ marginBottom: '5px' }}>矢量搜索</div>
-                                    <Input
-                                        placeholder="输入自然语言描述，用于语义相似度搜索"
-                                        value={ragConfig.vectorQuery}
-                                        onChange={(event) => {
-                                            if (event && event.target) {
-                                                this.updateRagConfig({ 
-                                                    vectorQuery: event.target.value 
-                                                });
-                                            }
-                                        }}
-                                    />
+                                    <div style={{ marginBottom: '15px' }}>
+                                        <div style={{ marginBottom: '5px' }}>矢量搜索</div>
+                                        <Input
+                                            placeholder="输入自然语言描述，用于语义相似度搜索"
+                                            value={ragConfig.vectorQuery}
+                                            onChange={(event) => {
+                                                if (event && event.target) {
+                                                    this.updateRagConfig({ 
+                                                        vectorQuery: event.target.value 
+                                                    });
+                                                }
+                                            }}
+                                        />
+                                    </div>
+
+                                    <div style={{ marginBottom: '15px' }}>
+                                        <div style={{ marginBottom: '5px' }}>标量搜索</div>
+                                        <Input
+                                            placeholder="输入关键词，用于精确/模糊匹配搜索"
+                                            value={ragConfig.scalarQuery}
+                                            onChange={(event) => {
+                                                if (event && event.target) {
+                                                    this.updateRagConfig({ 
+                                                        scalarQuery: event.target.value 
+                                                    });
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
+                                    请启用 RAG 以配置搜索选项
                                 </div>
+                            )}
+                        </Card>
+                    </div>
 
-                                <div style={{ marginBottom: '15px' }}>
-                                    <div style={{ marginBottom: '5px' }}>标量搜索</div>
-                                    <Input
-                                        placeholder="输入关键词，用于精确/模糊匹配搜索"
-                                        value={ragConfig.scalarQuery}
-                                        onChange={(event) => {
-                                            if (event && event.target) {
-                                                this.updateRagConfig({ 
-                                                    scalarQuery: event.target.value 
-                                                });
-                                            }
-                                        }}
-                                    />
-                                </div>
-                            </>
-                        ) : (
-                            <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
-                                请启用 RAG 以配置搜索选项
-                            </div>
-                        )}
-                    </Card>
-                </div>
-
-                {/* 右侧面板 */}
-                <div style={{ 
-                    width: '70%', 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    height: '100%'
-                }}>
-                    {/* 对话历史区域 */}
-                    <div 
-                        style={{ 
+                    {/* 右侧面板 */}
+                    <div style={{ 
+                        width: '70%', 
+                        marginLeft: '0px',  // 添加左边距 5px
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        height: '100%',
+                        padding: '5px'
+                    }}>
+                        {/* 对话历史区域 */}
+                        <div style={{ 
                             flex: '1 1 auto',
                             marginBottom: '20px', 
                             border: '1px solid #d9d9d9',
                             borderRadius: '4px',
-                            backgroundColor: '#fff',
+                            backgroundColor: '#f8fbff',
                             overflow: 'auto',
-                            padding: '20px'
-                        }}
-                        onMouseEnter={this.handleMouseEnter}
-                        onMouseLeave={this.handleMouseLeave}
-                    >
-                        {this.state.messages.map((msg, index) => (
-                            <div key={index} style={{
-                                marginBottom: '20px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: msg.type === 'user' ? 'flex-end' : 'flex-start'
-                            }}>
-                                {/* 时间戳 */}
-                                <div style={{
-                                    fontSize: '12px',
-                                    color: '#999',
-                                    marginBottom: '4px'
+                            padding: '5px'
+                        }}>
+                            {this.state.messages.map((msg, index) => (
+                                <div key={index} style={{
+                                    marginBottom: '20px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: msg.type === 'user' ? 'flex-end' : 'flex-start'
                                 }}>
-                                    {msg.time}
+                                    {/* 时间戳 */}
+                                    <div style={{
+                                        fontSize: '12px',
+                                        color: '#999',
+                                        marginBottom: '4px'
+                                    }}>
+                                        {msg.time}
+                                    </div>
+                                    
+                                    {/* 消息内容 */}
+                                    <div style={{
+                                        maxWidth: '80%',
+                                        padding: '12px 16px',
+                                        borderRadius: '8px',
+                                        backgroundColor: msg.type === 'user' ? '#73f0be' : '#f9f9f9',
+                                        color: '#000',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                                        border: '1px solid #e0e0e0'
+                                    }}>
+                                        {msg.type === 'user' ? (
+                                            <div>{msg.content}</div>
+                                        ) : (
+                                            <div>
+                                                {/* 系统消息（搜索状态） */}
+                                                {msg.searchStatus && msg.searchStatus.map((status, idx) => (
+                                                    <div key={idx} style={{ 
+                                                        marginBottom: '8px', 
+                                                        color: '#666',
+                                                        fontSize: '12px',
+                                                        fontStyle: 'italic'
+                                                    }}>
+                                                        {status}
+                                                    </div>
+                                                ))}
+                                                {/* AI 回答内容 */}
+                                                <ReactMarkdown 
+                                                    remarkPlugins={[remarkGfm]}
+                                                    components={markdownComponents}
+                                                    children={msg.content}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                
-                                {/* 消息内容 */}
-                                <div style={{
-                                    maxWidth: '80%',
-                                    padding: '12px 16px',
-                                    borderRadius: '8px',
-                                    backgroundColor: msg.type === 'user' ? '#73f0be' : '#f9f9f9',
-                                    color: '#000',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                    border: '1px solid #e0e0e0'
-                                }}>
-                                    {msg.type === 'user' ? (
-                                        <div>{msg.content}</div>
-                                    ) : (
-                                        <div>
-                                            {/* 系统消息（搜索状态） */}
-                                            {msg.searchStatus && msg.searchStatus.map((status, idx) => (
-                                                <div key={idx} style={{ 
-                                                    marginBottom: '8px', 
-                                                    color: '#666',
-                                                    fontSize: '12px',
-                                                    fontStyle: 'italic'
-                                                }}>
-                                                    {status}
-                                                </div>
-                                            ))}
-                                            {/* AI 回答内容 */}
-                                            <ReactMarkdown 
-                                                remarkPlugins={[remarkGfm]}
-                                                components={markdownComponents}
-                                                children={msg.content}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                        <div ref={this.messagesEndRef} /> {/* 添加用于滚动的空div */}
-                    </div>
+                            ))}
+                            <div ref={this.messagesEndRef} /> {/* 添加用于滚动的空div */}
+                        </div>
 
-                    {/* 输入区域 */}
-                    <div style={{ flex: '0 0 auto' }}>
-                        <Input.Search
-                            placeholder="请输入您的问题..."
-                            onSearch={(value) => {
-                                this.setState({ 
-                                    question: value  // 在发送时更新问题状态
-                                }, () => {
-                                    this.handleStream();  // 状态更新后调用处理方法
-                                });
-                            }}
-                            enterButton={
-                                <Button 
-                                    type="primary" 
-                                    loading={this.state.streaming}
-                                >
-                                    <Icon type="search" />
-                                    提交问题
-                                </Button>
-                            }
-                            disabled={this.state.streaming}
-                        />
+                        {/* 输入区域 */}
+                        <div style={{ flex: '0 0 auto' }}>
+                            <Input.Search
+                                placeholder="请输入您的问题..."
+                                onSearch={(value) => {
+                                    this.setState({ 
+                                        question: value  // 在发送时更新问题状态
+                                    }, () => {
+                                        this.handleStream();  // 状态更新后调用处理方法
+                                    });
+                                }}
+                                enterButton={
+                                    <Button 
+                                        type="primary" 
+                                        loading={this.state.streaming}
+                                    >
+                                        <Icon type="search" />
+                                        提交问题
+                                    </Button>
+                                }
+                                disabled={this.state.streaming}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
