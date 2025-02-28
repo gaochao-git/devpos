@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
-import { BaseChatHeader } from '../components/BaseLayout';
+import { BaseChatHeader, BaseChatFooter } from '../components/BaseLayout';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 
@@ -397,7 +397,7 @@ export default class DataAnalysisAgent extends Component {
                             padding: '5px',
                             display: 'flex',
                             flexDirection: 'column',
-                            background: '#F8FBFF'  // 更新为浅蓝色背景
+                            background: '#F8FBFF'
                         }}>
                             <div style={{
                                 flex: 1,
@@ -453,29 +453,15 @@ export default class DataAnalysisAgent extends Component {
                                 ))}
                                 <div ref={this.messagesEndRef} />
                             </div>
-
-                            <div style={{ flex: '0 0 auto' }}>
-                                <Input.Search
-                                    placeholder="请输入您的问题..."
-                                    onSearch={(value) => {
-                                        this.setState({ 
-                                            question: value  // 在发送时更新问题状态
-                                        }, () => {
-                                            this.handleStream();  // 状态更新后调用处理方法
-                                        });
-                                    }}
-                                    enterButton={
-                                        <Button 
-                                            type="primary" 
-                                            loading={this.state.streaming}
-                                        >
-                                            <Icon type="search" />
-                                            提交问题
-                                        </Button>
-                                    }
-                                    disabled={this.state.streaming}
-                                />
-                            </div>
+                            <BaseChatFooter 
+                                value={this.state.question}
+                                onChange={(e) => this.setState({ question: e.target.value })}
+                                onSend={() => this.handleStream()}
+                                disabled={this.state.streaming}
+                                isStreaming={this.state.streaming}
+                                onInterrupt={this.handleInterrupt}
+                                onFileSelect={this.handleFileSelect}
+                            />
                         </div>
                     </div>
                 </div>

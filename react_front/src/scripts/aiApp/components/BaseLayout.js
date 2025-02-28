@@ -222,127 +222,95 @@ export class BaseChatBody extends React.Component {
 // 基础Footer组件
 export class BaseChatFooter extends React.Component {
     static defaultProps = {
-        placeholder: "请输入您的问题...",
-        maxLength: 2000,
-        rows: 3
+        placeholder: "请输入您的问题..."
     };
 
-    constructor(props) {
-        super(props);
-        this.fileInputRef = React.createRef();
-    }
-
-    handleFileClick = () => {
-        if (this.fileInputRef.current) {
-            this.fileInputRef.current.click();
-        }
-    };
-
-    renderTextArea() {
+    render() {
         const { 
             value, 
             onChange, 
-            placeholder,
-            maxLength,
-            rows,
-            disabled
-        } = this.props;
-
-        return (
-            <TextArea
-                value={value}
-                onChange={onChange}
-                placeholder={placeholder}
-                maxLength={maxLength}
-                rows={rows}
-                disabled={disabled}
-                style={{ resize: 'none' }}
-            />
-        );
-    }
-
-    renderFileUpload() {
-        const { 
-            onFileSelect,
-            acceptedFileTypes = ".txt,.md,.pdf,.doc,.docx,.xlsx,.xls",
-            disabled
-        } = this.props;
-
-        return (
-            <React.Fragment>
-                <input
-                    type="file"
-                    ref={this.fileInputRef}
-                    style={{ display: 'none' }}
-                    onChange={onFileSelect}
-                    accept={acceptedFileTypes}
-                    multiple
-                />
-                <Tooltip title="上传文件">
-                    <Button
-                        icon="upload"
-                        onClick={this.handleFileClick}
-                        disabled={disabled}
-                    />
-                </Tooltip>
-            </React.Fragment>
-        );
-    }
-
-    renderActions() {
-        const { 
             onSend,
             onInterrupt,
+            onFileSelect,
             isStreaming,
-            disabled
+            disabled,
+            placeholder,
+            acceptedFileTypes = ".txt,.md,.pdf,.doc,.docx,.xlsx,.xls"
         } = this.props;
 
-        return (
-            <>
-                {isStreaming ? (
-                    <Tooltip title="中断生成">
-                        <Button
-                            type="primary"
-                            danger
-                            icon="stop"
-                            onClick={onInterrupt}
-                        />
-                    </Tooltip>
-                ) : (
-                    <Tooltip title="发送消息">
-                        <Button
-                            type="primary"
-                            icon="arrow-right"
-                            onClick={onSend}
-                            disabled={disabled}
-                        />
-                    </Tooltip>
-                )}
-            </>
-        );
-    }
+        const hasContent = value && value.trim().length > 0;
 
-    render() {
         return (
             <div style={{ 
                 padding: '20px',
-                borderTop: '1px solid #e8e8e8',
                 background: '#fff'
             }}>
-                <div style={{
+                <div style={{ 
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px'
+                    gap: '8px',
+                    border: '1px solid #d9d9d9',
+                    borderRadius: '8px',
+                    padding: '4px 11px'
                 }}>
-                    {this.renderTextArea()}
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                    }}>
-                        {this.renderFileUpload()}
-                        {this.renderActions()}
-                    </div>
+                    <TextArea
+                        value={value}
+                        onChange={onChange}
+                        placeholder={placeholder}
+                        disabled={disabled}
+                        style={{ 
+                            border: 'none',
+                            boxShadow: 'none',
+                            padding: '0',
+                            resize: 'none'
+                        }}
+                        autoSize={{ minRows: 1, maxRows: 3 }}
+                        onPressEnter={(e) => {
+                            if (!e.shiftKey && hasContent && !disabled) {
+                                e.preventDefault();
+                                if (isStreaming && onInterrupt) {
+                                    onInterrupt();
+                                } else if (onSend) {
+                                    onSend();
+                                }
+                            }
+                        }}
+                    />
+                    <Upload
+                        beforeUpload={() => false}
+                        onChange={onFileSelect}
+                        accept={acceptedFileTypes}
+                        multiple
+                        showUploadList={false}
+                    >
+                        <Button 
+                            type="text"
+                            icon="file-add"
+                            disabled={disabled}
+                            style={{ 
+                                border: 'none', 
+                                padding: '0 8px',
+                                fontSize: '18px'
+                            }}
+                        />
+                    </Upload>
+                    <Icon 
+                        type={isStreaming ? "stop" : "arrow-up"}
+                        onClick={() => {
+                            if (isStreaming && onInterrupt) {
+                                onInterrupt();
+                            } else if (hasContent && onSend) {
+                                onSend();
+                            }
+                        }}
+                        style={{ 
+                            fontSize: '18px',
+                            cursor: disabled || (!isStreaming && !hasContent) ? 'not-allowed' : 'pointer',
+                            color: hasContent || isStreaming ? '#1890ff' : '#00000040',
+                            display: 'flex',
+                            alignItems: 'center',
+                            height: '32px'
+                        }}
+                    />
                 </div>
             </div>
         );
