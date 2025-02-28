@@ -355,28 +355,12 @@ const GeneralAgent = ({ agentType = 'general' }) => {
   };
 
   useEffect(() => {
-    // 初始化会话
-    const initConversation = async () => {
-      try {
-        const newConversationId = await createNewConversation();
-        setConversationId(newConversationId);
-        // 添加系统欢迎消息
-        setMessages([{
-          content: "你好！我是通用助手，请问有什么我可以帮你的？",
-          isUser: false,
-          timestamp: getStandardTime()
-        }]);
-      } catch (error) {
-        console.error('初始化会话失败:', error);
-        setMessages([{
-          content: "初始化会话失败，请刷新页面重试。",
-          isError: true,
-          timestamp: getStandardTime()
-        }]);
-      }
-    };
-
-    initConversation();
+    // 只添加欢迎消息
+    setMessages([{
+      content: "你好！我是通用助手，请问有什么我可以帮你的？",
+      isUser: false,
+      timestamp: getStandardTime()
+    }]);
 
     return () => {
       if (abortControllerRef.current) {
