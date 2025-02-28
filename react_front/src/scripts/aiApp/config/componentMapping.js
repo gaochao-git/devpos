@@ -2,6 +2,8 @@ import GeneralAgent from '../agents/GeneralAgent';
 import CodeAgent from '../agents/CodeAgent';
 import DataAnalysisAgent from '../agents/kb_rag';
 import ChatRca from '../agents/FaultAnalysisAgent';
+import React from 'react';
+import { Icon } from 'antd';
 
 // 智能体类型到组件的映射
 export const agentComponentMap = {
@@ -9,7 +11,7 @@ export const agentComponentMap = {
         component: GeneralAgent,
         name: '通用助手',
         description: '可以回答各种常见问题',
-        icon: '🤖',
+        icon: <Icon type="trophy" theme="twoTone" />,
         color: '#4CAF50',
         systemPrompt: '你是一个通用AI助手，可以回答各种日常问题。',
         baseUrl: 'http://127.0.0.1',
@@ -19,7 +21,7 @@ export const agentComponentMap = {
         component: ChatRca,
         name: '根因分析助手',
         description: '协助进行故障根因分析',
-        icon: '🔍',
+        icon: <Icon type="dashboard" theme="twoTone" />,
         color: '#E75B77',
         systemPrompt: '你是一个专业的故障分析专家，擅长进行根因分析。',
         baseUrl: 'http://127.0.0.1:5001',
@@ -29,7 +31,7 @@ export const agentComponentMap = {
         component: DataAnalysisAgent,
         name: '国产数据库选型助手',
         description: '帮助进行国产数据库选型。',
-        icon: '🗄️',
+        icon: <Icon type="database" theme="twoTone" />,
         color: '#9C27B0',
         systemPrompt: '你是一个国产数据库选型专家，可以帮助进行国产数据库选型。',
         baseUrl: 'http://127.0.0.1:5002',
@@ -39,7 +41,7 @@ export const agentComponentMap = {
         component: CodeAgent,
         name: 'SQL助手',
         description: '专注于SQL相关问题',
-        icon: '💻',
+        icon: <Icon type="code" theme="twoTone" />,
         color: '#2196F3',
         systemPrompt: '你是一个专业的SQL助手，专注于提供SQL相关帮助和建议。',
         baseUrl: 'http://127.0.0.1:5003',
