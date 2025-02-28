@@ -19,7 +19,7 @@ const Sidebar = styled.div`
 
 const MainContent = styled.div`
   flex: 1;
-  padding: 20px;
+  padding: 10px;
   overflow-y: auto;
 `;
 
