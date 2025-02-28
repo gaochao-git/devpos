@@ -104,7 +104,7 @@ const DB_OPTIONS = [
     { value: 'kadb', label: 'KADB' }
 ];
 
-export default class KbRag extends Component {
+export default class DataAnalysisAgent extends Component {
     constructor(props) {
         super(props);
         this.state = {

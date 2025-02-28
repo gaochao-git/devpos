@@ -1,7 +1,6 @@
 import GeneralAgent from '../agents/GeneralAgent';
 import CodeAgent from '../agents/CodeAgent';
-import DataAnalysisAgent from '../agents/DataAnalysisAgent';
-import CreativeAgent from '../agents/CreativeAgent';
+import DataAnalysisAgent from '../agents/kb_rag';
 import ChatRca from '../agents/FaultAnalysisAgent';
 
 // 智能体类型到组件的映射
@@ -45,17 +44,7 @@ export const agentComponentMap = {
         systemPrompt: '你是一个专业的SQL助手，专注于提供SQL相关帮助和建议。',
         baseUrl: 'http://127.0.0.1:5003',
         apiKey: 'Bearer app-sql-xxx',
-    },
-    'creative': {
-        component: CreativeAgent,
-        name: '创意助手',
-        description: '帮助激发创意和头脑风暴',
-        icon: '💡',
-        color: '#FF9800',
-        systemPrompt: '你是一个创意助手，善于头脑风暴和提供创新想法。',
-        baseUrl: 'http://127.0.0.1:5004',
-        apiKey: 'Bearer app-creative-xxx',
-    },
+    }
 };
 
 // 获取所有智能体配置

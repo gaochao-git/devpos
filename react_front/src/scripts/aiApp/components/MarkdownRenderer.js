@@ -3,34 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import styled from 'styled-components';
-import ThinkBlock from '../../faultTreeAnalysis/components/ThinkBlock';
 
-// 添加新的样式组件
-const ThinkingBlock = styled.div`
-  margin: 10px 0;
-  padding: 8px;
-  background-color: #f8f8f8;
-  border-radius: 4px;
-`;
-
-const ThinkingHeader = styled.div`
-  cursor: pointer;
-  padding: 4px;
-  color: gray;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  
-  &:before {
-    content: '▼';
-    font-size: 12px;
-  }
-`;
-
-const ThinkingContent = styled.div`
-  margin-top: 8px;
-  padding: 8px;
-`;
 
 const Pre = styled.pre`
   position: relative;
