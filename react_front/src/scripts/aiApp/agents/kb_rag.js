@@ -407,7 +407,6 @@ export default class DataAnalysisAgent extends Component {
 
                         <div style={{ 
                             width: '70%', 
-                            marginLeft: '5px',
                             display: 'flex', 
                             flexDirection: 'column',
                             height: '100%',
