@@ -196,7 +196,10 @@ export default class DataAnalysisAgent extends Component {
     };
 
     handleFilesChange = (files, uploadedFileIds) => {
-        this.setState({ uploadedFileIds });
+        this.setState({ 
+            uploadedFileIds,
+            uploadedFiles: files // 保存文件对象
+        });
     };
 
     handleSend = async (content) => {
@@ -209,7 +212,11 @@ export default class DataAnalysisAgent extends Component {
         const userMessage = {
             role: 'user',
             content: content,
-            isCurrentMessage: false
+            isCurrentMessage: false,
+            // 添加文件信息
+            files: this.state.uploadedFileIds.length > 0 
+                ? this.state.uploadedFiles.map(file => file.name || file.fileName)
+                : undefined
         };
 
         this.setState(prevState => ({
@@ -260,7 +267,7 @@ export default class DataAnalysisAgent extends Component {
             );
 
             // 发送后清空文件ID
-            this.setState({ uploadedFileIds: [] });
+            this.setState({ uploadedFileIds: [], uploadedFiles: [] });
 
         } catch (error) {
             console.error('Failed to send message:', error);

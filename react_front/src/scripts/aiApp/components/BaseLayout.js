@@ -58,14 +58,30 @@ const ActionButton = styled.div`
 `;
 
 // 更新消息组件
-export const ChatMessage = React.memo(({ message, isStreaming }) => {
+export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration }) => {
     const isUser = message.role === 'user';
     
     return (
         <MessageContainer isUser={isUser}>
             <MessageBubble isUser={isUser}>
                 {isUser ? (
-                    <div>{message.content}</div>
+                    <div>
+                        {message.content}
+                        {/* 添加文件显示 */}
+                        {message.files && message.files.length > 0 && (
+                            <div style={{ 
+                                marginTop: '8px', 
+                                fontSize: '14px', 
+                                color: 'rgba(0, 0, 0, 0.65)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                            }}>
+                                <Icon type="paper-clip" />
+                                {message.files.join(', ')}
+                            </div>
+                        )}
+                    </div>
                 ) : (
                     <>
                         <MarkdownRenderer 
@@ -100,13 +116,19 @@ export const ChatMessage = React.memo(({ message, isStreaming }) => {
                                         </ActionButton>
                                     </Tooltip>
                                 )}
+                                {isStreaming && (
+                                    <ActionButton onClick={onStopGeneration}>
+                                        <Icon type="pause-circle" />
+                                        <span>停止生成</span>
+                                    </ActionButton>
+                                )}
                             </LlmActionTailBar>
                         )}
                     </>
                 )}
             </MessageBubble>
             <Timestamp isUser={isUser}>
-                {message.time}
+                {message.time || message.timestamp}
             </Timestamp>
         </MessageContainer>
     );
