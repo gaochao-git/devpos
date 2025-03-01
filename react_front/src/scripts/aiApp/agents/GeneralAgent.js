@@ -542,10 +542,10 @@ const GeneralAgent = ({ agentType = 'general' }) => {
   };
 
   // 获取历史会话列表
-  const fetchHistoryList = async () => {
+  const fetchHistoryList = async (agentType) => {
     setIsHistoryLoading(true);
     try {
-      const data = await getHistoryConversations();
+      const data = await getHistoryConversations(agentType='general');
       if (data.data && data.data.length > 0) {
         setHistoryData(data.data);
         setHistoryModalVisible(true);

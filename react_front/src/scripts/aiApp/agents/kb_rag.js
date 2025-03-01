@@ -6,12 +6,11 @@ import 'react-resizable/css/styles.css';
 import {
     sendMessageToAssistant,
     getHistoryConversations,
-    getConversationMessages,
-    renameConversation,
+    getHistoryMessageDetail,
     stopMessageGeneration
 } from '../aIAssistantApi';
+import HistoryConversationModal from '../components/HistoryConversationModal';
 
-const { TextArea } = Input;
 const { Option } = Select;
 const promptTemplate = {
     default: {
@@ -155,6 +154,13 @@ const DataAnalysisAgent = () => {
     // 添加自动滚动控制状态
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     
+    // 添加历史会话相关状态
+    const [historyModalVisible, setHistoryModalVisible] = useState(false);
+    const [historyData, setHistoryData] = useState([]);
+    const [expandedConversations, setExpandedConversations] = useState(new Set());
+    const [conversationMessages, setConversationMessages] = useState(new Map());
+    const [loadingConversations, setLoadingConversations] = useState(new Set());
+    
     // RAG 配置
     const [ragConfig, setRagConfig] = useState({
         enabled: false,
@@ -279,6 +285,96 @@ const DataAnalysisAgent = () => {
         setIsWebSearchActive(prev => !prev);
     }, []);
     
+    // 获取历史会话列表
+    const fetchHistoryList = useCallback(async (agentType) => {
+        setIsHistoryLoading(true);
+        try {
+            const data = await getHistoryConversations(agentType='data-analysis');
+            if (data.data && data.data.length > 0) {
+                setHistoryData(data.data);
+                setHistoryModalVisible(true);
+            } else {
+                message.info('暂无历史会话记录');
+            }
+        } catch (error) {
+            console.error('获取历史记录失败:', error);
+            message.error('获取历史记录失败，请稍后重试');
+        } finally {
+            setIsHistoryLoading(false);
+        }
+    }, []);
+    
+    // 处理展开/收起会话
+    const handleConversationToggle = useCallback(async (conversationId) => {
+        const isExpanded = expandedConversations.has(conversationId);
+        const messages = conversationMessages.get(conversationId);
+
+        if (!isExpanded && !messages) {
+            setLoadingConversations(prev => new Set(prev).add(conversationId));
+            try {
+                // 使用 getHistoryMessageDetail 并传递助手类型
+                const messagesData = await getHistoryMessageDetail(conversationId, 'data-analysis');
+                setConversationMessages(prev => new Map(prev).set(conversationId, messagesData.data));
+            } catch (error) {
+                console.error('获取会话详情失败:', error);
+                message.error('获取会话详情失败');
+            } finally {
+                setLoadingConversations(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(conversationId);
+                    return newSet;
+                });
+            }
+        }
+
+        setExpandedConversations(prev => {
+            const newSet = new Set(prev);
+            if (isExpanded) {
+                newSet.delete(conversationId);
+            } else {
+                newSet.add(conversationId);
+            }
+            return newSet;
+        });
+    }, [expandedConversations, conversationMessages]);
+    
+    // 继续历史会话
+    const handleContinueConversation = useCallback(async (conversation) => {
+        try {
+            // 使用 getHistoryMessageDetail 并传递助手类型
+            const messagesData = await getHistoryMessageDetail(conversation.id, 'data-analysis');
+            setConversationId(conversation.id);
+            
+            const convertedMessages = messagesData.data.flatMap(msg => {
+                const messages = [];
+                
+                if (msg.query) {
+                    messages.push({
+                        role: 'user',
+                        content: msg.query,
+                        time: new Date(msg.created_at * 1000).toLocaleString()
+                    });
+                }
+                
+                if (msg.answer) {
+                    messages.push({
+                        role: 'assistant',
+                        content: msg.answer,
+                        time: new Date(msg.created_at * 1000).toLocaleString()
+                    });
+                }
+                
+                return messages;
+            });
+            
+            setMessages(convertedMessages);
+            setHistoryModalVisible(false);
+        } catch (error) {
+            console.error('继续会话失败:', error);
+            message.error('继续会话失败，请稍后重试');
+        }
+    }, []);
+    
     // 发送消息
     const handleSend = useCallback(async (content) => {
         if (!content?.trim()) return;
@@ -397,12 +493,7 @@ const DataAnalysisAgent = () => {
                             db_types: []
                         }));
                     }}
-                    onViewHistory={() => {
-                        setIsHistoryLoading(true);
-                        setTimeout(() => {
-                            setIsHistoryLoading(false);
-                        }, 1000);
-                    }}
+                    onViewHistory={fetchHistoryList}
                     isHistoryLoading={isHistoryLoading}
                 />
 
@@ -478,6 +569,18 @@ const DataAnalysisAgent = () => {
                         />
                     </div>
                 </div>
+                
+                {/* 添加历史会话弹窗 */}
+                <HistoryConversationModal
+                    visible={historyModalVisible}
+                    onCancel={() => setHistoryModalVisible(false)}
+                    historyData={historyData}
+                    expandedConversations={expandedConversations}
+                    conversationMessages={conversationMessages}
+                    loadingConversations={loadingConversations}
+                    onConversationToggle={handleConversationToggle}
+                    onContinueConversation={handleContinueConversation}
+                />
             </div>
         </div>
     );
