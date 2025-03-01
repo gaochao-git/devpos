@@ -66,7 +66,8 @@ export default class DataAnalysisAgent extends Component {
                 scalarQuery: ''   // 添加标量搜索字段
             },
             isUserScrolling: false,
-            isHistoryLoading: false // 添加历史加载状态
+            isHistoryLoading: false, // 添加历史加载状态
+            isWebSearchActive: false
         };
         this.messagesEndRef = React.createRef();
         this.abortController = null;
@@ -308,6 +309,13 @@ export default class DataAnalysisAgent extends Component {
         }
     };
 
+    handleWebSearch = () => {
+        this.setState(prevState => ({ 
+            isWebSearchActive: !prevState.isWebSearchActive 
+        }));
+        message.info('功能开发中...');
+    };
+
     render() {
         const { messages, streaming, ragConfig, isHistoryLoading } = this.state;
         const allSelected = (ragConfig.db_types || []).length === DB_OPTIONS.length;
@@ -525,6 +533,8 @@ export default class DataAnalysisAgent extends Component {
                                 disabled={streaming}
                                 isStreaming={streaming}
                                 onInterrupt={this.handleInterrupt}
+                                onWebSearch={this.handleWebSearch}
+                                isWebSearchActive={this.state.isWebSearchActive}
                             />
                         </div>
                     </div>

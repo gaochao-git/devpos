@@ -230,7 +230,9 @@ export class BaseChatFooter extends React.Component {
             onFileSelect,
             isStreaming,
             placeholder,
-            acceptedFileTypes = ".txt,.md,.pdf,.doc,.docx,.xlsx,.xls"
+            acceptedFileTypes = ".txt,.md,.pdf,.doc,.docx,.xlsx,.xls",
+            onWebSearch,
+            isWebSearchActive
         } = this.props;
 
         const hasContent = value && value.trim().length > 0;
@@ -281,22 +283,22 @@ export class BaseChatFooter extends React.Component {
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
                                 gap: '8px',
-                                backgroundColor: '#f5f5f5',
+                                backgroundColor: isWebSearchActive ? '#1890ff' : '#f5f5f5',
                                 padding: '4px 12px',
                                 borderRadius: '16px',
-                                color: '#666',
+                                color: isWebSearchActive ? '#fff' : '#666',
                                 cursor: 'pointer',
                                 transition: 'all 0.2s'
                             }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e8e8e8'}
-                            onMouseLeave={e => e.currentTarget.style.backgroundColor = '#f5f5f5'}
-                            onClick={() => message.info('功能开发中...')}
+                            onMouseEnter={e => !isWebSearchActive && (e.currentTarget.style.backgroundColor = '#e8e8e8')}
+                            onMouseLeave={e => !isWebSearchActive && (e.currentTarget.style.backgroundColor = '#f5f5f5')}
+                            onClick={onWebSearch}
                         >
                             <Icon 
                                 type="global"
                                 style={{ 
                                     fontSize: '14px',
-                                    color: '#666'
+                                    color: isWebSearchActive ? '#fff' : '#666'
                                 }}
                             />
                             联网搜索
