@@ -74,11 +74,22 @@ export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration 
                                 fontSize: '14px', 
                                 color: 'rgba(0, 0, 0, 0.65)',
                                 display: 'flex',
-                                alignItems: 'center',
+                                flexDirection: 'column',
                                 gap: '4px'
                             }}>
-                                <Icon type="paper-clip" />
-                                {message.files.join(', ')}
+                                {message.files.map((fileName, index) => (
+                                    <div 
+                                        key={index}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px'
+                                        }}
+                                    >
+                                        {getFileIcon(fileName)}
+                                        <span>{fileName}</span>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
