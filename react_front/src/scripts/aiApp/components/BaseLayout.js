@@ -233,29 +233,28 @@ export class BaseChatFooter extends React.Component {
         this.fileInputRef = React.createRef();
     }
 
-    handleFileSelect = async (info) => {
-        const { fileList } = info;
-        const newFiles = fileList;
-        const { agentType } = this.props;
+    handleFileUpload = async (info) => {
+        const { file } = info;
+        const newFiles = [file];
         
         // 更新文件列表和状态
         this.setState(prevState => ({
-            files: newFiles,
-            fileStatuses: {
-                ...prevState.fileStatuses,
-                ...Object.fromEntries(
-                    newFiles.map(file => [
-                        file.name, 
-                        { status: 'uploading', id: null }
-                    ])
-                )
-            }
+            files: [...prevState.files, ...newFiles]
         }));
+        
+        newFiles.forEach(file => {
+            this.setState(prevState => ({
+                fileStatuses: {
+                    ...prevState.fileStatuses,
+                    [file.name]: { status: 'uploading', id: null }
+                }
+            }));
+        });
 
         // 立即上传文件
         for (const file of newFiles) {
             try {
-                const uploadResult = await uploadFile(file, agentType);
+                const uploadResult = await uploadFile(file);
                 this.setState(prevState => ({
                     fileStatuses: {
                         ...prevState.fileStatuses,
@@ -276,13 +275,13 @@ export class BaseChatFooter extends React.Component {
 
         // 通知父组件文件状态变化
         if (this.props.onFilesChange) {
-            this.props.onFilesChange(newFiles, this.state.uploadedFileIds);
+            this.props.onFilesChange(this.state.files, this.state.uploadedFileIds);
         }
     };
 
     removeFile = (fileToRemove) => {
         this.setState(prevState => {
-            const newFiles = prevState.files.filter(file => file.uid !== fileToRemove.uid);
+            const newFiles = prevState.files.filter(file => file !== fileToRemove);
             const newFileStatuses = { ...prevState.fileStatuses };
             delete newFileStatuses[fileToRemove.name];
             
@@ -428,7 +427,7 @@ export class BaseChatFooter extends React.Component {
                             gap: '8px'
                         }}>
                             <UploadIcon 
-                                onFileSelect={this.handleFileSelect}
+                                onFileSelect={this.handleFileUpload}
                                 acceptedFileTypes={acceptedFileTypes}
                             />
                             <SendIcon 
