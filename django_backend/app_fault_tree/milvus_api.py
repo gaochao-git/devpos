@@ -6,6 +6,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from pymilvus import MilvusClient
 from sentence_transformers import SentenceTransformer
+import uuid
+from fastapi import Depends
 
 # 配置日志
 logging.basicConfig(
@@ -221,6 +223,68 @@ async def health_check():
         "status": "healthy",
         "rag_service_initialized": rag_service is not None
     }
+
+@app.post("/search_and_answer")
+async def search_and_answer(request: dict):
+    """基于数据库文档的问答接口"""
+    try:
+        question = request.get("question", "")
+        db_types = request.get("db_types", [])
+        
+        logger.info(f"收到问答请求: question={question}, db_types={db_types}")
+        
+        # 获取所有请求的数据库的上下文
+        all_contexts = []
+        db_types_found = []
+        search_results = {}
+        
+        # 遍历请求中的数据库类型
+        for db_type in db_types:
+            # 获取特定数据库的搜索上下文
+            try:
+                # 这里替换为你的向量搜索实现
+                contexts = await rag_service.get_search_context(
+                    vector_query=question,
+                    db_type=db_type,
+                    top_k=3
+                )
+                
+                # 保存搜索结果
+                search_results[db_type] = contexts
+                
+                # 格式化上下文
+                formatted_context = f"------{db_type}数据库相关内容------\n"
+                if contexts:  # 如果找到了相关内容
+                    formatted_context += "\n\n".join(contexts)
+                    db_types_found.append(db_type)
+                else:  # 如果没有找到相关内容
+                    formatted_context += "未找到相关内容"
+                
+                all_contexts.append(formatted_context)
+            except Exception as e:
+                logger.error(f"搜索{db_type}数据库时出错: {str(e)}")
+                search_results[db_type] = []
+                all_contexts.append(f"------{db_type}数据库相关内容------\n搜索出错: {str(e)}")
+        
+        # 合并所有上下文
+        combined_context = "\n\n".join(all_contexts)
+        
+        # 构建提示词
+        prompt = f"""你是一个专业的数据库助手。请基于以下参考信息回答问题。
+
+参考信息:
+{combined_context}
+
+问题: {question}
+
+请基于提供的参考信息，针对{', '.join(db_types_found) if db_types_found else '数据库'}相关内容给出专业、准确的回答。如果参考信息不足，可以补充你的专业知识，但请明确指出哪些是基于参考信息，哪些是基于你的知识。"""
+        
+        return prompt
+        
+    except Exception as e:
+        logger.error(f"处理问答请求时出错: {str(e)}", exc_info=True)
+        return {"error": str(e)}, 500
+
 
 # 启动说明
 if __name__ == "__main__":
