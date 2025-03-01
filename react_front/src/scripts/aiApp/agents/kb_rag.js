@@ -10,6 +10,8 @@ import {
     stopMessageGeneration
 } from '../aIAssistantApi';
 import HistoryConversationModal from '../components/HistoryConversationModal';
+import { agentComponentMap } from '../config/componentMapping';
+
 
 const { Option } = Select;
 const promptTemplate = {
@@ -138,9 +140,12 @@ const MessageList = React.memo(({
         </>
     );
 });
-
+ // 智能体名称
+const agentName = 'data-analysis';
 // 重构为函数式组件
 const DataAnalysisAgent = () => {
+    // 获取智能体配置
+    const agentConfig = agentComponentMap[agentName];
     // 状态管理
     const [question, setQuestion] = useState('');
     const [messages, setMessages] = useState([]);
@@ -289,7 +294,7 @@ const DataAnalysisAgent = () => {
     const fetchHistoryList = useCallback(async (agentType) => {
         setIsHistoryLoading(true);
         try {
-            const data = await getHistoryConversations(agentType='data-analysis');
+            const data = await getHistoryConversations(agentType=agentConfig.name);
             if (data.data && data.data.length > 0) {
                 setHistoryData(data.data);
                 setHistoryModalVisible(true);
@@ -313,7 +318,7 @@ const DataAnalysisAgent = () => {
             setLoadingConversations(prev => new Set(prev).add(conversationId));
             try {
                 // 使用 getHistoryMessageDetail 并传递助手类型
-                const messagesData = await getHistoryMessageDetail(conversationId, 'data-analysis');
+                const messagesData = await getHistoryMessageDetail(conversationId, agentConfig.name);
                 setConversationMessages(prev => new Map(prev).set(conversationId, messagesData.data));
             } catch (error) {
                 console.error('获取会话详情失败:', error);
@@ -342,7 +347,7 @@ const DataAnalysisAgent = () => {
     const handleContinueConversation = useCallback(async (conversation) => {
         try {
             // 使用 getHistoryMessageDetail 并传递助手类型
-            const messagesData = await getHistoryMessageDetail(conversation.id, 'data-analysis');
+            const messagesData = await getHistoryMessageDetail(conversation.id, agentConfig.name);
             setConversationId(conversation.id);
             
             const convertedMessages = messagesData.data.flatMap(msg => {
@@ -430,7 +435,7 @@ const DataAnalysisAgent = () => {
                     files: fileObjects,
                     conversationId,
                     abortController: abortControllerRef.current,
-                    agentType: 'data-analysis'
+                    agentType: agentConfig.name
                 },
                 {
                     setMessages: setMessages,
@@ -478,20 +483,19 @@ const DataAnalysisAgent = () => {
                 overflow: 'hidden'
             }}>
                 <BaseChatHeader 
-                    icon="database"
-                    title="知识库问答"
-                    description="基于文档的智能问答系统"
-                    iconBgColor="#e6f4ff"
-                    iconColor="#1890ff"
+                    icon={agentConfig.icon}
+                    title={agentConfig.name}
+                    description={agentConfig.description}
+                    iconBgColor={agentConfig.color}
                     onNewChat={() => {
                         setMessages([]);
                         setConversationId(null);
                         setQuestion("");
-                        setRagConfig(prev => ({
-                            ...prev,
-                            enabled: false,
-                            db_types: []
-                        }));
+                        // setRagConfig(prev => ({
+                        //     ...prev,
+                        //     enabled: false,
+                        //     db_types: []
+                        // }));
                     }}
                     onViewHistory={fetchHistoryList}
                     isHistoryLoading={isHistoryLoading}
@@ -565,7 +569,7 @@ const DataAnalysisAgent = () => {
                             onWebSearch={handleWebSearch}
                             isWebSearchActive={isWebSearchActive}
                             onFilesChange={handleFilesChange}
-                            agentType="data-analysis"
+                            agentType={agentConfig.name}
                         />
                     </div>
                 </div>
