@@ -327,27 +327,6 @@ const DataAnalysisAgent = () => {
                 upload_file_id: id
             }));
 
-            // 使用防抖更新器
-            let lastUpdateTime = Date.now();
-            const UPDATE_INTERVAL = 100;
-            
-            const debouncedSetMessages = (messagesUpdater) => {
-                const currentTime = Date.now();
-                if (currentTime - lastUpdateTime > UPDATE_INTERVAL || 
-                    typeof messagesUpdater !== 'function') {
-                    
-                    setMessages(prev => {
-                        const newMessages = typeof messagesUpdater === 'function' 
-                            ? messagesUpdater(prev)
-                            : messagesUpdater;
-                        
-                        return newMessages;
-                    });
-                    
-                    lastUpdateTime = currentTime;
-                }
-            };
-
             await sendMessageToAssistant(
                 {
                     query: content,
@@ -358,7 +337,7 @@ const DataAnalysisAgent = () => {
                     agentType: 'data-analysis'
                 },
                 {
-                    setMessages: debouncedSetMessages,
+                    setMessages: setMessages,
                     setIsStreaming: setStreaming,
                     getStandardTime: () => new Date().toLocaleTimeString(),
                     setTaskId,
