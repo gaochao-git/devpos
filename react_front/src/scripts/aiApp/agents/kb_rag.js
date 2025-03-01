@@ -1,10 +1,6 @@
 import React, { Component } from "react";
 import { Input, Button, message, Spin, Icon, Card, Select, Divider, Checkbox } from 'antd';
-import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { nightOwl } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import remarkGfm from 'remark-gfm';
-import { BaseChatHeader, BaseChatFooter, BaseChatBox } from '../components/BaseLayout';
+import { BaseChatHeader, BaseChatFooter, ChatMessage } from '../components/BaseLayout';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import {
@@ -14,7 +10,6 @@ import {
     renameConversation,
     stopMessageGeneration
 } from '../aIAssistantApi';
-import MarkdownRenderer from '../components/MarkdownRenderer';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -505,41 +500,21 @@ export default class DataAnalysisAgent extends Component {
                                 flex: 1,
                                 overflow: 'auto',
                                 padding: '0 15px'
-                            }}>
+                            }}
+                            onMouseEnter={this.handleMouseEnter}
+                            onMouseLeave={this.handleMouseLeave}
+                            >
                                 {Array.isArray(messages) && messages.map((msg, index) => (
-                                    <div key={index} style={{
-                                        marginBottom: '20px',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start'
-                                    }}>
-                                        <div style={{
-                                            fontSize: '12px',
-                                            color: '#999',
-                                            marginBottom: '4px'
-                                        }}>
-                                            {msg.time}
-                                        </div>
-                                        
-                                        <div style={{
-                                            maxWidth: '80%',
-                                            padding: '12px 16px',
-                                            borderRadius: '8px',
-                                            backgroundColor: msg.role === 'user' ? '#73f0be' : '#f9f9f9',
-                                            color: '#000',
-                                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                            border: '1px solid #e0e0e0'
-                                        }}>
-                                            {msg.role === 'user' ? (
-                                                <div>{msg.content}</div>
-                                            ) : (
-                                                <MarkdownRenderer 
-                                                    content={msg.content}
-                                                    isStreaming={streaming && index === messages.length - 1}
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
+                                    <ChatMessage
+                                        key={index}
+                                        message={{
+                                            ...msg,
+                                            isUser: msg.role === 'user',
+                                            timestamp: msg.time
+                                        }}
+                                        isStreaming={streaming && index === messages.length - 1}
+                                        onStopGeneration={this.handleInterrupt}
+                                    />
                                 ))}
                                 <div ref={this.messagesEndRef} />
                             </div>

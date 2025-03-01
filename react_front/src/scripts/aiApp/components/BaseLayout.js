@@ -2,7 +2,54 @@ import React from 'react';
 import { Icon, Tooltip, Input, Button, Upload, message } from 'antd';
 import { SendIcon, UploadIcon, WebSearchIcon } from './BaseIcon';
 import { uploadFile } from '../aIAssistantApi';
+import styled from 'styled-components';
+import MarkdownRenderer from './MarkdownRenderer';
 const { TextArea } = Input;
+
+// 添加消息容器样式
+const MessageContainer = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: ${props => props.isUser ? 'flex-end' : 'flex-start'};
+    margin: 4px 0;
+`;
+
+const MessageBubble = styled.div`
+    max-width: 70%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background-color: ${props => props.isUser ? '#95EC69' : '#fff'};
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+`;
+
+const Timestamp = styled.div`
+    font-size: 12px;
+    color: #666;
+    margin: ${props => props.isUser ? '4px 8px 0 0' : '4px 0 0 8px'};
+`;
+
+// 添加消息组件
+export const ChatMessage = React.memo(({ message, isStreaming }) => {
+    const isUser = message.role === 'user';
+    
+    return (
+        <MessageContainer isUser={isUser}>
+            <MessageBubble isUser={isUser}>
+                {isUser ? (
+                    <div>{message.content}</div>
+                ) : (
+                    <MarkdownRenderer 
+                        content={message.content}
+                        isStreaming={isStreaming}
+                    />
+                )}
+            </MessageBubble>
+            <Timestamp isUser={isUser}>
+                {message.time}
+            </Timestamp>
+        </MessageContainer>
+    );
+});
 
 // 基础Header组件
 export class BaseChatHeader extends React.Component {
