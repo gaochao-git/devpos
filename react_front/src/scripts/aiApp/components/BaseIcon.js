@@ -38,12 +38,21 @@ export const UploadIcon = ({ onFileSelect, acceptedFileTypes }) => (
         showUploadList={false}
     >
         <Icon 
-            type="file-add"
+            type="upload"
             style={{ 
                 fontSize: '18px',
                 cursor: 'pointer',
-                padding: '0 8px'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                background: '#f5f5f5',
+                borderRadius: '50%',
+                transition: 'all 0.3s'
             }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#e8e8e8')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#f5f5f5')}
         />
     </Upload>
 );
