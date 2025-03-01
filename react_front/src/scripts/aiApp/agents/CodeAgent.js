@@ -10,31 +10,9 @@ import {
 } from '../aIAssistantApi';
 import HistoryConversationModal from '../components/HistoryConversationModal';
 import { agentComponentMap } from '../config/componentMapping';
+import MyAxios from "../../common/interface";
 
 const { Option } = Select;
-
-// 常量配置
-const CLUSTER_OPTIONS = [
-    { value: 'cluster1', label: '集群1' },
-    { value: 'cluster2', label: '集群2' },
-    { value: 'cluster3', label: '集群3' },
-];
-
-// 数据库选项 - 可以根据选择的集群动态加载
-const DB_OPTIONS = {
-    'cluster1': [
-        { value: 'db1', label: '数据库1' },
-        { value: 'db2', label: '数据库2' },
-    ],
-    'cluster2': [
-        { value: 'db3', label: '数据库3' },
-        { value: 'db4', label: '数据库4' },
-    ],
-    'cluster3': [
-        { value: 'db5', label: '数据库5' },
-        { value: 'db6', label: '数据库6' },
-    ],
-};
 
 // 扩展 BaseChatHeader 组件
 class CodeChatHeader extends React.Component {
@@ -42,26 +20,162 @@ class CodeChatHeader extends React.Component {
         super(props);
         this.state = {
             cluster: null,
-            database: null
+            database: null,
+            instance: null,
+            clusterOptions: [],
+            instanceOptions: {},
+            dbOptions: {}
         };
     }
 
-    // 获取数据库选项
-    getDbOptions = (clusterId) => {
+    componentDidMount() {
+        this.getClusterName();
+    }
+
+    // 获取集群列表
+    async getClusterName() {
+        try {
+            const res = await MyAxios.get('/db_resource/v1/get_mysql_cluster/');
+            if (res.data.status === 'ok') {
+                // 将API返回的数据转换为Select需要的格式
+                const clusterOptions = res.data.data.map(cluster => ({
+                    value: cluster.cluster_name,
+                    label: cluster.cluster_name
+                }));
+                
+                this.setState({
+                    clusterOptions: clusterOptions
+                });
+            } else {
+                message.error(res.data.message);
+            }
+        } catch (err) {
+            message.error(err.message);
+        }
+    }
+
+    // 获取集群实例信息
+    async getClusterIns(value) {
+        try {
+            const params = {
+                ins_role: ["M", "S"],
+                cluster_name: value,
+            };
+            
+            const res = await MyAxios.post('/db_resource/v1/get_mysql_cluster_ins/', params);
+            if (res.data.status === 'ok') {
+                // 将API返回的数据转换为Select需要的格式
+                const instanceOptions = res.data.data.map(instance => ({
+                    value: instance.instance_name,
+                    label: instance.instance_name
+                }));
+                
+                // 更新状态
+                this.setState(prevState => ({
+                    instanceOptions: {
+                        ...prevState.instanceOptions,
+                        [value]: instanceOptions
+                    }
+                }));
+                
+                return instanceOptions;
+            } else {
+                message.error(res.data.message);
+                return [];
+            }
+        } catch (err) {
+            message.error(err.message);
+            return [];
+        }
+    }
+
+    // 获取数据库列表
+    async getSchema(instanceName) {
+        if (!instanceName) return [];
+        
+        try {
+            const params = { instance_name: instanceName };
+            
+            console.log("获取数据库列表，参数:", params);
+            
+            const res = await MyAxios.post('/web_console/v1/get_schema_list/', params, { timeout: 5000 });
+            console.log("获取数据库列表，响应:", res);
+            
+            if (res.data.status === 'ok') {
+                // 将API返回的数据转换为Select需要的格式
+                // 注意：数据格式是 [{Database: "dbname"}, ...] 而不是 ["dbname", ...]
+                const dbOptions = Array.isArray(res.data.data) ? res.data.data.map(item => ({
+                    value: item.Database,
+                    label: item.Database
+                })) : [];
+                
+                // 更新状态
+                this.setState(prevState => ({
+                    dbOptions: {
+                        ...prevState.dbOptions,
+                        [instanceName]: dbOptions
+                    }
+                }));
+                
+                return dbOptions;
+            } else {
+                console.error("获取数据库列表失败:", res.data.message);
+                message.error(res.data.message || "获取数据库列表失败");
+                return [];
+            }
+        } catch (err) {
+            console.error("获取数据库列表异常:", err);
+            message.error(err.message || "获取数据库列表异常");
+            return [];
+        }
+    }
+
+    // 获取实例选项
+    getInstanceOptions = (clusterId) => {
         if (!clusterId) return [];
-        return DB_OPTIONS[clusterId] || [];
+        return this.state.instanceOptions[clusterId] || [];
+    };
+
+    // 获取数据库选项
+    getDbOptions = (instanceName) => {
+        if (!instanceName) return [];
+        return this.state.dbOptions[instanceName] || [];
     };
 
     // 处理集群变更
-    handleClusterChange = (value) => {
+    handleClusterChange = async (value) => {
         this.setState({ 
             cluster: value,
-            database: null // 重置数据库选择
+            instance: null,
+            database: null // 重置实例和数据库选择
         });
+        
+        // 如果选择了集群，获取该集群的实例列表
+        if (value && !this.state.instanceOptions[value]) {
+            await this.getClusterIns(value);
+        }
         
         // 如果有外部回调，则调用
         if (this.props.onClusterChange) {
             this.props.onClusterChange(value);
+        }
+    };
+
+    // 处理实例变更
+    handleInstanceChange = async (value) => {
+        this.setState({ 
+            instance: value,
+            database: null // 重置数据库选择
+        });
+        
+        // 如果选择了实例，获取该实例的数据库列表
+        if (value && !this.state.dbOptions[value]) {
+            await this.getSchema(value);
+        }
+        
+        // 如果有外部回调，则调用
+        if (this.props.onInstanceChange) {
+            this.props.onInstanceChange(value);
         }
     };
 
@@ -76,7 +190,7 @@ class CodeChatHeader extends React.Component {
     };
 
     render() {
-        const { cluster, database } = this.state;
+        const { cluster, instance, database, clusterOptions } = this.state;
         const { 
             icon, 
             title, 
@@ -114,7 +228,7 @@ class CodeChatHeader extends React.Component {
                 </div>
                 
                 {/* 集群选择框 */}
-                <div style={{ marginRight: '15px', width: '180px' }}>
+                <div style={{ marginRight: '15px', width: '150px' }}>
                     <Select
                         showSearch
                         placeholder="选择集群"
@@ -126,7 +240,29 @@ class CodeChatHeader extends React.Component {
                         }
                         allowClear
                     >
-                        {CLUSTER_OPTIONS.map(option => (
+                        {clusterOptions.map(option => (
+                            <Option key={option.value} value={option.value}>
+                                {option.label}
+                            </Option>
+                        ))}
+                    </Select>
+                </div>
+                
+                {/* 实例选择框 */}
+                <div style={{ marginRight: '15px', width: '150px' }}>
+                    <Select
+                        showSearch
+                        placeholder="选择实例"
+                        value={instance}
+                        onChange={this.handleInstanceChange}
+                        style={{ width: '100%' }}
+                        filterOption={(input, option) =>
+                            option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                        }
+                        allowClear
+                        disabled={!cluster}
+                    >
+                        {this.getInstanceOptions(cluster).map(option => (
                             <Option key={option.value} value={option.value}>
                                 {option.label}
                             </Option>
@@ -135,7 +271,7 @@ class CodeChatHeader extends React.Component {
                 </div>
                 
                 {/* 数据库选择框 */}
-                <div style={{ marginRight: '15px', width: '180px' }}>
+                <div style={{ marginRight: '15px', width: '150px' }}>
                     <Select
                         showSearch
                         placeholder="选择数据库"
@@ -146,9 +282,9 @@ class CodeChatHeader extends React.Component {
                             option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
                         }
                         allowClear
-                        disabled={!cluster}
+                        disabled={!instance}
                     >
-                        {this.getDbOptions(cluster).map(option => (
+                        {this.getDbOptions(instance).map(option => (
                             <Option key={option.value} value={option.value}>
                                 {option.label}
                             </Option>
@@ -219,9 +355,10 @@ const CodeAgent = () => {
     const [conversationMessages, setConversationMessages] = useState(new Map());
     const [loadingConversations, setLoadingConversations] = useState(new Set());
     
-    // 数据库配置
+    // 添加数据库配置状态
     const [dbConfig, setDbConfig] = useState({
         cluster: null,
+        instance: null,
         database: null
     });
     
@@ -229,23 +366,6 @@ const CodeAgent = () => {
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
-    
-    // 处理集群变更
-    const handleClusterChange = useCallback((value) => {
-        setDbConfig(prev => ({
-            ...prev,
-            cluster: value,
-            database: null // 重置数据库选择
-        }));
-    }, []);
-    
-    // 处理数据库变更
-    const handleDbChange = useCallback((value) => {
-        setDbConfig(prev => ({
-            ...prev,
-            database: value
-        }));
-    }, []);
     
     // 滚动到底部
     const scrollToBottom = useCallback(() => {
@@ -424,6 +544,33 @@ const CodeAgent = () => {
         }
     }, []);
     
+    // 处理集群变更
+    const handleClusterChange = useCallback((value) => {
+        setDbConfig(prev => ({
+            ...prev,
+            cluster: value,
+            instance: null,
+            database: null // 重置实例和数据库选择
+        }));
+    }, []);
+    
+    // 处理实例变更
+    const handleInstanceChange = useCallback((value) => {
+        setDbConfig(prev => ({
+            ...prev,
+            instance: value,
+            database: null // 重置数据库选择
+        }));
+    }, []);
+    
+    // 处理数据库变更
+    const handleDbChange = useCallback((value) => {
+        setDbConfig(prev => ({
+            ...prev,
+            database: value
+        }));
+    }, []);
+    
     // 发送消息
     const handleSend = useCallback(async (content) => {
         if (!content?.trim()) return;
@@ -457,6 +604,7 @@ const CodeAgent = () => {
             if (dbConfig.cluster) {
                 inputs = {
                     cluster: dbConfig.cluster,
+                    instance: dbConfig.instance || '',
                     database: dbConfig.database || ''
                 };
             }
@@ -538,6 +686,7 @@ const CodeAgent = () => {
                     onViewHistory={fetchHistoryList}
                     isHistoryLoading={isHistoryLoading}
                     onClusterChange={handleClusterChange}
+                    onInstanceChange={handleInstanceChange}
                     onDbChange={handleDbChange}
                 />
 
