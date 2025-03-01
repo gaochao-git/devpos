@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icon, Tooltip, Input, Button, Upload, message } from 'antd';
 import { SendIcon, UploadIcon, WebSearchIcon } from './BaseIcon';
+import { uploadFile } from '../aIAssistantApi';
 const { TextArea } = Input;
 
 // 基础Header组件
@@ -222,25 +223,123 @@ export class BaseChatBody extends React.Component {
 
 // 基础Footer组件
 export class BaseChatFooter extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            files: [],
+            fileStatuses: {},
+            uploadedFileIds: []
+        };
+        this.fileInputRef = React.createRef();
+    }
+
+    handleFileSelect = async (info) => {
+        const { fileList } = info;
+        const newFiles = fileList;
+        const { agentType } = this.props;
+        
+        // 更新文件列表和状态
+        this.setState(prevState => ({
+            files: newFiles,
+            fileStatuses: {
+                ...prevState.fileStatuses,
+                ...Object.fromEntries(
+                    newFiles.map(file => [
+                        file.name, 
+                        { status: 'uploading', id: null }
+                    ])
+                )
+            }
+        }));
+
+        // 立即上传文件
+        for (const file of newFiles) {
+            try {
+                const uploadResult = await uploadFile(file, agentType);
+                this.setState(prevState => ({
+                    fileStatuses: {
+                        ...prevState.fileStatuses,
+                        [file.name]: { status: 'ready', id: uploadResult.id }
+                    },
+                    uploadedFileIds: [...prevState.uploadedFileIds, uploadResult.id]
+                }));
+            } catch (error) {
+                console.error('文件上传失败:', error);
+                this.setState(prevState => ({
+                    fileStatuses: {
+                        ...prevState.fileStatuses,
+                        [file.name]: { status: 'error', error: '上传失败' }
+                    }
+                }));
+            }
+        }
+
+        // 通知父组件文件状态变化
+        if (this.props.onFilesChange) {
+            this.props.onFilesChange(newFiles, this.state.uploadedFileIds);
+        }
+    };
+
+    removeFile = (fileToRemove) => {
+        this.setState(prevState => {
+            const newFiles = prevState.files.filter(file => file.uid !== fileToRemove.uid);
+            const newFileStatuses = { ...prevState.fileStatuses };
+            delete newFileStatuses[fileToRemove.name];
+            
+            const fileStatus = prevState.fileStatuses[fileToRemove.name];
+            const newUploadedFileIds = fileStatus?.id 
+                ? prevState.uploadedFileIds.filter(id => id !== fileStatus.id)
+                : prevState.uploadedFileIds;
+
+            // 通知父组件文件状态变化
+            if (this.props.onFilesChange) {
+                this.props.onFilesChange(newFiles, newUploadedFileIds);
+            }
+
+            return {
+                files: newFiles,
+                fileStatuses: newFileStatuses,
+                uploadedFileIds: newUploadedFileIds
+            };
+        });
+    };
+
+    getFileIcon = (file) => {
+        const extension = file.name.split('.').pop().toLowerCase();
+        switch (extension) {
+            case 'pdf': return '📄';
+            case 'doc':
+            case 'docx': return '📝';
+            case 'txt': return '📃';
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif': return '🖼️';
+            default: return '📎';
+        }
+    };
+
     render() {
         const { 
             value, 
             onChange, 
             onSend,
             onInterrupt,
-            onFileSelect,
             isStreaming,
             placeholder,
             acceptedFileTypes = ".txt,.md,.pdf,.doc,.docx,.xlsx,.xls",
             onWebSearch,
-            isWebSearchActive,
-            uploadedFiles = []
+            isWebSearchActive
         } = this.props;
 
-        const hasContent = value && value.trim().length > 0;
+        const { files, fileStatuses } = this.state;
+        const hasContent = value?.trim().length > 0 || files.length > 0;
 
         return (
-            <div style={{ padding: '20px', background: '#fff' }}>
+            <div style={{ 
+                padding: '20px',
+                background: '#fff'
+            }}>
                 <div style={{ 
                     display: 'flex',
                     flexDirection: 'column',
@@ -248,7 +347,8 @@ export class BaseChatFooter extends React.Component {
                     borderRadius: '8px',
                     padding: '8px 11px'
                 }}>
-                    {uploadedFiles.length > 0 && (
+                    {/* 文件预览区域 */}
+                    {files.length > 0 && (
                         <div style={{
                             padding: '8px',
                             marginBottom: '8px',
@@ -258,7 +358,7 @@ export class BaseChatFooter extends React.Component {
                             flexWrap: 'wrap',
                             gap: '8px'
                         }}>
-                            {uploadedFiles.map((file, index) => (
+                            {files.map((file, index) => (
                                 <Tooltip 
                                     key={index}
                                     title={`${file.name} (${(file.size / 1024).toFixed(1)}KB)`}
@@ -271,24 +371,30 @@ export class BaseChatFooter extends React.Component {
                                         background: '#fff',
                                         borderRadius: '4px',
                                         border: '1px solid #d9d9d9',
-                                        maxWidth: '150px',
-                                        cursor: 'default'
+                                        maxWidth: '150px'
                                     }}>
-                                        <Icon type="file-text" style={{ color: '#faad14' }} />
+                                        {this.getFileIcon(file)}
                                         <span style={{ 
-                                            color: '#666',
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
                                             whiteSpace: 'nowrap'
                                         }}>
                                             {file.name}
                                         </span>
+                                        {fileStatuses[file.name]?.status === 'uploading' && (
+                                            <span style={{ color: '#1890ff' }}>上传中...</span>
+                                        )}
+                                        <Icon 
+                                            type="close" 
+                                            onClick={() => this.removeFile(file)}
+                                            style={{ cursor: 'pointer' }}
+                                        />
                                     </div>
                                 </Tooltip>
                             ))}
                         </div>
                     )}
-                    
+
                     <TextArea
                         value={value}
                         onChange={onChange}
@@ -304,11 +410,7 @@ export class BaseChatFooter extends React.Component {
                         onPressEnter={(e) => {
                             if (!e.shiftKey && hasContent) {
                                 e.preventDefault();
-                                if (isStreaming && onInterrupt) {
-                                    onInterrupt();
-                                } else if (!isStreaming && onSend) {
-                                    onSend();
-                                }
+                                onSend();
                             }
                         }}
                     />
@@ -326,7 +428,7 @@ export class BaseChatFooter extends React.Component {
                             gap: '8px'
                         }}>
                             <UploadIcon 
-                                onFileSelect={onFileSelect}
+                                onFileSelect={this.handleFileSelect}
                                 acceptedFileTypes={acceptedFileTypes}
                             />
                             <SendIcon 

@@ -68,7 +68,8 @@ export default class DataAnalysisAgent extends Component {
             isUserScrolling: false,
             isHistoryLoading: false, // 添加历史加载状态
             isWebSearchActive: false,
-            uploadedFiles: []
+            uploadedFiles: [],
+            uploadedFileIds: []
         };
         this.messagesEndRef = React.createRef();
         this.abortController = null;
@@ -199,6 +200,10 @@ export default class DataAnalysisAgent extends Component {
         }
     };
 
+    handleFilesChange = (files, uploadedFileIds) => {
+        this.setState({ uploadedFileIds });
+    };
+
     handleSend = async (content) => {
         if (!content?.trim()) return;
 
@@ -224,11 +229,18 @@ export default class DataAnalysisAgent extends Component {
                 scalar_query: this.state.ragConfig.scalarQuery
             };
 
+            // 准备文件对象
+            const fileObjects = this.state.uploadedFileIds.map(id => ({
+                type: "document",
+                transfer_method: "local_file",
+                upload_file_id: id
+            }));
+
             await sendMessageToAssistant(
                 {
                     query: content,
                     inputs,
-                    files: this.state.uploadedFiles,
+                    files: fileObjects,
                     conversationId: this.state.conversationId,
                     abortController: this.abortController,
                     agentType: 'data-analysis'
@@ -247,12 +259,13 @@ export default class DataAnalysisAgent extends Component {
                     setIsStreaming: (streaming) => this.setState({ streaming }),
                     getStandardTime: () => new Date().toLocaleTimeString(),
                     setTaskId: (taskId) => this.setState({ taskId }),
-                    setConversationId: (conversationId) => this.setState({ conversationId })
+                    setConversationId: (conversationId) => this.setState({ conversationId }),
+                    onFilesChange: this.handleFilesChange
                 }
             );
 
-            // 发送成功后清空文件列表
-            this.setState({ uploadedFiles: [] });
+            // 发送后清空文件ID
+            this.setState({ uploadedFileIds: [] });
 
         } catch (error) {
             console.error('Failed to send message:', error);
@@ -535,18 +548,16 @@ export default class DataAnalysisAgent extends Component {
                                 onChange={(e) => this.setState({ question: e.target.value })}
                                 onSend={() => {
                                     const content = this.state.question.trim();
-                                    if (content) {
-                                        this.handleSend(content);
-                                        this.setState({ question: '' });
-                                    }
+                                    this.handleSend(content);
+                                    this.setState({ question: '' });
                                 }}
-                                disabled={streaming}
-                                isStreaming={streaming}
+                                disabled={this.state.streaming}
+                                isStreaming={this.state.streaming}
                                 onInterrupt={this.handleInterrupt}
                                 onWebSearch={this.handleWebSearch}
                                 isWebSearchActive={this.state.isWebSearchActive}
-                                onFileSelect={this.handleFileSelect}
-                                uploadedFiles={this.state.uploadedFiles}
+                                onFilesChange={this.handleFilesChange}
+                                agentType="data-analysis"
                             />
                         </div>
                     </div>
