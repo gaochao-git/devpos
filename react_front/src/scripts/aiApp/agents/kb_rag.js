@@ -138,6 +138,8 @@ const DataAnalysisAgent = () => {
     const [isWebSearchActive, setIsWebSearchActive] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState([]);
     const [uploadedFileIds, setUploadedFileIds] = useState([]);
+    // 添加自动滚动控制状态
+    const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     
     // RAG 配置
     const [ragConfig, setRagConfig] = useState({
@@ -156,6 +158,64 @@ const DataAnalysisAgent = () => {
         return ragConfig.db_types.length === DB_OPTIONS.length;
     }, [ragConfig.db_types]);
     
+    // 滚动到底部
+    const scrollToBottom = useCallback(() => {
+        if (messagesEndRef.current && shouldAutoScroll && messagesContainerRef.current) {
+            // 使用容器的scrollTo方法而不是scrollIntoView
+            const container = messagesContainerRef.current;
+            container.scrollTo({
+                top: container.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [shouldAutoScroll]);
+    
+    // 监听消息变化，自动滚动
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, scrollToBottom]);
+    
+    // 监听滚动事件
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+        
+        const handleScroll = () => {
+            // 检查是否滚动到底部或接近底部（20px误差范围）
+            const isAtBottom = 
+                container.scrollHeight - container.scrollTop - container.clientHeight < 20;
+            
+            // 如果用户滚动到底部，恢复自动滚动
+            if (isAtBottom) {
+                setShouldAutoScroll(true);
+            } else if (shouldAutoScroll) {
+                // 如果用户向上滚动，停止自动滚动
+                setShouldAutoScroll(false);
+            }
+        };
+        
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [shouldAutoScroll]);
+    
+    // 当开始流式传输时，只有在用户已经在底部时才启用自动滚动
+    useEffect(() => {
+        if (streaming) {
+            const container = messagesContainerRef.current;
+            if (container) {
+                // 检查是否已经在底部或接近底部
+                const isAtBottom = 
+                    container.scrollHeight - container.scrollTop - container.clientHeight < 20;
+                
+                // 只有当用户已经在底部时，才启用自动滚动
+                if (isAtBottom) {
+                    setShouldAutoScroll(true);
+                    scrollToBottom();
+                }
+                // 如果用户不在底部，保持当前的滚动状态
+            }
+        }
+    }, [streaming, scrollToBottom]);
     
     // 更新 RAG 配置
     const updateRagConfig = useCallback((updates) => {
@@ -224,6 +284,14 @@ const DataAnalysisAgent = () => {
         setMessages(prev => [...prev, userMessage]);
         setStreaming(true);
         setQuestion('');
+        
+        // 检查是否在底部，如果是则启用自动滚动
+        const container = messagesContainerRef.current;
+        if (container) {
+            const isAtBottom = 
+                container.scrollHeight - container.scrollTop - container.clientHeight < 20;
+            setShouldAutoScroll(isAtBottom);
+        }
         
         try {
             const inputs = {
