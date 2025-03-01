@@ -49,8 +49,8 @@ export const agentComponentMap = {
         icon: <img src={sqlIcon} alt="SQL助手" style={{ width: '32px', height: '32px' }} />,
         color: '#bae7ff',
         systemPrompt: '你是一个专业的SQL助手，专注于提供SQL相关帮助和建议。',
-        baseUrl: 'http://127.0.0.1:5003',
-        apiKey: 'Bearer app-sql-xxx',
+        baseUrl: 'http://127.0.0.1',
+        apiKey: 'Bearer app-BjIxnRtuOcpYYUQPBUlls7wT',
     }
 };
 
