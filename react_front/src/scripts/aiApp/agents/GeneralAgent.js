@@ -91,7 +91,7 @@ const Timestamp = styled.div`
 const InputContainer = styled.div`
   display: flex;
   gap: 10px;
-  padding: 20px;
+  padding: 0px;
   background-color: #ffffff;
   border-radius: 8px;
 `;

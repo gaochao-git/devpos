@@ -12,15 +12,34 @@ const Sidebar = styled.div`
   width: 280px;
   background-color: #ffffff;
   border-right: 1px solid #e0e0e0;
-  padding: 20px;
+  padding: 40px 20px 20px 20px;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+`;
+
+const SidebarTitle = styled.h2`
+  margin-top: 0;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+`;
+
+const AgentList = styled.div`
+  flex: 1;
   overflow-y: auto;
 `;
 
 const MainContent = styled.div`
   flex: 1;
-  padding: 10px;
+  padding: 20px;
   overflow-y: auto;
+  background-color: #ffffff;
+  height: 100%;
+  box-sizing: border-box;
 `;
 
 const AgentCard = styled.div`
@@ -75,17 +94,19 @@ const AIFactory = () => {
   return (
     <Container>
       <Sidebar>
-        <h2>智能体工厂</h2>
-        {agentConfigs.map(agent => (
-          <AgentCard
-            key={agent.id}
-            active={selectedAgent?.id === agent.id}
-            onClick={() => setSelectedAgent(agent)}
-          >
-            <AgentIcon color={agent.color}>{agent.icon}</AgentIcon>
-            <h3 style={{ margin: 0 }}>{agent.name}</h3>
-          </AgentCard>
-        ))}
+        <SidebarTitle>智能体工厂</SidebarTitle>
+        <AgentList>
+          {agentConfigs.map(agent => (
+            <AgentCard
+              key={agent.id}
+              active={selectedAgent?.id === agent.id}
+              onClick={() => setSelectedAgent(agent)}
+            >
+              <AgentIcon color={agent.color}>{agent.icon}</AgentIcon>
+              <h3 style={{ margin: 0 }}>{agent.name}</h3>
+            </AgentCard>
+          ))}
+        </AgentList>
       </Sidebar>
       <MainContent>
         {renderAgentComponent()}
