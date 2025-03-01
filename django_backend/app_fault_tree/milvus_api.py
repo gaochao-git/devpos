@@ -288,7 +288,27 @@ async def search_and_answer(request: dict):
         logger.error(f"处理问答请求时出错: {str(e)}", exc_info=True)
         return {"error": str(e)}, 500
 
+"""
+curl -X POST \
+  http://127.0.0.1:8003/search \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": "如何优化MySQL查询性能?",
+    "db_type": "mysql",
+    "scalar_query": null,
+    "top_k": 5
+  }'
 
+curl -X POST \
+  http://127.0.0.1:8003/search_and_answer \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "question": "如何优化MySQL查询性能?",
+    "db_types": ["mysql"],
+    "vector_query": "MySQL查询性能优化技术",
+    "scalar_query": ""
+  }'  
+"""
 # 启动说明
 if __name__ == "__main__":
     import uvicorn
