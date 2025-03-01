@@ -138,7 +138,6 @@ const DataAnalysisAgent = () => {
     const [isWebSearchActive, setIsWebSearchActive] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState([]);
     const [uploadedFileIds, setUploadedFileIds] = useState([]);
-    const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
     
     // RAG 配置
     const [ragConfig, setRagConfig] = useState({
@@ -151,37 +150,12 @@ const DataAnalysisAgent = () => {
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
-    const scrollTimeoutRef = useRef(null);
     
     // 计算属性
     const allSelected = useMemo(() => {
         return ragConfig.db_types.length === DB_OPTIONS.length;
     }, [ragConfig.db_types]);
     
-    // 滚动处理
-    const handleScroll = useCallback(() => {
-        if (!messagesContainerRef.current) return;
-        
-        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-        const scrollPosition = scrollTop + clientHeight;
-        
-        // 判断是否在底部附近 (50px 阈值)
-        const isNearBottom = scrollHeight - scrollPosition < 50;
-        setAutoScrollEnabled(isNearBottom);
-    }, []);
-    
-    // 滚动到底部
-    const scrollToBottom = useCallback((force = false) => {
-        if (!messagesEndRef.current || !messagesContainerRef.current) return;
-        
-        if (autoScrollEnabled || force) {
-            const container = messagesContainerRef.current;
-            container.scrollTo({
-                top: container.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-    }, [autoScrollEnabled]);
     
     // 更新 RAG 配置
     const updateRagConfig = useCallback((updates) => {
@@ -250,11 +224,7 @@ const DataAnalysisAgent = () => {
         setMessages(prev => [...prev, userMessage]);
         setStreaming(true);
         setQuestion('');
-        setAutoScrollEnabled(true);
         
-        // 添加消息后立即滚动到底部
-        setTimeout(() => scrollToBottom(true), 50);
-
         try {
             const inputs = {
                 db_types: ragConfig.db_types,
@@ -287,11 +257,6 @@ const DataAnalysisAgent = () => {
                     });
                     
                     lastUpdateTime = currentTime;
-                    
-                    // 如果自动滚动启用，滚动到底部
-                    if (autoScrollEnabled) {
-                        setTimeout(() => scrollToBottom(), 10);
-                    }
                 }
             };
 
@@ -329,42 +294,9 @@ const DataAnalysisAgent = () => {
         uploadedFiles, 
         ragConfig, 
         conversationId, 
-        autoScrollEnabled, 
-        scrollToBottom
     ]);
     
-    // 设置滚动监听
-    useEffect(() => {
-        const container = messagesContainerRef.current;
-        if (container) {
-            container.addEventListener('scroll', handleScroll);
-        }
-        
-        return () => {
-            if (container) {
-                container.removeEventListener('scroll', handleScroll);
-            }
-        };
-    }, [handleScroll]);
-    
-    // 清理定时器
-    useEffect(() => {
-        return () => {
-            if (scrollTimeoutRef.current) {
-                clearTimeout(scrollTimeoutRef.current);
-            }
-        };
-    }, []);
-    
-    // 监听消息变化，滚动到底部
-    useEffect(() => {
-        if (autoScrollEnabled) {
-            scrollTimeoutRef.current = setTimeout(() => {
-                scrollToBottom();
-            }, 50);
-        }
-    }, [messages, autoScrollEnabled, scrollToBottom]);
-    
+
     return (
         <div style={{ 
             display: 'flex',
