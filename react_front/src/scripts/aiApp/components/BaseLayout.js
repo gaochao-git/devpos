@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon, Tooltip, Input, Button, Upload, message } from 'antd';
+import { SendIcon, UploadIcon, WebSearchIcon } from './BaseIcon';
 const { TextArea } = Input;
 
 // 基础Header组件
@@ -277,75 +278,23 @@ export class BaseChatFooter extends React.Component {
                         justifyContent: 'space-between',
                         gap: '8px'
                     }}>
-                        <div 
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                gap: '8px',
-                                backgroundColor: isWebSearchActive ? '#1890ff' : '#f5f5f5',
-                                padding: '4px 12px',
-                                borderRadius: '16px',
-                                color: isWebSearchActive ? '#fff' : '#666',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={e => !isWebSearchActive && (e.currentTarget.style.backgroundColor = '#e8e8e8')}
-                            onMouseLeave={e => !isWebSearchActive && (e.currentTarget.style.backgroundColor = '#f5f5f5')}
+                        <WebSearchIcon 
+                            isActive={isWebSearchActive}
                             onClick={onWebSearch}
-                        >
-                            <Icon 
-                                type="global"
-                                style={{ 
-                                    fontSize: '14px',
-                                    color: isWebSearchActive ? '#fff' : '#666'
-                                }}
-                            />
-                            联网搜索
-                        </div>
+                        />
                         <div style={{
                             display: 'flex',
                             gap: '8px'
                         }}>
-                            <Upload
-                                beforeUpload={() => false}
-                                onChange={onFileSelect}
-                                accept={acceptedFileTypes}
-                                multiple
-                                showUploadList={false}
-                            >
-                                <Button 
-                                    type="text"
-                                    icon="file-add"
-                                    style={{ 
-                                        border: 'none', 
-                                        padding: '0 8px',
-                                        fontSize: '18px'
-                                    }}
-                                />
-                            </Upload>
-                            <Icon 
-                                type={isStreaming ? "pause" : "arrow-up"}
-                                onClick={() => {
-                                    if (isStreaming && onInterrupt) {
-                                        onInterrupt();
-                                    } else if (hasContent && !isStreaming && onSend) {
-                                        onSend();
-                                    }
-                                }}
-                                style={{ 
-                                    fontSize: '18px',
-                                    cursor: isStreaming ? 'pointer' : (hasContent ? 'pointer' : 'not-allowed'),
-                                    color: hasContent || isStreaming ? '#1890ff' : '#00000040',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '32px',
-                                    height: '32px',
-                                    background: hasContent || isStreaming ? '#bae0ff' : '#f5f5f5',
-                                    borderRadius: '50%',
-                                    transition: 'all 0.3s'
-                                }}
+                            <UploadIcon 
+                                onFileSelect={onFileSelect}
+                                acceptedFileTypes={acceptedFileTypes}
+                            />
+                            <SendIcon 
+                                isStreaming={isStreaming}
+                                hasContent={hasContent}
+                                onSend={onSend}
+                                onInterrupt={onInterrupt}
                             />
                         </div>
                     </div>
