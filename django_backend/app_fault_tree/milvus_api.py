@@ -229,7 +229,9 @@ async def search_and_answer(request: dict):
     """基于数据库文档的问答接口"""
     try:
         question = request.get("question", "")
-        db_types = request.get("db_types", [])
+        # 将逗号分隔的字符串转换为列表
+        db_types_str = request.get("db_types", "")
+        db_types = db_types_str.split(',') if db_types_str else []
         vector_query = request.get("vector_query", "")
         scalar_query = request.get("scalar_query", "")
         

@@ -407,8 +407,8 @@ const DataAnalysisAgent = () => {
             // 只有在启用RAG时才添加RAG相关参数
             if (ragConfig.enabled) {
                 inputs = {
-                    enabled: true,
-                    db_types: ragConfig.db_types,
+                    enabled: true? "yes":"no",
+                    db_types: ragConfig.db_types.join(','),
                     vector_query: ragConfig.vectorQuery,
                     scalar_query: ragConfig.scalarQuery
                 };
