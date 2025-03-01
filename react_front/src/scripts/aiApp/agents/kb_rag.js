@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Input, Button, message, Spin, Icon, Card, Select, Divider, Checkbox } from 'antd';
 import { BaseChatHeader, BaseChatFooter, ChatMessage } from '../components/BaseLayout';
 import { ResizableBox } from 'react-resizable';
@@ -40,511 +40,451 @@ const DB_OPTIONS = [
     { value: 'kadb', label: 'KADB' }
 ];
 
-export default class DataAnalysisAgent extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            question: "",
-            messages: [],
-            conversationId: null,
-            promptText: promptTemplate.default.text,
-            selectedTemplate: 'default',
-            streaming: false,
-            taskId: null,
-            inputValue: '',
-            // RAG 配置统一管理
-            ragConfig: {
-                db_types: [],  // 初始化为空数组
-                vector_store_config: {},
-                rerank_config: {},
-                vectorQuery: '',  // 添加矢量搜索字段
-                scalarQuery: ''   // 添加标量搜索字段
-            },
-            isUserScrolling: false,
-            isHistoryLoading: false, // 添加历史加载状态
-            isWebSearchActive: false,
-            uploadedFiles: [],
-            uploadedFileIds: []
-        };
-        this.messagesEndRef = React.createRef();
-        this.abortController = null;
-    }
+// 提取为纯组件
+const RagConfigPanel = React.memo(({ 
+    ragConfig, 
+    updateRagConfig, 
+    allSelected, 
+    onSelectAll, 
+    onDBTypeChange 
+}) => {
+    return (
+        <Card 
+            title="RAG 配置" 
+            bordered={false}
+            style={{ marginBottom: '10px' }}
+        >
+            <div style={{ marginBottom: '15px' }}>
+                <div style={{ marginBottom: '5px' }}>数据库类型</div>
+                <div style={{ marginBottom: '8px' }}>
+                    <Checkbox 
+                        checked={allSelected}
+                        onChange={onSelectAll}
+                    >
+                        全选
+                    </Checkbox>
+                </div>
+                <Select
+                    mode="multiple"
+                    style={{ width: '100%' }}
+                    placeholder="选择数据库类型"
+                    value={ragConfig.db_types}
+                    onChange={onDBTypeChange}
+                >
+                    {DB_OPTIONS.map(option => (
+                        <Option key={option.value} value={option.value}>
+                            {option.label}
+                        </Option>
+                    ))}
+                </Select>
+            </div>
 
-    // 添加自动滚动方法
-    scrollToBottom = () => {
-        if (this.messagesEndRef.current && !this.state.isUserScrolling) {
-            const container = this.messagesEndRef.current.parentElement;
-            const isScrolledToBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
-            
-            if (isScrolledToBottom || !this.state.isUserScrolling) {
-                this.messagesEndRef.current.scrollIntoView({ 
-                    behavior: 'smooth',
-                    block: 'end'
-                });
-            }
+            <div style={{ marginBottom: '15px' }}>
+                <div style={{ marginBottom: '5px' }}>矢量搜索</div>
+                <Input
+                    placeholder="输入关键词，用于语义相似度搜索"
+                    value={ragConfig.vectorQuery}
+                    onChange={(e) => updateRagConfig({ vectorQuery: e.target.value })}
+                />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+                <div style={{ marginBottom: '5px' }}>标量搜索</div>
+                <Input
+                    placeholder="输入关键词，用于精确/模糊匹配搜索"
+                    value={ragConfig.scalarQuery}
+                    onChange={(e) => updateRagConfig({ scalarQuery: e.target.value })}
+                />
+            </div>
+        </Card>
+    );
+});
+
+// 消息列表组件
+const MessageList = React.memo(({ 
+    messages, 
+    streaming, 
+    onStopGeneration,
+    messagesEndRef 
+}) => {
+    return (
+        <>
+            {messages.map((msg, index) => (
+                <ChatMessage
+                    key={`${index}-${msg.time || ''}`}
+                    message={{
+                        ...msg,
+                        isUser: msg.role === 'user',
+                        timestamp: msg.time
+                    }}
+                    isStreaming={streaming && index === messages.length - 1}
+                    onStopGeneration={onStopGeneration}
+                />
+            ))}
+            <div ref={messagesEndRef} />
+        </>
+    );
+});
+
+// 重构为函数式组件
+const DataAnalysisAgent = () => {
+    // 状态管理
+    const [question, setQuestion] = useState('');
+    const [messages, setMessages] = useState([]);
+    const [conversationId, setConversationId] = useState(null);
+    const [streaming, setStreaming] = useState(false);
+    const [taskId, setTaskId] = useState(null);
+    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+    const [isWebSearchActive, setIsWebSearchActive] = useState(false);
+    const [uploadedFiles, setUploadedFiles] = useState([]);
+    const [uploadedFileIds, setUploadedFileIds] = useState([]);
+    const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+    
+    // RAG 配置
+    const [ragConfig, setRagConfig] = useState({
+        db_types: [],
+        vectorQuery: '',
+        scalarQuery: ''
+    });
+    
+    // Refs
+    const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
+    const abortControllerRef = useRef(null);
+    const scrollTimeoutRef = useRef(null);
+    
+    // 计算属性
+    const allSelected = useMemo(() => {
+        return ragConfig.db_types.length === DB_OPTIONS.length;
+    }, [ragConfig.db_types]);
+    
+    // 滚动处理
+    const handleScroll = useCallback(() => {
+        if (!messagesContainerRef.current) return;
+        
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+        const scrollPosition = scrollTop + clientHeight;
+        
+        // 判断是否在底部附近 (50px 阈值)
+        const isNearBottom = scrollHeight - scrollPosition < 50;
+        setAutoScrollEnabled(isNearBottom);
+    }, []);
+    
+    // 滚动到底部
+    const scrollToBottom = useCallback((force = false) => {
+        if (!messagesEndRef.current || !messagesContainerRef.current) return;
+        
+        if (autoScrollEnabled || force) {
+            requestAnimationFrame(() => {
+                if (messagesEndRef.current) {
+                    messagesEndRef.current.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'end'
+                    });
+                }
+            });
         }
-    }
-
-    // 添加鼠标进入处理
-    handleMouseEnter = () => {
-        this.setState({ isUserScrolling: true });
-    }
-
-    // 添加鼠标离开处理
-    handleMouseLeave = () => {
-        this.setState({ isUserScrolling: false });
-        this.scrollToBottom();
-    }
-
-    // 在组件更新后执行滚动
-    componentDidUpdate(prevProps, prevState) {
-        const messagesChanged = prevState.messages.length !== this.state.messages.length;
-        const lastMessageChanged = prevState.messages.length > 0 && 
-            this.state.messages.length > 0 && 
-            prevState.messages[prevState.messages.length - 1].content !== 
-            this.state.messages[this.state.messages.length - 1].content;
-        const searchStatusChanged = prevState.messages.length > 0 && 
-            this.state.messages.length > 0 && 
-            JSON.stringify(prevState.messages[prevState.messages.length - 1].searchStatus) !== 
-            JSON.stringify(this.state.messages[this.state.messages.length - 1].searchStatus);
-
-        if (messagesChanged || lastMessageChanged || searchStatusChanged) {
-            this.scrollToBottom();
+    }, [autoScrollEnabled]);
+    
+    // 更新 RAG 配置
+    const updateRagConfig = useCallback((updates) => {
+        setRagConfig(prev => ({ ...prev, ...updates }));
+    }, []);
+    
+    // 全选处理
+    const handleSelectAll = useCallback((e) => {
+        if (e.target.checked) {
+            updateRagConfig({ db_types: DB_OPTIONS.map(option => option.value) });
+        } else {
+            updateRagConfig({ db_types: [] });
         }
-    }
-
-    // 修改处理全选的方法
-    handleSelectAll = (e) => {
-        if (e) {
-            e.preventDefault();  // 阻止默认行为
-            e.stopPropagation(); // 阻止冒泡
+    }, [updateRagConfig]);
+    
+    // 数据库类型变更
+    const handleDBTypeChange = useCallback((values) => {
+        updateRagConfig({ db_types: values });
+    }, [updateRagConfig]);
+    
+    // 文件变更处理
+    const handleFilesChange = useCallback((files, fileIds) => {
+        setUploadedFiles(files);
+        setUploadedFileIds(fileIds);
+    }, []);
+    
+    // 中断生成
+    const handleInterrupt = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
         }
         
-        // 直接调用 Select 的 onChange
-        const allValues = this.state.dbOptions.map(db => db.value);
-        this.handleDbChange(allValues);
-    };
-
-    // 修改数据库选择变化的处理方法
-    handleDbChange = (value) => {
-        this.setState(prevState => ({
-            ragConfig: {
-                ...prevState.ragConfig,
-                db_types: value
-            }
-        }));
-    };
-
-    // 处理清空
-    handleClear = () => {
-        this.setState({
-            db_types: []
-        });
-    };
-
-    // 处理 Checkbox 变化
-    handleCheckboxChange = (e) => {
-        const checked = e.target.checked;
-        const allValues = DB_OPTIONS.map(db => db.value);
-        this.updateRagConfig({ 
-            db_types: checked ? allValues : [] 
-        });
-    };
-
-    // 处理模版变化
-    handleTemplateChange = (value) => {
-        this.setState({
-            selectedTemplate: value,
-            promptText: promptTemplate[value].text
-        });
-    };
-
-    // 处理 RAG 启用状态变化
-    handleRagEnableChange = (e) => {
-        this.setState(prevState => ({
-            ragConfig: {
-                ...prevState.ragConfig,
-                enabled: e.target.checked
-            }
-        }));
-    };
-
-    updateRagConfig = (updates) => {
-        this.setState(prevState => ({
-            ragConfig: {
-                ...prevState.ragConfig,
-                ...updates
-            }
-        }));
-    };
-
-    // 添加消息格式转换函数
-    formatMessage = (message) => {
-        if (message.type === 'user') {
-            return {
-                role: 'user',
-                content: message.content,
-                isCurrentMessage: false
-            };
-        } else {
-            return {
-                role: 'assistant',
-                content: message.content,
-                isCurrentMessage: false
-            };
+        if (taskId) {
+            stopMessageGeneration(taskId)
+                .then(() => console.log('Generation stopped'))
+                .catch(err => console.error('Failed to stop generation:', err));
         }
-    };
-
-    handleFilesChange = (files, uploadedFileIds) => {
-        this.setState({ 
-            uploadedFileIds,
-            uploadedFiles: files // 保存文件对象
-        });
-    };
-
-    handleSend = async (content) => {
+        
+        setStreaming(false);
+    }, [taskId]);
+    
+    // Web 搜索切换
+    const handleWebSearch = useCallback(() => {
+        setIsWebSearchActive(prev => !prev);
+    }, []);
+    
+    // 发送消息
+    const handleSend = useCallback(async (content) => {
         if (!content?.trim()) return;
 
         // 创建新的 abortController
-        this.abortController = new AbortController();
+        abortControllerRef.current = new AbortController();
 
         // 先添加用户消息
         const userMessage = {
             role: 'user',
             content: content,
-            isCurrentMessage: false,
-            // 添加文件信息
-            files: this.state.uploadedFileIds.length > 0 
-                ? this.state.uploadedFiles.map(file => file.name || file.fileName)
+            time: new Date().toLocaleTimeString(),
+            files: uploadedFileIds.length > 0 
+                ? uploadedFiles.map(file => file.name || file.fileName)
                 : undefined
         };
 
-        this.setState(prevState => ({
-            messages: [...prevState.messages, userMessage],
-            streaming: true
-        }));
+        // 批量更新状态
+        setMessages(prev => [...prev, userMessage]);
+        setStreaming(true);
+        setQuestion('');
+        setAutoScrollEnabled(true);
+        
+        // 添加消息后立即滚动到底部
+        setTimeout(() => scrollToBottom(true), 50);
 
         try {
             const inputs = {
-                db_types: this.state.ragConfig.db_types,
-                vector_query: this.state.ragConfig.vectorQuery,
-                scalar_query: this.state.ragConfig.scalarQuery
+                db_types: ragConfig.db_types,
+                vector_query: ragConfig.vectorQuery,
+                scalar_query: ragConfig.scalarQuery
             };
 
             // 准备文件对象
-            const fileObjects = this.state.uploadedFileIds.map(id => ({
+            const fileObjects = uploadedFileIds.map(id => ({
                 type: "document",
                 transfer_method: "local_file",
                 upload_file_id: id
             }));
+
+            // 使用防抖更新器
+            let lastUpdateTime = Date.now();
+            const UPDATE_INTERVAL = 100;
+            
+            const debouncedSetMessages = (messagesUpdater) => {
+                const currentTime = Date.now();
+                if (currentTime - lastUpdateTime > UPDATE_INTERVAL || 
+                    typeof messagesUpdater !== 'function') {
+                    
+                    setMessages(prev => {
+                        const newMessages = typeof messagesUpdater === 'function' 
+                            ? messagesUpdater(prev)
+                            : messagesUpdater;
+                        
+                        return newMessages;
+                    });
+                    
+                    lastUpdateTime = currentTime;
+                    
+                    // 如果自动滚动启用，滚动到底部
+                    if (autoScrollEnabled) {
+                        setTimeout(() => scrollToBottom(), 10);
+                    }
+                }
+            };
 
             await sendMessageToAssistant(
                 {
                     query: content,
                     inputs,
                     files: fileObjects,
-                    conversationId: this.state.conversationId,
-                    abortController: this.abortController,
+                    conversationId,
+                    abortController: abortControllerRef.current,
                     agentType: 'data-analysis'
                 },
                 {
-                    setMessages: (messages) => {
-                        if (typeof messages === 'function') {
-                            this.setState(prevState => {
-                                const newMessages = messages(prevState.messages);
-                                return { messages: newMessages };
-                            });
-                        } else if (Array.isArray(messages)) {
-                            this.setState({ messages });
-                        }
-                    },
-                    setIsStreaming: (streaming) => this.setState({ streaming }),
+                    setMessages: debouncedSetMessages,
+                    setIsStreaming: setStreaming,
                     getStandardTime: () => new Date().toLocaleTimeString(),
-                    setTaskId: (taskId) => this.setState({ taskId }),
-                    setConversationId: (conversationId) => this.setState({ conversationId }),
-                    onFilesChange: this.handleFilesChange
+                    setTaskId,
+                    setConversationId
                 }
             );
 
             // 发送后清空文件ID
-            this.setState({ uploadedFileIds: [], uploadedFiles: [] });
+            setUploadedFileIds([]);
+            setUploadedFiles([]);
 
         } catch (error) {
             console.error('Failed to send message:', error);
             message.error('发送消息失败');
         } finally {
-            this.setState({ streaming: false });
-            this.abortController = null;
+            setStreaming(false);
+            abortControllerRef.current = null;
         }
-    };
-
-    handleInterrupt = async () => {
-        const { taskId } = this.state;
-        if (taskId) {
-            try {
-                await stopMessageGeneration(taskId, 'data-analysis');
-                this.setState({ streaming: false });
-            } catch (error) {
-                console.error('Failed to stop generation:', error);
-            }
+    }, [
+        uploadedFileIds, 
+        uploadedFiles, 
+        ragConfig, 
+        conversationId, 
+        autoScrollEnabled, 
+        scrollToBottom
+    ]);
+    
+    // 设置滚动监听
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (container) {
+            container.addEventListener('scroll', handleScroll);
         }
-    };
-
-    loadHistoryMessages = async (conversationId) => {
-        try {
-            const response = await getConversationMessages(conversationId, 'data-analysis');
-            if (response?.data) {
-                // 确保消息格式正确
-                const formattedMessages = response.data.map(msg => this.formatMessage(msg));
-                this.setState({
-                    messages: formattedMessages,
-                    conversationId
-                });
-            }
-        } catch (error) {
-            console.error('Failed to load history messages:', error);
-            message.error('加载历史消息失败');
-        }
-    };
-
-    loadHistoryConversations = async () => {
-        try {
-            const response = await getHistoryConversations('data-analysis');
-            return response?.data || [];
-        } catch (error) {
-            console.error('Failed to load history conversations:', error);
-            message.error('加载历史会话失败');
-            return [];
-        }
-    };
-
-    handleRenameConversation = async (conversationId, name) => {
-        try {
-            await renameConversation(conversationId, name, 'data-analysis');
-            return true;
-        } catch (error) {
-            console.error('Failed to rename conversation:', error);
-            message.error('重命名会话失败');
-            return false;
-        }
-    };
-
-    handleWebSearch = () => {
-        this.setState(prevState => ({ 
-            isWebSearchActive: !prevState.isWebSearchActive 
-        }));
-        message.info('功能开发中...');
-    };
-
-    handleFileSelect = (info) => {
-        const { fileList } = info;
-        this.setState({ uploadedFiles: fileList });
-    };
-
-    render() {
-        const { messages, streaming, ragConfig, isHistoryLoading } = this.state;
-        const allSelected = (ragConfig.db_types || []).length === DB_OPTIONS.length;
         
-        return (
-            <div style={{ 
+        return () => {
+            if (container) {
+                container.removeEventListener('scroll', handleScroll);
+            }
+        };
+    }, [handleScroll]);
+    
+    // 清理定时器
+    useEffect(() => {
+        return () => {
+            if (scrollTimeoutRef.current) {
+                clearTimeout(scrollTimeoutRef.current);
+            }
+        };
+    }, []);
+    
+    // 监听消息变化，滚动到底部
+    useEffect(() => {
+        if (autoScrollEnabled) {
+            scrollTimeoutRef.current = setTimeout(() => {
+                scrollToBottom();
+            }, 50);
+        }
+    }, [messages, autoScrollEnabled, scrollToBottom]);
+    
+    return (
+        <div style={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            height: 'calc(100vh - 128px)', 
+            padding: '0px',
+            background: '#f5f5f5'
+        }}>
+            <div style={{
+                flex: 1,
+                background: '#fff',
+                borderRadius: '8px',
+                border: '1px solid #e8e8e8',
                 display: 'flex',
                 flexDirection: 'column',
-                height: 'calc(100vh - 128px)', 
-                padding: '0px',
-                background: '#f5f5f5'
+                overflow: 'hidden'
             }}>
+                <BaseChatHeader 
+                    icon="database"
+                    title="知识库问答"
+                    description="基于文档的智能问答系统"
+                    iconBgColor="#e6f4ff"
+                    iconColor="#1890ff"
+                    onNewChat={() => {
+                        setMessages([]);
+                        setConversationId(null);
+                        setQuestion("");
+                        setRagConfig(prev => ({
+                            ...prev,
+                            enabled: false,
+                            db_types: []
+                        }));
+                    }}
+                    onViewHistory={() => {
+                        setIsHistoryLoading(true);
+                        setTimeout(() => {
+                            setIsHistoryLoading(false);
+                        }, 1000);
+                    }}
+                    isHistoryLoading={isHistoryLoading}
+                />
+
                 <div style={{
                     flex: 1,
-                    background: '#fff',
-                    borderRadius: '8px',
-                    border: '1px solid #e8e8e8',
                     display: 'flex',
-                    flexDirection: 'column',
                     overflow: 'hidden'
                 }}>
-                    <BaseChatHeader 
-                        icon="database"
-                        title="知识库问答"
-                        description="基于文档的智能问答系统"
-                        iconBgColor="#e6f4ff"
-                        iconColor="#1890ff"
-                        onNewChat={() => {
-                            this.setState({ 
-                                messages: [],
-                                conversationId: null,
-                                question: "",
-                                ragConfig: {
-                                    ...this.state.ragConfig,
-                                    enabled: false,
-                                    db_types: []
-                                }
-                            });
+                    <ResizableBox
+                        width={400}
+                        axis="x"
+                        resizeHandles={['e']}
+                        style={{ 
+                            borderRight: '1px solid #e8e8e8',
+                            height: '100%'
                         }}
-                        onViewHistory={() => {
-                            this.setState({ isHistoryLoading: true });
-                            setTimeout(() => {
-                                this.setState({ isHistoryLoading: false });
-                            }, 1000);
-                        }}
-                        isHistoryLoading={isHistoryLoading}
-                    />
-
-                    <div style={{
-                        flex: 1,
-                        display: 'flex',
-                        overflow: 'hidden'
-                    }}>
-                        <ResizableBox
-                            width={400}
-                            axis="x"
-                            resizeHandles={['e']}
-                            style={{ 
-                                borderRight: '1px solid #e8e8e8',
-                                height: '100%'
-                            }}
-                        >
-                            <div style={{ 
-                                height: '100%',
-                                padding: '5px',
-                                overflow: 'auto'
-                            }}>
-                                <Card title="提示词模版" style={{ marginBottom: '20px' }}>
-                                    <div style={{ marginBottom: '10px' }}>
-                                        <Select
-                                            style={{ width: '100%' }}
-                                            value={this.state.selectedTemplate}
-                                            onChange={this.handleTemplateChange}
-                                            placeholder="选择提示词模版"
-                                        >
-                                            {Object.entries(promptTemplate).map(([key, value]) => (
-                                                <Option key={key} value={key}>
-                                                    {value.label}
-                                                </Option>
-                                            ))}
-                                        </Select>
-                                    </div>
-                                    <TextArea
-                                        rows={6}
-                                        value={this.state.promptText}
-                                        onChange={e => this.setState({ promptText: e.target.value })}
-                                        placeholder="提示词内容..."
-                                    />
-                                </Card>
-
-                                <Card title="RAG配置">
-                                    <div style={{ marginBottom: '15px' }}>
-                                        <div style={{ 
-                                            marginBottom: '5px',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center'
-                                        }}>
-                                            <span>选择数据库</span>
-                                            <Checkbox 
-                                                checked={allSelected}
-                                                onChange={this.handleCheckboxChange}
-                                            >
-                                                全选
-                                            </Checkbox>
-                                        </div>
-                                        <Select
-                                            mode="multiple"
-                                            style={{ width: '100%' }}
-                                            placeholder="请选择数据库（可多选）"
-                                            value={ragConfig.db_types}
-                                            onChange={value => this.updateRagConfig({ db_types: value })}
-                                            allowClear
-                                        >
-                                            {DB_OPTIONS.map(db => (
-                                                <Option key={db.value} value={db.value}>{db.label}</Option>
-                                            ))}
-                                        </Select>
-                                    </div>
-
-                                    <div style={{ marginBottom: '15px' }}>
-                                        <div style={{ marginBottom: '5px' }}>矢量搜索</div>
-                                        <Input
-                                            placeholder="输入自然语言描述，用于语义相似度搜索"
-                                            value={ragConfig.vectorQuery}
-                                            onChange={(event) => {
-                                                if (event && event.target) {
-                                                    this.updateRagConfig({ 
-                                                        vectorQuery: event.target.value 
-                                                    });
-                                                }
-                                            }}
-                                        />
-                                    </div>
-
-                                    <div style={{ marginBottom: '15px' }}>
-                                        <div style={{ marginBottom: '5px' }}>标量搜索</div>
-                                        <Input
-                                            placeholder="输入关键词，用于精确/模糊匹配搜索"
-                                            value={ragConfig.scalarQuery}
-                                            onChange={(event) => {
-                                                if (event && event.target) {
-                                                    this.updateRagConfig({ 
-                                                        scalarQuery: event.target.value 
-                                                    });
-                                                }
-                                            }}
-                                        />
-                                    </div>
-                                </Card>
-                            </div>
-                        </ResizableBox>
-
+                    >
                         <div style={{ 
-                            flex: 1,
-                            height: '100%',
-                            margin: '5px 0 0 0',  // 改为 5px
-                            display: 'flex',
-                            flexDirection: 'column',
-                            background: '#F8FBFF',
-                            borderTopRightRadius: '8px'
+                            height: '100%', 
+                            overflow: 'auto',
+                            padding: '15px'
                         }}>
-                            <div style={{
+                            <RagConfigPanel 
+                                ragConfig={ragConfig}
+                                updateRagConfig={updateRagConfig}
+                                allSelected={allSelected}
+                                onSelectAll={handleSelectAll}
+                                onDBTypeChange={handleDBTypeChange}
+                            />
+                        </div>
+                    </ResizableBox>
+
+                    <div style={{ 
+                        flex: 1,
+                        height: '100%',
+                        margin: '5px 0 0 0',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        background: '#F8FBFF',
+                        borderTopRightRadius: '8px'
+                    }}>
+                        <div 
+                            ref={messagesContainerRef}
+                            style={{
                                 flex: 1,
                                 overflow: 'auto',
                                 padding: '0 15px'
                             }}
-                            onMouseEnter={this.handleMouseEnter}
-                            onMouseLeave={this.handleMouseLeave}
-                            >
-                                {Array.isArray(messages) && messages.map((msg, index) => (
-                                    <ChatMessage
-                                        key={index}
-                                        message={{
-                                            ...msg,
-                                            isUser: msg.role === 'user',
-                                            timestamp: msg.time
-                                        }}
-                                        isStreaming={streaming && index === messages.length - 1}
-                                        onStopGeneration={this.handleInterrupt}
-                                    />
-                                ))}
-                                <div ref={this.messagesEndRef} />
-                            </div>
-                            <BaseChatFooter 
-                                value={this.state.question}
-                                onChange={(e) => this.setState({ question: e.target.value })}
-                                onSend={() => {
-                                    const content = this.state.question.trim();
-                                    this.handleSend(content);
-                                    this.setState({ question: '' });
-                                }}
-                                disabled={this.state.streaming}
-                                isStreaming={this.state.streaming}
-                                onInterrupt={this.handleInterrupt}
-                                onWebSearch={this.handleWebSearch}
-                                isWebSearchActive={this.state.isWebSearchActive}
-                                onFilesChange={this.handleFilesChange}
-                                agentType="data-analysis"
+                        >
+                            <MessageList 
+                                messages={messages}
+                                streaming={streaming}
+                                onStopGeneration={handleInterrupt}
+                                messagesEndRef={messagesEndRef}
                             />
                         </div>
+                        <BaseChatFooter 
+                            value={question}
+                            onChange={(e) => setQuestion(e.target.value)}
+                            onSend={() => {
+                                const content = question.trim();
+                                if (content) {
+                                    handleSend(content);
+                                }
+                            }}
+                            disabled={streaming}
+                            isStreaming={streaming}
+                            onInterrupt={handleInterrupt}
+                            onWebSearch={handleWebSearch}
+                            isWebSearchActive={isWebSearchActive}
+                            onFilesChange={handleFilesChange}
+                            agentType="data-analysis"
+                        />
                     </div>
                 </div>
             </div>
-        );
-    }
-}
+        </div>
+    );
+};
+
+export default DataAnalysisAgent;
