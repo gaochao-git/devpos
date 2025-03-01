@@ -42,9 +42,7 @@ class CodeChatHeader extends React.Component {
         super(props);
         this.state = {
             cluster: null,
-            database: null,
-            searchCluster: '',
-            searchDb: ''
+            database: null
         };
     }
 
@@ -77,23 +75,6 @@ class CodeChatHeader extends React.Component {
         }
     };
 
-    // 过滤集群选项
-    getFilteredClusterOptions = () => {
-        const { searchCluster } = this.state;
-        if (!searchCluster) return CLUSTER_OPTIONS;
-        return CLUSTER_OPTIONS.filter(option => 
-            option.label.toLowerCase().includes(searchCluster.toLowerCase()));
-    };
-
-    // 过滤数据库选项
-    getFilteredDbOptions = () => {
-        const { searchDb, cluster } = this.state;
-        const dbOptions = this.getDbOptions(cluster);
-        if (!searchDb) return dbOptions;
-        return dbOptions.filter(option => 
-            option.label.toLowerCase().includes(searchDb.toLowerCase()));
-    };
-
     render() {
         const { cluster, database } = this.state;
         const { 
@@ -105,10 +86,6 @@ class CodeChatHeader extends React.Component {
             onViewHistory, 
             isHistoryLoading 
         } = this.props;
-
-        // 获取过滤后的选项
-        const filteredClusterOptions = this.getFilteredClusterOptions();
-        const filteredDbOptions = this.getFilteredDbOptions();
 
         return (
             <div style={{
@@ -144,11 +121,12 @@ class CodeChatHeader extends React.Component {
                         value={cluster}
                         onChange={this.handleClusterChange}
                         style={{ width: '100%' }}
-                        filterOption={false}
-                        onSearch={(value) => this.setState({ searchCluster: value })}
+                        filterOption={(input, option) =>
+                            option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                        }
                         allowClear
                     >
-                        {filteredClusterOptions.map(option => (
+                        {CLUSTER_OPTIONS.map(option => (
                             <Option key={option.value} value={option.value}>
                                 {option.label}
                             </Option>
@@ -164,12 +142,13 @@ class CodeChatHeader extends React.Component {
                         value={database}
                         onChange={this.handleDbChange}
                         style={{ width: '100%' }}
-                        filterOption={false}
-                        onSearch={(value) => this.setState({ searchDb: value })}
+                        filterOption={(input, option) =>
+                            option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                        }
                         allowClear
                         disabled={!cluster}
                     >
-                        {filteredDbOptions.map(option => (
+                        {this.getDbOptions(cluster).map(option => (
                             <Option key={option.value} value={option.value}>
                                 {option.label}
                             </Option>
