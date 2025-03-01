@@ -233,16 +233,14 @@ export class BaseChatFooter extends React.Component {
             placeholder,
             acceptedFileTypes = ".txt,.md,.pdf,.doc,.docx,.xlsx,.xls",
             onWebSearch,
-            isWebSearchActive
+            isWebSearchActive,
+            uploadedFiles = []
         } = this.props;
 
         const hasContent = value && value.trim().length > 0;
 
         return (
-            <div style={{ 
-                padding: '20px',
-                background: '#fff'
-            }}>
+            <div style={{ padding: '20px', background: '#fff' }}>
                 <div style={{ 
                     display: 'flex',
                     flexDirection: 'column',
@@ -250,6 +248,47 @@ export class BaseChatFooter extends React.Component {
                     borderRadius: '8px',
                     padding: '8px 11px'
                 }}>
+                    {uploadedFiles.length > 0 && (
+                        <div style={{
+                            padding: '8px',
+                            marginBottom: '8px',
+                            background: '#f5f5f5',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '8px'
+                        }}>
+                            {uploadedFiles.map((file, index) => (
+                                <Tooltip 
+                                    key={index}
+                                    title={`${file.name} (${(file.size / 1024).toFixed(1)}KB)`}
+                                >
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        padding: '2px 8px',
+                                        background: '#fff',
+                                        borderRadius: '4px',
+                                        border: '1px solid #d9d9d9',
+                                        maxWidth: '150px',
+                                        cursor: 'default'
+                                    }}>
+                                        <Icon type="file-text" style={{ color: '#faad14' }} />
+                                        <span style={{ 
+                                            color: '#666',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {file.name}
+                                        </span>
+                                    </div>
+                                </Tooltip>
+                            ))}
+                        </div>
+                    )}
+                    
                     <TextArea
                         value={value}
                         onChange={onChange}

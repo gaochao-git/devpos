@@ -67,7 +67,8 @@ export default class DataAnalysisAgent extends Component {
             },
             isUserScrolling: false,
             isHistoryLoading: false, // 添加历史加载状态
-            isWebSearchActive: false
+            isWebSearchActive: false,
+            uploadedFiles: []
         };
         this.messagesEndRef = React.createRef();
         this.abortController = null;
@@ -316,6 +317,11 @@ export default class DataAnalysisAgent extends Component {
         message.info('功能开发中...');
     };
 
+    handleFileSelect = (info) => {
+        const { fileList } = info;
+        this.setState({ uploadedFiles: fileList });
+    };
+
     render() {
         const { messages, streaming, ragConfig, isHistoryLoading } = this.state;
         const allSelected = (ragConfig.db_types || []).length === DB_OPTIONS.length;
@@ -535,6 +541,8 @@ export default class DataAnalysisAgent extends Component {
                                 onInterrupt={this.handleInterrupt}
                                 onWebSearch={this.handleWebSearch}
                                 isWebSearchActive={this.state.isWebSearchActive}
+                                onFileSelect={this.handleFileSelect}
+                                uploadedFiles={this.state.uploadedFiles}
                             />
                         </div>
                     </div>
