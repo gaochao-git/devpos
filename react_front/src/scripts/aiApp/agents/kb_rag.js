@@ -285,13 +285,8 @@ const DataAnalysisAgent = () => {
         setStreaming(true);
         setQuestion('');
         
-        // 检查是否在底部，如果是则启用自动滚动
-        const container = messagesContainerRef.current;
-        if (container) {
-            const isAtBottom = 
-                container.scrollHeight - container.scrollTop - container.clientHeight < 20;
-            setShouldAutoScroll(isAtBottom);
-        }
+        // 当用户发送新消息时，始终启用自动滚动
+        setShouldAutoScroll(true);
         
         try {
             const inputs = {
@@ -450,7 +445,7 @@ const DataAnalysisAgent = () => {
                             style={{
                                 flex: 1,
                                 overflow: 'auto',
-                                padding: '0 15px'
+                                padding: '0 15px 30px 15px'
                             }}
                         >
                             <MessageList 
