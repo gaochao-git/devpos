@@ -28,7 +28,36 @@ const Timestamp = styled.div`
     margin: ${props => props.isUser ? '4px 8px 0 0' : '4px 0 0 8px'};
 `;
 
-// 添加消息组件
+// 重命名为 LlmActionTailBar
+const LlmActionTailBar = styled.div`
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    padding: 4px 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+`;
+
+const ActionButton = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    color: #666;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .anticon {
+        font-size: 16px;
+    }
+`;
+
+// 更新消息组件
 export const ChatMessage = React.memo(({ message, isStreaming }) => {
     const isUser = message.role === 'user';
     
@@ -38,10 +67,42 @@ export const ChatMessage = React.memo(({ message, isStreaming }) => {
                 {isUser ? (
                     <div>{message.content}</div>
                 ) : (
-                    <MarkdownRenderer 
-                        content={message.content}
-                        isStreaming={isStreaming}
-                    />
+                    <>
+                        <MarkdownRenderer 
+                            content={message.content}
+                            isStreaming={isStreaming}
+                        />
+                        {!isStreaming && (
+                            <LlmActionTailBar>
+                                <ActionButton>
+                                    <Icon type="copy" />
+                                </ActionButton>
+                                <ActionButton>
+                                    <Icon type="like" />
+                                </ActionButton>
+                                <ActionButton>
+                                    <Icon type="dislike" />
+                                </ActionButton>
+                                {message.metadata?.usage && (
+                                    <Tooltip 
+                                        title={
+                                            <div>
+                                                <div>Tokens: {message.metadata.usage.total_tokens} (Prompt: {message.metadata.usage.prompt_tokens}, Completion: {message.metadata.usage.completion_tokens})</div>
+                                                <div>Cost: ¥{message.metadata.usage.total_price} (Prompt: ¥{message.metadata.usage.prompt_price}, Completion: ¥{message.metadata.usage.completion_price})</div>
+                                                <div>Response Time: {message.metadata.usage.latency.toFixed(2)}s</div>
+                                            </div>
+                                        }
+                                        placement="top"
+                                    >
+                                        <ActionButton>
+                                            <Icon type="dollar" />
+                                            <span>¥{message.metadata.usage.total_price}</span>
+                                        </ActionButton>
+                                    </Tooltip>
+                                )}
+                            </LlmActionTailBar>
+                        )}
+                    </>
                 )}
             </MessageBubble>
             <Timestamp isUser={isUser}>
