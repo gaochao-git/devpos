@@ -175,13 +175,10 @@ const DataAnalysisAgent = () => {
         if (!messagesEndRef.current || !messagesContainerRef.current) return;
         
         if (autoScrollEnabled || force) {
-            requestAnimationFrame(() => {
-                if (messagesEndRef.current) {
-                    messagesEndRef.current.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'end'
-                    });
-                }
+            const container = messagesContainerRef.current;
+            container.scrollTo({
+                top: container.scrollHeight,
+                behavior: 'smooth'
             });
         }
     }, [autoScrollEnabled]);
