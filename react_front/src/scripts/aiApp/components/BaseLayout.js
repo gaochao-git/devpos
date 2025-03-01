@@ -374,6 +374,21 @@ export class BaseChatFooter extends React.Component {
         this.fileInputRef = React.createRef();
     }
 
+    componentDidUpdate(prevProps) {
+        // 当流式状态启用后，清空文件状态
+        if (this.props.isStreaming && !prevProps.isStreaming) {
+            this.setState({
+                files: [],
+                fileStatuses: {},
+                uploadedFileIds: []
+            }, () => {
+                if (this.props.onFilesChange) {
+                    this.props.onFilesChange([], []);
+                }
+            });
+        }
+    }
+
     handleFileUpload = async (info) => {
         const { file } = info;
         const newFiles = [file];

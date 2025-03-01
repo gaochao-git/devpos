@@ -91,7 +91,7 @@ const sendMessageToAssistant = async (
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-
+re
         await handleDifyStream(response, { 
             setMessages, 
             setIsStreaming, 
