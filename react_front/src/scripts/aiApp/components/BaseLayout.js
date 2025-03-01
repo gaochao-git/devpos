@@ -122,7 +122,6 @@ export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration 
                                         placement="top"
                                     >
                                         <ActionButton>
-                                            <Icon type="dollar" />
                                             <span>¥{message.metadata.usage.total_price}</span>
                                         </ActionButton>
                                     </Tooltip>
