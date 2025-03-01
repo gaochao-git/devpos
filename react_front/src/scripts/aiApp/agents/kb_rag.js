@@ -214,7 +214,7 @@ export default class DataAnalysisAgent extends Component {
 
         this.setState(prevState => ({
             messages: [...prevState.messages, userMessage],
-            streaming: true  // 设置 streaming 状态
+            streaming: true
         }));
 
         try {
@@ -228,7 +228,7 @@ export default class DataAnalysisAgent extends Component {
                 {
                     query: content,
                     inputs,
-                    files: [],
+                    files: this.state.uploadedFiles,
                     conversationId: this.state.conversationId,
                     abortController: this.abortController,
                     agentType: 'data-analysis'
@@ -250,6 +250,10 @@ export default class DataAnalysisAgent extends Component {
                     setConversationId: (conversationId) => this.setState({ conversationId })
                 }
             );
+
+            // 发送成功后清空文件列表
+            this.setState({ uploadedFiles: [] });
+
         } catch (error) {
             console.error('Failed to send message:', error);
             message.error('发送消息失败');
