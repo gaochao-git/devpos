@@ -93,17 +93,6 @@ export class BaseChatHeader extends React.Component {
                 gap: '16px' 
             }}>
                 {extraActions}
-                <Tooltip title="历史会话">
-                    <Icon 
-                        type={isHistoryLoading ? "loading" : "history"}
-                        style={{ 
-                            fontSize: '18px',
-                            cursor: isHistoryLoading ? 'not-allowed' : 'pointer',
-                            color: '#1890ff'
-                        }}
-                        onClick={!isHistoryLoading ? onViewHistory : undefined}
-                    />
-                </Tooltip>
                 <Tooltip title="新开会话">
                     <Icon 
                         type="plus-circle" 
@@ -113,6 +102,17 @@ export class BaseChatHeader extends React.Component {
                             color: '#1890ff'
                         }}
                         onClick={onNewChat}
+                    />
+                </Tooltip>
+                <Tooltip title="历史会话">
+                    <Icon 
+                        type={isHistoryLoading ? "loading" : "history"}
+                        style={{ 
+                            fontSize: '18px',
+                            cursor: isHistoryLoading ? 'not-allowed' : 'pointer',
+                            color: '#1890ff'
+                        }}
+                        onClick={!isHistoryLoading ? onViewHistory : undefined}
                     />
                 </Tooltip>
             </div>
