@@ -100,18 +100,26 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
 
                     // 处理结束事件
                     if (data.event === 'message_end') {
+                        // 确保我们有完整的元数据
+                        const metadata = data.metadata || {};
+                        
                         setMessages(prev => {
                             const newMessages = [...prev];
                             const lastMessage = newMessages[newMessages.length - 1];
                             newMessages[newMessages.length - 1] = {
                                 ...lastMessage,
                                 content: fullContent,
-                                metadata: data.metadata,
+                                metadata: metadata,
                                 isCurrentMessage: false
                             };
                             return newMessages;
                         });
-                        setIsStreaming(false);
+                        
+                        // 延迟一点再结束流处理，确保所有数据都被处理
+                        setTimeout(() => {
+                            setIsStreaming(false);
+                        }, 100);
+                        
                         continue;
                     }
 
