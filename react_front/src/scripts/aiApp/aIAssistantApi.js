@@ -50,6 +50,7 @@ const uploadFile = async (file, agentType) => {
  * 发送消息到通用助手
  * @param {Object} params - 请求参数
  * @param {string} params.query - 用户输入的消息
+ * @param {Object} params.inputs - 输入参数，如RAG配置
  * @param {Object} params.files - 文件列表
  * @param {string} params.conversationId - 会话ID
  * @param {AbortController} params.abortController - 用于取消请求的控制器
@@ -63,13 +64,13 @@ const uploadFile = async (file, agentType) => {
  * @returns {Promise<void>}
  */
 const sendMessageToAssistant = async (
-    { query, files, conversationId, abortController, agentType },
+    { query, inputs, files, conversationId, abortController, agentType },
     { setMessages, setIsStreaming, getStandardTime, setTaskId, setConversationId }
 ) => {
     const { baseUrl, apiKey } = getAgentConfig(agentType);
     try {
         const requestBody = {
-            inputs: {},
+            inputs: inputs || {},  // 使用传入的inputs或默认为空对象
             query,
             response_mode: 'streaming',
             conversation_id: conversationId,

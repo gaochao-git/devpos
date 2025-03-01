@@ -50,52 +50,66 @@ const RagConfigPanel = React.memo(({
 }) => {
     return (
         <Card 
-            title="RAG 配置" 
+            title={
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Checkbox
+                        checked={ragConfig.enabled}
+                        onChange={(e) => updateRagConfig({ enabled: e.target.checked })}
+                    >
+                        启用知识库增强
+                    </Checkbox>
+                </div>
+            }
             bordered={false}
             style={{ marginBottom: '10px' }}
         >
-            <div style={{ marginBottom: '15px' }}>
-                <div style={{ marginBottom: '5px' }}>数据库类型</div>
-                <div style={{ marginBottom: '8px' }}>
-                    <Checkbox 
-                        checked={allSelected}
-                        onChange={onSelectAll}
-                    >
-                        全选
-                    </Checkbox>
-                </div>
-                <Select
-                    mode="multiple"
-                    style={{ width: '100%' }}
-                    placeholder="选择数据库类型"
-                    value={ragConfig.db_types}
-                    onChange={onDBTypeChange}
-                >
-                    {DB_OPTIONS.map(option => (
-                        <Option key={option.value} value={option.value}>
-                            {option.label}
-                        </Option>
-                    ))}
-                </Select>
-            </div>
+            {/* 只有在启用RAG时才显示其他参数 */}
+            {ragConfig.enabled && (
+                <>
+                    <div style={{ marginBottom: '15px' }}>
+                        <div style={{ marginBottom: '5px' }}>数据库类型</div>
+                        <div style={{ marginBottom: '8px' }}>
+                            <Checkbox 
+                                checked={allSelected}
+                                onChange={onSelectAll}
+                            >
+                                全选
+                            </Checkbox>
+                        </div>
+                        <Select
+                            mode="multiple"
+                            style={{ width: '100%' }}
+                            placeholder="选择数据库类型"
+                            value={ragConfig.db_types}
+                            onChange={onDBTypeChange}
+                        >
+                            {DB_OPTIONS.map(option => (
+                                <Option key={option.value} value={option.value}>
+                                    {option.label}
+                                </Option>
+                            ))}
+                        </Select>
+                    </div>
 
-            <div style={{ marginBottom: '15px' }}>
-                <div style={{ marginBottom: '5px' }}>矢量搜索</div>
-                <Input
-                    placeholder="输入关键词，用于语义相似度搜索"
-                    value={ragConfig.vectorQuery}
-                    onChange={(e) => updateRagConfig({ vectorQuery: e.target.value })}
-                />
-            </div>
+                    <div style={{ marginBottom: '15px' }}>
+                        <div style={{ marginBottom: '5px' }}>矢量搜索</div>
+                        <Input
+                            placeholder="输入关键词，用于语义相似度搜索"
+                            value={ragConfig.vectorQuery}
+                            onChange={(e) => updateRagConfig({ vectorQuery: e.target.value })}
+                        />
+                    </div>
 
-            <div style={{ marginBottom: '15px' }}>
-                <div style={{ marginBottom: '5px' }}>标量搜索</div>
-                <Input
-                    placeholder="输入关键词，用于精确/模糊匹配搜索"
-                    value={ragConfig.scalarQuery}
-                    onChange={(e) => updateRagConfig({ scalarQuery: e.target.value })}
-                />
-            </div>
+                    <div style={{ marginBottom: '15px' }}>
+                        <div style={{ marginBottom: '5px' }}>标量搜索</div>
+                        <Input
+                            placeholder="输入关键词，用于精确/模糊匹配搜索"
+                            value={ragConfig.scalarQuery}
+                            onChange={(e) => updateRagConfig({ scalarQuery: e.target.value })}
+                        />
+                    </div>
+                </>
+            )}
         </Card>
     );
 });
@@ -143,6 +157,7 @@ const DataAnalysisAgent = () => {
     
     // RAG 配置
     const [ragConfig, setRagConfig] = useState({
+        enabled: false,
         db_types: [],
         vectorQuery: '',
         scalarQuery: ''
@@ -220,7 +235,8 @@ const DataAnalysisAgent = () => {
     // 更新 RAG 配置
     const updateRagConfig = useCallback((updates) => {
         setRagConfig(prev => ({ ...prev, ...updates }));
-    }, []);
+        console.log("RAG配置已更新:", { ...ragConfig, ...updates });
+    }, [ragConfig]);
     
     // 全选处理
     const handleSelectAll = useCallback((e) => {
@@ -289,11 +305,15 @@ const DataAnalysisAgent = () => {
         setShouldAutoScroll(true);
         
         try {
+            // 准备RAG配置
             const inputs = {
+                enabled: ragConfig.enabled,
                 db_types: ragConfig.db_types,
                 vector_query: ragConfig.vectorQuery,
                 scalar_query: ragConfig.scalarQuery
             };
+            
+            console.log("发送RAG配置:", inputs);
 
             // 准备文件对象
             const fileObjects = uploadedFileIds.map(id => ({
@@ -326,7 +346,7 @@ const DataAnalysisAgent = () => {
             await sendMessageToAssistant(
                 {
                     query: content,
-                    inputs,
+                    inputs: inputs,
                     files: fileObjects,
                     conversationId,
                     abortController: abortControllerRef.current,
