@@ -230,6 +230,8 @@ async def search_and_answer(request: dict):
     try:
         question = request.get("question", "")
         db_types = request.get("db_types", [])
+        vector_query = request.get("vector_query", "")
+        scalar_query = request.get("scalar_query", "")
         
         logger.info(f"收到问答请求: question={question}, db_types={db_types}")
         
@@ -244,8 +246,9 @@ async def search_and_answer(request: dict):
             try:
                 # 这里替换为你的向量搜索实现
                 contexts = await rag_service.get_search_context(
-                    vector_query=question,
+                    vector_query=vector_query,
                     db_type=db_type,
+                    scalar_query=scalar_query,
                     top_k=3
                 )
                 
