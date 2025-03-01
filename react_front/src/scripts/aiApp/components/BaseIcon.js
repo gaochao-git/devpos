@@ -116,3 +116,24 @@ export const NewChatIcon = ({ onClick }) => (
         />
     </Tooltip>
 );
+
+// 添加文件图标函数
+export const getFileIcon = (fileName) => {
+  const extension = fileName.split('.').pop().toLowerCase();
+  switch (extension) {
+    case 'pdf':
+      return '📄';
+    case 'doc':
+    case 'docx':
+      return '📝';
+    case 'txt':
+      return '📃';
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+      return '🖼️';
+    default:
+      return '📎';
+  }
+};

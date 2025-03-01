@@ -1,6 +1,6 @@
 import React from 'react';
 import { Icon, Tooltip, Input, Button, Upload, message } from 'antd';
-import { SendIcon, UploadIcon, WebSearchIcon } from './BaseIcon';
+import { SendIcon, UploadIcon, WebSearchIcon, getFileIcon } from './BaseIcon';
 import { uploadFile } from '../aIAssistantApi';
 import styled from 'styled-components';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -411,21 +411,6 @@ export class BaseChatFooter extends React.Component {
         });
     };
 
-    getFileIcon = (file) => {
-        const extension = file.name.split('.').pop().toLowerCase();
-        switch (extension) {
-            case 'pdf': return '📄';
-            case 'doc':
-            case 'docx': return '📝';
-            case 'txt': return '📃';
-            case 'jpg':
-            case 'jpeg':
-            case 'png':
-            case 'gif': return '🖼️';
-            default: return '📎';
-        }
-    };
-
     render() {
         const { 
             value, 
@@ -480,7 +465,7 @@ export class BaseChatFooter extends React.Component {
                                         border: '1px solid #d9d9d9',
                                         maxWidth: '150px'
                                     }}>
-                                        {this.getFileIcon(file)}
+                                        {getFileIcon(file.name)}
                                         <span style={{ 
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
