@@ -15,6 +15,8 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
     let buffer = '';
     let fullContent = '';
     let lastUpdateTime = Date.now();
+    let taskId = null;
+    let conversationId = null;
     const UPDATE_INTERVAL = 150;
     
     // 添加新消息，标记为当前消息
@@ -51,12 +53,12 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
                     const data = JSON.parse(jsonStr);
                     
                     // 处理会话ID
-                    if (data.conversation_id && setConversationId) {
+                    if (!conversationId && data.conversation_id) {
                         setConversationId(data.conversation_id);
                     }
 
                     // 从消息体中获取 task_id
-                    if (data.task_id && setTaskId) {
+                    if (!taskId && data.task_id) {
                         console.log('Task ID from message:', data.task_id);
                         setTaskId(data.task_id);
                     }
