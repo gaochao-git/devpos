@@ -306,12 +306,17 @@ const DataAnalysisAgent = () => {
         
         try {
             // 准备RAG配置
-            const inputs = {
-                enabled: ragConfig.enabled,
-                db_types: ragConfig.db_types,
-                vector_query: ragConfig.vectorQuery,
-                scalar_query: ragConfig.scalarQuery
-            };
+            let inputs = {};
+            
+            // 只有在启用RAG时才添加RAG相关参数
+            if (ragConfig.enabled) {
+                inputs = {
+                    enabled: true,
+                    db_types: ragConfig.db_types,
+                    vector_query: ragConfig.vectorQuery,
+                    scalar_query: ragConfig.scalarQuery
+                };
+            }
             
             console.log("发送RAG配置:", inputs);
 
