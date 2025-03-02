@@ -317,7 +317,9 @@ const Message = React.memo(({
   );
 });
 
-const GeneralAgent = ({ agentType = 'general' }) => {
+const agentTypeKey = 'general';
+
+const GeneralAgent = ({ agentType = agentTypeKey }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);

@@ -68,6 +68,7 @@ const sendMessageToAssistant = async (
     { setMessages, setIsStreaming, getStandardTime, setTaskId, setConversationId }
 ) => {
     const { baseUrl, apiKey } = getAgentConfig(agentType);
+    console.log("agentType:", agentType);
     try {
         const requestBody = {
             inputs: inputs || {},  // 使用传入的inputs或默认为空对象

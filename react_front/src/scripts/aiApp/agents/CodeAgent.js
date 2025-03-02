@@ -329,12 +329,12 @@ const MessageList = React.memo(({
 });
 
 // 智能体名称
-const agentName = 'code';
+const agentTypeKey = 'code';
 
 // 重构为函数式组件
 const CodeAgent = () => {
     // 获取智能体配置
-    const agentConfig = agentComponentMap[agentName];
+    const agentConfig = agentComponentMap[agentTypeKey];
     // 状态管理
     const [question, setQuestion] = useState('');
     const [messages, setMessages] = useState([]);
@@ -458,7 +458,7 @@ const CodeAgent = () => {
     const fetchHistoryList = useCallback(async (agentType) => {
         setIsHistoryLoading(true);
         try {
-            const data = await getHistoryConversations(agentType=agentConfig.name);
+            const data = await getHistoryConversations(agentType=agentTypeKey);
             if (data.data && data.data.length > 0) {
                 setHistoryData(data.data);
                 setHistoryModalVisible(true);
@@ -482,7 +482,7 @@ const CodeAgent = () => {
             setLoadingConversations(prev => new Set(prev).add(conversationId));
             try {
                 // 使用 getHistoryMessageDetail 并传递助手类型
-                const messagesData = await getHistoryMessageDetail(conversationId, agentConfig.name);
+                const messagesData = await getHistoryMessageDetail(conversationId, agentTypeKey);
                 setConversationMessages(prev => new Map(prev).set(conversationId, messagesData.data));
             } catch (error) {
                 console.error('获取会话详情失败:', error);
@@ -511,7 +511,7 @@ const CodeAgent = () => {
     const handleContinueConversation = useCallback(async (conversation) => {
         try {
             // 使用 getHistoryMessageDetail 并传递助手类型
-            const messagesData = await getHistoryMessageDetail(conversation.id, agentConfig.name);
+            const messagesData = await getHistoryMessageDetail(conversation.id, agentTypeKey);
             setConversationId(conversation.id);
             
             const convertedMessages = messagesData.data.flatMap(msg => {
@@ -625,7 +625,7 @@ const CodeAgent = () => {
                     files: fileObjects,
                     conversationId,
                     abortController: abortControllerRef.current,
-                    agentType: agentConfig.name
+                    agentType: agentTypeKey
                 },
                 {
                     setMessages: setMessages,
@@ -734,7 +734,7 @@ const CodeAgent = () => {
                             onWebSearch={handleWebSearch}
                             isWebSearchActive={isWebSearchActive}
                             onFilesChange={handleFilesChange}
-                            agentType={agentConfig.name}
+                            agentType={agentTypeKey}
                         />
                     </div>
                 </div>
