@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { Button, Icon, message, Tooltip } from 'antd';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -11,6 +11,7 @@ import {
 } from '../aIAssistantApi';
 import HistoryConversationModal from '../components/HistoryConversationModal';
 import { agentComponentMap } from '../config/componentMapping';  // 添加这行导入
+import { BaseChatHeader, BaseChatFooter, ChatMessage } from '../components/BaseLayout';
 
 const ChatContainer = styled.div`
   display: flex;
@@ -223,564 +224,394 @@ const RemoveFileButton = styled.button`
   }
 `;
 
-// 添加样式组件
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 24px;
-  border-bottom: 1px solid #e8e8e8;
-  background: #fff;
-  border-radius: 8px 8px 0 0;
-`;
-
-const HeaderLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const HeaderRight = styled.div`
-  display: flex;
-  gap: 16px;  // 增加图标间距
-  align-items: center;
-`;
-
-// 修改图标样式，使用圆形背景
-const AgentIcon = styled.span`
-  font-size: 32px;  // 调整图标大小
-  display: flex;
-  align-items: center;
-  justify-content: center;  // 水平居中
-  color: white;  // 图标颜色改为白色
-  background-color: ${props => props.color};  // 使用传入的颜色作为背景
-  width: 36px;  // 固定宽度
-  height: 36px;  // 固定高度
-  border-radius: 4px;  // 使用 50% 实现圆形
-  margin-right: 2px;  // 与文字的间距
-`;
-
-const AgentName = styled.span`
-  font-size: 16px;
-  color: #333;
-  font-weight: 500;  // 稍微加粗文字
-`;
-
-// 提取消息组件
-const Message = React.memo(({ 
-  message, 
-  isStreaming, 
-  handleStopGeneration 
-}) => (
-  <MessageContainer isUser={message.isUser}>
-    <MessageBubble 
-      isUser={message.isUser}
-      isError={message.isError}
-    >
-      {message.isUser ? (
-        <div>{message.content}</div>
-      ) : (
-        <div className="markdown-content">
-          <MarkdownRenderer content={message.content} />
-          {message.metadata?.usage && (
-            <div className="metadata">
-              <div>Tokens: {message.metadata.usage.total_tokens} (Prompt: {message.metadata.usage.prompt_tokens}, Completion: {message.metadata.usage.completion_tokens})</div>
-              <div>Cost: ¥{message.metadata.usage.total_price} (Prompt: ¥{message.metadata.usage.prompt_price}, Completion: ¥{message.metadata.usage.completion_price})</div>
-              <div>Response Time: {message.metadata.usage.latency.toFixed(2)}s</div>
-            </div>
-          )}
-        </div>
-      )}
-      {message.files && message.files.length > 0 && (
-        <div style={{ marginTop: '8px', fontSize: '14px', opacity: 0.8 }}>
-          📎 {message.files.join(', ')}
-        </div>
-      )}
-    </MessageBubble>
-    {(!message.isCurrentMessage || !isStreaming) && (
-      <Timestamp isUser={message.isUser}>
-        {message.timestamp}
-      </Timestamp>
-    )}
-  </MessageContainer>
-), (prevProps, nextProps) => {
-  // 如果是当前正在生成的消息，不进行记忆化
-  if (nextProps.message.isCurrentMessage) {
-    return false;
-  }
-  
-  // 对于历史消息，比较关键属性
-  return (
-    prevProps.message.content === nextProps.message.content &&
-    prevProps.message.timestamp === nextProps.message.timestamp &&
-    prevProps.isStreaming === nextProps.isStreaming
-  );
-});
-
 const agentTypeKey = 'general';
 
-const GeneralAgent = ({ agentType = agentTypeKey }) => {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [conversationId, setConversationId] = useState(null);
-  const [files, setFiles] = useState([]);
-  const [fileStatuses, setFileStatuses] = useState({});
-  const [uploadedFileIds, setUploadedFileIds] = useState([]);
-  const fileInputRef = useRef(null);
-  const abortControllerRef = useRef(null);
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-  const messagesContainerRef = useRef(null);
-  const [historyModalVisible, setHistoryModalVisible] = useState(false);
-  const [historyData, setHistoryData] = useState([]);
-  const [expandedConversations, setExpandedConversations] = useState(new Set());
-  const [conversationMessages, setConversationMessages] = useState(new Map());
-  const [loadingConversations, setLoadingConversations] = useState(new Set());
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [currentTaskId, setCurrentTaskId] = useState(null);
+const MessageList = React.memo(({ messages, streaming, onStopGeneration, messagesEndRef }) => {
+    return (
+        <>
+            {messages.map((message, index) => (
+                <ChatMessage
+                    key={index}
+                    message={message}
+                    isStreaming={streaming && index === messages.length - 1}
+                    onStopGeneration={onStopGeneration}
+                    agentType={agentTypeKey}
+                />
+            ))}
+            <div ref={messagesEndRef} />
+        </>
+    );
+});
 
-  // 获取助手配置
-  const agentConfig = agentComponentMap[agentType];
-
-  const getStandardTime = () => {
-    const now = new Date();
-    return now.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      fractionalSecondDigits: 3,
-      hour12: false
-    }).replace(/\//g, '-');
-  };
-
-  useEffect(() => {
-    // 只添加欢迎消息
-    setMessages([{
-      content: "你好！我是通用助手，请问有什么我可以帮你的？",
-      isUser: false,
-      timestamp: getStandardTime()
-    }]);
-
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
-
-  // 监听滚动事件
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      // 如果用户向上滚动，停止自动滚动
-      // 添加一个小的缓冲区（例如 100px）以使体验更流畅
-      const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
-      setShouldAutoScroll(isAtBottom);
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // 消息更新时的滚动处理
-  useEffect(() => {
-    if (shouldAutoScroll) {
-      scrollToBottom();
-    }
-  }, [messages, shouldAutoScroll]);
-
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      const container = messagesContainerRef.current;
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
-  };
-
-  const handleFileUpload = async (event) => {
-    const newFiles = Array.from(event.target.files);
+const GeneralAgent = () => {
+    // 获取智能体配置
+    const agentConfig = agentComponentMap[agentTypeKey];
     
-    // 更新文件列表和状态
-    setFiles(prev => [...prev, ...newFiles]);
-    newFiles.forEach(file => {
-      setFileStatuses(prev => ({
-        ...prev,
-        [file.name]: { status: 'uploading', id: null }
-      }));
-    });
-
-    // 立即上传文件
-    for (const file of newFiles) {
-      try {
-        const uploadResult = await uploadFile(file);
-        setFileStatuses(prev => ({
-          ...prev,
-          [file.name]: { status: 'ready', id: uploadResult.id }
-        }));
-        setUploadedFileIds(prev => [...prev, uploadResult.id]);
-      } catch (error) {
-        console.error('文件上传失败:', error);
-        setFileStatuses(prev => ({
-          ...prev,
-          [file.name]: { status: 'error', error: '上传失败' }
-        }));
-      }
-    }
-  };
-
-  const removeFile = (fileToRemove) => {
-    setFiles(prev => prev.filter(file => file !== fileToRemove));
-    // 同时移除对应的文件ID
-    const fileStatus = fileStatuses[fileToRemove.name];
-    if (fileStatus?.id) {
-      setUploadedFileIds(prev => prev.filter(id => id !== fileStatus.id));
-    }
-    // 清除文件状态
-    setFileStatuses(prev => {
-      const newStatus = { ...prev };
-      delete newStatus[fileToRemove.name];
-      return newStatus;
-    });
-  };
-
-  const handleSend = async () => {
-    if ((!input.trim() && files.length === 0) || isStreaming) return;
-
-    const userMessage = {
-      content: input,
-      files: files.map(f => f.name),
-      isUser: true,
-      timestamp: getStandardTime()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
+    // 状态管理
+    const [input, setInput] = useState('');
+    const [messages, setMessages] = useState([]);
+    const [conversationId, setConversationId] = useState(null);
+    const [streaming, setStreaming] = useState(false);
+    const [taskId, setTaskId] = useState(null);
+    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+    const [isWebSearchActive, setIsWebSearchActive] = useState(false);
+    const [uploadedFiles, setUploadedFiles] = useState([]);
+    const [uploadedFileIds, setUploadedFileIds] = useState([]);
     
-    const fileIds = [...uploadedFileIds];
-    setFiles([]);
-    setFileStatuses({});
-    setUploadedFileIds([]);
+    // 添加自动滚动控制状态
+    const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     
-    setIsStreaming(true);
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    try {
-      const fileObjects = fileIds.map(id => ({
-        type: "document",
-        transfer_method: "local_file",
-        upload_file_id: id
-      }));
-
-      await sendMessageToAssistant(
-        {
-          query: input,
-          files: fileObjects,
-          conversationId,
-          abortController: abortControllerRef.current,
-          agentType
-        },
-        {
-          setMessages,
-          setIsStreaming,
-          getStandardTime,
-          setTaskId: (taskId) => {
-            console.log('Received task ID:', taskId);
-            setCurrentTaskId(taskId);
-          },
-          setConversationId
-        }
-      );
-    } catch (error) {
-      console.error('发送消息失败:', error);
-      setMessages(prev => [...prev, {
-        content: '发送消息失败，请重试。',
-        isError: true,
-        timestamp: getStandardTime()
-      }]);
-      setIsStreaming(false);
-    } finally {
-      document.querySelector('input').focus(); // 在 finally 中聚焦输入框
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  // 添加 getFileIcon 函数
-  const getFileIcon = (file) => {
-    const extension = file.name.split('.').pop().toLowerCase();
-    switch (extension) {
-      case 'pdf':
-        return '📄';
-      case 'doc':
-      case 'docx':
-        return '📝';
-      case 'txt':
-        return '📃';
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'gif':
-        return '🖼️';
-      default:
-        return '📎';
-    }
-  };
-
-  // 获取历史会话列表
-  const fetchHistoryList = async (agentType) => {
-    setIsHistoryLoading(true);
-    try {
-      const data = await getHistoryConversations(agentType='general');
-      if (data.data && data.data.length > 0) {
-        setHistoryData(data.data);
-        setHistoryModalVisible(true);
-      } else {
-        message.info('暂无历史会话记录');
-      }
-    } catch (error) {
-      console.error('获取历史记录失败:', error);
-      message.error('获取历史记录失败，请稍后重试');
-    } finally {
-      setIsHistoryLoading(false);
-    }
-  };
-
-  // 处理展开/收起会话
-  const handleConversationToggle = async (conversationId) => {
-    const isExpanded = expandedConversations.has(conversationId);
-    const messages = conversationMessages.get(conversationId);
-
-    if (!isExpanded && !messages) {
-      setLoadingConversations(prev => new Set(prev).add(conversationId));
-      try {
-        // 使用新的 API 获取历史消息详情
-        const messagesData = await getHistoryMessageDetail(conversationId, 'general');
-        setConversationMessages(prev => new Map(prev).set(conversationId, messagesData.data));
-      } catch (error) {
-        message.error('获取会话详情失败');
-      } finally {
-        setLoadingConversations(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(conversationId);
-          return newSet;
+    // 添加历史会话相关状态
+    const [historyModalVisible, setHistoryModalVisible] = useState(false);
+    const [historyData, setHistoryData] = useState([]);
+    const [expandedConversations, setExpandedConversations] = useState(new Set());
+    const [conversationMessages, setConversationMessages] = useState(new Map());
+    const [loadingConversations, setLoadingConversations] = useState(new Set());
+    
+    // Refs
+    const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
+    const abortControllerRef = useRef(null);
+    
+    // 获取标准时间
+    const getStandardTime = () => {
+        const now = new Date();
+        return now.toLocaleString('zh-CN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
         });
-      }
-    }
-
-    setExpandedConversations(prev => {
-      const newSet = new Set(prev);
-      if (isExpanded) {
-        newSet.delete(conversationId);
-      } else {
-        newSet.add(conversationId);
-      }
-      return newSet;
-    });
-  };
-
-  // 继续历史会话
-  const handleContinueConversation = async (conversation) => {
-    try {
-      // 使用新的 API 获取历史消息详情
-      const messagesData = await getHistoryMessageDetail(conversation.id, 'general');
-      setConversationId(conversation.id);
-      
-      const convertedMessages = messagesData.data.flatMap(msg => {
-        const messages = [];
+    };
+    
+    // 初始化欢迎消息
+    useEffect(() => {
+        setMessages([{
+            role: 'assistant',
+            content: "你好！我是通用助手，请问有什么我可以帮你的？",
+            time: getStandardTime()
+        }]);
         
-        if (msg.query) {
-          messages.push({
-            content: msg.query,
-            isUser: true,
-            timestamp: new Date(msg.created_at * 1000).toLocaleString()
-          });
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, []);
+    
+    // 滚动到底部
+    const scrollToBottom = useCallback(() => {
+        if (messagesEndRef.current && shouldAutoScroll && messagesContainerRef.current) {
+            const container = messagesContainerRef.current;
+            container.scrollTo({
+                top: container.scrollHeight,
+                behavior: 'smooth'
+            });
         }
+    }, [shouldAutoScroll]);
+    
+    // 监听消息变化，自动滚动
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, scrollToBottom]);
+    
+    // 监听滚动事件
+    useEffect(() => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
         
-        if (msg.answer) {
-          messages.push({
-            content: msg.answer,
-            isUser: false,
-            timestamp: new Date(msg.created_at * 1000).toLocaleString()
-          });
-        }
+        const handleScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            // 如果用户向上滚动，停止自动滚动
+            // 添加一个小的缓冲区（例如 100px）以使体验更流畅
+            const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+            setShouldAutoScroll(isAtBottom);
+        };
         
-        return messages;
-      });
-      
-      setMessages(convertedMessages);
-      setHistoryModalVisible(false);
-    } catch (error) {
-      console.error('继续会话失败:', error);
-      message.error('继续会话失败，请稍后重试');
-    }
-  };
-
-  // 添加新开会话处理函数
-  const handleNewConversation = () => {
-    setMessages([]);
-    setConversationId('');
-  };
-
-  const handleStopGeneration = async () => {
-    console.log('Attempting to stop generation with task ID:', currentTaskId);
-    if (currentTaskId) {
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, []);
+    
+    // 处理文件变更
+    const handleFilesChange = useCallback((files, fileIds) => {
+        setUploadedFiles(files);
+        setUploadedFileIds(fileIds);
+    }, []);
+    
+    // 处理网络搜索切换
+    const handleWebSearch = useCallback(() => {
+        setIsWebSearchActive(!isWebSearchActive);
+    }, [isWebSearchActive]);
+    
+    // 获取历史会话列表
+    const fetchHistoryList = useCallback(async () => {
+        setIsHistoryLoading(true);
         try {
-            await stopMessageGeneration(currentTaskId, agentType);
-            setIsStreaming(false);
-            setCurrentTaskId(null);
+            const data = await getHistoryConversations(agentTypeKey);
+            if (data.data && data.data.length > 0) {
+                setHistoryData(data.data);
+                setHistoryModalVisible(true);
+            } else {
+                message.info('暂无历史会话记录');
+            }
         } catch (error) {
-            console.error('Failed to stop generation:', error);
+            console.error('获取历史记录失败:', error);
+            message.error('获取历史记录失败，请稍后重试');
+        } finally {
+            setIsHistoryLoading(false);
         }
-    }
-  };
-
-  return (
-    <ChatContainer>
-      <Header>
-        <HeaderLeft>
-          <AgentIcon color={agentConfig.color}>
-            {agentConfig.icon}
-          </AgentIcon>
-          <AgentName>{agentConfig.name}</AgentName>
-        </HeaderLeft>
-        <HeaderRight>
-          <Tooltip title="新开会话">
-            <Icon 
-              type="plus-circle" 
-              style={{ 
-                fontSize: '18px',
-                cursor: 'pointer',
-                color: '#1890ff'
-              }}
-              onClick={handleNewConversation}
-            />
-          </Tooltip>
-          <Tooltip title="历史会话">
-            <Icon 
-              type={isHistoryLoading ? "loading" : "history"}
-              style={{ 
-                fontSize: '18px',
-                cursor: isHistoryLoading ? 'not-allowed' : 'pointer',
-                color: '#1890ff'
-              }}
-              onClick={!isHistoryLoading ? fetchHistoryList : undefined}
-            />
-          </Tooltip>
-        </HeaderRight>
-      </Header>
-
-      <MessagesContainer 
-        className="messages-container"
-        ref={messagesContainerRef}
-      >
-        {messages.map((message, index) => (
-          <Message
-            key={message.timestamp}
-            message={message}
-            isStreaming={isStreaming}
-            handleStopGeneration={handleStopGeneration}
-          />
-        ))}
-      </MessagesContainer>
-      <InputContainer>
-        <InputWrapper>
-          <InputWithButtons>
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="智能助手随时待命..."
-              disabled={isStreaming}
-            />
-            <ButtonGroup>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                style={{ display: 'none' }}
-                multiple
-                accept=".txt,.md,.mdx,.pdf,.html,.htm,.xlsx,.xls,.docx,.csv"
-              />
-              <UploadButton
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isStreaming}
-                title="上传图片或文档"
-              >
-                <Icon type="plus" />
-              </UploadButton>
-              {isStreaming ? (
-                <StopButton 
-                  onClick={handleStopGeneration}
-                  title="停止生成"
-                >
-                  <Icon type="pause" />
-                </StopButton>
-              ) : (
-                <SendButton 
-                  onClick={handleSend} 
-                  disabled={(!input.trim() && files.length === 0) || isStreaming}
-                  title="发送消息"
-                >
-                  <Icon type="arrow-up" />
-                </SendButton>
-              )}
-            </ButtonGroup>
-          </InputWithButtons>
-          {files.length > 0 && (
-            <FileUploadContainer>
-              {files.map((file, index) => (
-                <FilePreview 
-                  key={index}
-                  className={fileStatuses[file.name]?.status}
-                >
-                  {getFileIcon(file)}
-                  <span>{file.name}</span>
-                  {fileStatuses[file.name]?.status === 'uploading' && (
-                    <span className="file-status">上传中...</span>
-                  )}
-                  <RemoveFileButton 
-                    onClick={() => removeFile(file)}
-                    title="移除文件"
-                  >
-                    ×
-                  </RemoveFileButton>
-                </FilePreview>
-              ))}
-            </FileUploadContainer>
-          )}
-        </InputWrapper>
-      </InputContainer>
-
-      {/* 添加历史会话弹窗 */}
-      <HistoryConversationModal
-        visible={historyModalVisible}
-        onCancel={() => setHistoryModalVisible(false)}
-        historyData={historyData}
-        expandedConversations={expandedConversations}
-        conversationMessages={conversationMessages}
-        loadingConversations={loadingConversations}
-        onConversationToggle={handleConversationToggle}
-        onContinueConversation={handleContinueConversation}
-      />
-    </ChatContainer>
-  );
+    }, []);
+    
+    // 处理展开/收起会话
+    const handleConversationToggle = useCallback(async (conversationId) => {
+        const isExpanded = expandedConversations.has(conversationId);
+        const messages = conversationMessages.get(conversationId);
+        
+        if (!isExpanded && !messages) {
+            setLoadingConversations(prev => new Set(prev).add(conversationId));
+            try {
+                const messagesData = await getHistoryMessageDetail(conversationId, agentTypeKey);
+                setConversationMessages(prev => new Map(prev).set(conversationId, messagesData.data));
+            } catch (error) {
+                message.error('获取会话详情失败');
+            } finally {
+                setLoadingConversations(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(conversationId);
+                    return newSet;
+                });
+            }
+        }
+        
+        setExpandedConversations(prev => {
+            const newSet = new Set(prev);
+            if (isExpanded) {
+                newSet.delete(conversationId);
+            } else {
+                newSet.add(conversationId);
+            }
+            return newSet;
+        });
+    }, [expandedConversations, conversationMessages]);
+    
+    // 继续历史会话
+    const handleContinueConversation = useCallback(async (conversation) => {
+        try {
+            const messagesData = await getHistoryMessageDetail(conversation.id, agentTypeKey);
+            setConversationId(conversation.id);
+            
+            const convertedMessages = messagesData.data.flatMap(msg => {
+                const messages = [];
+                
+                if (msg.query) {
+                    messages.push({
+                        role: 'user',
+                        content: msg.query,
+                        time: new Date(msg.created_at * 1000).toLocaleString()
+                    });
+                }
+                
+                if (msg.answer) {
+                    messages.push({
+                        role: 'assistant',
+                        content: msg.answer,
+                        time: new Date(msg.created_at * 1000).toLocaleString(),
+                        message_id: msg.id
+                    });
+                }
+                
+                return messages;
+            });
+            
+            setMessages(convertedMessages);
+            setHistoryModalVisible(false);
+        } catch (error) {
+            console.error('继续会话失败:', error);
+            message.error('继续会话失败，请稍后重试');
+        }
+    }, []);
+    
+    // 发送消息
+    const handleSend = useCallback(async () => {
+        if ((!input.trim() && uploadedFiles.length === 0) || streaming) return;
+        
+        const userMessage = {
+            role: 'user',
+            content: input,
+            files: uploadedFiles.map(f => f.name),
+            time: getStandardTime()
+        };
+        
+        setMessages(prev => [...prev, userMessage]);
+        setInput('');
+        
+        const fileIds = [...uploadedFileIds];
+        setUploadedFiles([]);
+        setUploadedFileIds([]);
+        
+        setStreaming(true);
+        
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+        
+        try {
+            const fileObjects = fileIds.map(id => ({
+                type: "document",
+                transfer_method: "local_file",
+                upload_file_id: id
+            }));
+            
+            await sendMessageToAssistant(
+                {
+                    query: input,
+                    files: fileObjects,
+                    conversationId,
+                    abortController: abortControllerRef.current,
+                    agentType: agentTypeKey
+                },
+                {
+                    setMessages: (updater) => {
+                        setMessages(prev => {
+                            const newMessages = typeof updater === 'function' 
+                                ? updater(prev) 
+                                : updater;
+                            
+                            // 确保消息有正确的格式
+                            return newMessages.map(msg => ({
+                                ...msg,
+                                role: msg.isUser ? 'user' : 'assistant',
+                                time: msg.timestamp || msg.time || getStandardTime(),
+                                content: msg.content
+                            }));
+                        });
+                    },
+                    setIsStreaming: setStreaming,
+                    getStandardTime,
+                    setTaskId: (id) => {
+                        console.log('Received task ID:', id);
+                        setTaskId(id);
+                    },
+                    setConversationId
+                }
+            );
+        } catch (error) {
+            console.error('发送消息失败:', error);
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: '发送消息失败，请重试。',
+                isError: true,
+                time: getStandardTime()
+            }]);
+            setStreaming(false);
+        }
+    }, [input, uploadedFiles, uploadedFileIds, streaming, conversationId]);
+    
+    // 中断生成
+    const handleInterrupt = useCallback(async () => {
+        if (taskId) {
+            try {
+                await stopMessageGeneration(taskId, agentTypeKey);
+                setStreaming(false);
+                setTaskId(null);
+            } catch (error) {
+                console.error('Failed to stop generation:', error);
+            }
+        }
+    }, [taskId]);
+    
+    return (
+        <div style={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            height: 'calc(100vh - 128px)', 
+            padding: '20px',
+            background: '#f5f5f5'
+        }}>
+            <div style={{
+                flex: 1,
+                background: '#fff',
+                borderRadius: '8px',
+                border: '1px solid #e8e8e8',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+            }}>
+                <BaseChatHeader 
+                    icon={agentConfig.icon}
+                    title={agentConfig.name}
+                    description={agentConfig.description}
+                    iconBgColor={agentConfig.color}
+                    onNewChat={() => {
+                        setMessages([{
+                            role: 'assistant',
+                            content: "你好！我是通用助手，请问有什么我可以帮你的？",
+                            time: getStandardTime()
+                        }]);
+                        setConversationId(null);
+                        setInput("");
+                    }}
+                    onViewHistory={fetchHistoryList}
+                    isHistoryLoading={isHistoryLoading}
+                />
+                
+                <div style={{
+                    flex: 1,
+                    display: 'flex',
+                    overflow: 'hidden'
+                }}>
+                    <div style={{ 
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        background: '#F8FBFF'
+                    }}>
+                        <div 
+                            ref={messagesContainerRef}
+                            style={{
+                                flex: 1,
+                                overflow: 'auto',
+                                padding: '20px'
+                            }}
+                        >
+                            <MessageList 
+                                messages={messages}
+                                streaming={streaming}
+                                onStopGeneration={handleInterrupt}
+                                messagesEndRef={messagesEndRef}
+                            />
+                        </div>
+                        <BaseChatFooter 
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onSend={handleSend}
+                            disabled={streaming}
+                            isStreaming={streaming}
+                            onInterrupt={handleInterrupt}
+                            onWebSearch={handleWebSearch}
+                            isWebSearchActive={isWebSearchActive}
+                            onFilesChange={handleFilesChange}
+                            agentType={agentTypeKey}
+                        />
+                    </div>
+                </div>
+                
+                {/* 添加历史会话弹窗 */}
+                <HistoryConversationModal
+                    visible={historyModalVisible}
+                    onCancel={() => setHistoryModalVisible(false)}
+                    historyData={historyData}
+                    expandedConversations={expandedConversations}
+                    conversationMessages={conversationMessages}
+                    loadingConversations={loadingConversations}
+                    onConversationToggle={handleConversationToggle}
+                    onContinueConversation={handleContinueConversation}
+                />
+            </div>
+        </div>
+    );
 };
 
 export default GeneralAgent; 
