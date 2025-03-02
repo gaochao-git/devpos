@@ -69,15 +69,6 @@ const MarkdownRenderer = ({ content, isStreaming = false }) => {
         key={index}
         components={{
           code({ node, inline, className, children, ...props }) {
-            // 如果是行内代码，直接返回
-            if (inline) {
-              return (
-                <code className={className} {...props}>
-                  {children}
-                </code>
-              );
-            }
-
             // 获取语言，如果没有指定则默认为 plaintext
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : 'plaintext';
