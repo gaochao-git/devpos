@@ -86,6 +86,34 @@ export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration,
         }
     };
     
+    // 添加复制功能
+    const handleCopy = () => {
+        if (!message.content) {
+            antdMessage.warning('没有内容可复制');
+            return;
+        }
+        
+        // 创建一个临时文本区域来复制文本
+        const textArea = document.createElement('textarea');
+        textArea.value = message.content;
+        document.body.appendChild(textArea);
+        textArea.select();
+        
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                antdMessage.success('已复制到剪贴板');
+            } else {
+                antdMessage.error('复制失败');
+            }
+        } catch (err) {
+            antdMessage.error('复制失败: ' + err.message);
+        }
+        
+        // 清理临时元素
+        document.body.removeChild(textArea);
+    };
+    
     return (
         <MessageContainer isUser={isUser}>
             <MessageBubble isUser={isUser}>
@@ -126,7 +154,7 @@ export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration,
                         />
                         {!isStreaming && (
                             <LlmActionTailBar>
-                                <ActionButton>
+                                <ActionButton onClick={handleCopy}>
                                     <Icon type="copy" />
                                 </ActionButton>
                                 <ActionButton 
