@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Icon, Tooltip, Input, Button, Upload, message as antdMessage } from 'antd';
 import { SendIcon, UploadIcon, WebSearchIcon, getFileIcon } from './BaseIcon';
 import { uploadFile, submitMessageFeedback } from '../aIAssistantApi';
@@ -60,6 +60,8 @@ const ActionButton = styled.div`
 // 更新消息组件
 export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration, agentType = 'general' }) => {
     const isUser = message.role === 'user';
+    // 添加状态来跟踪用户反馈
+    const [feedback, setFeedback] = useState(null);
     
     // 添加点赞/点踩处理函数
     const handleFeedback = async (rating) => {
@@ -72,10 +74,11 @@ export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration,
         try {
             await submitMessageFeedback(message.message_id, rating, agentType);
             
+            // 更新反馈状态
+            setFeedback(rating);
+            
             // 显示成功消息
             antdMessage.info(`${rating === 'like' ? '点赞' : '点踩'}成功`);
-            
-            // 可以在这里更新消息状态，例如禁用按钮或改变颜色
             
         } catch (error) {
             console.error('提交反馈时出错:', error);
@@ -126,10 +129,22 @@ export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration,
                                 <ActionButton>
                                     <Icon type="copy" />
                                 </ActionButton>
-                                <ActionButton onClick={() => handleFeedback('like')}>
+                                <ActionButton 
+                                    onClick={() => handleFeedback('like')}
+                                    style={{ 
+                                        color: feedback === 'like' ? '#1890ff' : '#666',
+                                        fontWeight: feedback === 'like' ? 'bold' : 'normal'
+                                    }}
+                                >
                                     <Icon type="like" />
                                 </ActionButton>
-                                <ActionButton onClick={() => handleFeedback('dislike')}>
+                                <ActionButton 
+                                    onClick={() => handleFeedback('dislike')}
+                                    style={{ 
+                                        color: feedback === 'dislike' ? '#ff4d4f' : '#666',
+                                        fontWeight: feedback === 'dislike' ? 'bold' : 'normal'
+                                    }}
+                                >
                                     <Icon type="dislike" />
                                 </ActionButton>
                                 {message.metadata?.usage && (
