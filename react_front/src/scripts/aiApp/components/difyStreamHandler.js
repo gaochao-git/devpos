@@ -16,6 +16,7 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
     let fullContent = '';
     let lastUpdateTime = Date.now();
     let taskId = null;
+    let messageId = null;
     let conversationId = null;
     const UPDATE_INTERVAL = 150;
     
@@ -63,6 +64,7 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
                         setTaskId(data.task_id);
                     }
 
+
                     // 同时判断状态和错误信息
                     if (data.data?.status === 'stopped' && data.data?.error) {
                         fullContent += `\n\n_${data.data.error}_`;
@@ -73,7 +75,11 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
                                 ...lastMessage,
                                 content: fullContent,
                                 isCurrentMessage: true,
-                                timestamp: getStandardTime()
+                                timestamp: getStandardTime(),
+                                message_id: data.message_id,
+                                conversation_id: data.conversation_id,
+                                task_id: data.task_id,
+                                role: data.role,
                             };
                             return newMessages;
                         });
@@ -90,7 +96,11 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
                                 ...lastMessage,
                                 content: data.message,
                                 isError: true,
-                                isCurrentMessage: false
+                                isCurrentMessage: false,
+                                message_id: data.message_id,
+                                conversation_id: data.conversation_id,
+                                task_id: data.task_id,
+                                role: data.role,
                             };
                             return newMessages;
                         });
@@ -110,7 +120,11 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
                                 ...lastMessage,
                                 content: fullContent,
                                 metadata: metadata,
-                                isCurrentMessage: false
+                                isCurrentMessage: false,
+                                message_id: data.message_id,
+                                conversation_id: data.conversation_id,
+                                task_id: data.task_id,
+                                role: data.role,
                             };
                             return newMessages;
                         });
@@ -145,7 +159,11 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
                             newMessages[newMessages.length - 1] = {
                                 ...lastMessage,
                                 content: fullContent,
-                                isCurrentMessage: true
+                                isCurrentMessage: true,
+                                message_id: data.message_id,
+                                conversation_id: data.conversation_id,
+                                task_id: data.task_id,
+                                role: data.role,
                             };
                             return newMessages;
                         });
@@ -165,7 +183,7 @@ export const handleDifyStream = async (response, { setMessages, setIsStreaming, 
                 ...lastMessage,
                 content: fullContent,
                 isCurrentMessage: true,
-                timestamp: getStandardTime()
+                timestamp: getStandardTime()        
             };
             return newMessages;
         });

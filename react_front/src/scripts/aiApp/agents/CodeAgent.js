@@ -321,6 +321,7 @@ const MessageList = React.memo(({
                     }}
                     isStreaming={streaming && index === messages.length - 1}
                     onStopGeneration={onStopGeneration}
+                    agentType={agentTypeKey}
                 />
             ))}
             <div ref={messagesEndRef} />

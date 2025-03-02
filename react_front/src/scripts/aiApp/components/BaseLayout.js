@@ -1,7 +1,7 @@
 import React from 'react';
-import { Icon, Tooltip, Input, Button, Upload, message } from 'antd';
+import { Icon, Tooltip, Input, Button, Upload, message as antdMessage } from 'antd';
 import { SendIcon, UploadIcon, WebSearchIcon, getFileIcon } from './BaseIcon';
-import { uploadFile } from '../aIAssistantApi';
+import { uploadFile, submitMessageFeedback } from '../aIAssistantApi';
 import styled from 'styled-components';
 import MarkdownRenderer from './MarkdownRenderer';
 const { TextArea } = Input;
@@ -58,8 +58,30 @@ const ActionButton = styled.div`
 `;
 
 // 更新消息组件
-export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration }) => {
+export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration, agentType = 'general' }) => {
     const isUser = message.role === 'user';
+    
+    // 添加点赞/点踩处理函数
+    const handleFeedback = async (rating) => {
+        console.log("message:", message);
+        if (!message.message_id) {
+            console.warn('消息ID不存在，无法提交反馈');
+            return;
+        }
+        
+        try {
+            await submitMessageFeedback(message.message_id, rating, agentType);
+            
+            // 显示成功消息
+            antdMessage.info(`${rating === 'like' ? '点赞' : '点踩'}成功`);
+            
+            // 可以在这里更新消息状态，例如禁用按钮或改变颜色
+            
+        } catch (error) {
+            console.error('提交反馈时出错:', error);
+            antdMessage.error(`反馈提交失败: ${error.message}`);
+        }
+    };
     
     return (
         <MessageContainer isUser={isUser}>
@@ -104,10 +126,10 @@ export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration 
                                 <ActionButton>
                                     <Icon type="copy" />
                                 </ActionButton>
-                                <ActionButton>
+                                <ActionButton onClick={() => handleFeedback('like')}>
                                     <Icon type="like" />
                                 </ActionButton>
-                                <ActionButton>
+                                <ActionButton onClick={() => handleFeedback('dislike')}>
                                     <Icon type="dislike" />
                                 </ActionButton>
                                 {message.metadata?.usage && (

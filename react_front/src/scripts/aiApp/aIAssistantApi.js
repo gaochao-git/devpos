@@ -238,6 +238,41 @@ const stopMessageGeneration = async (taskId, agentType) => {
     }
 };
 
+/**
+ * 提交消息反馈（点赞/点踩）
+ * @param {string} messageId - 消息ID
+ * @param {string} rating - 反馈类型 ('like' 或 'dislike')
+ * @param {string} agentType - 助手类型
+ * @returns {Promise<Object>} 反馈结果
+ */
+const submitMessageFeedback = async (messageId, rating, agentType) => {
+    const { baseUrl, apiKey } = getAgentConfig(agentType);
+    console.log(baseUrl, apiKey, messageId, rating, agentType);
+    try {
+        const response = await fetch(`${baseUrl}/v1/messages/${messageId}/feedbacks`, {
+            method: 'POST',
+            headers: {
+                'Authorization': apiKey,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                rating: rating,
+                user: 'system',
+                content: `User ${rating === 'like' ? 'liked' : 'disliked'} the message`
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`反馈提交失败: ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('提交反馈时出错:', error);
+        throw error;
+    }
+};
+
 // 统一导出所有函数
 export {
     uploadFile,
@@ -247,5 +282,6 @@ export {
     getHistoryMessageDetail,
     renameConversation,
     getAgentConfig,
-    stopMessageGeneration
+    stopMessageGeneration,
+    submitMessageFeedback
 }; 
