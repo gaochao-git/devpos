@@ -1,231 +1,18 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
-import { Button, Icon, message, Tooltip } from 'antd';
-import MarkdownRenderer from '../components/MarkdownRenderer';
+import { message } from 'antd';
+import { BaseChatHeader, BaseChatFooter, ChatMessage } from '../components/BaseLayout';
 import { 
     sendMessageToAssistant, 
-    uploadFile,
-    getHistoryConversations,  // 确保这个名字和 aIAssistantApi.js 中的导出一致
-    getHistoryMessageDetail,  // 添加新的API导入
-    stopMessageGeneration  // 添加新的导入
+    getHistoryConversations,
+    getHistoryMessageDetail,
+    stopMessageGeneration
 } from '../aIAssistantApi';
 import HistoryConversationModal from '../components/HistoryConversationModal';
-import { agentComponentMap } from '../config/componentMapping';  // 添加这行导入
-import { BaseChatHeader, BaseChatFooter, ChatMessage } from '../components/BaseLayout';
-
-const ChatContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 140px);
-`;
-
-const MessagesContainer = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  background-color: #f8fbff;  // 更浅的蓝色背景
-  border-radius: 0 0 8px 8px;
-  margin-bottom: 20px;
-  scroll-behavior: smooth;
-  display: flex;
-  flex-direction: column;
-`;
-
-const MessageBubble = styled.div`
-  max-width: 70%;
-  margin: 10px 0;
-  padding: 12px 16px;
-  border-radius: 12px;
-  word-break: break-word;
-  align-self: ${props => props.isUser ? 'flex-end' : 'flex-start'};
-  background-color: ${props => props.isUser ? '#c1e0c1' : props.isError ? '#ffebee' : '#ffffff'};  // 用户消息加深为 #c1e0c1
-  color: ${props => props.isError ? '#d32f2f' : '#333333'};
-
-  .markdown-content {
-    * {
-      color: inherit;
-    }
-
-    pre {
-      margin: 8px 0;
-      border-radius: 6px;
-      background: ${props => props.isUser ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.05)'};
-    }
-
-    code {
-      font-family: monospace;
-    }
-
-    p {
-      margin: 8px 0;
-    }
-
-    ul, ol {
-      margin: 8px 0;
-      padding-left: 20px;
-    }
-  }
-
-  .metadata {
-    margin-top: 8px;
-    padding: 8px;
-    background: #fafafa;
-    border-radius: 4px;
-    font-size: 12px;
-    color: #999;
-  }
-`;
-
-const MessageContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: ${props => props.isUser ? 'flex-end' : 'flex-start'};
-  margin: 4px 0;
-`;
-
-const Timestamp = styled.div`
-  font-size: 12px;
-  color: #666;
-  margin: ${props => props.isUser ? '4px 8px 0 0' : '4px 0 0 8px'};
-`;
-
-const InputContainer = styled.div`
-  display: flex;
-  gap: 10px;
-  padding: 0px;
-  background-color: #ffffff;
-  border-radius: 8px;
-`;
-
-const InputWrapper = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  position: relative;
-`;
-
-const InputWithButtons = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  padding-right: 8px;
-
-  &:focus-within {
-    border-color: #007AFF;
-  }
-`;
-
-const Input = styled.input`
-  flex: 1;
-  padding: 12px;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  outline: none;
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const UploadButton = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #666;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;  // 增大字体大小
-
-  &:hover {
-    color: #007AFF;
-  }
-
-  &:disabled {
-    color: #ccc;
-    cursor: not-allowed;
-  }
-`;
-
-const SendButton = styled.button`
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #007AFF;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;  // 增大字体大小
-
-  &:hover {
-    color: #0056b3;
-  }
-
-  &:disabled {
-    color: #ccc;
-    cursor: not-allowed;
-  }
-`;
-
-const StopButton = styled(SendButton)`
-  color: #ff4d4f;
-  
-  &:hover {
-    color: #ff7875;
-  }
-`;
-
-const FileUploadContainer = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-const FilePreview = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background-color: #f5f5f5;
-  border-radius: 4px;
-  font-size: 14px;
-
-  .file-status {
-    font-size: 12px;
-    color: #666;
-  }
-
-  &.uploading {
-    background-color: #e3f2fd;
-  }
-
-  &.error {
-    background-color: #ffebee;
-  }
-`;
-
-const RemoveFileButton = styled.button`
-  background: none;
-  border: none;
-  color: #666;
-  cursor: pointer;
-  padding: 2px;
-  &:hover {
-    color: #d32f2f;
-  }
-`;
+import { agentComponentMap } from '../config/componentMapping';
 
 const agentTypeKey = 'general';
 
+// 使用与 CodeAgent 相同的 MessageList 组件
 const MessageList = React.memo(({ messages, streaming, onStopGeneration, messagesEndRef }) => {
     return (
         <>
@@ -248,7 +35,7 @@ const GeneralAgent = () => {
     const agentConfig = agentComponentMap[agentTypeKey];
     
     // 状态管理
-    const [input, setInput] = useState('');
+    const [question, setQuestion] = useState('');
     const [messages, setMessages] = useState([]);
     const [conversationId, setConversationId] = useState(null);
     const [streaming, setStreaming] = useState(false);
@@ -273,24 +60,14 @@ const GeneralAgent = () => {
     const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
     
-    // 获取标准时间
-    const getStandardTime = () => {
-        const now = new Date();
-        return now.toLocaleString('zh-CN', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        });
-    };
-    
-    // 初始化欢迎消息
+    // 初始化欢迎消息 - 移除欢迎消息
     useEffect(() => {
-        setMessages([{
-            role: 'assistant',
-            content: "你好！我是通用助手，请问有什么我可以帮你的？",
-            time: getStandardTime()
-        }]);
+        // 不再设置初始欢迎消息
+        // setMessages([{
+        //     role: 'assistant',
+        //     content: "你好！我是通用助手，请问有什么我可以帮你的？",
+        //     time: new Date().toLocaleTimeString()
+        // }]);
         
         return () => {
             if (abortControllerRef.current) {
@@ -433,17 +210,17 @@ const GeneralAgent = () => {
     
     // 发送消息
     const handleSend = useCallback(async () => {
-        if ((!input.trim() && uploadedFiles.length === 0) || streaming) return;
+        if ((!question.trim() && uploadedFiles.length === 0) || streaming) return;
         
         const userMessage = {
             role: 'user',
-            content: input,
+            content: question,
             files: uploadedFiles.map(f => f.name),
-            time: getStandardTime()
+            time: new Date().toLocaleTimeString()
         };
         
         setMessages(prev => [...prev, userMessage]);
-        setInput('');
+        setQuestion('');
         
         const fileIds = [...uploadedFileIds];
         setUploadedFiles([]);
@@ -465,34 +242,17 @@ const GeneralAgent = () => {
             
             await sendMessageToAssistant(
                 {
-                    query: input,
+                    query: question,
                     files: fileObjects,
                     conversationId,
                     abortController: abortControllerRef.current,
                     agentType: agentTypeKey
                 },
                 {
-                    setMessages: (updater) => {
-                        setMessages(prev => {
-                            const newMessages = typeof updater === 'function' 
-                                ? updater(prev) 
-                                : updater;
-                            
-                            // 确保消息有正确的格式
-                            return newMessages.map(msg => ({
-                                ...msg,
-                                role: msg.isUser ? 'user' : 'assistant',
-                                time: msg.timestamp || msg.time || getStandardTime(),
-                                content: msg.content
-                            }));
-                        });
-                    },
+                    setMessages,
                     setIsStreaming: setStreaming,
-                    getStandardTime,
-                    setTaskId: (id) => {
-                        console.log('Received task ID:', id);
-                        setTaskId(id);
-                    },
+                    getStandardTime: () => new Date().toLocaleTimeString(),
+                    setTaskId,
                     setConversationId
                 }
             );
@@ -502,11 +262,11 @@ const GeneralAgent = () => {
                 role: 'assistant',
                 content: '发送消息失败，请重试。',
                 isError: true,
-                time: getStandardTime()
+                time: new Date().toLocaleTimeString()
             }]);
             setStreaming(false);
         }
-    }, [input, uploadedFiles, uploadedFileIds, streaming, conversationId]);
+    }, [question, uploadedFiles, uploadedFileIds, streaming, conversationId]);
     
     // 中断生成
     const handleInterrupt = useCallback(async () => {
@@ -544,13 +304,9 @@ const GeneralAgent = () => {
                     description={agentConfig.description}
                     iconBgColor={agentConfig.color}
                     onNewChat={() => {
-                        setMessages([{
-                            role: 'assistant',
-                            content: "你好！我是通用助手，请问有什么我可以帮你的？",
-                            time: getStandardTime()
-                        }]);
+                        setMessages([]); // 清空消息，不再添加欢迎消息
                         setConversationId(null);
-                        setInput("");
+                        setQuestion("");
                     }}
                     onViewHistory={fetchHistoryList}
                     isHistoryLoading={isHistoryLoading}
@@ -562,18 +318,20 @@ const GeneralAgent = () => {
                     overflow: 'hidden'
                 }}>
                     <div style={{ 
-                        width: '100%',
+                        flex: 1,
                         height: '100%',
+                        margin: '5px 0 0 0',
                         display: 'flex',
                         flexDirection: 'column',
-                        background: '#F8FBFF'
+                        background: '#F8FBFF',
+                        borderTopRightRadius: '8px'
                     }}>
                         <div 
                             ref={messagesContainerRef}
                             style={{
                                 flex: 1,
                                 overflow: 'auto',
-                                padding: '20px'
+                                padding: '0 15px 30px 15px'
                             }}
                         >
                             <MessageList 
@@ -584,8 +342,8 @@ const GeneralAgent = () => {
                             />
                         </div>
                         <BaseChatFooter 
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
+                            value={question}
+                            onChange={(e) => setQuestion(e.target.value)}
                             onSend={handleSend}
                             disabled={streaming}
                             isStreaming={streaming}
