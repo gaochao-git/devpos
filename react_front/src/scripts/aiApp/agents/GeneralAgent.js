@@ -282,14 +282,8 @@ const GeneralAgent = () => {
     }, [taskId]);
     
     return (
-        <div style={{ 
-            display: 'flex',
-            flexDirection: 'column',
-            height: 'calc(100vh - 128px)', 
-            padding: '20px',
-            background: '#f5f5f5'
-        }}>
             <div style={{
+               height: 'calc(100vh - 128px)', 
                 flex: 1,
                 background: '#fff',
                 borderRadius: '8px',
@@ -368,7 +362,6 @@ const GeneralAgent = () => {
                     onContinueConversation={handleContinueConversation}
                 />
             </div>
-        </div>
     );
 };
 
