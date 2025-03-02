@@ -22,16 +22,6 @@ export const agentComponentMap = {
         baseUrl: 'http://127.0.0.1',
         apiKey: 'Bearer app-s1LO3fgBHF0vJc0l9wbmutn8',
     },
-    'rca': {
-        component: ChatRca,
-        name: '根因分析助手',
-        description: '协助进行故障根因分析',
-        icon: <img src={rcaIcon} alt="根因分析助手" style={{ width: '32px', height: '32px' }} />,
-        color: '#ffd6e7',
-        systemPrompt: '你是一个专业的故障分析专家，擅长进行根因分析。',
-        baseUrl: 'http://127.0.0.1:5001',
-        apiKey: 'Bearer app-rca-xxx',
-    },
     'data-analysis': {
         component: DataAnalysisAgent,
         name: '国产数据库选型助手',
@@ -51,7 +41,17 @@ export const agentComponentMap = {
         systemPrompt: '你是一个专业的SQL助手，专注于提供SQL相关帮助和建议。',
         baseUrl: 'http://127.0.0.1',
         apiKey: 'Bearer app-BjIxnRtuOcpYYUQPBUlls7wT',
-    }
+    },
+    'rca': {
+        component: ChatRca,
+        name: '根因分析助手',
+        description: '协助进行故障根因分析',
+        icon: <img src={rcaIcon} alt="根因分析助手" style={{ width: '32px', height: '32px' }} />,
+        color: '#ffd6e7',
+        systemPrompt: '你是一个专业的故障分析专家，擅长进行根因分析。',
+        baseUrl: 'http://127.0.0.1:5001',
+        apiKey: 'Bearer app-rca-xxx',
+    },
 };
 
 // 获取所有智能体配置
