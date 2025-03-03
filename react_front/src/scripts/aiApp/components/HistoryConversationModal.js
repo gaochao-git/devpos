@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, Button, Spin } from 'antd';
 import styled from 'styled-components';
-import MarkdownRenderer from './MarkdownRenderer';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 const MessageContainer = styled.div`
   display: flex;

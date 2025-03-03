@@ -2,10 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { Button, Tag, Checkbox, Icon, Collapse } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import { markdownRenderers, MESSAGE_DISPLAY_THRESHOLD, formatValueWithUnit } from '../util';
-import { handler_dify_think } from '../../aiApp/util';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { registry } from '../assistants';
 import CodeBlock from './CodeBlock';
 import ZabbixChart from './ZabbixChart';
+import { ThinkingBlock } from '../../aiApp/components/MarkdownRenderer';
 
 const MessageItem = ({
     msg,
@@ -115,21 +117,26 @@ const MessageItem = ({
     // 渲染消息内容
     const renderContent = (content) => {
         if (!content) return null;
-
-        // 预处理内容，转换思考格式
-        const processedContent = handler_dify_think(content);
-
         // 分割思考过程和工具调用
-        const parts = processedContent.split(/(<details.*?<\/details>|<tool>.*?<\/tool>)/s);
-        
+        const parts = content.split(/(<think>|<\/think>|<details.*?>|<\/details>|<tool>.*?<\/tool>)/);
+        let isInsideDetails = false;
         return parts.map((part, index) => {
-            // 处理思考过程
-            if (part.includes('<details')) {
+            // 处理 details 开始标签
+            if (part.startsWith('<details') || part.startsWith('<think')) {
+                isInsideDetails = true;
+                return null;
+            }
+            
+            // 处理结束标签
+            if (part === '</details>' || part === '</think>') {
+                isInsideDetails = false;
+                return null;
+            }
+
+            // 如果在 details 内部，显示为思考内容
+            if (isInsideDetails) {
                 return (
-                    <div
-                        key={index}
-                        dangerouslySetInnerHTML={{ __html: part }}
-                    />
+                    <ThinkingBlock content={part} />
                 );
             }
             
@@ -252,11 +259,11 @@ const MessageItem = ({
             }
             
             // 渲染普通文本
-            return (
+            return part ? (
                 <ReactMarkdown key={index} components={customRenderers}>
                     {part}
                 </ReactMarkdown>
-            );
+            ) : null;
         });
     };
 

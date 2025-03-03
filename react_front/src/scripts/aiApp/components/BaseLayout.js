@@ -3,7 +3,7 @@ import { Icon, Tooltip, Input, Button, Upload, message as antdMessage } from 'an
 import { SendIcon, UploadIcon, WebSearchIcon, getFileIcon } from './BaseIcon';
 import { uploadFile, submitMessageFeedback } from '../aIAssistantApi';
 import styled from 'styled-components';
-import MarkdownRenderer from './MarkdownRenderer';
+import { MarkdownRenderer } from './MarkdownRenderer';
 const { TextArea } = Input;
 
 // 添加消息容器样式
