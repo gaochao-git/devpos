@@ -140,123 +140,125 @@ const MessageItem = ({
                 );
             }
             
-            // 处理工具调用,老版本没有\n\n，新版本有\n\n，需要兼容
-            if (part.startsWith('<tool>') && (part.endsWith('</tool>') || part.endsWith('</tool>\n\n'))) {
-                const endSlicePos = part.endsWith('</tool>\n\n') ? -9 : -7;
-                const toolContent = part.slice(6, endSlicePos);
-                const [toolName, toolInput, toolOutput, position] = toolContent.split('\n').map(s => s.trim());
-                
-                // 解析工具输入
-                let parsedInput = toolInput;
-                try {
-                    parsedInput = JSON.stringify(JSON.parse(toolInput), null, 2);
-                } catch (e) {
-                    console.warn('Failed to parse tool input:', e);
-                }
-
-                // 解析工具输出
-                let parsedOutput = toolOutput;
-                let zabbixData = null;
-
-                try {
-                    const outputObj = JSON.parse(toolOutput);
-
-                    // 对 getZabbixMetricHistory 的值进行二次解析
-                    if (toolName === 'getZabbixMetricHistory' && outputObj.getZabbixMetricHistory) {
-                        const zabbixResult = JSON.parse(outputObj.getZabbixMetricHistory);
-                        
-                        if (zabbixResult.status === 'ok' && Array.isArray(zabbixResult.data)) {
-                            zabbixData = zabbixResult.data.map(point => {
-                                const formatted = formatValueWithUnit(point.value, point.units);
-                                return {
-                                    ...point,
-                                    value: formatted.value,
-                                    units: formatted.unit
-                                };
-                            });
-                        }
-                    }
+            // 处理工具调用
+            if (part.startsWith('<tool>')) {
+                const match = part.match(/<tool>([\s\S]*?)<\/tool>/);
+                if (match) {
+                    const toolContent = match[1];
+                    const [toolName, toolInput, toolOutput, position] = toolContent.split('\n').map(s => s.trim());
                     
-                    // 格式化显示的输出
-                    if (zabbixData) {
-                        parsedOutput = JSON.stringify({
-                            getZabbixMetricHistory: JSON.parse(outputObj.getZabbixMetricHistory)
-                        }, null, 2);
-                    } else {
-                        parsedOutput = JSON.stringify(outputObj, null, 2);
+                    // 解析工具输入
+                    let parsedInput = toolInput;
+                    try {
+                        parsedInput = JSON.stringify(JSON.parse(toolInput), null, 2);
+                    } catch (e) {
+                        console.warn('Failed to parse tool input:', e);
                     }
-                } catch (e) {
-                    console.error('Error parsing tool output:', e);
-                }
 
-                return (
-                    <div key={index} style={{
-                        marginBottom: '12px',
-                        border: '1px solid #e8e8e8',
-                        borderRadius: '4px',
-                        background: '#fafafa'
-                    }}>
-                        <div 
-                            onClick={() => handleToolToggle(index)}
-                            style={{ 
-                                padding: '8px 12px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                borderBottom: expandedTools.has(index) ? '1px solid #e8e8e8' : 'none'
-                            }}
-                        >
-                            <Icon 
-                                type={expandedTools.has(index) ? 'caret-down' : 'caret-right'} 
-                                style={{ marginRight: '8px' }}
-                            />
-                            <Tag color="blue" style={{ marginRight: '8px' }}>工具{position}</Tag>
-                            <span>{toolName}</span>
-                        </div>
+                    // 解析工具输出
+                    let parsedOutput = toolOutput;
+                    let zabbixData = null;
+
+                    try {
+                        const outputObj = JSON.parse(toolOutput);
+
+                        // 对 getZabbixMetricHistory 的值进行二次解析
+                        if (toolName === 'getZabbixMetricHistory' && outputObj.getZabbixMetricHistory) {
+                            const zabbixResult = JSON.parse(outputObj.getZabbixMetricHistory);
+                            
+                            if (zabbixResult.status === 'ok' && Array.isArray(zabbixResult.data)) {
+                                zabbixData = zabbixResult.data.map(point => {
+                                    const formatted = formatValueWithUnit(point.value, point.units);
+                                    return {
+                                        ...point,
+                                        value: formatted.value,
+                                        units: formatted.unit
+                                    };
+                                });
+                            }
+                        }
                         
-                        {/* 将 Zabbix 图表移到折叠区域外 */}
-                        {zabbixData && (
-                            <div style={{ padding: '12px', borderBottom: '1px solid #e8e8e8' }}>
-                                <ZabbixChart 
-                                    data={zabbixData}
-                                    showHeader={true}
+                        // 格式化显示的输出
+                        if (zabbixData) {
+                            parsedOutput = JSON.stringify({
+                                getZabbixMetricHistory: JSON.parse(outputObj.getZabbixMetricHistory)
+                            }, null, 2);
+                        } else {
+                            parsedOutput = JSON.stringify(outputObj, null, 2);
+                        }
+                    } catch (e) {
+                        console.error('Error parsing tool output:', e);
+                    }
+
+                    return (
+                        <div key={index} style={{
+                            marginBottom: '12px',
+                            border: '1px solid #e8e8e8',
+                            borderRadius: '4px',
+                            background: '#fafafa'
+                        }}>
+                            <div 
+                                onClick={() => handleToolToggle(index)}
+                                style={{ 
+                                    padding: '8px 12px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    borderBottom: expandedTools.has(index) ? '1px solid #e8e8e8' : 'none'
+                                }}
+                            >
+                                <Icon 
+                                    type={expandedTools.has(index) ? 'caret-down' : 'caret-right'} 
+                                    style={{ marginRight: '8px' }}
                                 />
+                                <Tag color="blue" style={{ marginRight: '8px' }}>工具{position}</Tag>
+                                <span>{toolName}</span>
                             </div>
-                        )}
-                        
-                        {expandedTools.has(index) && (
-                            <div style={{ padding: '12px' }}>
-                                {/* 输入和输出部分保持不变 */}
-                                <div style={{ marginBottom: '8px' }}>
-                                    <strong>请求：</strong>
-                                    <div style={{ 
-                                        background: '#fff',
-                                        padding: '8px',
-                                        borderRadius: '4px',
-                                        marginTop: '4px',
-                                        fontFamily: 'monospace'
-                                    }}>
-                                        <pre style={{ margin: 0 }}>{parsedInput}</pre>
+                            
+                            {/* 将 Zabbix 图表移到折叠区域外 */}
+                            {zabbixData && (
+                                <div style={{ padding: '12px', borderBottom: '1px solid #e8e8e8' }}>
+                                    <ZabbixChart 
+                                        data={zabbixData}
+                                        showHeader={true}
+                                    />
+                                </div>
+                            )}
+                            
+                            {expandedTools.has(index) && (
+                                <div style={{ padding: '12px' }}>
+                                    {/* 输入和输出部分保持不变 */}
+                                    <div style={{ marginBottom: '8px' }}>
+                                        <strong>请求：</strong>
+                                        <div style={{ 
+                                            background: '#fff',
+                                            padding: '8px',
+                                            borderRadius: '4px',
+                                            marginTop: '4px',
+                                            fontFamily: 'monospace'
+                                        }}>
+                                            <pre style={{ margin: 0 }}>{parsedInput}</pre>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <strong>响应：</strong>
+                                        <div style={{ 
+                                            background: '#fff',
+                                            padding: '8px',
+                                            borderRadius: '4px',
+                                            marginTop: '4px',
+                                            fontFamily: 'monospace',
+                                            whiteSpace: 'pre-wrap',
+                                            wordBreak: 'break-word'
+                                        }}>
+                                            <pre style={{ margin: 0 }}>{parsedOutput}</pre>
+                                        </div>
                                     </div>
                                 </div>
-                                <div>
-                                    <strong>响应：</strong>
-                                    <div style={{ 
-                                        background: '#fff',
-                                        padding: '8px',
-                                        borderRadius: '4px',
-                                        marginTop: '4px',
-                                        fontFamily: 'monospace',
-                                        whiteSpace: 'pre-wrap',
-                                        wordBreak: 'break-word'
-                                    }}>
-                                        <pre style={{ margin: 0 }}>{parsedOutput}</pre>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
+                            )}
+                        </div>
+                    );
+                }
             }
             
             // 渲染普通文本
