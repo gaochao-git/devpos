@@ -49,21 +49,102 @@ const CopyButton = styled.button`
 
 const MarkdownRenderer = ({ content, isStreaming = false }) => {
   if (!content) return null;
-
-  const processedContent = handler_dify_think(content);
   
-  const parts = processedContent.split(/(<details.*?<\/details>)/s);
+  // 按 details 开始标签和结束标签分割
+  const parts = content.split(/(<think>|<\/think>|<details.*?open>|<\/details>)/);
+  let isInsideDetails = false;
   
   return parts.map((part, index) => {
-    if (part.startsWith('<details')) {
+    // 处理 details 开始标签
+    if (part.startsWith('<details') || part.startsWith('<think')) {
+      isInsideDetails = true;
+      return null;
+    }
+    
+    // 处理结束标签
+    if (part === '</details>' || part === '</think>') {
+      isInsideDetails = false;
+      return null;
+    }
+    
+    // 如果在 details 内部，显示为思考内容
+    if (isInsideDetails) {
       return (
-        <div
+        <details
           key={index}
-          dangerouslySetInnerHTML={{ __html: part }}
-        />
+          style={{
+            color: 'gray',
+            backgroundColor: '#f8f8f8',
+            padding: '8px',
+            borderRadius: '4px'
+          }}
+          open
+        >
+          <summary>Thinking...</summary>
+          <ReactMarkdown
+            components={{
+              code({ node, inline, className, children, ...props }) {
+                // 获取语言，如果没有指定则默认为 plaintext
+                const match = /language-(\w+)/.exec(className || '');
+                const language = match ? match[1] : 'plaintext';
+                const code = String(children).replace(/\n$/, '');
+                
+                const CodeBlock = () => {
+                  const [copied, setCopied] = useState(false);
+
+                  const handleCopy = async () => {
+                    await navigator.clipboard.writeText(code);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  };
+
+                  return (
+                    <Pre>
+                      <CopyButton 
+                        onClick={handleCopy}
+                        className={`copy-button ${copied ? 'copied' : ''}`}
+                        show={!isStreaming}
+                      >
+                        {copied ? (
+                          <>
+                            <span>✓</span>
+                            <span>已复制</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>📋</span>
+                            <span>复制代码</span>
+                          </>
+                        )}
+                      </CopyButton>
+                      <SyntaxHighlighter
+                        style={oneDark}
+                        language={language}
+                        PreTag="div"
+                        customStyle={{
+                          padding: '16px',
+                          borderRadius: '8px',
+                          margin: 0
+                        }}
+                        {...props}
+                      >
+                        {code}
+                      </SyntaxHighlighter>
+                    </Pre>
+                  );
+                };
+
+                return <CodeBlock />;
+              }
+            }}
+          >
+            {part.replace(/<summary>.*?<\/summary>/g, '').trim()}
+          </ReactMarkdown>
+        </details>
       );
     }
     
+    // 非 details 内容正常渲染
     return part ? (
       <ReactMarkdown
         key={index}
