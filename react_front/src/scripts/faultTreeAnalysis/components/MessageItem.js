@@ -190,89 +190,59 @@ const MessageItem = ({
                 }
 
                 return (
-                    <React.Fragment key={index}>
-                        {/* 渲染工具调用前的文本 */}
-                        {part.substring(0, toolMatch.index) && (
-                            <ReactMarkdown components={customRenderers}>
-                                {part.substring(0, toolMatch.index)}
-                            </ReactMarkdown>
-                        )}
-                        
-                        {/* 渲染工具调用 */}
-                        <div style={{
-                            marginBottom: '12px',
-                            border: '1px solid #e8e8e8',
-                            borderRadius: '4px',
-                            background: '#fafafa'
-                        }}>
-                            <div 
-                                onClick={() => handleToolToggle(index)}
-                                style={{ 
-                                    padding: '8px 12px',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    borderBottom: expandedTools.has(index) ? '1px solid #e8e8e8' : 'none'
-                                }}
-                            >
-                                <Icon 
-                                    type={expandedTools.has(index) ? 'caret-down' : 'caret-right'} 
-                                    style={{ marginRight: '8px' }}
-                                />
-                                <Tag color="blue" style={{ marginRight: '8px' }}>工具{position}</Tag>
-                                <span>{toolName}</span>
+                    <div key={index} style={{
+                        marginBottom: '12px',
+                        border: '1px solid #e8e8e8',
+                        borderRadius: '4px',
+                        background: '#fafafa'
+                    }}>
+                        <details>
+                            <summary style={{ 
+                                padding: '8px 12px',
+                            }}>
+                                <span>工具{position}-{toolName}</span>
+                            </summary>
+                            
+                            <div style={{ padding: '12px' }}>
+                                <div style={{ marginBottom: '8px' }}>
+                                    <strong>请求：</strong>
+                                    <div style={{ 
+                                        background: '#fff',
+                                        padding: '8px',
+                                        borderRadius: '4px',
+                                        marginTop: '4px',
+                                        fontFamily: 'monospace'
+                                    }}>
+                                        <pre style={{ margin: 0 }}>{parsedInput}</pre>
+                                    </div>
+                                </div>
+                                <div>
+                                    <strong>响应：</strong>
+                                    <div style={{ 
+                                        background: '#fff',
+                                        padding: '8px',
+                                        borderRadius: '4px',
+                                        marginTop: '4px',
+                                        fontFamily: 'monospace',
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-word'
+                                    }}>
+                                        <pre style={{ margin: 0 }}>{parsedOutput}</pre>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            {/* 将 Zabbix 图表移到折叠区域外 */}
-                            {zabbixData && (
-                                <div style={{ padding: '12px', borderBottom: '1px solid #e8e8e8' }}>
-                                    <ZabbixChart 
-                                        data={zabbixData}
-                                        showHeader={true}
-                                    />
-                                </div>
-                            )}
-                            
-                            {expandedTools.has(index) && (
-                                <div style={{ padding: '12px' }}>
-                                    {/* 输入和输出部分保持不变 */}
-                                    <div style={{ marginBottom: '8px' }}>
-                                        <strong>请求：</strong>
-                                        <div style={{ 
-                                            background: '#fff',
-                                            padding: '8px',
-                                            borderRadius: '4px',
-                                            marginTop: '4px',
-                                            fontFamily: 'monospace'
-                                        }}>
-                                            <pre style={{ margin: 0 }}>{parsedInput}</pre>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <strong>响应：</strong>
-                                        <div style={{ 
-                                            background: '#fff',
-                                            padding: '8px',
-                                            borderRadius: '4px',
-                                            marginTop: '4px',
-                                            fontFamily: 'monospace',
-                                            whiteSpace: 'pre-wrap',
-                                            wordBreak: 'break-word'
-                                        }}>
-                                            <pre style={{ margin: 0 }}>{parsedOutput}</pre>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        </details>
 
-                        {/* 渲染工具调用后的文本 */}
-                        {part.substring(toolMatch.index + toolMatch[0].length) && (
-                            <ReactMarkdown components={customRenderers}>
-                                {part.substring(toolMatch.index + toolMatch[0].length)}
-                            </ReactMarkdown>
+                        {/* Zabbix 图表保持在 details 外部 */}
+                        {zabbixData && (
+                            <div style={{ padding: '12px', borderTop: '1px solid #e8e8e8' }}>
+                                <ZabbixChart 
+                                    data={zabbixData}
+                                    showHeader={true}
+                                />
+                            </div>
                         )}
-                    </React.Fragment>
+                    </div>
                 );
             }
             
