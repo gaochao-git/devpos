@@ -118,7 +118,7 @@ const MessageItem = ({
     const renderContent = (content) => {
         if (!content) return null;
         // 分割思考过程和工具调用
-        const parts = content.split(/(<think>|<\/think>|<details.*?>|<\/details>|<tool>.*?<\/tool>)/);
+        const parts = content.split(/(<think>|<\/think>|<details.*?>|<\/details>|<tool>[\s\S]*?<\/tool>)/);
         let isInsideDetails = false;
         return parts.map((part, index) => {
             // 处理 details 开始标签
@@ -141,57 +141,65 @@ const MessageItem = ({
             }
             
             // 处理工具调用
-            if (part.startsWith('<tool>')) {
-                const match = part.match(/<tool>([\s\S]*?)<\/tool>/);
-                if (match) {
-                    const toolContent = match[1];
-                    const [toolName, toolInput, toolOutput, position] = toolContent.split('\n').map(s => s.trim());
-                    
-                    // 解析工具输入
-                    let parsedInput = toolInput;
-                    try {
-                        parsedInput = JSON.stringify(JSON.parse(toolInput), null, 2);
-                    } catch (e) {
-                        console.warn('Failed to parse tool input:', e);
-                    }
+            const toolMatch = part.match(/<tool>([\s\S]*?)<\/tool>/);
+            if (toolMatch) {
+                const toolContent = toolMatch[1];
+                const [toolName, toolInput, toolOutput, position] = toolContent.split('\n').map(s => s.trim());
+                
+                // 解析工具输入
+                let parsedInput = toolInput;
+                try {
+                    parsedInput = JSON.stringify(JSON.parse(toolInput), null, 2);
+                } catch (e) {
+                    console.warn('Failed to parse tool input:', e);
+                }
 
-                    // 解析工具输出
-                    let parsedOutput = toolOutput;
-                    let zabbixData = null;
+                // 解析工具输出
+                let parsedOutput = toolOutput;
+                let zabbixData = null;
 
-                    try {
-                        const outputObj = JSON.parse(toolOutput);
+                try {
+                    const outputObj = JSON.parse(toolOutput);
 
-                        // 对 getZabbixMetricHistory 的值进行二次解析
-                        if (toolName === 'getZabbixMetricHistory' && outputObj.getZabbixMetricHistory) {
-                            const zabbixResult = JSON.parse(outputObj.getZabbixMetricHistory);
-                            
-                            if (zabbixResult.status === 'ok' && Array.isArray(zabbixResult.data)) {
-                                zabbixData = zabbixResult.data.map(point => {
-                                    const formatted = formatValueWithUnit(point.value, point.units);
-                                    return {
-                                        ...point,
-                                        value: formatted.value,
-                                        units: formatted.unit
-                                    };
-                                });
-                            }
-                        }
+                    // 对 getZabbixMetricHistory 的值进行二次解析
+                    if (toolName === 'getZabbixMetricHistory' && outputObj.getZabbixMetricHistory) {
+                        const zabbixResult = JSON.parse(outputObj.getZabbixMetricHistory);
                         
-                        // 格式化显示的输出
-                        if (zabbixData) {
-                            parsedOutput = JSON.stringify({
-                                getZabbixMetricHistory: JSON.parse(outputObj.getZabbixMetricHistory)
-                            }, null, 2);
-                        } else {
-                            parsedOutput = JSON.stringify(outputObj, null, 2);
+                        if (zabbixResult.status === 'ok' && Array.isArray(zabbixResult.data)) {
+                            zabbixData = zabbixResult.data.map(point => {
+                                const formatted = formatValueWithUnit(point.value, point.units);
+                                return {
+                                    ...point,
+                                    value: formatted.value,
+                                    units: formatted.unit
+                                };
+                            });
                         }
-                    } catch (e) {
-                        console.error('Error parsing tool output:', e);
                     }
+                    
+                    // 格式化显示的输出
+                    if (zabbixData) {
+                        parsedOutput = JSON.stringify({
+                            getZabbixMetricHistory: JSON.parse(outputObj.getZabbixMetricHistory)
+                        }, null, 2);
+                    } else {
+                        parsedOutput = JSON.stringify(outputObj, null, 2);
+                    }
+                } catch (e) {
+                    console.error('Error parsing tool output:', e);
+                }
 
-                    return (
-                        <div key={index} style={{
+                return (
+                    <React.Fragment key={index}>
+                        {/* 渲染工具调用前的文本 */}
+                        {part.substring(0, toolMatch.index) && (
+                            <ReactMarkdown components={customRenderers}>
+                                {part.substring(0, toolMatch.index)}
+                            </ReactMarkdown>
+                        )}
+                        
+                        {/* 渲染工具调用 */}
+                        <div style={{
                             marginBottom: '12px',
                             border: '1px solid #e8e8e8',
                             borderRadius: '4px',
@@ -257,8 +265,15 @@ const MessageItem = ({
                                 </div>
                             )}
                         </div>
-                    );
-                }
+
+                        {/* 渲染工具调用后的文本 */}
+                        {part.substring(toolMatch.index + toolMatch[0].length) && (
+                            <ReactMarkdown components={customRenderers}>
+                                {part.substring(toolMatch.index + toolMatch[0].length)}
+                            </ReactMarkdown>
+                        )}
+                    </React.Fragment>
+                );
             }
             
             // 渲染普通文本
