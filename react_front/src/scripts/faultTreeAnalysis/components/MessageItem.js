@@ -140,9 +140,10 @@ const MessageItem = ({
                 );
             }
             
-            // 处理工具调用
-            if (part.startsWith('<tool>') && part.endsWith('</tool>')) {
-                const toolContent = part.slice(6, -7);
+            // 处理工具调用,老版本没有\n\n，新版本有\n\n，需要兼容
+            if (part.startsWith('<tool>') && (part.endsWith('</tool>') || part.endsWith('</tool>\n\n'))) {
+                const endSlicePos = part.endsWith('</tool>\n\n') ? -9 : -7;
+                const toolContent = part.slice(6, endSlicePos);
                 const [toolName, toolInput, toolOutput, position] = toolContent.split('\n').map(s => s.trim());
                 
                 // 解析工具输入
