@@ -58,7 +58,6 @@ class CodeChatHeader extends React.Component {
     async getClusterIns(value) {
         try {
             const params = {
-                ins_role: ["M", "S"],
                 cluster_name: value,
             };
             
@@ -105,8 +104,8 @@ class CodeChatHeader extends React.Component {
                 // 将API返回的数据转换为Select需要的格式
                 // 注意：数据格式是 [{Database: "dbname"}, ...] 而不是 ["dbname", ...]
                 const dbOptions = Array.isArray(res.data.data) ? res.data.data.map(item => ({
-                    value: item.Database,
-                    label: item.Database
+                    value: item.Database||item.SCHEMA_NAME,
+                    label: item.Database||item.SCHEMA_NAME,
                 })) : [];
                 
                 // 更新状态
