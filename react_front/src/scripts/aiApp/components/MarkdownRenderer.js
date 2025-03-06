@@ -6,8 +6,12 @@ import remarkGfm from 'remark-gfm';
 
 export const CodeBlock = ({ className, children, ...props }) => {
   const match = /language-(\w+)/.exec(className || '');
-  const language = match ? match[1] : 'plaintext';
+  const language = match ? match[1] : '';
   const code = String(children).replace(/\n$/, '');
+  
+  if (!language) {
+    return <code {...props}>{code}</code>;
+  }
   
   return (
     <SyntaxHighlighter
