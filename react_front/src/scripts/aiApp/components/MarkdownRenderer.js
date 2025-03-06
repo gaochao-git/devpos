@@ -53,14 +53,30 @@ export const ThinkingBlock = ({ content }) => (
 );
 
 export const OutputBlock = ({ content }) => (
-  <ReactMarkdown
-    remarkPlugins={[remarkGfm]}
-    components={{
-      code: CodeBlock
-    }}
-  >
-    {content}
-  </ReactMarkdown>
+  <div style={{ overflowX: 'auto' }}>
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        code: CodeBlock,
+        table: ({node, ...props}) => (
+          <table style={{ 
+            borderCollapse: 'collapse',
+            width: '100%',
+            margin: '16px 0',
+            minWidth: '600px'
+          }} {...props} />
+        ),
+        th: ({node, ...props}) => (
+          <th style={{ border: '1px solid #ddd', padding: '12px 8px', backgroundColor: '#f5f5f5' }} {...props} />
+        ),
+        td: ({node, ...props}) => (
+          <td style={{ border: '1px solid #ddd', padding: '8px' }} {...props} />
+        )
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  </div>
 );
 
 export const MarkdownRenderer = ({ content, isStreaming = false }) => {
