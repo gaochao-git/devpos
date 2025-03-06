@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import remarkGfm from 'remark-gfm';
 
 export const CodeBlock = ({ className, children, ...props }) => {
   const match = /language-(\w+)/.exec(className || '');
@@ -37,6 +38,7 @@ export const ThinkingBlock = ({ content }) => (
   >
     <summary>Thinking...</summary>
     <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
       components={{
         code: CodeBlock
       }}
@@ -48,6 +50,7 @@ export const ThinkingBlock = ({ content }) => (
 
 export const OutputBlock = ({ content }) => (
   <ReactMarkdown
+    remarkPlugins={[remarkGfm]}
     components={{
       code: CodeBlock
     }}
