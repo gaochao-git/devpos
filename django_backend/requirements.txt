@@ -5,7 +5,7 @@ anyjson==0.3.3
 bcrypt==4.0.1
 billiard==3.3.0.23
 celery==3.1.26.post2
-certifi==2021.5.30
+certifi==2024.7.4
 cffi==1.15.1
 charset-normalizer==2.0.12
 concurrent-log-handler==0.9.16
