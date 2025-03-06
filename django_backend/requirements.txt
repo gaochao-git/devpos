@@ -1,6 +1,6 @@
 amqp==1.4.9
 ansible==4.10.0
-ansible-core==2.11.12
+ansible-core==2.16.14rc1
 anyjson==0.3.3
 bcrypt==4.0.1
 billiard==3.3.0.23
