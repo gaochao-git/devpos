@@ -3,11 +3,16 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from pymilvus import MilvusClient
 from sentence_transformers import SentenceTransformer
 import uuid
 from fastapi import Depends
+import os
+import platform
+import subprocess
+from fastapi.middleware.cors import CORSMiddleware
 
 # 配置日志
 logging.basicConfig(
@@ -129,7 +134,7 @@ class RAGService:
                     file_path = hit['entity'].get("file_path")
                     page = hit['entity'].get("page_number")
                     score = hit.get("distance")
-                    citation = f"[来源: {file_path}, 第{page}页]"
+                    citation = f"<file_path>{file_path}</file_path>, 第{page}页]"
                     formatted_content = f"{content}\n{citation}"
                     contexts.append(formatted_content)
             
@@ -175,6 +180,15 @@ app = FastAPI(
     description="Vector search API for database documentation",
     version="1.0.0",
     lifespan=lifespan
+)
+
+# 添加 CORS 中间件
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 在生产环境中应该设置具体的域名
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.post("/search", response_model=SearchResponse)
@@ -289,6 +303,42 @@ async def search_and_answer(request: dict):
     except Exception as e:
         logger.error(f"处理问答请求时出错: {str(e)}", exc_info=True)
         return {"error": str(e)}, 500
+
+@app.post("/openFile")
+async def open_file(data: dict):
+    path = data.get("path")
+    if not path:
+        raise HTTPException(status_code=400, detail="No path provided")
+    
+    # 检查文件是否存在
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail=f"File not found: {path}")
+        
+    try:
+        # 获取文件扩展名
+        _, ext = os.path.splitext(path)
+        
+        # 设置适当的 media_type
+        media_types = {
+            '.pdf': 'application/pdf',
+            '.txt': 'text/plain',
+            '.md': 'text/markdown',
+            '.doc': 'application/msword',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.xls': 'application/vnd.ms-excel',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+        
+        media_type = media_types.get(ext.lower(), 'application/octet-stream')
+        
+        return FileResponse(
+            path=path,
+            filename=os.path.basename(path),
+            media_type=media_type
+        )
+    except Exception as e:
+        logger.error(f"Failed to open file: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 """
 curl -X POST \

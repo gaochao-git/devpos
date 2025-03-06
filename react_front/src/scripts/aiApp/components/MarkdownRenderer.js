@@ -52,6 +52,48 @@ export const ThinkingBlock = ({ content }) => (
   </details>
 );
 
+// 文件引用组件
+const FileReference = ({ children }) => {
+  if (!children) return null;  // 添加空值检查
+  
+  const content = String(children);
+  
+  // 使用正则表达式匹配 <file_path> 标签
+  const filePathMatch = content.match(/<file_path>(.*?)<\/file_path>/);
+  
+  if (filePathMatch) {
+    const filePath = filePathMatch[1];
+    return (
+      <a 
+        onClick={() => {
+          fetch('http://172.20.10.2:8003/openFile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ path: filePath })
+          })
+          .then(response => response.blob())
+          .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+          })
+          .catch(err => console.error('打开文件失败:', err));
+        }}
+        style={{
+          color: '#1890ff',
+          textDecoration: 'underline',
+          cursor: 'pointer'
+        }}
+      >
+        {filePath}
+      </a>
+    );
+  }
+
+  return <>{children}</>; // 使用 Fragment 包装非文件路径内容
+};
+
 export const OutputBlock = ({ content }) => (
   <div style={{ overflowX: 'auto' }}>
     <ReactMarkdown
@@ -70,7 +112,14 @@ export const OutputBlock = ({ content }) => (
           <th style={{ border: '1px solid #ddd', padding: '12px 8px', backgroundColor: '#f5f5f5' }} {...props} />
         ),
         td: ({node, ...props}) => (
-          <td style={{ border: '1px solid #ddd', padding: '8px' }} {...props} />
+          <td style={{ border: '1px solid #ddd', padding: '8px' }}>
+            <FileReference>{props.children}</FileReference>
+          </td>
+        ),
+        p: ({node, ...props}) => (
+          <p {...props}>
+            <FileReference>{props.children}</FileReference>
+          </p>
         )
       }}
     >
