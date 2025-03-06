@@ -30,7 +30,7 @@ export const agentComponentMap = {
         color: '#efdbff',
         systemPrompt: '你是一个国产数据库选型专家，可以帮助进行国产数据库选型。',
         baseUrl: 'http://127.0.0.1',
-        apiKey: 'Bearer app-NOEvLqgeuuhpzUtzTif00KMO',
+        apiKey: 'Bearer app-WSI84Y94oECN4HgyzQ9X6Jzd',
     },
     'code': {
         component: CodeAgent,

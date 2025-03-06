@@ -141,11 +141,11 @@ const MessageList = React.memo(({
     );
 });
  // 智能体名称
-const agentName = 'data-analysis';
+const agentTypeKey = 'data-analysis';
 // 重构为函数式组件
 const DataAnalysisAgent = () => {
     // 获取智能体配置
-    const agentConfig = agentComponentMap[agentName];
+    const agentConfig = agentComponentMap[agentTypeKey];
     // 状态管理
     const [question, setQuestion] = useState('');
     const [messages, setMessages] = useState([]);
@@ -294,7 +294,7 @@ const DataAnalysisAgent = () => {
     const fetchHistoryList = useCallback(async (agentType) => {
         setIsHistoryLoading(true);
         try {
-            const data = await getHistoryConversations(agentType=agentConfig.name);
+            const data = await getHistoryConversations(agentType=agentTypeKey);
             if (data.data && data.data.length > 0) {
                 setHistoryData(data.data);
                 setHistoryModalVisible(true);
@@ -318,7 +318,7 @@ const DataAnalysisAgent = () => {
             setLoadingConversations(prev => new Set(prev).add(conversationId));
             try {
                 // 使用 getHistoryMessageDetail 并传递助手类型
-                const messagesData = await getHistoryMessageDetail(conversationId, agentConfig.name);
+                const messagesData = await getHistoryMessageDetail(conversationId, agentTypeKey);
                 setConversationMessages(prev => new Map(prev).set(conversationId, messagesData.data));
             } catch (error) {
                 console.error('获取会话详情失败:', error);
@@ -347,7 +347,7 @@ const DataAnalysisAgent = () => {
     const handleContinueConversation = useCallback(async (conversation) => {
         try {
             // 使用 getHistoryMessageDetail 并传递助手类型
-            const messagesData = await getHistoryMessageDetail(conversation.id, agentConfig.name);
+            const messagesData = await getHistoryMessageDetail(conversation.id, agentTypeKey);
             setConversationId(conversation.id);
             
             const convertedMessages = messagesData.data.flatMap(msg => {
@@ -412,10 +412,10 @@ const DataAnalysisAgent = () => {
             // 只有在启用RAG时才添加RAG相关参数
             if (ragConfig.enabled) {
                 inputs = {
-                    enabled: true? "yes":"no",
-                    db_types: ragConfig.db_types.join(','),
-                    vector_query: ragConfig.vectorQuery,
-                    scalar_query: ragConfig.scalarQuery
+                    "enabled": true? "yes":"no",
+                    "db_types": ragConfig.db_types.join(','),
+                    "vector_query": ragConfig.vectorQuery,
+                    "scalar_query": ragConfig.scalarQuery
                 };
             }
             
@@ -435,7 +435,7 @@ const DataAnalysisAgent = () => {
                     files: fileObjects,
                     conversationId,
                     abortController: abortControllerRef.current,
-                    agentType: agentConfig.name
+                    agentType: agentTypeKey
                 },
                 {
                     setMessages: setMessages,
@@ -569,7 +569,7 @@ const DataAnalysisAgent = () => {
                             onWebSearch={handleWebSearch}
                             isWebSearchActive={isWebSearchActive}
                             onFilesChange={handleFilesChange}
-                            agentType={agentConfig.name}
+                            agentType={agentTypeKey}
                         />
                     </div>
                 </div>
