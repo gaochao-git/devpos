@@ -4,6 +4,8 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
 
+
+//代码块样式
 export const CodeBlock = ({ className, children, ...props }) => {
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';
@@ -30,6 +32,8 @@ export const CodeBlock = ({ className, children, ...props }) => {
   );
 };
 
+
+//推理模型思考区域
 export const ThinkingBlock = ({ content }) => (
   <details
     style={{
@@ -52,7 +56,7 @@ export const ThinkingBlock = ({ content }) => (
   </details>
 );
 
-// 文件引用组件
+// 文件引用样式
 const FileReference = ({ children }) => {
   if (!children) return null;  // 添加空值检查
   
@@ -95,6 +99,8 @@ const FileReference = ({ children }) => {
   return <>{children}</>; // 使用 Fragment 包装非文件路径内容
 };
 
+
+// 主文本输出区域
 export const OutputBlock = ({ content }) => (
   <div style={{ overflowX: 'auto' }}>
     <ReactMarkdown
@@ -129,6 +135,7 @@ export const OutputBlock = ({ content }) => (
   </div>
 );
 
+//主渲染区域
 export const MarkdownRenderer = ({ content, isStreaming = false }) => {
   if (!content) return null;
   
