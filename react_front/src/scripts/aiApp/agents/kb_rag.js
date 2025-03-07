@@ -92,19 +92,12 @@ const RagConfigPanel = React.memo(({
                         </Select>
                     </div>
 
-                    <div style={{ marginBottom: '15px' }}>
-                        <div style={{ marginBottom: '5px' }}>矢量搜索</div>
-                        <Input
-                            placeholder="输入关键词，用于语义相似度搜索"
-                            value={ragConfig.vectorQuery}
-                            onChange={(e) => updateRagConfig({ vectorQuery: e.target.value })}
-                        />
-                    </div>
+
 
                     <div style={{ marginBottom: '15px' }}>
-                        <div style={{ marginBottom: '5px' }}>标量搜索</div>
+                        <div style={{ marginBottom: '5px' }}>关键词搜索</div>
                         <Input
-                            placeholder="输入关键词，用于精确/模糊匹配搜索"
+                            placeholder="输入关键词，多个逗号分隔，或关系"
                             value={ragConfig.scalarQuery}
                             onChange={(e) => updateRagConfig({ scalarQuery: e.target.value })}
                         />
@@ -170,7 +163,6 @@ const DataAnalysisAgent = () => {
     const [ragConfig, setRagConfig] = useState({
         enabled: false,
         db_types: [],
-        vectorQuery: '',
         scalarQuery: ''
     });
     
@@ -414,7 +406,6 @@ const DataAnalysisAgent = () => {
                 inputs = {
                     "enabled": true? "yes":"no",
                     "db_types": ragConfig.db_types.join(','),
-                    "vector_query": ragConfig.vectorQuery,
                     "scalar_query": ragConfig.scalarQuery
                 };
             }

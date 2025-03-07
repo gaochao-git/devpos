@@ -91,7 +91,7 @@ class RAGService:
         self,
         vector_query: str,
         db_type: str,
-        scalar_query: Optional[str] = None,
+        scalar_query: Optional[List[str]] = None,
         top_k: int = 5
     ) -> List[str]:
         """获取搜索上下文"""
@@ -107,13 +107,22 @@ class RAGService:
             if db_type:
                 conditions.append(f"db_type == '{db_type}'")
             
-            # 添加文本内容过滤
+            # 添加关键词内容过滤
             if scalar_query:
-                conditions.append(f'text_content like "%{scalar_query}%"')
+                # scalar_query 是逗号分隔的字符串，需要先分割
+                query_terms = scalar_query.replace('，', ',').split(',')
+                scalar_conditions = []
+                for query_term in query_terms:
+                    if query_term.strip():  # 确保不添加空字符串
+                        scalar_conditions.append(f'text_content like "%{query_term.strip()}%"')
+                
+                if scalar_conditions:
+                    conditions.append("(" + " OR ".join(scalar_conditions) + ")")
             
             # 构建最终的过滤条件
             filter = " && ".join(conditions) if conditions else None
             logger.info(f"Search filter: {filter}")
+            print(111111, filter)
             
             # 执行向量搜索
             results = self.client.search(
@@ -125,6 +134,7 @@ class RAGService:
                 filter=filter,
                 output_fields=["text_content", "db_type", "file_path", "page_number"]
             )
+            print(22222,results)
             # 格式化结果
             contexts = []
             for hits in results:
@@ -246,7 +256,6 @@ async def search_and_answer(request: dict):
         # 将逗号分隔的字符串转换为列表
         db_types_str = request.get("db_types", "")
         db_types = db_types_str.split(',') if db_types_str else []
-        vector_query = request.get("vector_query", "")
         scalar_query = request.get("scalar_query", "")
         
         logger.info(f"收到问答请求: question={question}, db_types={db_types}")
@@ -262,7 +271,7 @@ async def search_and_answer(request: dict):
             try:
                 # 这里替换为你的向量搜索实现
                 contexts = await rag_service.get_search_context(
-                    vector_query=vector_query,
+                    vector_query=question,
                     db_type=db_type,
                     scalar_query=scalar_query,
                     top_k=3
@@ -357,7 +366,6 @@ curl -X POST \
   -d '{
     "question": "如何优化MySQL查询性能?",
     "db_types": ["mysql"],
-    "vector_query": "MySQL查询性能优化技术",
     "scalar_query": ""
   }'  
 """
