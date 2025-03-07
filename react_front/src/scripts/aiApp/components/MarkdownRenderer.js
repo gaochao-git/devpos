@@ -64,7 +64,7 @@ const FileReference = ({ children }) => {
   const file_server_url = 'http://172.20.10.2:8003/openFile'
   
   // 使用正则表达式匹配 <file_path> 标签
-  const filePathMatch = content.match(/<custom_file_path>(.*?)<\/custom_file_path>/);
+  const filePathMatch = content.match(/<doc_file_path>(.*?)<\/doc_file_path>/);
   
   if (filePathMatch) {
     const filePath = filePathMatch[1];
