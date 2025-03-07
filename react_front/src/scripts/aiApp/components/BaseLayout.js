@@ -15,11 +15,12 @@ const MessageContainer = styled.div`
 `;
 
 const MessageBubble = styled.div`
-    max-width: 70%;
+    width: 70%;
     padding: 12px 16px;
     border-radius: 12px;
     background-color: ${props => props.isUser ? '#95EC69' : '#fff'};
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;  // 添加横向滚动
 `;
 
 const Timestamp = styled.div`
