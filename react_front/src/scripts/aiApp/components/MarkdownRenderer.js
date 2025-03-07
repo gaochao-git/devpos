@@ -11,24 +11,52 @@ export const CodeBlock = ({ className, children, ...props }) => {
   const language = match ? match[1] : '';
   const code = String(children).replace(/\n$/, '');
   
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code)
+      .then(() => {
+        // 可以添加复制成功的提示
+        console.log('代码已复制');
+      })
+      .catch(err => console.error('复制失败:', err));
+  };
+  
   if (!language) {
     return <code {...props}>{code}</code>;
   }
   
   return (
-    <SyntaxHighlighter
-      style={oneDark}
-      language={language}
-      PreTag="div"
-      customStyle={{
-        padding: '16px',
-        borderRadius: '8px',
-        margin: 0
-      }}
-      {...props}
-    >
-      {code}
-    </SyntaxHighlighter>
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={handleCopy}
+        style={{
+          position: 'absolute',
+          right: '10px',
+          top: '10px',
+          padding: '4px 8px',
+          background: 'rgba(255,255,255,0.1)',
+          border: 'none',
+          borderRadius: '4px',
+          color: '#fff',
+          cursor: 'pointer',
+          fontSize: '12px'
+        }}
+      >
+        复制
+      </button>
+      <SyntaxHighlighter
+        style={oneDark}
+        language={language}
+        PreTag="div"
+        customStyle={{
+          padding: '16px',
+          borderRadius: '8px',
+          margin: 0
+        }}
+        {...props}
+      >
+        {code}
+      </SyntaxHighlighter>
+    </div>
   );
 };
 
