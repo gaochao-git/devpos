@@ -15,7 +15,7 @@ const MessageContainer = styled.div`
 `;
 
 const MessageBubble = styled.div`
-    width: 70%;
+    max-width: 70%;
     padding: 12px 16px;
     border-radius: 12px;
     background-color: ${props => props.isUser ? '#95EC69' : '#fff'};
