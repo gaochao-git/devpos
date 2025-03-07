@@ -63,11 +63,14 @@ const FileReference = ({ children }) => {
   const content = String(children);
   const file_server_url = 'http://172.20.10.2:8003/openFile'
   
-  // 使用正则表达式匹配 <file_path> 标签
+  // 使用正则表达式匹配 <file_path> 和 <doc_page_no> 标签
   const filePathMatch = content.match(/<doc_file_path>(.*?)<\/doc_file_path>/);
+  const pageNoMatch = content.match(/<doc_page_no>(.*?)<\/doc_page_no>/);
   
   if (filePathMatch) {
     const filePath = filePathMatch[1];
+    const pageNo = pageNoMatch ? pageNoMatch[1] : '';
+    
     return (
       <a 
         onClick={() => {
@@ -91,11 +94,11 @@ const FileReference = ({ children }) => {
           cursor: 'pointer'
         }}
       >
-        {filePath}
+        {filePath}, {pageNo}
       </a>
     );
   }
-
+  
   return <>{children}</>; // 使用 Fragment 包装非文件路径内容
 };
 
