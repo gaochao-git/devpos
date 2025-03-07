@@ -318,14 +318,17 @@ const GeneralAgent = () => {
                         display: 'flex',
                         flexDirection: 'column',
                         background: '#F8FBFF',
-                        borderTopRightRadius: '8px'
+                        borderTopRightRadius: '8px',
+                        minWidth: 0
                     }}>
                         <div 
                             ref={messagesContainerRef}
                             style={{
                                 flex: 1,
                                 overflow: 'auto',
-                                padding: '0 15px 30px 15px'
+                                padding: '0 15px 30px 15px',
+                                minWidth: 0,
+                                width: '100%'
                             }}
                         >
                             <MessageList 
