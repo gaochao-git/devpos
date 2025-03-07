@@ -58,48 +58,58 @@ export const ThinkingBlock = ({ content }) => (
 
 // 文件引用样式
 const FileReference = ({ children }) => {
-  if (!children) return null;  // 添加空值检查
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [fileUrl, setFileUrl] = useState(null);
+  
+  if (!children) return null;
   
   const content = String(children);
-  const file_server_url = 'http://172.20.10.2:8003/openFile'
-  
-  // 使用正则表达式匹配 <file_path> 和 <doc_page_no> 标签
   const filePathMatch = content.match(/<doc_file_path>(.*?)<\/doc_file_path>/);
-  const pageNoMatch = content.match(/<doc_page_no>(.*?)<\/doc_page_no>/);
+  if (!filePathMatch) return <>{children}</>;
   
-  if (filePathMatch) {
-    const filePath = filePathMatch[1];
-    const pageNo = pageNoMatch ? pageNoMatch[1] : '';
-    
-    return (
-      <a 
-        onClick={() => {
-          fetch(file_server_url, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ path: filePath })
-          })
-          .then(response => response.blob())
-          .then(blob => {
-            const url = window.URL.createObjectURL(blob);
-            window.open(url, '_blank');
-          })
-          .catch(err => console.error('打开文件失败:', err));
-        }}
-        style={{
-          color: '#1890ff',
-          textDecoration: 'underline',
-          cursor: 'pointer'
-        }}
-      >
+  const filePath = filePathMatch[1];
+  const pageNo = content.match(/<doc_page_no>(.*?)<\/doc_page_no>/)?.[1] || '';
+  
+  const handleOpen = () => {
+    fetch('http://172.20.10.2:8003/openFile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: filePath })
+    })
+    .then(response => response.blob())
+    .then(blob => {
+      setFileUrl(window.URL.createObjectURL(blob));
+      setIsModalOpen(true);
+    })
+    .catch(err => console.error('打开文件失败:', err));
+  };
+
+  const handleClose = () => {
+    setIsModalOpen(false);
+    if (fileUrl) {
+      URL.revokeObjectURL(fileUrl);
+      setFileUrl(null);
+    }
+  };
+
+  return (
+    <>
+      <a onClick={handleOpen} style={{ color: '#1890ff', textDecoration: 'underline', cursor: 'pointer' }}>
         {filePath}, {pageNo}
       </a>
-    );
-  }
-  
-  return <>{children}</>; // 使用 Fragment 包装非文件路径内容
+      
+      {isModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', 
+                     display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ position: 'relative', backgroundColor: 'white', padding: '20px', 
+                       borderRadius: '8px', width: '80%', height: '80%' }}>
+            <button onClick={handleClose} style={{ position: 'absolute', right: 10, top: 10 }}>关闭</button>
+            <iframe src={fileUrl} style={{ width: '100%', height: '100%', border: 'none' }} />
+          </div>
+        </div>
+      )}
+    </>
+  );
 };
 
 
