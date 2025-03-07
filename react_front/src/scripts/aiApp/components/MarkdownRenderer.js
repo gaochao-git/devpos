@@ -57,16 +57,17 @@ const FileReference = ({ children }) => {
   if (!children) return null;  // 添加空值检查
   
   const content = String(children);
+  const file_server_url = 'http://172.20.10.2:8003/openFile'
   
   // 使用正则表达式匹配 <file_path> 标签
-  const filePathMatch = content.match(/<file_path>(.*?)<\/file_path>/);
+  const filePathMatch = content.match(/<custom_file_path>(.*?)<\/custom_file_path>/);
   
   if (filePathMatch) {
     const filePath = filePathMatch[1];
     return (
       <a 
         onClick={() => {
-          fetch('http://172.20.10.2:8003/openFile', {
+          fetch(file_server_url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
