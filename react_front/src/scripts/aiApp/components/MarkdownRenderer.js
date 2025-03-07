@@ -3,10 +3,12 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
+import { message } from 'antd';
 
 
 //代码块样式
 export const CodeBlock = ({ className, children, ...props }) => {
+  const [copyStatus, setCopyStatus] = useState('idle'); // 'idle' | 'success' | 'error'
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';
   const code = String(children).replace(/\n$/, '');
@@ -14,34 +16,66 @@ export const CodeBlock = ({ className, children, ...props }) => {
   const handleCopy = () => {
     navigator.clipboard.writeText(code)
       .then(() => {
-        // 可以添加复制成功的提示
-        console.log('代码已复制');
+        setCopyStatus('success');
+        message.success('代码已复制到剪贴板');
+        // 1秒后重置状态
+        setTimeout(() => setCopyStatus('idle'), 1000);
       })
-      .catch(err => console.error('复制失败:', err));
+      .catch(err => {
+        setCopyStatus('error');
+        message.error('复制失败: ' + err.message);
+        setTimeout(() => setCopyStatus('idle'), 1000);
+      });
   };
   
   if (!language) {
     return <code {...props}>{code}</code>;
   }
   
+  // 根据复制状态决定按钮样式
+  const getButtonStyle = () => {
+    const baseStyle = {
+      position: 'absolute',
+      right: '10px',
+      top: '10px',
+      padding: '4px 8px',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      transition: 'all 0.3s'
+    };
+
+    switch (copyStatus) {
+      case 'success':
+        return {
+          ...baseStyle,
+          background: '#52c41a',
+          color: '#fff'
+        };
+      case 'error':
+        return {
+          ...baseStyle,
+          background: '#ff4d4f',
+          color: '#fff'
+        };
+      default:
+        return {
+          ...baseStyle,
+          background: 'rgba(255,255,255,0.1)',
+          color: '#fff'
+        };
+    }
+  };
+
   return (
     <div style={{ position: 'relative' }}>
       <button
         onClick={handleCopy}
-        style={{
-          position: 'absolute',
-          right: '10px',
-          top: '10px',
-          padding: '4px 8px',
-          background: 'rgba(255,255,255,0.1)',
-          border: 'none',
-          borderRadius: '4px',
-          color: '#fff',
-          cursor: 'pointer',
-          fontSize: '12px'
-        }}
+        style={getButtonStyle()}
       >
-        复制
+        {copyStatus === 'success' ? '已复制' : 
+         copyStatus === 'error' ? '复制失败' : '复制'}
       </button>
       <SyntaxHighlighter
         style={oneDark}
