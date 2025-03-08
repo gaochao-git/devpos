@@ -18,38 +18,29 @@ export const CodeBlock = ({ className, children, ...props }) => {
   const listRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
   
-  // 监听代码变化，自动滚动到底部
-  useEffect(() => {
-    if (listRef.current && codeLines.length > 0) {
-      // 滚动到最后一行
-      listRef.current.scrollToItem(codeLines.length - 1);
-    }
-  }, [code, codeLines.length]);
-  
+  // 监听容器宽度变化
   useEffect(() => {
     if (containerRef.current) {
       setContainerWidth(containerRef.current.offsetWidth);
-      
-      // 添加窗口大小变化监听
-      const handleResize = () => {
-        setContainerWidth(containerRef.current?.offsetWidth || 0);
-      };
-      
+      const handleResize = () => setContainerWidth(containerRef.current?.offsetWidth || 0);
       window.addEventListener('resize', handleResize);
       return () => window.removeEventListener('resize', handleResize);
     }
   }, []);
   
-  // 修复复制功能 - 直接使用原始代码字符串
+  // 自动滚动到底部
+  useEffect(() => {
+    if (listRef.current && codeLines.length > 0) {
+      listRef.current.scrollToItem(codeLines.length - 1);
+    }
+  }, [code, codeLines.length]);
+  
+  // 复制代码
   const handleCopy = () => {
-    // 使用完整的代码字符串，而不是从虚拟列表中获取
-    const textToCopy = code;
-    
-    navigator.clipboard.writeText(textToCopy)
+    navigator.clipboard.writeText(code)
       .then(() => {
         setCopyStatus('success');
         message.success('代码已复制到剪贴板');
-        // 1秒后重置状态
         setTimeout(() => setCopyStatus('idle'), 1000);
       })
       .catch(err => {
@@ -59,84 +50,38 @@ export const CodeBlock = ({ className, children, ...props }) => {
       });
   };
   
-  if (!language) {
-    return <code {...props}>{code}</code>;
-  }
+  if (!language) return <code {...props}>{code}</code>;
   
-  // 根据复制状态决定按钮样式
-  const getButtonStyle = () => {
-    const baseStyle = {
-      position: 'absolute',
-      right: '10px',
-      top: '10px',
-      padding: '4px 8px',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      transition: 'all 0.3s',
-      zIndex: 10 // 确保按钮在最上层
-    };
-
-    switch (copyStatus) {
-      case 'success':
-        return {
-          ...baseStyle,
-          background: '#52c41a',
-          color: '#fff'
-        };
-      case 'error':
-        return {
-          ...baseStyle,
-          background: '#ff4d4f',
-          color: '#fff'
-        };
-      default:
-        return {
-          ...baseStyle,
-          background: 'rgba(255,255,255,0.1)',
-          color: '#fff'
-        };
-    }
-  };
-
-  // 单行渲染器
-  const Row = ({ index, style }) => {
-    return (
-      <div style={style}>
-        <SyntaxHighlighter
-          style={oneDark}
-          language={language}
-          PreTag="span"
-          customStyle={{
-            margin: 0,
-            padding: '0 16px',
-            backgroundColor: 'transparent',
-            display: 'block'
-          }}
-        >
-          {codeLines[index]}
-        </SyntaxHighlighter>
-      </div>
-    );
-  };
-
-  // 计算合适的高度
-  const lineHeight = 24; // 估计的行高
-  const maxVisibleLines = 20; // 最大显示行数
+  // 计算高度
+  const lineHeight = 24;
+  const maxVisibleLines = 20;
   const height = Math.min(codeLines.length * lineHeight, maxVisibleLines * lineHeight);
+  
+  // 复制按钮样式
+  const buttonStyle = {
+    position: 'absolute',
+    right: '10px',
+    top: '10px',
+    padding: '4px 8px',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    transition: 'all 0.3s',
+    zIndex: 10,
+    background: copyStatus === 'success' ? '#52c41a' : 
+               copyStatus === 'error' ? '#ff4d4f' : 'rgba(255,255,255,0.1)',
+    color: '#fff'
+  };
 
   return (
     <div style={{ position: 'relative' }} ref={containerRef}>
-      <button
-        onClick={handleCopy}
-        style={getButtonStyle()}
-      >
+      <button onClick={handleCopy} style={buttonStyle}>
         {copyStatus === 'success' ? '已复制' : 
          copyStatus === 'error' ? '复制失败' : '复制'}
       </button>
       <div style={{
-        backgroundColor: '#282c34', // oneDark背景色
+        backgroundColor: '#282c34',
         borderRadius: '8px',
         padding: '16px 0',
         overflow: 'hidden'
@@ -151,7 +96,23 @@ export const CodeBlock = ({ className, children, ...props }) => {
             overscanCount={5}
             initialScrollOffset={(codeLines.length - 1) * lineHeight}
           >
-            {Row}
+            {({ index, style }) => (
+              <div style={style}>
+                <SyntaxHighlighter
+                  style={oneDark}
+                  language={language}
+                  PreTag="span"
+                  customStyle={{
+                    margin: 0,
+                    padding: '0 16px',
+                    backgroundColor: 'transparent',
+                    display: 'block'
+                  }}
+                >
+                  {codeLines[index]}
+                </SyntaxHighlighter>
+              </div>
+            )}
           </List>
         )}
       </div>
