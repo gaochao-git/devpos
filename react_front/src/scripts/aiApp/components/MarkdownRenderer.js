@@ -69,16 +69,14 @@ export const CodeBlock = ({ className, children, ...props }) => {
     fontSize: '12px',
     transition: 'all 0.3s',
     zIndex: 10,
-    background: copyStatus === 'success' ? '#52c41a' : 
-               copyStatus === 'error' ? '#ff4d4f' : 'rgba(255,255,255,0.1)',
+    background: copyStatus === 'success' ? '#52c41a' : '#ffffff1a',
     color: '#fff'
   };
 
   return (
     <div style={{ position: 'relative' }} ref={containerRef}>
       <button onClick={handleCopy} style={buttonStyle}>
-        {copyStatus === 'success' ? '已复制' : 
-         copyStatus === 'error' ? '复制失败' : '复制'}
+        {copyStatus === 'success' ? '已复制' : '复制'}
       </button>
       <div style={{
         backgroundColor: '#282c34',
