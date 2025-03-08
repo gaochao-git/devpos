@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
 import { message } from 'antd';
+import { FixedSizeList as List } from 'react-window';
 
 
 //代码块样式
@@ -12,9 +13,39 @@ export const CodeBlock = ({ className, children, ...props }) => {
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';
   const code = String(children).replace(/\n$/, '');
+  const codeLines = code.split('\n');
+  const containerRef = useRef(null);
+  const listRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(0);
   
+  // 监听代码变化，自动滚动到底部
+  useEffect(() => {
+    if (listRef.current && codeLines.length > 0) {
+      // 滚动到最后一行
+      listRef.current.scrollToItem(codeLines.length - 1);
+    }
+  }, [code, codeLines.length]);
+  
+  useEffect(() => {
+    if (containerRef.current) {
+      setContainerWidth(containerRef.current.offsetWidth);
+      
+      // 添加窗口大小变化监听
+      const handleResize = () => {
+        setContainerWidth(containerRef.current?.offsetWidth || 0);
+      };
+      
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
+  
+  // 修复复制功能 - 直接使用原始代码字符串
   const handleCopy = () => {
-    navigator.clipboard.writeText(code)
+    // 使用完整的代码字符串，而不是从虚拟列表中获取
+    const textToCopy = code;
+    
+    navigator.clipboard.writeText(textToCopy)
       .then(() => {
         setCopyStatus('success');
         message.success('代码已复制到剪贴板');
@@ -43,7 +74,8 @@ export const CodeBlock = ({ className, children, ...props }) => {
       borderRadius: '4px',
       cursor: 'pointer',
       fontSize: '12px',
-      transition: 'all 0.3s'
+      transition: 'all 0.3s',
+      zIndex: 10 // 确保按钮在最上层
     };
 
     switch (copyStatus) {
@@ -68,8 +100,34 @@ export const CodeBlock = ({ className, children, ...props }) => {
     }
   };
 
+  // 单行渲染器
+  const Row = ({ index, style }) => {
+    return (
+      <div style={style}>
+        <SyntaxHighlighter
+          style={oneDark}
+          language={language}
+          PreTag="span"
+          customStyle={{
+            margin: 0,
+            padding: '0 16px',
+            backgroundColor: 'transparent',
+            display: 'block'
+          }}
+        >
+          {codeLines[index]}
+        </SyntaxHighlighter>
+      </div>
+    );
+  };
+
+  // 计算合适的高度
+  const lineHeight = 24; // 估计的行高
+  const maxVisibleLines = 20; // 最大显示行数
+  const height = Math.min(codeLines.length * lineHeight, maxVisibleLines * lineHeight);
+
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative' }} ref={containerRef}>
       <button
         onClick={handleCopy}
         style={getButtonStyle()}
@@ -77,19 +135,26 @@ export const CodeBlock = ({ className, children, ...props }) => {
         {copyStatus === 'success' ? '已复制' : 
          copyStatus === 'error' ? '复制失败' : '复制'}
       </button>
-      <SyntaxHighlighter
-        style={oneDark}
-        language={language}
-        PreTag="div"
-        customStyle={{
-          padding: '16px',
-          borderRadius: '8px',
-          margin: 0
-        }}
-        {...props}
-      >
-        {code}
-      </SyntaxHighlighter>
+      <div style={{
+        backgroundColor: '#282c34', // oneDark背景色
+        borderRadius: '8px',
+        padding: '16px 0',
+        overflow: 'hidden'
+      }}>
+        {containerWidth > 0 && (
+          <List
+            ref={listRef}
+            height={height}
+            itemCount={codeLines.length}
+            itemSize={lineHeight}
+            width={containerWidth}
+            overscanCount={5}
+            initialScrollOffset={(codeLines.length - 1) * lineHeight}
+          >
+            {Row}
+          </List>
+        )}
+      </div>
     </div>
   );
 };
