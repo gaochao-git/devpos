@@ -51,6 +51,13 @@ const CodeAgent = ({
     defaultDatabase,
     defaultTables
 }) => {
+    // 打印接收到的 props
+    console.log("CodeAgent received props:", {
+        defaultInstance,
+        defaultDatabase,
+        defaultTables
+    });
+
     // 获取智能体配置
     const agentConfig = agentComponentMap[agentTypeKey];
     // 状态管理
@@ -77,8 +84,11 @@ const CodeAgent = ({
     const [dbConfig, setDbConfig] = useState({
         instance: defaultInstance || '',
         database: defaultDatabase || '',
-        tables: defaultTables || []
+        tables: []  // 初始化为空数组，而不是使用 defaultTables
     });
+
+    // 修改 tables 状态的初始化
+    const [tables, setTables] = useState(defaultTables || []);
 
     // 添加状态标记是否来自父组件
     const isFromParent = useMemo(() => ({
@@ -88,7 +98,6 @@ const CodeAgent = ({
 
     const [instanceOptions, setInstanceOptions] = useState({});
     const [dbOptions, setDbOptions] = useState({});
-    const [tables, setTables] = useState([]);
     
     // Refs
     const messagesEndRef = useRef(null);
@@ -304,8 +313,26 @@ const CodeAgent = ({
 
     // 获取表列表
     const getTables = async (instanceName, databaseName) => {
+        console.log("getTables called with:", {
+            instanceName,
+            databaseName,
+            defaultTables
+        });
+        
         if (!instanceName || !databaseName) return;
         
+        if (defaultTables && defaultTables.length > 0) {
+            console.log("Using defaultTables:", defaultTables);
+            const tableOptions = defaultTables.map(tableName => ({
+                value: tableName,
+                label: tableName
+            }));
+            console.log("Created tableOptions:", tableOptions);
+            setTables(tableOptions);
+            return;
+        }
+        
+        // 否则从服务器获取表列表
         let params = {
             schema_name: databaseName,
             instance_name: instanceName,
@@ -322,7 +349,6 @@ const CodeAgent = ({
                 }));
                 
                 setTables(tableOptions);
-                console.log('获取到的表列表:', tableOptions);
             } else {
                 message.error(res.data.message);
             }
@@ -552,9 +578,12 @@ const CodeAgent = ({
                             allowClear
                             disabled={!dbConfig.database}
                         >
-                            {tables.map(option => (
-                                <Option key={option.value} value={option.value}>
-                                    {option.label}
+                            {tables.map(table_name => (
+                                <Option 
+                                    key={table_name}
+                                    value={table_name}
+                                >
+                                    {table_name}
                                 </Option>
                             ))}
                         </Select>
