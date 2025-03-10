@@ -22,12 +22,15 @@ class CodeChatHeader extends React.Component {
             database: "cloudb",
             instance: '82.156.146.51_3306',
             instanceOptions: {},
-            dbOptions: {}
+            dbOptions: {},
+            tables: [],
+            selectedTables: []
         };
     }
 
     componentDidMount() {
         this.getSchema();
+        this.getTables();
     }
 
 
@@ -78,9 +81,50 @@ class CodeChatHeader extends React.Component {
         return this.state.dbOptions[instanceName] || [];
     };
 
+    // 获取表列表
+    async getTables() {
+        const { instance, database } = this.state;
+        if (!instance || !database) return;
+        
+        let params = {
+            schema_name: database,
+            instance_name: instance,
+            table_name: "%", // 默认获取所有表
+        };
+        
+        console.log("获取表列表，参数:", params);
+        
+        try {
+            const res = await MyAxios.post('/web_console/v1/get_table_list/', params);
+            if (res.data.status === 'ok') {
+                const table_info_list = res.data.data['table_info_list'];
+                const tables = table_info_list.map(item => ({
+                    value: item.TABLE_NAME,
+                    label: item.TABLE_NAME
+                }));
+                
+                this.setState({ tables });
+            } else {
+                message.error(res.data.message);
+            }
+        } catch (err) {
+            console.error("获取表列表异常:", err);
+            message.error(err.message || "获取表列表异常");
+        }
+    }
+
     // 处理数据库变更
     handleDbChange = (value) => {
-        this.setState({ database: value });
+        this.setState({ 
+            database: value,
+            tables: [],
+            selectedTables: []
+        }, () => {
+            // 获取该数据库的表
+            if (value) {
+                this.getTables();
+            }
+        });
         
         // 如果有外部回调，则调用
         if (this.props.onDbChange) {
@@ -88,8 +132,18 @@ class CodeChatHeader extends React.Component {
         }
     };
 
+    // 处理表选择变更
+    handleTableChange = (selectedTables) => {
+        this.setState({ selectedTables });
+        
+        // 如果有外部回调，则调用
+        if (this.props.onTableChange) {
+            this.props.onTableChange(selectedTables);
+        }
+    };
+
     render() {
-        const { instance, database } = this.state;
+        const { instance, database, tables, selectedTables } = this.state;
         const { 
             icon, 
             title, 
@@ -166,6 +220,29 @@ class CodeChatHeader extends React.Component {
                     </Select>
                 </div>
                 
+                {/* 表选择框 - 新增 */}
+                <div style={{ marginRight: '15px', width: '200px' }}>
+                    <Select
+                        mode="multiple"
+                        showSearch
+                        placeholder="选择表(可多选)"
+                        value={selectedTables}
+                        onChange={this.handleTableChange}
+                        style={{ width: '100%' }}
+                        filterOption={(input, option) =>
+                            option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                        }
+                        allowClear
+                        disabled={!database}
+                    >
+                        {tables.map(option => (
+                            <Option key={option.value} value={option.value}>
+                                {option.label}
+                            </Option>
+                        ))}
+                    </Select>
+                </div>
+                
                 {/* 使用公共图标组件 */}
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <NewChatIcon onClick={onNewChat} />
@@ -233,7 +310,8 @@ const CodeAgent = () => {
     // 添加数据库配置状态
     const [dbConfig, setDbConfig] = useState({
         instance: null,
-        database: null
+        database: null,
+        tables: []
     });
     
     // Refs
@@ -423,7 +501,16 @@ const CodeAgent = () => {
     const handleDbChange = useCallback((value) => {
         setDbConfig(prev => ({
             ...prev,
-            database: value
+            database: value,
+            tables: []
+        }));
+    }, []);
+    
+    // 处理表变更
+    const handleTableChange = useCallback((tables) => {
+        setDbConfig(prev => ({
+            ...prev,
+            tables
         }));
     }, []);
     
@@ -459,8 +546,9 @@ const CodeAgent = () => {
             // 添加数据库相关参数
             if (dbConfig) {
                 inputs = {
-                    instance: dbConfig.instance || '',
-                    database: dbConfig.database || ''
+                    instance_name: dbConfig.instance || '',
+                    schema_name: dbConfig.database || '',
+                    table_names: dbConfig.tables || []
                 };
             }
             
@@ -541,6 +629,7 @@ const CodeAgent = () => {
                     onViewHistory={fetchHistoryList}
                     isHistoryLoading={isHistoryLoading}
                     onDbChange={handleDbChange}
+                    onTableChange={handleTableChange}
                 />
 
                 <div style={{
