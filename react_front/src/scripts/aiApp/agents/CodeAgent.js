@@ -182,7 +182,7 @@ class CodeChatHeader extends React.Component {
                 
                 
                 {/* 实例选择框 - 改为输入框 */}
-                <div style={{ marginRight: '15px', width: '150px' }}>
+                <div style={{ marginRight: '15px', width: '200px' }}>
                     <Input
                         placeholder="输入实例"
                         value={instance}
