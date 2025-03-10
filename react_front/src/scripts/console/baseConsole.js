@@ -21,6 +21,7 @@ import { MyResizeTable } from "../common/resizeTable"
 import {EditableTable} from "./tableBaseInfo"
 import {EditableAlterTable} from "./alterTableBaseInfo"
 import decrypt_aes_cbc from "../common/enc_dec"
+import CodeAgent from '../aiApp/agents/CodeAgent';
 const {Option} = Select
 const {TabPane} = Tabs
 const { TextArea } = Input
@@ -86,7 +87,8 @@ export class BaseConsole extends Component {
       start_index: 0,
       end_index: 500,
       current_page: 0,
-      default_page_size:500
+      default_page_size:500,
+      sqlAssistantDrawerVisible: false,
     }
   }
 
@@ -732,7 +734,7 @@ onSorter = (a,b) => {
                   style={{ background: 'white'}}
                   collapsible
                   collapsed={this.state.collapsed}
-                  onCollapse={this.onCollapse}
+                  onCollapse={this.onCollapseTable}
                   trigger={null}
                   width='100%'
                   collapsedWidth={0}
@@ -847,6 +849,7 @@ onSorter = (a,b) => {
             <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>解释</Button>
             <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sql_content:sqlFormatter.format(this.state.sql_content)})}>美化</Button>
             <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getSqlScore()}>SQL质量</Button>
+            <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sqlAssistantDrawerVisible: true})}>SQL助手</Button>
             <Button type="link"  icon="star" onClick={()=> this.setState({favoriteVisible:true})}></Button>
             <Tooltip
                 placement="bottomRight"
@@ -1006,6 +1009,19 @@ onSorter = (a,b) => {
         >
             <MdEditor value={this.state.sql_score} view={{ menu: false, md: false, html: true }} readOnly={true} shortcuts={true} toolbars={false} style={{ height: '500px' }} renderHTML={text => this.renderHTML()}/>
         </Modal>
+        <Drawer
+          title="SQL助手"
+          placement="right"
+          width={1000}
+          onClose={() => this.setState({sqlAssistantDrawerVisible: false})}
+          visible={this.state.sqlAssistantDrawerVisible}
+        >
+          <CodeAgent 
+            defaultInstance={this.state.instance_name}
+            defaultDatabase={this.state.current_schema}
+            defaultTables={this.state.source_slider_info.map(item => item.key)}
+          />
+        </Drawer>
       </div>
     );
   }
