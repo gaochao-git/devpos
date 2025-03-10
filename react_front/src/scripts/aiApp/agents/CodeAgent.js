@@ -19,74 +19,17 @@ class CodeChatHeader extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            cluster: null,
-            database: null,
-            instance: null,
-            clusterOptions: [],
+            database: "cloudb",
+            instance: '82.156.146.51_3306',
             instanceOptions: {},
             dbOptions: {}
         };
     }
 
     componentDidMount() {
-        this.getClusterName();
+        this.getSchema();
     }
 
-    // 获取集群列表
-    async getClusterName() {
-        try {
-            const res = await MyAxios.get('/db_resource/v1/get_mysql_cluster/');
-            if (res.data.status === 'ok') {
-                // 将API返回的数据转换为Select需要的格式
-                const clusterOptions = res.data.data.map(cluster => ({
-                    value: cluster.cluster_name,
-                    label: cluster.cluster_name
-                }));
-                
-                this.setState({
-                    clusterOptions: clusterOptions
-                });
-            } else {
-                message.error(res.data.message);
-            }
-        } catch (err) {
-            message.error(err.message);
-        }
-    }
-
-    // 获取集群实例信息
-    async getClusterIns(value) {
-        try {
-            const params = {
-                cluster_name: value,
-            };
-            
-            const res = await MyAxios.post('/db_resource/v1/get_mysql_cluster_ins/', params);
-            if (res.data.status === 'ok') {
-                // 将API返回的数据转换为Select需要的格式
-                const instanceOptions = res.data.data.map(instance => ({
-                    value: instance.instance_name,
-                    label: instance.instance_name
-                }));
-                
-                // 更新状态
-                this.setState(prevState => ({
-                    instanceOptions: {
-                        ...prevState.instanceOptions,
-                        [value]: instanceOptions
-                    }
-                }));
-                
-                return instanceOptions;
-            } else {
-                message.error(res.data.message);
-                return [];
-            }
-        } catch (err) {
-            message.error(err.message);
-            return [];
-        }
-    }
 
     // 获取数据库列表
     async getSchema(instanceName) {
@@ -129,53 +72,10 @@ class CodeChatHeader extends React.Component {
         }
     }
 
-    // 获取实例选项
-    getInstanceOptions = (clusterId) => {
-        if (!clusterId) return [];
-        return this.state.instanceOptions[clusterId] || [];
-    };
-
     // 获取数据库选项
     getDbOptions = (instanceName) => {
         if (!instanceName) return [];
         return this.state.dbOptions[instanceName] || [];
-    };
-
-    // 处理集群变更
-    handleClusterChange = async (value) => {
-        this.setState({ 
-            cluster: value,
-            instance: null,
-            database: null // 重置实例和数据库选择
-        });
-        
-        // 如果选择了集群，获取该集群的实例列表
-        if (value && !this.state.instanceOptions[value]) {
-            await this.getClusterIns(value);
-        }
-        
-        // 如果有外部回调，则调用
-        if (this.props.onClusterChange) {
-            this.props.onClusterChange(value);
-        }
-    };
-
-    // 处理实例变更
-    handleInstanceChange = async (value) => {
-        this.setState({ 
-            instance: value,
-            database: null // 重置数据库选择
-        });
-        
-        // 如果选择了实例，获取该实例的数据库列表
-        if (value && !this.state.dbOptions[value]) {
-            await this.getSchema(value);
-        }
-        
-        // 如果有外部回调，则调用
-        if (this.props.onInstanceChange) {
-            this.props.onInstanceChange(value);
-        }
     };
 
     // 处理数据库变更
@@ -189,7 +89,7 @@ class CodeChatHeader extends React.Component {
     };
 
     render() {
-        const { cluster, instance, database, clusterOptions } = this.state;
+        const { instance, database } = this.state;
         const { 
             icon, 
             title, 
@@ -226,47 +126,16 @@ class CodeChatHeader extends React.Component {
                     <div style={{ color: '#666', fontSize: '14px' }}>{description}</div>
                 </div>
                 
-                {/* 集群选择框 */}
-                <div style={{ marginRight: '15px', width: '150px' }}>
-                    <Select
-                        showSearch
-                        placeholder="选择集群"
-                        value={cluster}
-                        onChange={this.handleClusterChange}
-                        style={{ width: '100%' }}
-                        filterOption={(input, option) =>
-                            option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                        }
-                        allowClear
-                    >
-                        {clusterOptions.map(option => (
-                            <Option key={option.value} value={option.value}>
-                                {option.label}
-                            </Option>
-                        ))}
-                    </Select>
-                </div>
                 
-                {/* 实例选择框 */}
+                {/* 实例选择框 - 改为输入框 */}
                 <div style={{ marginRight: '15px', width: '150px' }}>
-                    <Select
-                        showSearch
-                        placeholder="选择实例"
+                    <Input
+                        placeholder="输入实例"
                         value={instance}
-                        onChange={this.handleInstanceChange}
+                        onChange={(e) => this.setState({ instance: e.target.value })}
                         style={{ width: '100%' }}
-                        filterOption={(input, option) =>
-                            option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                        }
                         allowClear
-                        disabled={!cluster}
-                    >
-                        {this.getInstanceOptions(cluster).map(option => (
-                            <Option key={option.value} value={option.value}>
-                                {option.label}
-                            </Option>
-                        ))}
-                    </Select>
+                    />
                 </div>
                 
                 {/* 数据库选择框 */}
@@ -357,7 +226,6 @@ const CodeAgent = () => {
     
     // 添加数据库配置状态
     const [dbConfig, setDbConfig] = useState({
-        cluster: null,
         instance: null,
         database: null
     });
@@ -544,24 +412,6 @@ const CodeAgent = () => {
         }
     }, []);
     
-    // 处理集群变更
-    const handleClusterChange = useCallback((value) => {
-        setDbConfig(prev => ({
-            ...prev,
-            cluster: value,
-            instance: null,
-            database: null // 重置实例和数据库选择
-        }));
-    }, []);
-    
-    // 处理实例变更
-    const handleInstanceChange = useCallback((value) => {
-        setDbConfig(prev => ({
-            ...prev,
-            instance: value,
-            database: null // 重置数据库选择
-        }));
-    }, []);
     
     // 处理数据库变更
     const handleDbChange = useCallback((value) => {
@@ -601,9 +451,8 @@ const CodeAgent = () => {
             let inputs = {};
             
             // 添加数据库相关参数
-            if (dbConfig.cluster) {
+            if (dbConfig) {
                 inputs = {
-                    cluster: dbConfig.cluster,
                     instance: dbConfig.instance || '',
                     database: dbConfig.database || ''
                 };
@@ -685,8 +534,6 @@ const CodeAgent = () => {
                     }}
                     onViewHistory={fetchHistoryList}
                     isHistoryLoading={isHistoryLoading}
-                    onClusterChange={handleClusterChange}
-                    onInstanceChange={handleInstanceChange}
                     onDbChange={handleDbChange}
                 />
 
