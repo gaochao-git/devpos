@@ -186,7 +186,13 @@ class CodeChatHeader extends React.Component {
                     <Input
                         placeholder="输入实例"
                         value={instance}
-                        onChange={(e) => this.setState({ instance: e.target.value })}
+                        onChange={(e) => this.setState({ 
+                            instance: e.target.value,
+                            database: null,      // 清空数据库选择
+                            tables: [],         // 清空表列表
+                            selectedTables: [], // 清空已选表
+                            dbOptions: {}      // 清空数据库选项
+                        })}
                         style={{ width: '100%' }}
                         allowClear
                     />
@@ -205,9 +211,9 @@ class CodeChatHeader extends React.Component {
                         }
                         allowClear
                         disabled={!instance}
-                        onFocus={() => this.getSchema(instance)}
                         onDropdownVisibleChange={(open) => {
-                            if (open && instance) {
+                            if (open && instance && !this.state.dbOptions[instance]) {
+                                // 只在没有缓存的数据库列表时才获取
                                 this.getSchema(instance);
                             }
                         }}
