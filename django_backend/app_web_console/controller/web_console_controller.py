@@ -322,16 +322,15 @@ class GetTableFrmController(BaseView):
         :return:
         """
         request_body = self.request_params
-        print(111111)
         rules = {
-            "instance_name": [lambda x: common.CheckValidators.check_instance_name(x)['status'] == "ok"],
+            "des_ip_port": [lambda x: common.CheckValidators.check_instance_name(x)['status'] == "ok"],
             "schema_name": [Required, Length(2, 64), ],
             "table_name": [Required, Length(2, 64), ],
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid:
             return self.my_response({"status": "error", "message": str(valid_ret.errors)})
-        des_ip_port = request_body.get('instance_name').strip()
+        des_ip_port = request_body.get('des_ip_port').strip()
         ip = des_ip_port.split('_')[0].strip()
         port = des_ip_port.split('_')[1].strip()
         schema_name = request_body.get('schema_name','').strip()

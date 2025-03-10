@@ -104,6 +104,9 @@ const CodeAgent = ({
     const messagesContainerRef = useRef(null);
     const abortControllerRef = useRef(null);
     
+    // 添加表结构状态
+    const [tableStructures, setTableStructures] = useState({});
+    
     // 滚动到底部
     const scrollToBottom = useCallback(() => {
         if (messagesEndRef.current && shouldAutoScroll && messagesContainerRef.current) {
@@ -383,8 +386,24 @@ const CodeAgent = ({
         }
     };
     
-    // 处理表变更
-    const handleTableChange = (selectedTables) => {
+    // 修改处理表变更的函数
+    const handleTableChange = async (selectedTables) => {
+        // 获取新增的表
+        const newTables = selectedTables.filter(table => !dbConfig.tables.includes(table));
+        
+        // 获取新增表的结构并拼接为字符串
+        for (const tableName of newTables) {
+            const structure = await getTableStructure(tableName);
+            if (structure) {
+                const structureStr = `表 ${tableName} 的结构：\n${structure}`;  // 直接使用返回的 SQL 语句
+                setTableStructures(prev => ({
+                    ...prev,
+                    [tableName]: structureStr
+                }));
+            }
+        }
+        
+        // 更新选中的表
         setDbConfig(prev => ({
             ...prev,
             tables: selectedTables
@@ -418,22 +437,19 @@ const CodeAgent = ({
         setMessages(prev => [...prev, userMessage]);
         setStreaming(true);
         setQuestion('');
-        
+                
         // 当用户发送新消息时，始终启用自动滚动
         setShouldAutoScroll(true);
+
         
         try {
             // 准备数据库配置
-            let inputs = {};
-            
-            // 添加数据库相关参数
-            if (dbConfig) {
-                inputs = {
-                    instance_name: dbConfig.instance || '',
-                    schema_name: dbConfig.database || '',
-                    table_names: dbConfig.tables || []
-                };
-            }
+            let inputs = {
+                instance_name: dbConfig.instance || '',
+                schema_name: dbConfig.database || '',
+                table_names: (dbConfig.tables || []).join(','),
+                table_structures: Object.values(tableStructures).join('\n\n')
+            };
             
             console.log("发送数据库配置:", inputs);
 
@@ -477,9 +493,31 @@ const CodeAgent = ({
         uploadedFileIds, 
         uploadedFiles, 
         dbConfig, 
-        conversationId, 
+        conversationId,
+        tableStructures
     ]);
     
+    // 修改获取表结构的函数
+    const getTableStructure = async (tableName) => {
+        if (!dbConfig.instance || !dbConfig.database) return null;
+        
+        try {
+            const params = {
+                des_ip_port: dbConfig.instance,
+                schema_name: dbConfig.database,
+                table_name: tableName
+            };
+            
+            const res = await MyAxios.post('/web_console/v1/get_table_frm/', params);
+            if (res.data.status === 'ok' && res.data.data && res.data.data.length > 0) {
+                return res.data.data[0]['Create Table'];  // 直接返回 Create Table 字段
+            }
+            return null;
+        } catch (err) {
+            console.error(`获取表 ${tableName} 结构失败:`, err);
+            return null;
+        }
+    };
 
     return (
         <div style={{ 
