@@ -151,6 +151,12 @@ class CodeChatHeader extends React.Component {
                         }
                         allowClear
                         disabled={!instance}
+                        onFocus={() => this.getSchema(instance)}
+                        onDropdownVisibleChange={(open) => {
+                            if (open && instance) {
+                                this.getSchema(instance);
+                            }
+                        }}
                     >
                         {this.getDbOptions(instance).map(option => (
                             <Option key={option.value} value={option.value}>
