@@ -312,3 +312,30 @@ class GetDbColController(BaseView):
         obj = web_console_dao.GetRecommandDbCol(search_col_content)
         ret = obj.get_db_col_dao()
         return self.my_response(ret)
+
+
+class GetTableFrmController(BaseView):
+    def post(self, request):
+        """
+        获取推荐列
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        print(111111)
+        rules = {
+            "instance_name": [lambda x: common.CheckValidators.check_instance_name(x)['status'] == "ok"],
+            "schema_name": [Required, Length(2, 64), ],
+            "table_name": [Required, Length(2, 64), ],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        des_ip_port = request_body.get('instance_name').strip()
+        ip = des_ip_port.split('_')[0].strip()
+        port = des_ip_port.split('_')[1].strip()
+        schema_name = request_body.get('schema_name','').strip()
+        table_name = request_body.get('table_name','').strip()
+        ret = web_console_dao.get_table_frm_dao(ip,port,schema_name,table_name)
+        print(ret)
+        return self.my_response(ret)

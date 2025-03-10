@@ -777,3 +777,10 @@ class GetRecommandDbCol:
             data.append(format_row)
         format_ret = {"status": "ok", "message":"ok", "data":data}
         return format_ret
+
+
+
+def get_table_frm_dao(ip,port,schema_name,table_name):
+    sql = f"show create table {schema_name}.{table_name}"
+    ret = db_helper.target_source_find_all(ip,port,sql)
+    return ret

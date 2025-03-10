@@ -14,6 +14,7 @@ urlpatterns = [
     path('v1/add_favorite/', web_console_controller.AddFavoriteController.as_view(),kwargs={"access": RouterAccess.dba}), # 添加收藏项
     path('v1/del_favorite/', web_console_controller.DelFavoriteController.as_view(),kwargs={"access": RouterAccess.dba}), # 删除收藏项
     path('v1/get_favorite/', web_console_controller.GetFavoriteController.as_view(),kwargs={"access": RouterAccess.dba}), # 获取收藏项
+    path('v1/get_table_frm/', web_console_controller.GetTableFrmController.as_view(),kwargs={"access": RouterAccess.dba}), # 获取表结构
     # 表结构对比
     path('v1/meta_table_compare/', meta_compare_controller.CompareTableController.as_view(),kwargs={"access": RouterAccess.dba}),  # 批量对比
     path('v1/get_source_target_table_meta/', meta_compare_controller.GetSourceTargetTableMetaController.as_view(),kwargs={"access": RouterAccess.dba}),  # 获取源与目标表结构
