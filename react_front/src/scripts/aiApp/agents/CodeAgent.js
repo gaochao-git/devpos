@@ -19,7 +19,7 @@ class CodeChatHeader extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            database: "cloudb",
+            database: "cloud4db",
             instance: '82.156.146.51_3306',
             instanceOptions: {},
             dbOptions: {},
@@ -31,6 +31,14 @@ class CodeChatHeader extends React.Component {
     componentDidMount() {
         this.getSchema();
         this.getTables();
+        // 组件挂载时，立即通知父组件默认值
+        const { onDbChange, onTableChange } = this.props;
+        if (onDbChange) {
+            onDbChange(this.state.database, this.state.instance);
+        }
+        if (onTableChange) {
+            onTableChange(this.state.selectedTables, this.state.instance);
+        }
     }
 
 
@@ -89,7 +97,7 @@ class CodeChatHeader extends React.Component {
         let params = {
             schema_name: database,
             instance_name: instance,
-            table_name: "%", // 默认获取所有表
+            table_name: "", // 默认获取所有表
         };
         
         console.log("获取表列表，参数:", params);
@@ -120,15 +128,13 @@ class CodeChatHeader extends React.Component {
             tables: [],
             selectedTables: []
         }, () => {
-            // 获取该数据库的表
             if (value) {
                 this.getTables();
             }
         });
         
-        // 如果有外部回调，则调用
         if (this.props.onDbChange) {
-            this.props.onDbChange(value);
+            this.props.onDbChange(value, this.state.instance);
         }
     };
 
@@ -136,9 +142,8 @@ class CodeChatHeader extends React.Component {
     handleTableChange = (selectedTables) => {
         this.setState({ selectedTables });
         
-        // 如果有外部回调，则调用
         if (this.props.onTableChange) {
-            this.props.onTableChange(selectedTables);
+            this.props.onTableChange(selectedTables, this.state.instance);
         }
     };
 
@@ -504,19 +509,21 @@ const CodeAgent = () => {
     
     
     // 处理数据库变更
-    const handleDbChange = useCallback((value) => {
+    const handleDbChange = useCallback((value, instanceName) => {
         setDbConfig(prev => ({
             ...prev,
             database: value,
+            instance: instanceName,
             tables: []
         }));
     }, []);
     
     // 处理表变更
-    const handleTableChange = useCallback((tables) => {
+    const handleTableChange = useCallback((tables, instanceName) => {
         setDbConfig(prev => ({
             ...prev,
-            tables
+            tables,
+            instance: instanceName
         }));
     }, []);
     
