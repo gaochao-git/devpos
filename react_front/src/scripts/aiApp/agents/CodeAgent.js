@@ -11,258 +11,9 @@ import {
 import HistoryConversationModal from '../components/HistoryConversationModal';
 import { agentComponentMap } from '../config/componentMapping';
 import MyAxios from "../../common/interface";
+import PropTypes from 'prop-types';
 
 const { Option } = Select;
-
-// 扩展 BaseChatHeader 组件
-class CodeChatHeader extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            database: "cloud4db",
-            instance: '82.156.146.51_3306',
-            instanceOptions: {},
-            dbOptions: {},
-            tables: [],
-            selectedTables: []
-        };
-    }
-
-    componentDidMount() {
-        this.getSchema();
-        this.getTables();
-        // 组件挂载时，立即通知父组件默认值
-        const { onDbChange, onTableChange } = this.props;
-        if (onDbChange) {
-            onDbChange(this.state.database, this.state.instance);
-        }
-        if (onTableChange) {
-            onTableChange(this.state.selectedTables, this.state.instance);
-        }
-    }
-
-
-    // 获取数据库列表
-    async getSchema(instanceName) {
-        if (!instanceName) return [];
-        
-        try {
-            const params = { instance_name: instanceName };
-            
-            console.log("获取数据库列表，参数:", params);
-            
-            const res = await MyAxios.post('/web_console/v1/get_schema_list/', params, { timeout: 5000 });
-            console.log("获取数据库列表，响应:", res);
-            
-            if (res.data.status === 'ok') {
-                // 将API返回的数据转换为Select需要的格式
-                // 注意：数据格式是 [{Database: "dbname"}, ...] 而不是 ["dbname", ...]
-                const dbOptions = Array.isArray(res.data.data) ? res.data.data.map(item => ({
-                    value: item.Database||item.SCHEMA_NAME,
-                    label: item.Database||item.SCHEMA_NAME,
-                })) : [];
-                
-                // 更新状态
-                this.setState(prevState => ({
-                    dbOptions: {
-                        ...prevState.dbOptions,
-                        [instanceName]: dbOptions
-                    }
-                }));
-                
-                return dbOptions;
-            } else {
-                console.error("获取数据库列表失败:", res.data.message);
-                message.error(res.data.message || "获取数据库列表失败");
-                return [];
-            }
-        } catch (err) {
-            console.error("获取数据库列表异常:", err);
-            message.error(err.message || "获取数据库列表异常");
-            return [];
-        }
-    }
-
-    // 获取数据库选项
-    getDbOptions = (instanceName) => {
-        if (!instanceName) return [];
-        return this.state.dbOptions[instanceName] || [];
-    };
-
-    // 获取表列表
-    async getTables() {
-        const { instance, database } = this.state;
-        if (!instance || !database) return;
-        
-        let params = {
-            schema_name: database,
-            instance_name: instance,
-            table_name: "", // 默认获取所有表
-        };
-        
-        console.log("获取表列表，参数:", params);
-        
-        try {
-            const res = await MyAxios.post('/web_console/v1/get_table_list/', params);
-            if (res.data.status === 'ok') {
-                const table_info_list = res.data.data['table_info_list'];
-                const tables = table_info_list.map(item => ({
-                    value: item.TABLE_NAME,
-                    label: item.TABLE_NAME
-                }));
-                
-                this.setState({ tables });
-            } else {
-                message.error(res.data.message);
-            }
-        } catch (err) {
-            console.error("获取表列表异常:", err);
-            message.error(err.message || "获取表列表异常");
-        }
-    }
-
-    // 处理数据库变更
-    handleDbChange = (value) => {
-        this.setState({ 
-            database: value,
-            tables: [],
-            selectedTables: []
-        }, () => {
-            if (value) {
-                this.getTables();
-            }
-        });
-        
-        if (this.props.onDbChange) {
-            this.props.onDbChange(value, this.state.instance);
-        }
-    };
-
-    // 处理表选择变更
-    handleTableChange = (selectedTables) => {
-        this.setState({ selectedTables });
-        
-        if (this.props.onTableChange) {
-            this.props.onTableChange(selectedTables, this.state.instance);
-        }
-    };
-
-    render() {
-        const { instance, database, tables, selectedTables } = this.state;
-        const { 
-            icon, 
-            title, 
-            description, 
-            iconBgColor, 
-            onNewChat, 
-            onViewHistory, 
-            isHistoryLoading 
-        } = this.props;
-
-        return (
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '15px 20px',
-                borderBottom: '1px solid #e8e8e8',
-                background: '#fff'
-            }}>
-                <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '8px',
-                    background: iconBgColor || '#1890ff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: '15px',
-                    fontSize: '24px'
-                }}>
-                    {icon}
-                </div>
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{title}</div>
-                    <div style={{ color: '#666', fontSize: '14px' }}>{description}</div>
-                </div>
-                
-                
-                {/* 实例选择框 - 改为输入框 */}
-                <div style={{ marginRight: '15px', width: '200px' }}>
-                    <Input
-                        placeholder="输入实例"
-                        value={instance}
-                        onChange={(e) => this.setState({ 
-                            instance: e.target.value,
-                            database: null,      // 清空数据库选择
-                            tables: [],         // 清空表列表
-                            selectedTables: [], // 清空已选表
-                            dbOptions: {}      // 清空数据库选项
-                        })}
-                        style={{ width: '100%' }}
-                        allowClear
-                    />
-                </div>
-                
-                {/* 数据库选择框 */}
-                <div style={{ marginRight: '15px', width: '150px' }}>
-                    <Select
-                        showSearch
-                        placeholder="选择数据库"
-                        value={database}
-                        onChange={this.handleDbChange}
-                        style={{ width: '100%' }}
-                        filterOption={(input, option) =>
-                            option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                        }
-                        allowClear
-                        disabled={!instance}
-                        onDropdownVisibleChange={(open) => {
-                            if (open && instance && !this.state.dbOptions[instance]) {
-                                // 只在没有缓存的数据库列表时才获取
-                                this.getSchema(instance);
-                            }
-                        }}
-                    >
-                        {this.getDbOptions(instance).map(option => (
-                            <Option key={option.value} value={option.value}>
-                                {option.label}
-                            </Option>
-                        ))}
-                    </Select>
-                </div>
-                
-                {/* 表选择框 - 新增 */}
-                <div style={{ marginRight: '15px', width: '200px' }}>
-                    <Select
-                        mode="multiple"
-                        showSearch
-                        placeholder="选择表(可多选)"
-                        value={selectedTables}
-                        onChange={this.handleTableChange}
-                        style={{ width: '100%' }}
-                        filterOption={(input, option) =>
-                            option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                        }
-                        allowClear
-                        disabled={!database}
-                    >
-                        {tables.map(option => (
-                            <Option key={option.value} value={option.value}>
-                                {option.label}
-                            </Option>
-                        ))}
-                    </Select>
-                </div>
-                
-                {/* 使用公共图标组件 */}
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <NewChatIcon onClick={onNewChat} />
-                    <HistoryIcon isLoading={isHistoryLoading} onClick={onViewHistory} />
-                </div>
-            </div>
-        );
-    }
-}
 
 // 消息列表组件
 const MessageList = React.memo(({ 
@@ -295,7 +46,11 @@ const MessageList = React.memo(({
 const agentTypeKey = 'code';
 
 // 重构为函数式组件
-const CodeAgent = () => {
+const CodeAgent = ({ 
+    defaultInstance,
+    defaultDatabase,
+    defaultTables
+}) => {
     // 获取智能体配置
     const agentConfig = agentComponentMap[agentTypeKey];
     // 状态管理
@@ -320,10 +75,20 @@ const CodeAgent = () => {
     
     // 添加数据库配置状态
     const [dbConfig, setDbConfig] = useState({
-        instance: null,
-        database: null,
-        tables: []
+        instance: defaultInstance || '',
+        database: defaultDatabase || '',
+        tables: defaultTables || []
     });
+
+    // 添加状态标记是否来自父组件
+    const isFromParent = useMemo(() => ({
+        instance: !!defaultInstance,
+        database: !!defaultDatabase
+    }), [defaultInstance, defaultDatabase]);
+
+    const [instanceOptions, setInstanceOptions] = useState({});
+    const [dbOptions, setDbOptions] = useState({});
+    const [tables, setTables] = useState([]);
     
     // Refs
     const messagesEndRef = useRef(null);
@@ -507,26 +272,105 @@ const CodeAgent = () => {
         }
     }, []);
     
-    
+    // 获取数据库列表
+    const getSchema = async (instanceName) => {
+        if (!instanceName) return [];
+        
+        try {
+            const params = { instance_name: instanceName };
+            const res = await MyAxios.post('/web_console/v1/get_schema_list/', params, { timeout: 5000 });
+            
+            if (res.data.status === 'ok') {
+                const dbOptions = Array.isArray(res.data.data) ? res.data.data.map(item => ({
+                    value: item.Database||item.SCHEMA_NAME,
+                    label: item.Database||item.SCHEMA_NAME,
+                })) : [];
+                
+                setDbOptions(prev => ({
+                    ...prev,
+                    [instanceName]: dbOptions
+                }));
+                
+                return dbOptions;
+            } else {
+                message.error(res.data.message || "获取数据库列表失败");
+                return [];
+            }
+        } catch (err) {
+            message.error(err.message || "获取数据库列表异常");
+            return [];
+        }
+    };
+
+    // 获取表列表
+    const getTables = async (instanceName, databaseName) => {
+        if (!instanceName || !databaseName) return;
+        
+        let params = {
+            schema_name: databaseName,
+            instance_name: instanceName,
+            table_name: '',
+        };
+        
+        try {
+            const res = await MyAxios.post('/web_console/v1/get_table_list/', params);
+            if (res.data.status === 'ok') {
+                const table_info_list = res.data.data['table_info_list'];
+                const tableOptions = table_info_list.map(item => ({
+                    value: item.TABLE_NAME,
+                    label: item.TABLE_NAME
+                }));
+                
+                setTables(tableOptions);
+                console.log('获取到的表列表:', tableOptions);
+            } else {
+                message.error(res.data.message);
+            }
+        } catch (err) {
+            console.error("获取表列表异常:", err);
+            message.error(err.message || "获取表列表异常");
+        }
+    };
+
+    // 处理实例变更
+    const handleInstanceChange = (value) => {
+        setDbConfig(prev => ({
+            instance: value,
+            database: null,
+            tables: []
+        }));
+        setTables([]);
+    };
+
     // 处理数据库变更
-    const handleDbChange = useCallback((value, instanceName) => {
+    const handleDbChange = (value) => {
+        console.log('数据库变更为:', value);
         setDbConfig(prev => ({
             ...prev,
             database: value,
-            instance: instanceName,
             tables: []
         }));
-    }, []);
+        
+        // 直接使用当前的实例名和新的数据库名获取表列表
+        if (value) {
+            getTables(dbConfig.instance, value);
+        }
+    };
     
     // 处理表变更
-    const handleTableChange = useCallback((tables, instanceName) => {
+    const handleTableChange = (selectedTables) => {
         setDbConfig(prev => ({
             ...prev,
-            tables,
-            instance: instanceName
+            tables: selectedTables
         }));
-    }, []);
-    
+    };
+
+    // 获取数据库选项
+    const getDbOptions = (instanceName) => {
+        if (!instanceName) return [];
+        return dbOptions[instanceName] || [];
+    };
+
     // 发送消息
     const handleSend = useCallback(async (content) => {
         if (!content?.trim()) return;
@@ -628,22 +472,104 @@ const CodeAgent = () => {
                 flexDirection: 'column',
                 overflow: 'hidden'
             }}>
-                {/* 使用自定义的 CodeChatHeader 替代 BaseChatHeader */}
-                <CodeChatHeader 
-                    icon={agentConfig.icon}
-                    title={agentConfig.name}
-                    description={agentConfig.description}
-                    iconBgColor={agentConfig.color}
-                    onNewChat={() => {
-                        setMessages([]);
-                        setConversationId(null);
-                        setQuestion("");
-                    }}
-                    onViewHistory={fetchHistoryList}
-                    isHistoryLoading={isHistoryLoading}
-                    onDbChange={handleDbChange}
-                    onTableChange={handleTableChange}
-                />
+                {/* Header */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '15px 20px',
+                    borderBottom: '1px solid #e8e8e8',
+                    background: '#fff'
+                }}>
+                    <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '8px',
+                        background: agentConfig.color || '#1890ff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: '15px',
+                        fontSize: '24px'
+                    }}>
+                        {agentConfig.icon}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{agentConfig.name}</div>
+                        <div style={{ color: '#666', fontSize: '14px' }}>{agentConfig.description}</div>
+                    </div>
+                    
+                    {/* 实例选择框 */}
+                    <div style={{ marginRight: '15px', width: '200px' }}>
+                        <Input
+                            placeholder="输入实例"
+                            value={dbConfig.instance}
+                            onChange={(e) => handleInstanceChange(e.target.value)}
+                            style={{ width: '100%' }}
+                            allowClear
+                            disabled={isFromParent.instance}  // 如果来自父组件则禁用
+                        />
+                    </div>
+                    
+                    {/* 数据库选择框 */}
+                    <div style={{ marginRight: '15px', width: '150px' }}>
+                        <Select
+                            showSearch
+                            placeholder="选择数据库"
+                            value={dbConfig.database}
+                            onChange={handleDbChange}
+                            style={{ width: '100%' }}
+                            filterOption={(input, option) =>
+                                option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                            }
+                            allowClear
+                            disabled={!dbConfig.instance || isFromParent.database}  // 如果来自父组件则禁用
+                            onDropdownVisibleChange={(open) => {
+                                if (open && dbConfig.instance && !dbOptions[dbConfig.instance]) {
+                                    getSchema(dbConfig.instance);
+                                }
+                            }}
+                        >
+                            {getDbOptions(dbConfig.instance).map(option => (
+                                <Option key={option.value} value={option.value}>
+                                    {option.label}
+                                </Option>
+                            ))}
+                        </Select>
+                    </div>
+                    
+                    {/* 表选择框 */}
+                    <div style={{ marginRight: '15px', width: '200px' }}>
+                        <Select
+                            mode="multiple"
+                            showSearch
+                            placeholder="选择表(可多选)"
+                            value={dbConfig.tables}
+                            onChange={handleTableChange}
+                            style={{ width: '100%' }}
+                            filterOption={(input, option) =>
+                                option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                            }
+                            allowClear
+                            disabled={!dbConfig.database}
+                        >
+                            {tables.map(option => (
+                                <Option key={option.value} value={option.value}>
+                                    {option.label}
+                                </Option>
+                            ))}
+                        </Select>
+                    </div>
+                    
+                    {/* 操作按钮 */}
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <NewChatIcon onClick={() => {
+                            setMessages([]);
+                            setConversationId(null);
+                            setQuestion("");
+                        }} />
+                        <HistoryIcon isLoading={isHistoryLoading} onClick={fetchHistoryList} />
+                    </div>
+                </div>
 
                 <div style={{
                     flex: 1,
@@ -708,6 +634,12 @@ const CodeAgent = () => {
             </div>
         </div>
     );
+};
+
+CodeAgent.propTypes = {
+    defaultInstance: PropTypes.string,
+    defaultDatabase: PropTypes.string,
+    defaultTables: PropTypes.arrayOf(PropTypes.string)
 };
 
 export default CodeAgent;
