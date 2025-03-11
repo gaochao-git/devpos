@@ -16,13 +16,7 @@ import PropTypes from 'prop-types';
 const { Option } = Select;
 
 // 消息列表组件
-const Message = memo(({ msg, isLast, streaming, onStopGeneration }) => {
-    // 使用 useRef 跟踪组件的渲染
-    const renderCount = useRef(0);
-    renderCount.current += 1;
-    
-    console.log(`Message ${msg.time} rendered ${renderCount.current} times`);
-    
+const MessageItem = memo(({ msg, isLast, streaming, onStopGeneration }) => {
     return (
         <ChatMessage
             message={{
@@ -36,11 +30,12 @@ const Message = memo(({ msg, isLast, streaming, onStopGeneration }) => {
         />
     );
 }, (prevProps, nextProps) => {
-    // 如果不是最后一条消息，始终返回 true 阻止重新渲染
+    // 优化策略：历史消息保持稳定，只允许最新消息更新
     if (!prevProps.isLast && !nextProps.isLast) {
-        return true;
+        return true;  // 阻止历史消息重新渲染
     }
-    // 如果是最后一条消息，则比较所有 props
+    
+    // 最新消息的更新条件
     return (
         prevProps.msg === nextProps.msg &&
         prevProps.isLast === nextProps.isLast &&
@@ -52,7 +47,7 @@ const MessageList = ({ messages, streaming, onStopGeneration, messagesEndRef }) 
     return (
         <>
             {messages.map((msg, index) => (
-                <Message
+                <MessageItem
                     key={`${index}-${msg.time || ''}`}
                     msg={msg}
                     isLast={index === messages.length - 1}
