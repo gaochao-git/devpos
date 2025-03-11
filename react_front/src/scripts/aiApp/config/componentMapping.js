@@ -1,5 +1,5 @@
 import GeneralAgent from '../agents/GeneralAgent';
-import CodeAgent from '../agents/CodeAgent';
+import CodeAgentWrapper from '../agents/CodeAgentWrapper';
 import DataAnalysisAgent from '../agents/kb_rag';
 import ChatRca from '../agents/FaultAnalysisAgent';
 import React from 'react';
@@ -33,7 +33,7 @@ export const agentComponentMap = {
         apiKey: 'Bearer app-WSI84Y94oECN4HgyzQ9X6Jzd',
     },
     'code': {
-        component: CodeAgent,
+        component: CodeAgentWrapper,
         name: 'SQL助手',
         description: '专注于SQL相关问题',
         icon: <img src={sqlIcon} alt="SQL助手" style={{ width: '32px', height: '32px' }} />,

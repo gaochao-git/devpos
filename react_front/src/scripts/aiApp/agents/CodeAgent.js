@@ -368,7 +368,7 @@ const CodeAgent = ({
                     value: item.TABLE_NAME,
                     label: item.TABLE_NAME
                 }));
-                
+                console.log(77777, tableOptions)
                 setTables(tableOptions);
             } else {
                 message.error(res.data.message);
