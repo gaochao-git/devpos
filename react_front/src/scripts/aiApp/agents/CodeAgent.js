@@ -102,11 +102,11 @@ const CodeAgent = ({
     const [dbConfig, setDbConfig] = useState({
         instance: defaultInstance || '',
         database: defaultDatabase || '',
-        tables: []  // 初始化为空数组，而不是使用 defaultTables
+        tables: defaultTables || []  // 所有可选的表列表
     });
 
-    // 修改 tables 状态的初始化
-    const [tables, setTables] = useState(defaultTables || []);
+    // 用户选择的表，单独管理
+    const [selectedTables, setSelectedTables] = useState([]);
 
     // 添加状态标记是否来自父组件
     const isFromParent = useMemo(() => ({
@@ -114,7 +114,6 @@ const CodeAgent = ({
         database: !!defaultDatabase
     }), [defaultInstance, defaultDatabase]);
 
-    const [instanceOptions, setInstanceOptions] = useState({});
     const [dbOptions, setDbOptions] = useState({});
     
     // Refs
@@ -346,7 +345,10 @@ const CodeAgent = ({
                 const table_info_list = res.data.data['table_info_list'];
                 // 直接提取表名作为字符串数组
                 const tableNames = table_info_list.map(item => item.TABLE_NAME);
-                setTables(tableNames);
+                setDbConfig(prev => ({
+                    ...prev,
+                    tables: tableNames
+                }));
             } else {
                 message.error(res.data.message);
             }
@@ -356,41 +358,16 @@ const CodeAgent = ({
         }
     };
 
-    // 处理实例变更
-    const handleInstanceChange = (value) => {
-        setDbConfig(prev => ({
-            instance: value,
-            database: null,
-            tables: []
-        }));
-        setTables([]);
-    };
-
-    // 处理数据库变更
-    const handleDbChange = (value) => {
-        console.log('数据库变更为:', value);
-        setDbConfig(prev => ({
-            ...prev,
-            database: value,
-            tables: []
-        }));
-        
-        // 直接使用当前的实例名和新的数据库名获取表列表
-        if (value) {
-            getTables(dbConfig.instance, value);
-        }
-    };
-    
-    // 修改处理表变更的函数
-    const handleTableChange = async (selectedTables) => {
+    // 修改表选择处理函数
+    const handleTableChange = async (selected) => {
         // 获取新增的表
-        const newTables = selectedTables.filter(table => !dbConfig.tables.includes(table));
+        const newTables = selected.filter(table => !selectedTables.includes(table));
         
         // 获取新增表的结构并拼接为字符串
         for (const tableName of newTables) {
             const structure = await getTableStructure(tableName);
             if (structure) {
-                const structureStr = `表 ${tableName} 的结构：\n${structure}`;  // 直接使用返回的 SQL 语句
+                const structureStr = `表 ${tableName} 的结构：\n${structure}`;
                 setTableStructures(prev => ({
                     ...prev,
                     [tableName]: structureStr
@@ -399,12 +376,34 @@ const CodeAgent = ({
         }
         
         // 更新选中的表
-        setDbConfig(prev => ({
-            ...prev,
-            tables: selectedTables
-        }));
+        setSelectedTables(selected);
     };
 
+    // 修改实例变更处理函数
+    const handleInstanceChange = (value) => {
+        setDbConfig(prev => ({
+            instance: value,
+            database: null,
+            tables: []
+        }));
+        setSelectedTables([]); // 清空选中的表
+    };
+
+    // 修改数据库变更处理函数
+    const handleDbChange = (value) => {
+        console.log('数据库变更为:', value);
+        setDbConfig(prev => ({
+            ...prev,
+            database: value,
+            tables: []
+        }));
+        setSelectedTables([]); // 清空选中的表
+        
+        if (value) {
+            getTables(dbConfig.instance, value);
+        }
+    };
+    
     // 获取数据库选项
     const getDbOptions = (instanceName) => {
         if (!instanceName) return [];
@@ -442,7 +441,7 @@ const CodeAgent = ({
             let inputs = {
                 instance_name: dbConfig.instance || '',
                 schema_name: dbConfig.database || '',
-                table_names: (dbConfig.tables || []).join(','),
+                table_names: selectedTables.join(','),
                 table_structures: Object.values(tableStructures).join('\n\n')
             };
             
@@ -489,6 +488,7 @@ const CodeAgent = ({
         uploadedFiles, 
         dbConfig, 
         conversationId,
+        selectedTables,
         tableStructures
     ]);
     
@@ -602,7 +602,7 @@ const CodeAgent = ({
                             mode="multiple"
                             showSearch
                             placeholder="选择表(可多选)"
-                            value={dbConfig.tables}
+                            value={selectedTables}
                             onChange={handleTableChange}
                             style={{ width: '100%' }}
                             filterOption={(input, option) =>
@@ -611,7 +611,7 @@ const CodeAgent = ({
                             allowClear
                             disabled={!dbConfig.database}
                         >
-                            {tables.map(table_name => (
+                            {dbConfig.tables.map(table_name => (
                                 <Option 
                                     key={table_name}
                                     value={table_name}
