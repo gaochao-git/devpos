@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import { Input, Button, message, Spin, Icon, Card, Select, Divider, Checkbox } from 'antd';
 import { BaseChatHeader, BaseChatFooter, ChatMessage } from '../components/BaseLayout';
 import { HistoryIcon, NewChatIcon } from '../components/BaseIcon';
@@ -16,27 +16,47 @@ import PropTypes from 'prop-types';
 const { Option } = Select;
 
 // 消息列表组件
-const MessageList = ({ messages, streaming, onStopGeneration, messagesEndRef }) => {
-    const ChatMessageItem = React.memo(({ message, isStreaming, onStopGeneration }) => (
+const Message = memo(({ msg, isLast, streaming, onStopGeneration }) => {
+    // 使用 useRef 跟踪组件的渲染
+    const renderCount = useRef(0);
+    renderCount.current += 1;
+    
+    console.log(`Message ${msg.time} rendered ${renderCount.current} times`);
+    
+    return (
         <ChatMessage
             message={{
-                ...message,
-                isUser: message.role === 'user',
-                timestamp: message.time
+                ...msg,
+                isUser: msg.role === 'user',
+                timestamp: msg.time
             }}
-            isStreaming={isStreaming}
+            isStreaming={isLast && streaming}
             onStopGeneration={onStopGeneration}
             agentType={agentTypeKey}
         />
-    ));
+    );
+}, (prevProps, nextProps) => {
+    // 如果不是最后一条消息，始终返回 true 阻止重新渲染
+    if (!prevProps.isLast && !nextProps.isLast) {
+        return true;
+    }
+    // 如果是最后一条消息，则比较所有 props
+    return (
+        prevProps.msg === nextProps.msg &&
+        prevProps.isLast === nextProps.isLast &&
+        prevProps.streaming === nextProps.streaming
+    );
+});
 
+const MessageList = ({ messages, streaming, onStopGeneration, messagesEndRef }) => {
     return (
         <>
             {messages.map((msg, index) => (
-                <ChatMessageItem
+                <Message
                     key={`${index}-${msg.time || ''}`}
-                    message={msg}
-                    isStreaming={streaming && index === messages.length - 1}
+                    msg={msg}
+                    isLast={index === messages.length - 1}
+                    streaming={streaming}
                     onStopGeneration={onStopGeneration}
                 />
             ))}

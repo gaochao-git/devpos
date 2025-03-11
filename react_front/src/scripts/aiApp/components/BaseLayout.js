@@ -59,7 +59,7 @@ const ActionButton = styled.div`
 `;
 
 // 更新消息组件
-export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration, agentType = 'general' }) => {
+export const ChatMessage = ({ message, isStreaming, onStopGeneration, agentType = 'general' }) => {
     const isUser = message.role === 'user';
     // 添加状态来跟踪用户反馈
     const [feedback, setFeedback] = useState(null);
@@ -208,7 +208,7 @@ export const ChatMessage = React.memo(({ message, isStreaming, onStopGeneration,
             </Timestamp>
         </MessageContainer>
     );
-});
+};
 
 // 基础Header组件
 export class BaseChatHeader extends React.Component {
