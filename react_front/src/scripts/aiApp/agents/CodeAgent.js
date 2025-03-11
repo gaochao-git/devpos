@@ -105,6 +105,15 @@ const CodeAgent = ({
         tables: defaultTables || []  // 所有可选的表列表
     });
 
+    // 监听父组件传入的 props 变化
+    useEffect(() => {
+        setDbConfig({
+            instance: defaultInstance || '',
+            database: defaultDatabase || '',
+            tables: defaultTables || []
+        });
+    }, [defaultInstance, defaultDatabase, defaultTables]);
+
     // 用户选择的表，单独管理
     const [selectedTables, setSelectedTables] = useState([]);
 
