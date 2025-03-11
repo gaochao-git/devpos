@@ -334,26 +334,6 @@ const CodeAgent = ({
 
     // 获取表列表
     const getTables = async (instanceName, databaseName) => {
-        console.log("getTables called with:", {
-            instanceName,
-            databaseName,
-            defaultTables
-        });
-        
-        if (!instanceName || !databaseName) return;
-        
-        if (defaultTables && defaultTables.length > 0) {
-            console.log("Using defaultTables:", defaultTables);
-            const tableOptions = defaultTables.map(tableName => ({
-                value: tableName,
-                label: tableName
-            }));
-            console.log("Created tableOptions:", tableOptions);
-            setTables(tableOptions);
-            return;
-        }
-        
-        // 否则从服务器获取表列表
         let params = {
             schema_name: databaseName,
             instance_name: instanceName,
@@ -364,12 +344,9 @@ const CodeAgent = ({
             const res = await MyAxios.post('/web_console/v1/get_table_list/', params);
             if (res.data.status === 'ok') {
                 const table_info_list = res.data.data['table_info_list'];
-                const tableOptions = table_info_list.map(item => ({
-                    value: item.TABLE_NAME,
-                    label: item.TABLE_NAME
-                }));
-                console.log(77777, tableOptions)
-                setTables(tableOptions);
+                // 直接提取表名作为字符串数组
+                const tableNames = table_info_list.map(item => item.TABLE_NAME);
+                setTables(tableNames);
             } else {
                 message.error(res.data.message);
             }
