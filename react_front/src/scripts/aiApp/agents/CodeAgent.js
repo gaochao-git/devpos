@@ -109,10 +109,7 @@ const CodeAgent = ({
     const [selectedTables, setSelectedTables] = useState([]);
 
     // 添加状态标记是否来自父组件
-    const isFromParent = useMemo(() => ({
-        instance: !!defaultInstance,
-        database: !!defaultDatabase
-    }), [defaultInstance, defaultDatabase]);
+    const isFromParent = !!defaultInstance;
 
     const [dbOptions, setDbOptions] = useState({});
     
@@ -565,7 +562,7 @@ const CodeAgent = ({
                             onChange={(e) => handleInstanceChange(e.target.value)}
                             style={{ width: '100%' }}
                             allowClear
-                            disabled={isFromParent.instance}  // 如果来自父组件则禁用
+                            disabled={isFromParent}
                         />
                     </div>
                     
@@ -581,7 +578,7 @@ const CodeAgent = ({
                                 option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
                             }
                             allowClear
-                            disabled={!dbConfig.instance || isFromParent.database}  // 如果来自父组件则禁用
+                            disabled={isFromParent}
                             onDropdownVisibleChange={(open) => {
                                 if (open && dbConfig.instance && !dbOptions[dbConfig.instance]) {
                                     getSchema(dbConfig.instance);
@@ -609,7 +606,6 @@ const CodeAgent = ({
                                 option.props.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
                             }
                             allowClear
-                            disabled={!dbConfig.database}
                         >
                             {dbConfig.tables.map(table_name => (
                                 <Option 
