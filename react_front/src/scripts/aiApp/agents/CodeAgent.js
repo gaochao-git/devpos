@@ -16,31 +16,34 @@ import PropTypes from 'prop-types';
 const { Option } = Select;
 
 // 消息列表组件
-const MessageList = React.memo(({ 
-    messages, 
-    streaming, 
-    onStopGeneration,
-    messagesEndRef 
-}) => {
+const MessageList = ({ messages, streaming, onStopGeneration, messagesEndRef }) => {
+    const ChatMessageItem = React.memo(({ message, isStreaming, onStopGeneration }) => (
+        <ChatMessage
+            message={{
+                ...message,
+                isUser: message.role === 'user',
+                timestamp: message.time
+            }}
+            isStreaming={isStreaming}
+            onStopGeneration={onStopGeneration}
+            agentType={agentTypeKey}
+        />
+    ));
+
     return (
         <>
             {messages.map((msg, index) => (
-                <ChatMessage
+                <ChatMessageItem
                     key={`${index}-${msg.time || ''}`}
-                    message={{
-                        ...msg,
-                        isUser: msg.role === 'user',
-                        timestamp: msg.time
-                    }}
+                    message={msg}
                     isStreaming={streaming && index === messages.length - 1}
                     onStopGeneration={onStopGeneration}
-                    agentType={agentTypeKey}
                 />
             ))}
             <div ref={messagesEndRef} />
         </>
     );
-});
+};
 
 // 智能体名称
 const agentTypeKey = 'code';
