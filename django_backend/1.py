@@ -17,7 +17,7 @@
     <!-- 服务开发层 -->
     <g transform="translate(0,90)">
         <rect x="40" y="0" width="520" height="90" fill="#F0F7F0" stroke="#C1E6C1"/>
-        <text x="55" y="20" font-size="12">服务开发层</text>
+        <text x="55" y="20" font-size="12">应用层</text>
         
         <rect x="50" y="30" width="55" height="25" fill="white" stroke="black"/>
         <text x="55" y="47" font-size="11">日志分析</text>
