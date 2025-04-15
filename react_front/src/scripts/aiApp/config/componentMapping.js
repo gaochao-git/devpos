@@ -40,7 +40,7 @@ export const agentComponentMap = {
         color: '#bae7ff',
         systemPrompt: '你是一个专业的SQL助手，专注于提供SQL相关帮助和建议。',
         baseUrl: 'http://127.0.0.1',
-        apiKey: 'Bearer app-BjIxnRtuOcpYYUQPBUlls7wT',
+        apiKey: 'Bearer app-tNXxVMT17VOepYnET51NeHa6',
     },
     'rca': {
         component: ChatRca,

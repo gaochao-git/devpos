@@ -43,8 +43,9 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
     sql_index = 0
     for item_sql in sql_list:
         # SQL规则处理
-        rewrite_item_sql = process_audit_sql(ip, port, item_sql, schema_name)
-        ret = db_helper.target_source_find_all(ip, port, rewrite_item_sql, db=schema_name)
+        # rewrite_item_sql = process_audit_sql(ip, port, item_sql, schema_name)
+        # ret = db_helper.target_source_find_all(ip, port, rewrite_item_sql, db=schema_name)
+        ret = db_helper.target_source_find_all(ip, port, item_sql, db=schema_name)
         if ret['status'] != 'ok': return ret
         # 直接在原始数据进行脱敏,脱敏成功则脱敏,否则放行
         mask_start_time = datetime.now()
