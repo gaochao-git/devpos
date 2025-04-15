@@ -49,11 +49,11 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
         if ret['status'] != 'ok': return ret
         # 直接在原始数据进行脱敏,脱敏成功则脱敏,否则放行
         mask_start_time = datetime.now()
-        data_mask.data_masking(des_ip_port, schema_name, item_sql, ret['data'])
+        # data_mask.data_masking(des_ip_port, schema_name, item_sql, ret['data'])
         mask_use_time_ms = (mask_start_time - datetime.now()).microseconds / 1000
         # 敏感数据识别
         sens_start_time = datetime.now()
-        web_console_sensitive_data_detect(ret['data'])
+        # web_console_sensitive_data_detect(ret['data'])
         sens_use_time_ms = (sens_start_time - datetime.now()).microseconds / 1000
         # 组装结果集
         ret_item = {
