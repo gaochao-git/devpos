@@ -21,7 +21,7 @@ djangorestframework-jwt==1.11.0
 gmssl==3.2.2
 id-validator==1.0.20
 idna==3.10
-Jinja2==3.0.3
+Jinja2==3.1.6
 kombu==3.0.37
 lxml==5.3.0
 MarkupSafe==2.0.1
