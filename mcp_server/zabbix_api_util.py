@@ -2,7 +2,6 @@ from pyzabbix import ZabbixAPI
 from typing import Dict, List, Any, Optional
 from typing_extensions import Literal
 from datetime import datetime
-import time
 
 zabbix_url = 'http://82.156.146.51/zabbix/'
 class ZabbixClient:
