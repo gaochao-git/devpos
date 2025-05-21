@@ -747,41 +747,46 @@ onSorter = (a,b) => {
   //发送助手消息
   async handleSendNlContent() {
       try {
-        this.setState({ nl_cancel: false }); // 发送前重置
-        const requestBody = {
-            inputs: {
-              instance_name: this.state.instance_name,
-              schema_name: this.state.current_schema,
-              tables: (this.state.selectedTables || []).join(',')
-            },
-            "query": this.state.nl_content,
-            response_mode: 'blocking',
-            conversation_id: '',
-            user: 'system',
-        };
+          this.setState({ nl_cancel: false }); // Reset before sending
+          const requestBody = {
+              inputs: {
+                  instance_name: this.state.instance_name,
+                  schema_name: this.state.current_schema,
+                  tables: (this.state.selectedTables || []).join(',')
+              },
+              "query": this.state.nl_content,
+              response_mode: 'blocking',
+              conversation_id: '',
+              user: 'system',
+          };
 
-        const response = await fetch('http://127.0.0.1/v1/chat-messages', {
-            method: 'POST',
-            headers: {
-                'Authorization': 'Bearer app-TwGHkSbbKlJinh6bVZNhUhgN',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody),
-        });
+          const response = await fetch('http://127.0.0.1/v1/chat-messages', {
+              method: 'POST',
+              headers: {
+                  'Authorization': 'Bearer app-iKVZRkmmxnILnrRF4JrOyq5V',
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(requestBody),
+          });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const responseJson = await response.json();
-        if (this.state.nl_cancel) return; // 如果已取消，不处理响应
-        this.setState({
-          sql_content: this.state.sql_content + '\n' + '# 问题: ' + this.state.nl_content + '\n' + responseJson['answer']
-        })
-    } catch (error) {
-        if (this.state.nl_cancel) return; // 如果已取消，不处理错误
-        console.error('Failed to send message:', error);
-        throw error;
-    }
+          if (!response.ok) {
+              if (response.status === 401) {
+                  message.error('Unauthorized access. Please check your credentials.');
+              } else {
+                  message.error(`call api error: ${response.status}`);
+              };
+              return;
+          }
+          const responseJson = await response.json();
+          if (this.state.nl_cancel) return; // If canceled, do not process response
+          this.setState({
+              sql_content: this.state.sql_content + '\n' + '# 问题: ' + this.state.nl_content + '\n' + responseJson['answer']
+          });
+      } catch (error) {
+          if (this.state.nl_cancel) return; // If canceled, do not process error
+          console.error('Failed to send message:', error);
+          message.error('An error occurred while sending the message.');
+      }
   }
 
   // 包装发送消息，切换 isSending 状态
