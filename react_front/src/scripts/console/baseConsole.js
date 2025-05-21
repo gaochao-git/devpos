@@ -1,6 +1,6 @@
 import React,{Component,Fragment} from 'react';
 import axios from 'axios'
-import {Layout, Table, Input,Badge,Button,message,Row,Col,Select,Tabs,Icon,Tree,Spin,Switch,Modal,Tooltip,Drawer,List, Typography,Divider,Pagination} from "antd";
+import {Layout, Table, Input,Badge,Button,message,Tag,Col,Select,Tabs,Icon,Tree,Spin,Switch,Modal,Tooltip,Drawer,List, Typography,Divider,Pagination} from "antd";
 import sqlFormatter from 'sql-formatter';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { BaseTable } from 'ali-react-table'
@@ -89,6 +89,15 @@ export class BaseConsole extends Component {
       current_page: 0,
       default_page_size:500,
       sqlAssistantDrawerVisible: false,
+      nl_content: "",
+      showTableList: false,
+      selectedTables: [],
+      tempSelectedTables: [],
+      modalSearchText: '',
+      modalCurrentPage: 1,
+      modalPageSize: 10,
+      isSending: false,
+      nl_cancel: false,
     }
   }
 
@@ -695,6 +704,95 @@ onSorter = (a,b) => {
 
   };
 
+  handleRemoveTable = (tableName) => {
+    this.setState(prev => ({
+      selectedTables: prev.selectedTables.filter(t => t !== tableName),
+      tempSelectedTables: prev.tempSelectedTables.filter(t => t !== tableName)
+    }));
+  };
+
+  handleClearSelectedTables = () => {
+    this.setState({
+      tempSelectedTables: []
+    });
+  };
+
+  handleSelectTable = (tableName) => {
+    this.setState(prev => {
+      const already = prev.tempSelectedTables.includes(tableName);
+      return {
+        tempSelectedTables: already
+          ? prev.tempSelectedTables.filter(t => t !== tableName)
+          : [...prev.tempSelectedTables, tableName]
+      };
+    });
+  };
+
+  handleConfirmSelectTables = () => {
+    this.setState(prev => ({
+      selectedTables: prev.tempSelectedTables,
+      showTableList: false
+    }));
+  };
+
+  onOpenTableList = () => {
+    this.setState({
+      showTableList: true,
+      tempSelectedTables: [...this.state.selectedTables],
+      modalSearchText: '',
+      modalCurrentPage: 1
+    });
+  };
+
+  //发送助手消息
+  async handleSendNlContent() {
+      try {
+        this.setState({ nl_cancel: false }); // 发送前重置
+        const requestBody = {
+            inputs: {
+              instance_name: this.state.instance_name,
+              schema_name: this.state.current_schema,
+              tables: (this.state.selectedTables || []).join(',')
+            },
+            "query": this.state.nl_content,
+            response_mode: 'blocking',
+            conversation_id: '',
+            user: 'system',
+        };
+
+        const response = await fetch('http://127.0.0.1/v1/chat-messages', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer app-TwGHkSbbKlJinh6bVZNhUhgN',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const responseJson = await response.json();
+        if (this.state.nl_cancel) return; // 如果已取消，不处理响应
+        this.setState({
+          sql_content: this.state.sql_content + '\n' + '# 问题: ' + this.state.nl_content + '\n' + responseJson['answer']
+        })
+    } catch (error) {
+        if (this.state.nl_cancel) return; // 如果已取消，不处理错误
+        console.error('Failed to send message:', error);
+        throw error;
+    }
+  }
+
+  // 包装发送消息，切换 isSending 状态
+  handleSendNlContentWrapper = async () => {
+    this.setState({ isSending: true });
+    try {
+      await this.handleSendNlContent();
+    } finally {
+      this.setState({ isSending: false });
+    }
+  }
 
   //渲染SQL质量markdown
   renderHTML = () =>{
@@ -869,6 +967,88 @@ onSorter = (a,b) => {
            >
                <Icon type="folder-open" />
            </Tooltip>
+           <div style={{ marginBottom: 4, display: 'flex', alignItems: 'center' }}>
+            {this.state.selectedTables.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
+                {this.state.selectedTables.map(table => (
+                  <Tag
+                    key={table}
+                    closable
+                    onClose={() => this.handleRemoveTable(table)}
+                    color="blue"
+                    style={{ marginRight: 4, marginBottom: 0 }}
+                  >
+                    {table}
+                  </Tag>
+                ))}
+              </div>
+            )}
+           </div>
+           <div style={{ position: 'relative', marginBottom: '4px' }}>
+             <Button
+               icon="plus"
+               size="small"
+               style={{ 
+                 position: 'absolute', 
+                 left: '4px', 
+                 top: '4px', 
+                 zIndex: 1,
+                 border: 'none',
+                 background: 'transparent'
+               }}
+               onClick={this.onOpenTableList}
+             />
+             <TextArea
+                 value={this.state.nl_content}
+                 onChange={e => this.setState({nl_content:e.target.value})}
+                 placeholder='输入自然语言自动生成SQL'
+                 style={{ 
+                     border: '1px solid #d9d9d9',
+                     borderRadius: '4px',
+                     boxShadow: 'none',
+                     padding: '4px 40px 4px 30px', // 右侧留空间，避免按钮遮挡
+                     resize: 'none'
+                 }}
+                 autoSize={{ minRows: 1, maxRows: 3 }}
+                 onPressEnter={(e) => {
+                     if (!e.shiftKey) {
+                         e.preventDefault();
+                         if (!this.state.isSending) {
+                           this.handleSendNlContentWrapper();
+                         }
+                     }
+                 }}
+             />
+             {this.state.isSending ? (
+               <Button
+                 icon="pause"
+                 size="small"
+                 style={{
+                   position: 'absolute',
+                   right: '8px',
+                   top: '4px',
+                   zIndex: 2
+                 }}
+                 onClick={() => {
+                   this.setState({ nl_cancel: true, isSending: false });
+                 }}
+               >停止</Button>
+             ) : (
+               <Button
+                 icon="arrow-right"
+                 type="primary"
+                 size="small"
+                 style={{
+                   position: 'absolute',
+                   right: '8px',
+                   top: '4px',
+                   zIndex: 2
+                 }}
+                 onClick={this.handleSendNlContentWrapper}
+                 disabled={!this.state.nl_content}
+               >发送</Button>
+             )}
+           </div>
             <CodeMirror
               editorDidMount={this.onEditorDidMount}
               value={this.state.sql_content}
@@ -1022,6 +1202,69 @@ onSorter = (a,b) => {
             defaultTables={this.state.source_slider_info.map(item => item.key)}
           />
         </Drawer>
+        <Modal
+          visible={this.state.showTableList}
+          title="选择表名"
+          footer={
+            <div>
+              <Button 
+                style={{ float: 'left' }} 
+                onClick={this.handleClearSelectedTables}
+              >
+                清空选择
+              </Button>
+              <Button type="primary" onClick={this.handleConfirmSelectTables}>确认</Button>
+            </div>
+          }
+          onCancel={() => this.setState({ showTableList: false })}
+          width={600}
+        >
+          <Input
+            placeholder="搜索表名"
+            value={this.state.modalSearchText}
+            onChange={e => this.setState({ modalSearchText: e.target.value, modalCurrentPage: 1 })}
+            style={{ marginBottom: 16 }}
+            allowClear
+            prefix={<Icon type="search" />}
+          />
+          <List
+            dataSource={
+              this.state.source_slider_info
+                .filter(item => item.key.toLowerCase().includes(this.state.modalSearchText.toLowerCase()))
+                .slice(
+                  (this.state.modalCurrentPage - 1) * this.state.modalPageSize,
+                  this.state.modalCurrentPage * this.state.modalPageSize
+                )
+            }
+            renderItem={item => {
+              const checked = this.state.tempSelectedTables.includes(item.key);
+              return (
+                <List.Item
+                  style={{ cursor: 'pointer', background: checked ? '#e6f7ff' : undefined }}
+                  onClick={() => this.handleSelectTable(item.key)}
+                >
+                  <span>
+                    <input type="checkbox" checked={checked} readOnly style={{ marginRight: 8 }} />
+                    {item.key}
+                  </span>
+                </List.Item>
+              );
+            }}
+          />
+          <Pagination
+            current={this.state.modalCurrentPage}
+            pageSize={this.state.modalPageSize}
+            total={
+              this.state.source_slider_info
+                .filter(item => item.key.toLowerCase().includes(this.state.modalSearchText.toLowerCase()))
+                .length
+            }
+            onChange={(page) => this.setState({ modalCurrentPage: page })}
+            style={{ marginTop: 16, textAlign: 'right' }}
+            size="small"
+            showTotal={total => `共 ${total} 条`}
+          />
+        </Modal>
       </div>
     );
   }
