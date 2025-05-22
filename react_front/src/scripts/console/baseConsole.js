@@ -781,7 +781,7 @@ onSorter = (a,b) => {
                   schema_name: this.state.current_schema,
                   table_names: (this.state.selectedTables || []).join(',')
               },
-              "query": this.state.nl_content,
+              query: this.state.nl_content,
               response_mode: 'blocking',
               conversation_id: '',
               user: 'system',
@@ -814,9 +814,7 @@ onSorter = (a,b) => {
               countdown: COUNTDOWN_TIME
           });
       } catch (error) {
-          console.error('Failed to send message:', error);
-          // 清除倒计时
-          
+          console.log('Failed to send message:', error);          
       }finally{
         this.setState({
           isSending: false,
