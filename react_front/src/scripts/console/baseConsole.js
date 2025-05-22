@@ -36,6 +36,8 @@ const STORE_TYPE = ['收藏数据源','收藏SQL']
 // Initialize a markdown parser
 const mdParser = new MarkdownIt(/* Markdown-it options */);
 
+// 全局常量
+const COUNTDOWN_TIME = 60; // 倒计时时间（秒）
 
 export class BaseConsole extends Component {
   constructor(props) {
@@ -67,7 +69,8 @@ export class BaseConsole extends Component {
       db_info:"",
       collapsed:true,
       multi_st_ret:[],
-
+      countdown: COUNTDOWN_TIME,
+      countdownInterval: null,
       store_info_name:"",    //收藏名称
       store_info_detail:"",  //收藏信息
       favoriteVisible:false,
@@ -747,7 +750,31 @@ onSorter = (a,b) => {
   //发送助手消息
   async handleSendNlContent() {
       try {
-          this.setState({ nl_cancel: false }); // Reset before sending
+          this.setState({ 
+              nl_cancel: false,
+              countdown: COUNTDOWN_TIME,
+              isSending: true 
+          }); // Reset before sending
+
+          // 启动倒计时
+          const countdownInterval = setInterval(() => {
+              this.setState(prevState => {
+                  if (prevState.countdown <= 1) {
+                      clearInterval(prevState.countdownInterval);
+                      this.setState({ 
+                          nl_cancel: true, 
+                          isSending: false,
+                          countdown: COUNTDOWN_TIME 
+                      });
+                      message.error('生成超时，请重试');
+                      return { countdown: COUNTDOWN_TIME };
+                  }
+                  return { countdown: prevState.countdown - 1 };
+              });
+          }, 1000);
+
+          this.setState({ countdownInterval });
+
           const requestBody = {
               inputs: {
                   instance_name: this.state.instance_name,
@@ -779,25 +806,27 @@ onSorter = (a,b) => {
           }
           const responseJson = await response.json();
           if (this.state.nl_cancel) return; // If canceled, do not process response
+          
+          // 清除倒计时
+          clearInterval(this.state.countdownInterval);
+          
           this.setState({
-              sql_content: `${this.state.sql_content}\n# 问题: ${this.state.nl_content}，以下内容为大模型生成，请仔细核对\n${responseJson['answer']}`,
-              nl_content:""
+              sql_content: `${this.state.sql_content}(下面回答内容为大模型生成，请仔细核对)\n-- 问题: ${this.state.nl_content}\n# ${responseJson['answer']}`,
+              nl_content:"",
+              isSending: false,
+              countdown: COUNTDOWN_TIME
           });
       } catch (error) {
           if (this.state.nl_cancel) return; // If canceled, do not process error
           console.error('Failed to send message:', error);
           message.error('An error occurred while sending the message.');
+          // 清除倒计时
+          clearInterval(this.state.countdownInterval);
+          this.setState({ 
+              isSending: false,
+              countdown: COUNTDOWN_TIME 
+          });
       }
-  }
-
-  // 包装发送消息，切换 isSending 状态
-  handleSendNlContentWrapper = async () => {
-    this.setState({ isSending: true });
-    try {
-      await this.handleSendNlContent();
-    } finally {
-      this.setState({ isSending: false });
-    }
   }
 
   //渲染SQL质量markdown
@@ -1020,7 +1049,7 @@ onSorter = (a,b) => {
                      if (!e.shiftKey) {
                          e.preventDefault();
                          if (!this.state.isSending) {
-                           this.handleSendNlContentWrapper();
+                           this.handleSendNlContent();
                          }
                      }
                  }}
@@ -1037,8 +1066,9 @@ onSorter = (a,b) => {
                  }}
                  onClick={() => {
                    this.setState({ nl_cancel: true, isSending: false });
+                   clearInterval(this.state.countdownInterval);
                  }}
-               >停止</Button>
+               >停止 ({this.state.countdown}s)</Button>
              ) : (
                <Button
                  icon="arrow-right"
@@ -1050,7 +1080,7 @@ onSorter = (a,b) => {
                    top: '4px',
                    zIndex: 2
                  }}
-                 onClick={this.handleSendNlContentWrapper}
+                 onClick={this.handleSendNlContent}
                  disabled={!this.state.nl_content}
                >发送</Button>
              )}
