@@ -101,6 +101,7 @@ export class BaseConsole extends Component {
       modalPageSize: 10,
       isSending: false,
       nl_cancel: false,
+      conversation_id: null
     }
   }
 
@@ -783,7 +784,7 @@ onSorter = (a,b) => {
               },
               query: this.state.nl_content,
               response_mode: 'blocking',
-              conversation_id: '',
+              conversation_id: this.state.conversation_id,
               user: 'system',
           };
 
@@ -811,7 +812,8 @@ onSorter = (a,b) => {
               sql_content: `${this.state.sql_content}\n# 问题: ${this.state.nl_content}(下面回答内容为大模型生成，请仔细核对)\n${responseJson['answer']}\n`,
               nl_content:"",
               isSending: false,
-              countdown: COUNTDOWN_TIME
+              countdown: COUNTDOWN_TIME,
+              conversation_id: responseJson['conversation_id']
           });
       } catch (error) {
           console.log('Failed to send message:', error);          
@@ -1064,7 +1066,20 @@ onSorter = (a,b) => {
                    clearInterval(this.state.countdownInterval);
                  }}
                >停止 ({this.state.countdown}s)</Button>
-             ) : null}
+             ) : (
+               <Button
+                 icon="redo"
+                 type="primary"
+                 size="small"
+                 style={{
+                   position: 'absolute',
+                   right: '8px',
+                   top: '4px',
+                   zIndex: 2
+                 }}
+                 onClick={()=>this.setState({conversation_id:null})}
+               >重置会话</Button>
+             )}
            </div>
             <CodeMirror
               editorDidMount={this.onEditorDidMount}
