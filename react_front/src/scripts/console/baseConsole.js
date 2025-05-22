@@ -780,7 +780,7 @@ onSorter = (a,b) => {
           const responseJson = await response.json();
           if (this.state.nl_cancel) return; // If canceled, do not process response
           this.setState({
-              sql_content: `${this.state.sql_content}\n# 问题: ${this.state.nl_content}以下回答为大模型生成，请核对\n${responseJson['answer']}`,
+              sql_content: `${this.state.sql_content}\n# 问题: ${this.state.nl_content}，以下内容为大模型生成，请仔细核对\n${responseJson['answer']}`,
               nl_content:""
           });
       } catch (error) {
