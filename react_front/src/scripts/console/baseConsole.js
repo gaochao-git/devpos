@@ -807,25 +807,22 @@ onSorter = (a,b) => {
           const responseJson = await response.json();
           if (this.state.nl_cancel) return; // If canceled, do not process response
           
-          // 清除倒计时
-          clearInterval(this.state.countdownInterval);
-          
           this.setState({
-              sql_content: `${this.state.sql_content}(下面回答内容为大模型生成，请仔细核对)\n-- 问题: ${this.state.nl_content}\n# ${responseJson['answer']}`,
+              sql_content: `${this.state.sql_content}\n# 问题: ${this.state.nl_content}(下面回答内容为大模型生成，请仔细核对)\n${responseJson['answer']}\n`,
               nl_content:"",
               isSending: false,
               countdown: COUNTDOWN_TIME
           });
       } catch (error) {
-          if (this.state.nl_cancel) return; // If canceled, do not process error
           console.error('Failed to send message:', error);
-          message.error('An error occurred while sending the message.');
           // 清除倒计时
-          clearInterval(this.state.countdownInterval);
-          this.setState({ 
-              isSending: false,
-              countdown: COUNTDOWN_TIME 
-          });
+          
+      }finally{
+        this.setState({
+          isSending: false,
+          countdown: COUNTDOWN_TIME 
+        });
+        clearInterval(this.state.countdownInterval);
       }
   }
 
