@@ -1029,8 +1029,6 @@ onSorter = (a,b) => {
                onClick={this.onOpenTableList}
              />
              <TextArea
-                 value={this.state.nl_content}
-                 onChange={e => this.setState({nl_content:e.target.value})}
                  placeholder='输入自然语言自动生成SQL'
                  style={{ 
                      border: '1px solid #d9d9d9',
@@ -1044,7 +1042,9 @@ onSorter = (a,b) => {
                      if (!e.shiftKey) {
                          e.preventDefault();
                          if (!this.state.isSending) {
-                           this.handleSendNlContent();
+                           this.setState({nl_content:e.target.value},()=>{
+                             this.handleSendNlContent();
+                           })
                          }
                      }
                  }}
@@ -1064,21 +1064,7 @@ onSorter = (a,b) => {
                    clearInterval(this.state.countdownInterval);
                  }}
                >停止 ({this.state.countdown}s)</Button>
-             ) : (
-               <Button
-                 icon="arrow-right"
-                 type="primary"
-                 size="small"
-                 style={{
-                   position: 'absolute',
-                   right: '8px',
-                   top: '4px',
-                   zIndex: 2
-                 }}
-                 onClick={this.handleSendNlContent}
-                 disabled={!this.state.nl_content}
-               >发送</Button>
-             )}
+             ) : null}
            </div>
             <CodeMirror
               editorDidMount={this.onEditorDidMount}
