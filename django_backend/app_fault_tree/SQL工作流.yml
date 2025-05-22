@@ -1,0 +1,915 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: SQL工作流
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/deepseek:0.0.5@fd6efd37c2a931911de8ab9ca3ba2da303bef146d45ee87ad896b04b36d09403
+kind: app
+version: 0.3.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: tool
+      id: 1747824564896-false-1747826409268-target
+      source: '1747824564896'
+      sourceHandle: 'false'
+      target: '1747826409268'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: tool
+        targetType: llm
+      id: 1747826409268-source-1747826433402-target
+      source: '1747826409268'
+      sourceHandle: source
+      target: '1747826433402'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: 1747826395252-source-answer-target
+      source: '1747826395252'
+      sourceHandle: source
+      target: answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: question-classifier
+      id: 1747796290742-source-1747827754119-target
+      source: '1747796290742'
+      sourceHandle: source
+      target: '1747827754119'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: if-else
+      id: 1747827754119-1-1747824564896-target
+      source: '1747827754119'
+      sourceHandle: '1'
+      target: '1747824564896'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: llm
+      id: 1747827754119-2-1747827796238-target
+      source: '1747827754119'
+      sourceHandle: '2'
+      target: '1747827796238'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: 1747827796238-source-1747827800650-target
+      source: '1747827796238'
+      sourceHandle: source
+      target: '1747827800650'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: tool
+      id: 1747824564896-true-1747828821802-target
+      source: '1747824564896'
+      sourceHandle: 'true'
+      target: '1747828821802'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: llm
+      id: 1747828821802-source-1747826395252-target
+      source: '1747828821802'
+      sourceHandle: source
+      target: '1747826395252'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: tool
+      id: 1747826433402-source-1747828837852-target
+      source: '1747826433402'
+      sourceHandle: source
+      target: '1747828837852'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: llm
+      id: 1747828837852-source-17478299505450-target
+      source: '1747828837852'
+      sourceHandle: source
+      target: '17478299505450'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: 17478299505450-source-1747829978015-target
+      source: '17478299505450'
+      sourceHandle: source
+      target: '1747829978015'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: instance_name
+          max_length: 64
+          options: []
+          required: true
+          type: text-input
+          variable: instance_name
+        - label: schema_name
+          max_length: 64
+          options: []
+          required: true
+          type: text-input
+          variable: schema_name
+        - label: table_names
+          max_length: 10240
+          options: []
+          required: false
+          type: paragraph
+          variable: table_names
+      height: 209
+      id: '1747796290742'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1747826395252.text#}}'
+        desc: ''
+        selected: false
+        title: 直接回复
+        type: answer
+        variables: []
+      height: 140
+      id: answer
+      position:
+        x: 2211.901630682705
+        y: 282
+      positionAbsolute:
+        x: 2211.901630682705
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: not empty
+            id: 0010daf3-866a-4ed4-b9ae-fbf17a59a7ff
+            value: ''
+            varType: string
+            variable_selector:
+            - '1747796290742'
+            - table_names
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 条件分支
+        type: if-else
+      height: 185
+      id: '1747824564896'
+      position:
+        x: 684
+        y: 282
+      positionAbsolute:
+        x: 684
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1747828821802'
+          - text
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: bbecef64-2afa-4209-ac85-30fbe00f563e
+          role: system
+          text: '依据用户提供的问题{{#sys.query#}}和表结构{{#1747828821802.text#}}生成SQL
+
+
+            # 输出要求
+
+            - 只输出SQL，不输出额外信息，不要用markdown格式包裹SQL
+
+            - 只能输出select、show类非高危SQL
+
+            - 如果是select语句且用户没有明确返回多少则自动在末尾增加limit 100，如果用户明确返回数量则按照用户描述的返回
+
+            - 不要用"*"通配符查询数据'
+        selected: false
+        title: LLM
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 131
+      id: '1747826395252'
+      position:
+        x: 1873.1229809351842
+        y: 298.676672419329
+      positionAbsolute:
+        x: 1873.1229809351842
+        y: 298.676672419329
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: The database instance name (e.g., "82.156.146.51_3306").
+            ja_JP: The database instance name (e.g., "82.156.146.51_3306").
+            pt_BR: The database instance name (e.g., "82.156.146.51_3306").
+            zh_Hans: The database instance name (e.g., "82.156.146.51_3306").
+          label:
+            en_US: instance_name
+            ja_JP: instance_name
+            pt_BR: instance_name
+            zh_Hans: instance_name
+          llm_description: The database instance name (e.g., "82.156.146.51_3306").
+          max: null
+          min: null
+          name: instance_name
+          options: []
+          placeholder:
+            en_US: The database instance name (e.g., "82.156.146.51_3306").
+            ja_JP: The database instance name (e.g., "82.156.146.51_3306").
+            pt_BR: The database instance name (e.g., "82.156.146.51_3306").
+            zh_Hans: The database instance name (e.g., "82.156.146.51_3306").
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: The schema name to retrieve the table information from (e.g., "cloud4db").
+            ja_JP: The schema name to retrieve the table information from (e.g., "cloud4db").
+            pt_BR: The schema name to retrieve the table information from (e.g., "cloud4db").
+            zh_Hans: The schema name to retrieve the table information from (e.g.,
+              "cloud4db").
+          label:
+            en_US: schema_name
+            ja_JP: schema_name
+            pt_BR: schema_name
+            zh_Hans: schema_name
+          llm_description: The schema name to retrieve the table information from
+            (e.g., "cloud4db").
+          max: null
+          min: null
+          name: schema_name
+          options: []
+          placeholder:
+            en_US: The schema name to retrieve the table information from (e.g., "cloud4db").
+            ja_JP: The schema name to retrieve the table information from (e.g., "cloud4db").
+            pt_BR: The schema name to retrieve the table information from (e.g., "cloud4db").
+            zh_Hans: The schema name to retrieve the table information from (e.g.,
+              "cloud4db").
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        params:
+          instance_name: ''
+          schema_name: ''
+        provider_id: 3cec25f6-cf2f-4474-83ea-6c1ac460396f
+        provider_name: get_all_table_names_and_comments
+        provider_type: api
+        selected: false
+        title: GetAllTableNamesAndComments
+        tool_configurations: {}
+        tool_description: Get all table names and comments for a specific database
+          instance and schema.
+        tool_label: GetAllTableNamesAndComments
+        tool_name: GetAllTableNamesAndComments
+        tool_parameters:
+          instance_name:
+            type: mixed
+            value: '{{#1747796290742.instance_name#}}'
+          schema_name:
+            type: mixed
+            value: '{{#1747796290742.schema_name#}}'
+        type: tool
+      height: 77
+      id: '1747826409268'
+      position:
+        x: 988
+        y: 487.40383142507403
+      positionAbsolute:
+        x: 988
+        y: 487.40383142507403
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1747826409268'
+          - text
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: e5082f7d-90d8-4e08-a8cb-e75512171bcf
+          role: system
+          text: '你是一位数据提取专家,依据{{#1747826409268.text#}}中的表名和备注以及用户的问题:{{#sys.query#}}选择对应的的表名并输出
+
+
+            # 输出要求
+
+            - 仅输出表名信息，具体格式为: table_a,table_b'
+        selected: false
+        title: LLM 2
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 131
+      id: '1747826433402'
+      position:
+        x: 1290.9584972370283
+        y: 487.40383142507403
+      positionAbsolute:
+        x: 1290.9584972370283
+        y: 487.40383142507403
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        classes:
+        - id: '1'
+          name: 用户询问的是业务数据信息
+        - id: '2'
+          name: 用户询问的是数据库元数据信息
+        desc: ''
+        instructions: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        query_variable_selector:
+        - '1747796290742'
+        - sys.query
+        selected: false
+        title: 问题分类器
+        topics: []
+        type: question-classifier
+        vision:
+          enabled: false
+      height: 284
+      id: '1747827754119'
+      position:
+        x: 384
+        y: 282
+      positionAbsolute:
+        x: 384
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: ce71000d-8895-4a8c-aa65-bb76622b5e61
+          role: system
+          text: '依据用户问题{{#sys.query#}}生成对应的获取元数据SQL
+
+            实例信息: {{#1747796290742.instance_name#}}
+
+            库名信息: {{#1747796290742.schema_name#}}
+
+            数据库类型: mysql
+
+
+            # 输出要求
+
+            - 只输出SQL，不输出额外信息，不要用markdown格式包裹SQL
+
+            - 只能输出select、show类非高危SQL
+
+            - 如果是select语句且用户没有明确返回多少则自动在末尾增加limit 100，如果用户明确返回数量则按照用户描述的返回
+
+            - 不要用"*"通配符查询数据'
+        selected: false
+        title: LLM 3
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 131
+      id: '1747827796238'
+      position:
+        x: 684
+        y: 504.95849723702815
+      positionAbsolute:
+        x: 684
+        y: 504.95849723702815
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1747827796238.text#}}'
+        desc: ''
+        selected: false
+        title: 直接回复 2
+        type: answer
+        variables: []
+      height: 140
+      id: '1747827800650'
+      position:
+        x: 1040.0751381485948
+        y: 667.4329282606437
+      positionAbsolute:
+        x: 1040.0751381485948
+        y: 667.4329282606437
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: The database instance name (e.g., "82.156.146.51_3306").
+            ja_JP: The database instance name (e.g., "82.156.146.51_3306").
+            pt_BR: The database instance name (e.g., "82.156.146.51_3306").
+            zh_Hans: The database instance name (e.g., "82.156.146.51_3306").
+          label:
+            en_US: instance_name
+            ja_JP: instance_name
+            pt_BR: instance_name
+            zh_Hans: instance_name
+          llm_description: The database instance name (e.g., "82.156.146.51_3306").
+          max: null
+          min: null
+          name: instance_name
+          options: []
+          placeholder:
+            en_US: The database instance name (e.g., "82.156.146.51_3306").
+            ja_JP: The database instance name (e.g., "82.156.146.51_3306").
+            pt_BR: The database instance name (e.g., "82.156.146.51_3306").
+            zh_Hans: The database instance name (e.g., "82.156.146.51_3306").
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: The schema name to retrieve the table structure from (e.g., "cloud4db").
+            ja_JP: The schema name to retrieve the table structure from (e.g., "cloud4db").
+            pt_BR: The schema name to retrieve the table structure from (e.g., "cloud4db").
+            zh_Hans: The schema name to retrieve the table structure from (e.g., "cloud4db").
+          label:
+            en_US: schema_name
+            ja_JP: schema_name
+            pt_BR: schema_name
+            zh_Hans: schema_name
+          llm_description: The schema name to retrieve the table structure from (e.g.,
+            "cloud4db").
+          max: null
+          min: null
+          name: schema_name
+          options: []
+          placeholder:
+            en_US: The schema name to retrieve the table structure from (e.g., "cloud4db").
+            ja_JP: The schema name to retrieve the table structure from (e.g., "cloud4db").
+            pt_BR: The schema name to retrieve the table structure from (e.g., "cloud4db").
+            zh_Hans: The schema name to retrieve the table structure from (e.g., "cloud4db").
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: The name of the table(s) to retrieve the structure for (e.g., "auth_group,mysql_cluster").
+            ja_JP: The name of the table(s) to retrieve the structure for (e.g., "auth_group,mysql_cluster").
+            pt_BR: The name of the table(s) to retrieve the structure for (e.g., "auth_group,mysql_cluster").
+            zh_Hans: The name of the table(s) to retrieve the structure for (e.g.,
+              "auth_group,mysql_cluster").
+          label:
+            en_US: tables
+            ja_JP: tables
+            pt_BR: tables
+            zh_Hans: tables
+          llm_description: The name of the table(s) to retrieve the structure for
+            (e.g., "auth_group,mysql_cluster").
+          max: null
+          min: null
+          name: tables
+          options: []
+          placeholder:
+            en_US: The name of the table(s) to retrieve the structure for (e.g., "auth_group,mysql_cluster").
+            ja_JP: The name of the table(s) to retrieve the structure for (e.g., "auth_group,mysql_cluster").
+            pt_BR: The name of the table(s) to retrieve the structure for (e.g., "auth_group,mysql_cluster").
+            zh_Hans: The name of the table(s) to retrieve the structure for (e.g.,
+              "auth_group,mysql_cluster").
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        params:
+          instance_name: ''
+          schema_name: ''
+          tables: ''
+        provider_id: dc3bf313-b37b-4229-b632-3a6893249f5b
+        provider_name: get_table_structures
+        provider_type: api
+        selected: false
+        title: GetTableStructures1
+        tool_configurations: {}
+        tool_description: Get the structure of specified tables for a specific database
+          instance and schema.
+        tool_label: GetTableStructures
+        tool_name: GetTableStructures
+        tool_parameters:
+          instance_name:
+            type: mixed
+            value: '{{#1747796290742.instance_name#}}'
+          schema_name:
+            type: mixed
+            value: '{{#1747796290742.schema_name#}}'
+          table_names:
+            type: mixed
+            value: '{{#1747796290742.table_names#}}'
+        type: tool
+      height: 77
+      id: '1747828821802'
+      position:
+        x: 1060.9524415201504
+        y: 282
+      positionAbsolute:
+        x: 1060.9524415201504
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: The database instance name (e.g., "82.156.146.51_3306").
+            ja_JP: The database instance name (e.g., "82.156.146.51_3306").
+            pt_BR: The database instance name (e.g., "82.156.146.51_3306").
+            zh_Hans: The database instance name (e.g., "82.156.146.51_3306").
+          label:
+            en_US: instance_name
+            ja_JP: instance_name
+            pt_BR: instance_name
+            zh_Hans: instance_name
+          llm_description: The database instance name (e.g., "82.156.146.51_3306").
+          max: null
+          min: null
+          name: instance_name
+          options: []
+          placeholder:
+            en_US: The database instance name (e.g., "82.156.146.51_3306").
+            ja_JP: The database instance name (e.g., "82.156.146.51_3306").
+            pt_BR: The database instance name (e.g., "82.156.146.51_3306").
+            zh_Hans: The database instance name (e.g., "82.156.146.51_3306").
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: The schema name to retrieve the table structure from (e.g., "cloud4db").
+            ja_JP: The schema name to retrieve the table structure from (e.g., "cloud4db").
+            pt_BR: The schema name to retrieve the table structure from (e.g., "cloud4db").
+            zh_Hans: The schema name to retrieve the table structure from (e.g., "cloud4db").
+          label:
+            en_US: schema_name
+            ja_JP: schema_name
+            pt_BR: schema_name
+            zh_Hans: schema_name
+          llm_description: The schema name to retrieve the table structure from (e.g.,
+            "cloud4db").
+          max: null
+          min: null
+          name: schema_name
+          options: []
+          placeholder:
+            en_US: The schema name to retrieve the table structure from (e.g., "cloud4db").
+            ja_JP: The schema name to retrieve the table structure from (e.g., "cloud4db").
+            pt_BR: The schema name to retrieve the table structure from (e.g., "cloud4db").
+            zh_Hans: The schema name to retrieve the table structure from (e.g., "cloud4db").
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: The name of the table(s) to retrieve the structure for (e.g., "auth_group,mysql_cluster").
+            ja_JP: The name of the table(s) to retrieve the structure for (e.g., "auth_group,mysql_cluster").
+            pt_BR: The name of the table(s) to retrieve the structure for (e.g., "auth_group,mysql_cluster").
+            zh_Hans: The name of the table(s) to retrieve the structure for (e.g.,
+              "auth_group,mysql_cluster").
+          label:
+            en_US: tables
+            ja_JP: tables
+            pt_BR: tables
+            zh_Hans: tables
+          llm_description: The name of the table(s) to retrieve the structure for
+            (e.g., "auth_group,mysql_cluster").
+          max: null
+          min: null
+          name: tables
+          options: []
+          placeholder:
+            en_US: The name of the table(s) to retrieve the structure for (e.g., "auth_group,mysql_cluster").
+            ja_JP: The name of the table(s) to retrieve the structure for (e.g., "auth_group,mysql_cluster").
+            pt_BR: The name of the table(s) to retrieve the structure for (e.g., "auth_group,mysql_cluster").
+            zh_Hans: The name of the table(s) to retrieve the structure for (e.g.,
+              "auth_group,mysql_cluster").
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        params:
+          instance_name: ''
+          schema_name: ''
+          tables: ''
+        provider_id: dc3bf313-b37b-4229-b632-3a6893249f5b
+        provider_name: get_table_structures
+        provider_type: api
+        selected: false
+        title: GetTableStructures2
+        tool_configurations: {}
+        tool_description: Get the structure of specified tables for a specific database
+          instance and schema.
+        tool_label: GetTableStructures
+        tool_name: GetTableStructures
+        tool_parameters:
+          instance_name:
+            type: mixed
+            value: '{{#1747796290742.instance_name#}}'
+          schema_name:
+            type: mixed
+            value: '{{#1747796290742.schema_name#}}'
+          table_names:
+            type: mixed
+            value: '{{#1747826433402.text#}}'
+        type: tool
+      height: 77
+      id: '1747828837852'
+      position:
+        x: 1596
+        y: 487.40383142507403
+      positionAbsolute:
+        x: 1596
+        y: 487.40383142507403
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1747828837852'
+          - text
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: bbecef64-2afa-4209-ac85-30fbe00f563e
+          role: system
+          text: '依据用户提供的问题{{#sys.query#}}和表结构{{#1747828837852.text#}}生成SQL
+
+
+            # 输出要求
+
+            - 只输出SQL，不输出额外信息，不要用markdown格式包裹SQL
+
+            - 只能输出select、show类非高危SQL
+
+            - 如果是select语句且用户没有明确返回多少则自动在末尾增加limit 100，如果用户明确返回数量则按照用户描述的返回
+
+            - 不要用"*"通配符查询数据'
+        selected: false
+        title: LLM (1)
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 131
+      id: '17478299505450'
+      position:
+        x: 1970.6938919692725
+        y: 550.4484757844082
+      positionAbsolute:
+        x: 1970.6938919692725
+        y: 550.4484757844082
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#17478299505450.text#}}'
+        desc: ''
+        selected: false
+        title: 直接回复 3
+        type: answer
+        variables: []
+      height: 140
+      id: '1747829978015'
+      position:
+        x: 2274.6938919692725
+        y: 550.4484757844082
+      positionAbsolute:
+        x: 2274.6938919692725
+        y: 550.4484757844082
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 46.701626582841754
+      y: 81.72474948607089
+      zoom: 0.4912176633661868

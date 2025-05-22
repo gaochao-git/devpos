@@ -1,0 +1,453 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: SQL工作流老版
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: agent
+      id: 1747796290742-source-1747810753072-target
+      source: '1747796290742'
+      sourceHandle: source
+      target: '1747810753072'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: agent
+        targetType: answer
+      id: 1747810753072-source-answer-target
+      source: '1747810753072'
+      sourceHandle: source
+      target: answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: instance_name
+          max_length: 64
+          options: []
+          required: true
+          type: text-input
+          variable: instance_name
+        - label: schema_name
+          max_length: 64
+          options: []
+          required: true
+          type: text-input
+          variable: schema_name
+        - label: tables
+          max_length: 10240
+          options: []
+          required: false
+          type: paragraph
+          variable: tables
+      height: 209
+      id: '1747796290742'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1747810753072.text#}}'
+        desc: ''
+        selected: false
+        title: 直接回复
+        type: answer
+        variables: []
+      height: 140
+      id: answer
+      position:
+        x: 680
+        y: 282
+      positionAbsolute:
+        x: 680
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        agent_parameters:
+          instruction:
+            type: constant
+            value: '你是一位高级数据库专家，擅长SQL编写
+
+              # 用户输入
+
+              - 数据库实例地址：{{#1747796290742.instance_name#}}
+
+              - 数据库库名: {{#1747796290742.schema_name#}}
+
+              - 用户选择的表名: {{#1747796290742.tables#}}
+
+              # 回答用户问题之前先明确用户的意图是查询业务数据、数据库元数据、问候类场景再依据场景要步骤求进行回复
+
+
+              # 查询业务数据场景
+
+              ## 处理流程
+
+              - 用户未提供表名流程
+
+              1.使用工具获取所有表名，然后依选择与用户问头相关联的表名
+
+              2.用工具获取对应表名的表结构
+
+              3.依据工具获取的表结构回答用户问题
+
+              - 用户提供表名流程
+
+              1.用工具获取对应表名的表结构
+
+              2.依据工具获取的表结构回答用户问题
+
+
+              # 查询当前实例数据库非业务数据场景
+
+              ## 处理流程
+
+              依据数据库类型（默认mysql）和用户问题返回的SQL，不需要调用工具
+
+
+
+              # 问候类场景
+
+              ## 告诉用户自己是一个SQL生成助手，可以帮助用户生成SQL，你可以用自然语言描述业务需求，我来帮助你生成SQL，如果选择表名会提升准确度
+
+
+              # 输出要求
+
+              - 只输出SQL，不输出额外信息，不要用markdown格式包裹SQL
+
+              - 只能输出select、show类非高危SQL
+
+              - 如果是select语句且用户没有明确返回多少则自动在末尾增加limit 100，如果用户明确返回数量则按照用户描述的返回
+
+              - 不要用"*"通配符查询数据
+
+              - 如果表字段为大字段类型，如果用户没有明确要求该字段则默认不要将大字段返回，如果省略了大字段则告诉用户大字段查询影响性能，所有没有展示'
+          model:
+            type: constant
+            value:
+              completion_params: {}
+              mode: chat
+              model: deepseek-coder
+              model_type: llm
+              provider: langgenius/deepseek/deepseek
+              type: model-selector
+          query:
+            type: constant
+            value: '{{#sys.query#}}'
+          tools:
+            type: constant
+            value:
+            - enabled: true
+              extra:
+                description: Get all table names and comments for a specific database
+                  instance and schema.
+              parameters:
+                instance_name:
+                  auto: 1
+                  value: null
+                schema_name:
+                  auto: 1
+                  value: null
+              provider_name: 3cec25f6-cf2f-4474-83ea-6c1ac460396f
+              schemas:
+              - auto_generate: null
+                default: null
+                form: llm
+                human_description:
+                  en_US: The database instance name (e.g., "82.156.146.51_3306").
+                  ja_JP: The database instance name (e.g., "82.156.146.51_3306").
+                  pt_BR: The database instance name (e.g., "82.156.146.51_3306").
+                  zh_Hans: The database instance name (e.g., "82.156.146.51_3306").
+                label:
+                  en_US: instance_name
+                  ja_JP: instance_name
+                  pt_BR: instance_name
+                  zh_Hans: instance_name
+                llm_description: The database instance name (e.g., "82.156.146.51_3306").
+                max: null
+                min: null
+                name: instance_name
+                options: []
+                placeholder:
+                  en_US: The database instance name (e.g., "82.156.146.51_3306").
+                  ja_JP: The database instance name (e.g., "82.156.146.51_3306").
+                  pt_BR: The database instance name (e.g., "82.156.146.51_3306").
+                  zh_Hans: The database instance name (e.g., "82.156.146.51_3306").
+                precision: null
+                required: false
+                scope: null
+                template: null
+                type: string
+              - auto_generate: null
+                default: null
+                form: llm
+                human_description:
+                  en_US: The schema name to retrieve the table information from (e.g.,
+                    "cloud4db").
+                  ja_JP: The schema name to retrieve the table information from (e.g.,
+                    "cloud4db").
+                  pt_BR: The schema name to retrieve the table information from (e.g.,
+                    "cloud4db").
+                  zh_Hans: The schema name to retrieve the table information from
+                    (e.g., "cloud4db").
+                label:
+                  en_US: schema_name
+                  ja_JP: schema_name
+                  pt_BR: schema_name
+                  zh_Hans: schema_name
+                llm_description: The schema name to retrieve the table information
+                  from (e.g., "cloud4db").
+                max: null
+                min: null
+                name: schema_name
+                options: []
+                placeholder:
+                  en_US: The schema name to retrieve the table information from (e.g.,
+                    "cloud4db").
+                  ja_JP: The schema name to retrieve the table information from (e.g.,
+                    "cloud4db").
+                  pt_BR: The schema name to retrieve the table information from (e.g.,
+                    "cloud4db").
+                  zh_Hans: The schema name to retrieve the table information from
+                    (e.g., "cloud4db").
+                precision: null
+                required: false
+                scope: null
+                template: null
+                type: string
+              settings: {}
+              tool_description: Get all table names and comments for a specific database
+                instance and schema.
+              tool_label: GetAllTableNamesAndComments
+              tool_name: GetAllTableNamesAndComments
+              type: api
+            - enabled: true
+              extra:
+                description: Get the structure of specified tables for a specific
+                  database instance and schema.
+              parameters:
+                instance_name:
+                  auto: 1
+                  value: null
+                schema_name:
+                  auto: 1
+                  value: null
+                table_names:
+                  auto: 1
+                  value: null
+              provider_name: dc3bf313-b37b-4229-b632-3a6893249f5b
+              schemas:
+              - auto_generate: null
+                default: null
+                form: llm
+                human_description:
+                  en_US: The database instance name (e.g., "82.156.146.51_3306").
+                  ja_JP: The database instance name (e.g., "82.156.146.51_3306").
+                  pt_BR: The database instance name (e.g., "82.156.146.51_3306").
+                  zh_Hans: The database instance name (e.g., "82.156.146.51_3306").
+                label:
+                  en_US: instance_name
+                  ja_JP: instance_name
+                  pt_BR: instance_name
+                  zh_Hans: instance_name
+                llm_description: The database instance name (e.g., "82.156.146.51_3306").
+                max: null
+                min: null
+                name: instance_name
+                options: []
+                placeholder:
+                  en_US: The database instance name (e.g., "82.156.146.51_3306").
+                  ja_JP: The database instance name (e.g., "82.156.146.51_3306").
+                  pt_BR: The database instance name (e.g., "82.156.146.51_3306").
+                  zh_Hans: The database instance name (e.g., "82.156.146.51_3306").
+                precision: null
+                required: false
+                scope: null
+                template: null
+                type: string
+              - auto_generate: null
+                default: null
+                form: llm
+                human_description:
+                  en_US: The schema name to retrieve the table structure from (e.g.,
+                    "cloud4db").
+                  ja_JP: The schema name to retrieve the table structure from (e.g.,
+                    "cloud4db").
+                  pt_BR: The schema name to retrieve the table structure from (e.g.,
+                    "cloud4db").
+                  zh_Hans: The schema name to retrieve the table structure from (e.g.,
+                    "cloud4db").
+                label:
+                  en_US: schema_name
+                  ja_JP: schema_name
+                  pt_BR: schema_name
+                  zh_Hans: schema_name
+                llm_description: The schema name to retrieve the table structure from
+                  (e.g., "cloud4db").
+                max: null
+                min: null
+                name: schema_name
+                options: []
+                placeholder:
+                  en_US: The schema name to retrieve the table structure from (e.g.,
+                    "cloud4db").
+                  ja_JP: The schema name to retrieve the table structure from (e.g.,
+                    "cloud4db").
+                  pt_BR: The schema name to retrieve the table structure from (e.g.,
+                    "cloud4db").
+                  zh_Hans: The schema name to retrieve the table structure from (e.g.,
+                    "cloud4db").
+                precision: null
+                required: false
+                scope: null
+                template: null
+                type: string
+              - auto_generate: null
+                default: null
+                form: llm
+                human_description:
+                  en_US: The name of the table(s) to retrieve the structure for (e.g.,
+                    "auth_group,mysql_cluster").
+                  ja_JP: The name of the table(s) to retrieve the structure for (e.g.,
+                    "auth_group,mysql_cluster").
+                  pt_BR: The name of the table(s) to retrieve the structure for (e.g.,
+                    "auth_group,mysql_cluster").
+                  zh_Hans: The name of the table(s) to retrieve the structure for
+                    (e.g., "auth_group,mysql_cluster").
+                label:
+                  en_US: table_names
+                  ja_JP: table_names
+                  pt_BR: table_names
+                  zh_Hans: table_names
+                llm_description: The name of the table(s) to retrieve the structure
+                  for (e.g., "auth_group,mysql_cluster").
+                max: null
+                min: null
+                name: table_names
+                options: []
+                placeholder:
+                  en_US: The name of the table(s) to retrieve the structure for (e.g.,
+                    "auth_group,mysql_cluster").
+                  ja_JP: The name of the table(s) to retrieve the structure for (e.g.,
+                    "auth_group,mysql_cluster").
+                  pt_BR: The name of the table(s) to retrieve the structure for (e.g.,
+                    "auth_group,mysql_cluster").
+                  zh_Hans: The name of the table(s) to retrieve the structure for
+                    (e.g., "auth_group,mysql_cluster").
+                precision: null
+                required: false
+                scope: null
+                template: null
+                type: string
+              settings: {}
+              tool_description: Get the structure of specified tables for a specific
+                database instance and schema.
+              tool_label: GetTableStructures
+              tool_name: GetTableStructures
+              type: api
+        agent_strategy_label: FunctionCalling
+        agent_strategy_name: function_calling
+        agent_strategy_provider_name: langgenius/agent/agent
+        desc: ''
+        memory:
+          query_prompt_template: '{{#sys.query#}}'
+          window:
+            enabled: false
+            size: 50
+        output_schema: null
+        plugin_unique_identifier: langgenius/agent:0.0.15@3cb96179914f8c4025282bcb1cc2fd5a951f6be0877567b02daee01e28ca4bf3
+        selected: true
+        title: Agent
+        type: agent
+      height: 273
+      id: '1747810753072'
+      position:
+        x: 382.96042056482474
+        y: 282
+      positionAbsolute:
+        x: 382.96042056482474
+        y: 282
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 18.534181358850446
+      y: 17.901535957999215
+      zoom: 0.9619274546647749
