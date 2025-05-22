@@ -92,7 +92,6 @@ export class BaseConsole extends Component {
       current_page: 0,
       default_page_size:500,
       sqlAssistantDrawerVisible: false,
-      nl_content: "",
       showTableList: false,
       selectedTables: [],
       tempSelectedTables: [],
@@ -749,7 +748,7 @@ onSorter = (a,b) => {
   };
 
   //发送助手消息
-  async handleSendNlContent() {
+  async handleSendNlContent(nl_content) {
       try {
           this.setState({ 
               nl_cancel: false,
@@ -782,7 +781,7 @@ onSorter = (a,b) => {
                   schema_name: this.state.current_schema,
                   table_names: (this.state.selectedTables || []).join(',')
               },
-              query: this.state.nl_content,
+              query: nl_content,
               response_mode: 'blocking',
               conversation_id: this.state.conversation_id,
               user: 'system',
@@ -809,8 +808,7 @@ onSorter = (a,b) => {
           if (this.state.nl_cancel) return; // If canceled, do not process response
           
           this.setState({
-              sql_content: `${this.state.sql_content}\n# 问题: ${this.state.nl_content}(下面回答内容为大模型生成，请仔细核对)\n${responseJson['answer']}\n`,
-              nl_content:"",
+              sql_content: `${this.state.sql_content}\n# 问题: ${nl_content}(下面回答内容为大模型生成，请仔细核对)\n${responseJson['answer']}\n`,
               isSending: false,
               countdown: COUNTDOWN_TIME,
               conversation_id: responseJson['conversation_id']
@@ -1044,9 +1042,7 @@ onSorter = (a,b) => {
                      if (!e.shiftKey) {
                          e.preventDefault();
                          if (!this.state.isSending) {
-                           this.setState({nl_content:e.target.value},()=>{
-                             this.handleSendNlContent();
-                           })
+                             this.handleSendNlContent(e.target.value);
                          }
                      }
                  }}
