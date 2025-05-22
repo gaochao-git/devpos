@@ -752,7 +752,7 @@ onSorter = (a,b) => {
               inputs: {
                   instance_name: this.state.instance_name,
                   schema_name: this.state.current_schema,
-                  tables: (this.state.selectedTables || []).join(',')
+                  table_names: (this.state.selectedTables || []).join(',')
               },
               "query": this.state.nl_content,
               response_mode: 'blocking',
@@ -780,7 +780,8 @@ onSorter = (a,b) => {
           const responseJson = await response.json();
           if (this.state.nl_cancel) return; // If canceled, do not process response
           this.setState({
-              sql_content: this.state.sql_content + '\n' + '# 问题: ' + this.state.nl_content + '\n' + responseJson['answer']
+              sql_content: `${this.state.sql_content}\n# 问题: ${this.state.nl_content}以下回答为大模型生成，请核对\n${responseJson['answer']}`,
+              nl_content:""
           });
       } catch (error) {
           if (this.state.nl_cancel) return; // If canceled, do not process error

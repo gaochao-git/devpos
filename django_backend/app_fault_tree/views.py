@@ -869,3 +869,67 @@ class GetCluster(BaseView):
             "data": data,
             "message": "获取集群成功"
         })
+    
+
+class GetAllTableNamesAndComments(BaseView):
+    def post(self, request):
+        request_body = self.request_params
+        rules = {
+            "instance_name": [Required],
+            "schema_name": [Required],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+                return self.my_response({
+                    "status": "error",
+                    "message": str(valid_ret.errors),
+                    "code": 400
+                })
+        instance_name = request_body.get('instance_name')
+        schema_name = request_body.get('schema_name')
+        ip = instance_name.split('_')[0]
+        port = instance_name.split('_')[1]
+        sql = f"SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.tables WHERE TABLE_SCHEMA='{schema_name}'"
+        print(sql)
+        results = db_helper.target_source_find_all(ip,port,sql)
+        data = results.get('data')
+        return self.my_response({
+            "status": "ok",
+            "data": data,
+            "message": "获取库中所有表名和表备注成功"
+        })
+    
+
+class GetTableStructures(BaseView):
+    def post(self, request):
+        request_body = self.request_params
+        rules = {
+            "instance_name": [Required],
+            "schema_name": [Required],
+            "table_names": []
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error","message": str(valid_ret.errors),"code": 400})
+        instance_name = request_body.get('instance_name').strip()
+        schema_name = request_body.get('schema_name').strip()
+        table_names = request_body.get('table_names')
+        print(instance_name, schema_name, table_names)
+        if table_names: table_names = table_names.split(',')
+        ip = instance_name.split('_')[0]
+        port = instance_name.split('_')[1]
+        structures = []
+        print(table_names)
+        for table_name in table_names:
+            # 获取表结构
+            table_name = table_name.strip()
+            sql = f"SHOW CREATE TABLE {schema_name}.{table_name}"
+            res = db_helper.target_source_find_all(ip, port, sql)  # 获取所有结果和错误信息
+            if res['status'] != "ok":
+                return self.my_response({"status": "error","message": res['message'],"code": 400})
+            structures.append(res['data'][0]['Create Table'])  # 表结构在 'Create Table' 列
+        return self.my_response({
+            "status": "ok",
+            "data": "\n\n".join(structures),
+            "message": "获取库中所有表名和表备注成功"
+        })
