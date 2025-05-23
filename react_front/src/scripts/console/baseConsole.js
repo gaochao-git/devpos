@@ -42,6 +42,8 @@ const COUNTDOWN_TIME = 60; // 倒计时时间（秒）
 export class BaseConsole extends Component {
   constructor(props) {
     super(props);
+    // 添加输入框ref
+    this.nlInputRef = React.createRef();
     this.state = {
       sql_content: '',
       sql: '',
@@ -748,7 +750,7 @@ onSorter = (a,b) => {
   };
 
   //发送助手消息
-  async handleSendNlContent(nl_content) {
+  async handleSendNlContent(inputValue) {
       try {
           this.setState({ 
               nl_cancel: false,
@@ -781,7 +783,7 @@ onSorter = (a,b) => {
                   schema_name: this.state.current_schema,
                   table_names: (this.state.selectedTables || []).join(',')
               },
-              query: nl_content,
+              query: inputValue,
               response_mode: 'blocking',
               conversation_id: this.state.conversation_id,
               user: 'system',
@@ -808,11 +810,15 @@ onSorter = (a,b) => {
           if (this.state.nl_cancel) return; // If canceled, do not process response
           
           this.setState({
-              sql_content: `${this.state.sql_content}\n# 问题: ${nl_content}(下面回答内容为大模型生成，请仔细核对)\n${responseJson['answer']}\n`,
+              sql_content: `${this.state.sql_content}\n# 问题: ${inputValue}(下面回答内容为大模型生成，请仔细核对)\n${responseJson['answer']}\n`,
               isSending: false,
               countdown: COUNTDOWN_TIME,
               conversation_id: responseJson['conversation_id']
           });
+          // 清空输入框
+          if (this.nlInputRef.current) {
+              this.nlInputRef.current.setValue('');
+          }
       } catch (error) {
           console.log('Failed to send message:', error);          
       }finally{
@@ -1029,6 +1035,7 @@ onSorter = (a,b) => {
                onClick={this.onOpenTableList}
              />
              <TextArea
+                 ref={this.nlInputRef}
                  placeholder='输入自然语言自动生成SQL'
                  style={{ 
                      border: '1px solid #d9d9d9',
@@ -1041,8 +1048,11 @@ onSorter = (a,b) => {
                  onPressEnter={(e) => {
                      if (!e.shiftKey) {
                          e.preventDefault();
-                         if (!this.state.isSending) {
-                             this.handleSendNlContent(e.target.value);
+                         if (!this.state.isSending && this.nlInputRef.current) {
+                             const inputValue = this.nlInputRef.current.state.value;
+                             if (inputValue.trim()) {
+                                 this.handleSendNlContent(inputValue);
+                             }
                          }
                      }
                  }}
@@ -1073,7 +1083,13 @@ onSorter = (a,b) => {
                    top: '4px',
                    zIndex: 2
                  }}
-                 onClick={()=>this.setState({conversation_id:null})}
+                 onClick={() => {
+                   this.setState({conversation_id: null});
+                   // 清空输入框
+                   if (this.nlInputRef.current) {
+                     this.nlInputRef.current.setValue('');
+                   }
+                 }}
                >重置会话</Button>
              )}
            </div>
