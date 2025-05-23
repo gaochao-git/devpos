@@ -1003,46 +1003,59 @@ onSorter = (a,b) => {
            >
                <Icon type="folder-open" />
            </Tooltip>
-           <div style={{ marginBottom: 4, display: 'flex', alignItems: 'center' }}>
-            {this.state.selectedTables.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
-                {this.state.selectedTables.map(table => (
-                  <Tag
-                    key={table}
-                    closable
-                    onClose={() => this.handleRemoveTable(table)}
-                    color="blue"
-                    style={{ marginRight: 4, marginBottom: 0 }}
-                  >
-                    {table}
-                  </Tag>
-                ))}
-              </div>
-            )}
-           </div>
-           <div style={{ position: 'relative', marginBottom: '4px' }}>
+           <div style={{ 
+             position: 'relative', 
+             marginBottom: '4px',
+             border: '1px solid #d9d9d9',
+             borderRadius: '4px',
+             backgroundColor: '#fff'
+           }}>
+             {this.state.selectedTables.length > 0 && (
+               <div style={{ 
+                 padding: '4px 40px 0 30px',
+                 display: 'flex', 
+                 flexWrap: 'wrap', 
+                 alignItems: 'center',
+                 borderBottom: this.state.selectedTables.length > 0 ? '1px solid #f0f0f0' : 'none'
+               }}>
+                 {this.state.selectedTables.map(table => (
+                   <Tag
+                     key={table}
+                     closable
+                     onClose={() => this.handleRemoveTable(table)}
+                     color="blue"
+                     style={{ marginRight: 4, marginBottom: 4 }}
+                   >
+                     {table}
+                   </Tag>
+                 ))}
+               </div>
+             )}
+             
              <Button
                icon="plus"
                size="small"
                style={{ 
                  position: 'absolute', 
                  left: '4px', 
-                 top: '4px', 
+                 top: this.state.selectedTables.length > 0 ? 'calc(100% - 32px)' : '4px',
                  zIndex: 1,
                  border: 'none',
                  background: 'transparent'
                }}
                onClick={this.onOpenTableList}
              />
+             
              <TextArea
                  ref={this.nlInputRef}
                  placeholder='输入自然语言自动生成SQL'
                  style={{ 
-                     border: '1px solid #d9d9d9',
-                     borderRadius: '4px',
+                     border: 'none',
+                     borderRadius: '0',
                      boxShadow: 'none',
-                     padding: '4px 40px 4px 30px', // 右侧留空间，避免按钮遮挡
-                     resize: 'none'
+                     padding: '4px 40px 4px 30px',
+                     resize: 'none',
+                     backgroundColor: 'transparent'
                  }}
                  autoSize={{ minRows: 1, maxRows: 3 }}
                  onPressEnter={(e) => {
@@ -1057,6 +1070,7 @@ onSorter = (a,b) => {
                      }
                  }}
              />
+             
              {this.state.isSending ? (
                <Button
                  icon="pause"
@@ -1064,7 +1078,7 @@ onSorter = (a,b) => {
                  style={{
                    position: 'absolute',
                    right: '8px',
-                   top: '4px',
+                   top: this.state.selectedTables.length > 0 ? 'calc(100% - 32px)' : '4px',
                    zIndex: 2
                  }}
                  onClick={() => {
@@ -1080,7 +1094,7 @@ onSorter = (a,b) => {
                  style={{
                    position: 'absolute',
                    right: '8px',
-                   top: '4px',
+                   top: this.state.selectedTables.length > 0 ? 'calc(100% - 32px)' : '4px',
                    zIndex: 2
                  }}
                  onClick={() => {
