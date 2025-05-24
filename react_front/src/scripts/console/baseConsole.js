@@ -102,7 +102,9 @@ export class BaseConsole extends Component {
       modalPageSize: 10,
       isSending: false,
       nl_cancel: false,
-      conversation_id: null
+      conversation_id: null,
+      dify_url: 'http://127.0.0.1',
+      dify_sql_asst_key: 'app-iKVZRkmmxnILnrRF4JrOyq5V'
     }
   }
 
@@ -789,10 +791,10 @@ onSorter = (a,b) => {
               user: 'system',
           };
 
-          const response = await fetch('http://127.0.0.1/v1/chat-messages', {
+          const response = await fetch(`${this.state.dify_url}/v1/chat-messages`, {
               method: 'POST',
               headers: {
-                  'Authorization': 'Bearer app-iKVZRkmmxnILnrRF4JrOyq5V',
+                  'Authorization': `Bearer ${this.state.dify_sql_asst_key}`,
                   'Content-Type': 'application/json',
               },
               body: JSON.stringify(requestBody),
