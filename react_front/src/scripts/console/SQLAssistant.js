@@ -94,6 +94,9 @@ const MessageContentWithContext = React.memo(({ content, onCopySQL, onApplySQL }
                     overflow: lineCount > 10 ? 'auto' : 'visible',
                     maxHeight: maxHeight,
                     lineHeight: '1.5',
+                    whiteSpace: 'pre',
+                    overflowX: 'auto',
+                    width: '100%'
                   }}>
                     <code
                       className={className}
@@ -120,14 +123,26 @@ const MessageContentWithContext = React.memo(({ content, onCopySQL, onApplySQL }
                     复制
                   </Button>
                   {language === 'sql' && (
-                    <Button 
-                      size="small" 
-                      type="primary"
-                      onClick={() => onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``)}
-                      icon="arrow-right"
-                    >
-                      应用到编辑器
-                    </Button>
+                    <>
+                      <Button 
+                        size="small" 
+                        type="primary"
+                        onClick={() => onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, false)}
+                        style={{ marginRight: '8px' }}
+                        icon="arrow-right"
+                      >
+                        应用到编辑器
+                      </Button>
+                      <Button 
+                        size="small"
+                        type="primary"
+                        danger
+                        onClick={() => onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, true)}
+                        icon="play-circle"
+                      >
+                        应用并执行
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -361,6 +376,9 @@ const StreamingMessageContent = React.memo(({ content }) => {
                     overflow: lineCount > 10 ? 'auto' : 'visible',
                     maxHeight: maxHeight,
                     lineHeight: '1.5',
+                    whiteSpace: 'pre',
+                    overflowX: 'auto',
+                    width: '100%'
                   }}>
                     <code
                       className={className}
@@ -390,17 +408,32 @@ const StreamingMessageContent = React.memo(({ content }) => {
                     复制
                   </Button>
                   {language === 'sql' && (
-                    <Button 
-                      size="small" 
-                      type="primary"
-                      onClick={() => {
-                        // 这里需要通过context或props传递onApplySQL
-                        message.success('SQL已应用到编辑器');
-                      }}
-                      icon="arrow-right"
-                    >
-                      应用到编辑器
-                    </Button>
+                    <>
+                      <Button 
+                        size="small" 
+                        type="primary"
+                        onClick={() => {
+                          // 这里需要通过context或props传递onApplySQL
+                          message.success('SQL已应用到编辑器');
+                        }}
+                        style={{ marginRight: '8px' }}
+                        icon="arrow-right"
+                      >
+                        应用到编辑器
+                      </Button>
+                      <Button 
+                        size="small"
+                        type="primary"
+                        danger
+                        onClick={() => {
+                          // 这里需要通过context或props传递onApplySQL
+                          message.success('SQL已应用到编辑器并执行');
+                        }}
+                        icon="play-circle"
+                      >
+                        应用并执行
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -860,11 +893,11 @@ class SQLAssistant extends Component {
   };
 
   // 应用SQL到主编辑器
-  handleApplySQL = (content) => {
+  handleApplySQL = (content, execute = false) => {
     const sqlMatch = content.match(/```sql\n([\s\S]*?)\n```/);
     if (sqlMatch && this.props.onApplySQL) {
-      this.props.onApplySQL(sqlMatch[1]);
-      message.success('SQL已应用到编辑器');
+      this.props.onApplySQL(sqlMatch[1], execute);
+      message.success(execute ? 'SQL已应用到编辑器并执行' : 'SQL已应用到编辑器');
     }
   };
 
@@ -901,43 +934,6 @@ class SQLAssistant extends Component {
         flexDirection: 'column',
         overflow: 'hidden' // 防止整体容器滚动
       }}>
-        {/* 配置区域 */}
-        <Card size="small" style={{ 
-          marginBottom: '8px',
-          flexShrink: 0 // 防止配置区域被压缩
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <Text strong>当前配置: </Text>
-              <Text>
-                {cluster && cluster !== '选择集群名' ? cluster : '未选择'}/
-                {instance || '未选择'}/
-                {database || '未选择'}
-              </Text>
-            </div>
-            <Button 
-              size="small" 
-              onClick={this.handleClearHistory}
-              icon="delete"
-            >
-              清空历史
-            </Button>
-          </div>
-          
-          {selectedTables.length > 0 && (
-            <div style={{ marginTop: '8px' }}>
-              <Text strong>已选择表格:</Text>
-              <div style={{ marginTop: '4px' }}>
-                {selectedTables.map(table => (
-                  <Tag key={table} color="blue" style={{ marginBottom: '4px' }}>
-                    {table}
-                  </Tag>
-                ))}
-              </div>
-            </div>
-          )}
-        </Card>
-
         {/* 对话历史区域 - 使用flex-grow使其填充剩余空间 */}
         <div style={{ 
           position: 'relative', 
@@ -1042,6 +1038,33 @@ class SQLAssistant extends Component {
           )}
         </div>
 
+        {/* 清空历史按钮 */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+          <Button 
+            size="small" 
+            onClick={this.handleClearHistory}
+            icon="delete"
+          >
+            清空历史
+          </Button>
+        </div>
+
+        {/* 选中表格卡片 - 如果有选中表格时显示 */}
+        {selectedTables.length > 0 && (
+          <Card size="small" style={{ marginBottom: '8px' }}>
+            <div>
+              <Text strong>已选择表格:</Text>
+              <div style={{ marginTop: '4px' }}>
+                {selectedTables.map(table => (
+                  <Tag key={table} color="blue" style={{ marginBottom: '4px' }}>
+                    {table}
+                  </Tag>
+                ))}
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* 输入区域 - 使用flex-shrink: 0确保不被压缩 */}
         <div style={{
           flexShrink: 0, // 防止输入框被压缩
@@ -1105,10 +1128,17 @@ class SQLAssistant extends Component {
           <div style={{ 
             marginTop: '8px', 
             fontSize: '12px', 
-            color: '#999',
-            textAlign: 'right'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
           }}>
-            按Enter发送，Shift+Enter换行
+            <div style={{ color: '#666' }}>
+              <Icon type="database" style={{ marginRight: '4px' }} />
+              当前配置: <span>{cluster && cluster !== '选择集群名' ? cluster : '未选择'}/{instance || '未选择'}/{database || '未选择'}</span>
+            </div>
+            <div style={{ color: '#999' }}>
+              按Enter发送，Shift+Enter换行
+            </div>
           </div>
         </div>
       </div>

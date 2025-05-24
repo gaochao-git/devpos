@@ -835,12 +835,29 @@ onSorter = (a,b) => {
     return mdParser.render(this.state.sql_score);
   }
 
-  // 从助手应用SQL到主编辑器
-  handleApplySQLFromAssistant = (sql) => {
-    if (this.state.sql_content === '') {
-      this.setState({ sql_content: sql });
+  // 处理从SQL助手应用SQL
+  handleApplySQLFromAssistant = (sql, execute = false) => {
+    // 如果当前编辑器有内容，添加换行
+    if (this.state.sql_content) {
+      this.setState({
+        sql_content: this.state.sql_content + '\n' + sql,
+        sql: sql
+      }, () => {
+        if (execute) {
+          // 如果需要执行，调用getTableData
+          this.getTableData('no');
+        }
+      });
     } else {
-      this.setState({ sql_content: this.state.sql_content + '\n\n' + sql });
+      this.setState({
+        sql_content: sql,
+        sql: sql
+      }, () => {
+        if (execute) {
+          // 如果需要执行，调用getTableData
+          this.getTableData('no');
+        }
+      });
     }
   };
 
