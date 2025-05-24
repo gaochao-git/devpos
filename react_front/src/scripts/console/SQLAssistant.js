@@ -745,17 +745,17 @@ class SQLAssistant extends Component {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px', gap: '8px' }}>
           <Button 
             size="small" 
-            onClick={this.handleClearHistory}
-            icon="plus"
-          >
-            新建会话
-          </Button>
-          <Button 
-            size="small" 
             onClick={this.toggleHistoryDrawer}
             icon="history"
           >
             历史会话
+          </Button>
+          <Button 
+            size="small" 
+            onClick={this.handleClearHistory}
+            icon="plus"
+          >
+            新建会话
           </Button>
         </div>
 
