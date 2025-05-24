@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Input, Button, Card, List, message, Tag, Select, Typography, Spin, Icon } from 'antd';
+import { Input, Button, Card, List, message, Tag, Select, Typography, Spin, Icon, Drawer, Timeline } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -337,7 +337,13 @@ class SQLAssistant extends Component {
       conversation_id: null,
       streamingComplete: false,
       isUserBrowsing: false,
-      isUserScrolling: false
+      isUserScrolling: false,
+      historicalConversations: [],
+      isHistoryDrawerVisible: false,
+      isLoadingHistory: false,
+      hasMoreConversations: false,
+      selectedConversation: null,
+      lastConversationId: null
     };
     
     this.inputRef = React.createRef();
@@ -568,7 +574,13 @@ class SQLAssistant extends Component {
       conversationHistory: [],
       conversation_id: null,
       isUserBrowsing: false,
-      isUserScrolling: false
+      isUserScrolling: false,
+      historicalConversations: [],
+      isHistoryDrawerVisible: false,
+      isLoadingHistory: false,
+      hasMoreConversations: false,
+      selectedConversation: null,
+      lastConversationId: null
     });
   };
 
@@ -611,6 +623,100 @@ class SQLAssistant extends Component {
     ].forEach(fn => fn && fn.cancel && fn.cancel());
   }
 
+  fetchConversationHistory = async () => {
+    this.setState({ isLoadingHistory: true });
+    try {
+      const response = await fetch(`http://127.0.0.1/v1/conversations?user=system&last_id=${this.state.lastConversationId || ''}&limit=20`, {
+        headers: {
+          'Authorization': 'Bearer app-iKVZRkmmxnILnrRF4JrOyq5V'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      this.setState(prevState => ({
+        historicalConversations: [...prevState.historicalConversations, ...data.data],
+        hasMoreConversations: data.has_more,
+        lastConversationId: data.data.length > 0 ? data.data[data.data.length - 1].id : null
+      }));
+    } catch (error) {
+      message.error('获取历史会话失败');
+      console.error('获取历史会话失败:', error);
+    } finally {
+      this.setState({ isLoadingHistory: false });
+    }
+  };
+
+  fetchConversationMessages = async (conversationId) => {
+    try {
+      const response = await fetch(`http://127.0.0.1/v1/messages?user=system&conversation_id=${conversationId}`, {
+        headers: {
+          'Authorization': 'Bearer app-iKVZRkmmxnILnrRF4JrOyq5V'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const messages = [];
+      
+      // Process each message and create both user and assistant entries
+      data.data.forEach(msg => {
+        if (msg.query) {
+          messages.push({
+            id: `${msg.id}-query`,
+            type: 'user',
+            content: msg.query,
+            timestamp: new Date(msg.created_at * 1000)
+          });
+        }
+        if (msg.answer) {
+          messages.push({
+            id: `${msg.id}-answer`,
+            type: 'assistant',
+            content: msg.answer,
+            timestamp: new Date(msg.created_at * 1000)
+          });
+        }
+      });
+
+      // Sort messages by timestamp
+      messages.sort((a, b) => a.timestamp - b.timestamp);
+
+      this.setState({
+        conversationHistory: messages,
+        conversation_id: conversationId,
+        isHistoryDrawerVisible: false,
+        selectedConversation: conversationId
+      });
+    } catch (error) {
+      message.error('获取会话消息失败');
+      console.error('获取会话消息失败:', error);
+    }
+  };
+
+  toggleHistoryDrawer = () => {
+    const { isHistoryDrawerVisible } = this.state;
+    this.setState({ 
+      isHistoryDrawerVisible: !isHistoryDrawerVisible 
+    }, () => {
+      if (!isHistoryDrawerVisible && this.state.historicalConversations.length === 0) {
+        this.fetchConversationHistory();
+      }
+    });
+  };
+
+  loadMoreHistory = () => {
+    if (!this.state.isLoadingHistory && this.state.hasMoreConversations) {
+      this.fetchConversationHistory();
+    }
+  };
+
   render() {
     const { 
       inputValue, 
@@ -621,7 +727,12 @@ class SQLAssistant extends Component {
       instance,
       database,
       cluster,
-      streamingComplete
+      streamingComplete,
+      isHistoryDrawerVisible,
+      historicalConversations,
+      isLoadingHistory,
+      hasMoreConversations,
+      selectedConversation
     } = this.state;
 
     return (
@@ -631,6 +742,23 @@ class SQLAssistant extends Component {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px', gap: '8px' }}>
+          <Button 
+            size="small" 
+            onClick={this.handleClearHistory}
+            icon="plus"
+          >
+            新建会话
+          </Button>
+          <Button 
+            size="small" 
+            onClick={this.toggleHistoryDrawer}
+            icon="history"
+          >
+            历史会话
+          </Button>
+        </div>
+
         <div style={{ 
           position: 'relative', 
           flex: 1,
@@ -735,15 +863,47 @@ class SQLAssistant extends Component {
           )}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
-          <Button 
-            size="small" 
-            onClick={this.handleClearHistory}
-            icon="delete"
-          >
-            清空历史
-          </Button>
-        </div>
+        <Drawer
+          title="历史会话"
+          placement="right"
+          closable={true}
+          onClose={this.toggleHistoryDrawer}
+          visible={isHistoryDrawerVisible}
+          width={320}
+        >
+          <List
+            dataSource={historicalConversations}
+            loading={isLoadingHistory}
+            renderItem={item => (
+              <List.Item
+                key={item.id}
+                onClick={() => this.fetchConversationMessages(item.id)}
+                style={{
+                  cursor: 'pointer',
+                  backgroundColor: selectedConversation === item.id ? '#e6f7ff' : 'transparent',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  marginBottom: '4px'
+                }}
+              >
+                <List.Item.Meta
+                  avatar={<Icon type="message" />}
+                  title={item.name || '未命名会话'}
+                  description={new Date(item.created_at * 1000).toLocaleString()}
+                />
+              </List.Item>
+            )}
+            loadMore={
+              hasMoreConversations && (
+                <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                  <Button onClick={this.loadMoreHistory} loading={isLoadingHistory}>
+                    加载更多
+                  </Button>
+                </div>
+              )
+            }
+          />
+        </Drawer>
 
         {selectedTables.length > 0 && (
           <Card size="small" style={{ marginBottom: '8px' }}>
