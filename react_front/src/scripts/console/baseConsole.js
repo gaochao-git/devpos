@@ -1240,6 +1240,7 @@ onSorter = (a,b) => {
                         defaultDatabase={this.state.current_schema}
                         defaultCluster={this.state.cluster_name}
                         selectedTables={this.state.selectedTables}
+                        allTables={this.state.match_source_slider_info.map(item => item.key)}
                         onApplySQL={this.handleApplySQLFromAssistant}
                       />
                     </div>

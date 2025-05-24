@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
-import { Input, Button, Card, List, message, Tag, Select, Typography, Spin, Icon, Drawer, Timeline } from 'antd';
+import { Input, Button, Card, List, message, Tag, Select, Typography, Spin, Icon, Drawer, Timeline, Checkbox, Popover } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import VirtualList from 'rc-virtual-list';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -324,12 +325,16 @@ const StreamingMessage = React.memo(({ currentMessage, isComplete = false }) => 
 class SQLAssistant extends Component {
   constructor(props) {
     super(props);
+    this.nlInputRef = React.createRef();
     this.state = {
       inputValue: '',
       conversationHistory: [],
       isStreaming: false,
       currentStreamingMessage: '',
       selectedTables: props.selectedTables || [],
+      allTables: props.allTables || [],
+      showTableSelector: false,
+      searchTableValue: '',
       instance: props.defaultInstance || '',
       database: props.defaultDatabase || '',
       cluster: props.defaultCluster || '',
@@ -345,7 +350,12 @@ class SQLAssistant extends Component {
       selectedConversation: null,
       lastConversationId: null,
       dify_url: 'http://127.0.0.1',
-      dify_sql_asst_key: 'app-iKVZRkmmxnILnrRF4JrOyq5V'
+      dify_sql_asst_key: 'app-iKVZRkmmxnILnrRF4JrOyq5V',
+      tablePageSize: 100,
+      currentTablePage: 1,
+      searchTimeout: null,
+      isSearching: false,
+      isSelectingAll: false,
     };
     
     this.inputRef = React.createRef();
@@ -418,17 +428,10 @@ class SQLAssistant extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     // 更新表格选择
-    if (this.props.selectedTables !== prevProps.selectedTables) {
-      this.setState({ selectedTables: this.props.selectedTables || [] });
+    if (this.props.allTables !== prevProps.allTables) {
+      this.setState({ allTables: this.props.allTables || [] });
     }
-    
-    // 更新配置信息
-    ['Instance', 'Database', 'Cluster'].forEach(key => {
-      const propKey = `default${key}`;
-      if (this.props[propKey] !== prevProps[propKey]) {
-        this.setState({ [key.toLowerCase()]: this.props[propKey] || '' });
-      }
-    });
+   
     
     // 智能滚动逻辑
     const shouldAutoScroll = 
@@ -721,6 +724,83 @@ class SQLAssistant extends Component {
     }
   };
 
+  handleTableSelect = (table) => {
+    this.setState(prevState => ({
+      selectedTables: prevState.selectedTables.includes(table) 
+        ? prevState.selectedTables.filter(t => t !== table)
+        : [...prevState.selectedTables, table]
+    }));
+  };
+
+  // 优化的表格搜索方法
+  handleSearchTable = (value) => {
+    // 清除之前的定时器
+    if (this.state.searchTimeout) {
+      clearTimeout(this.state.searchTimeout);
+    }
+
+    // 设置搜索状态
+    this.setState({ 
+      searchTableValue: value,
+      isSearching: true 
+    });
+
+    // 使用防抖进行搜索
+    const timeout = setTimeout(() => {
+      this.setState({ 
+        currentTablePage: 1,
+        isSearching: false 
+      });
+    }, 300);
+
+    this.setState({ searchTimeout: timeout });
+  };
+
+  // 处理虚拟列表滚动到底部
+  handleTableListScroll = (e) => {
+    if (e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight) {
+      this.setState(prevState => ({
+        currentTablePage: prevState.currentTablePage + 1
+      }));
+    }
+  };
+
+  handleClearAllTables = () => {
+    this.setState({ selectedTables: [] });
+  };
+
+  // 添加全选/取消全选方法
+  handleSelectAllTables = () => {
+    const { allTables, selectedTables, searchTableValue } = this.state;
+    
+    // 获取当前过滤后的表
+    const filteredTables = allTables.filter(table => 
+      table.toLowerCase().includes(searchTableValue.toLowerCase())
+    );
+    
+    // 检查是否所有过滤后的表都已被选中
+    const isAllSelected = filteredTables.every(table => 
+      selectedTables.includes(table)
+    );
+
+    if (isAllSelected) {
+      // 如果全部已选，则取消选择过滤后的表
+      this.setState(prevState => ({
+        selectedTables: prevState.selectedTables.filter(table => 
+          !filteredTables.includes(table)
+        )
+      }));
+    } else {
+      // 如果未全选，则添加未选择的表
+      this.setState(prevState => ({
+        selectedTables: [...new Set([
+          ...prevState.selectedTables,
+          ...filteredTables
+        ])]
+      }));
+    }
+  };
+
   render() {
     const { 
       inputValue, 
@@ -728,6 +808,9 @@ class SQLAssistant extends Component {
       isStreaming, 
       currentStreamingMessage,
       selectedTables,
+      allTables,
+      showTableSelector,
+      searchTableValue,
       instance,
       database,
       cluster,
@@ -736,8 +819,92 @@ class SQLAssistant extends Component {
       historicalConversations,
       isLoadingHistory,
       hasMoreConversations,
-      selectedConversation
+      selectedConversation,
+      tablePageSize,
+      currentTablePage,
+      isSearching
     } = this.state;
+
+    // 获取过滤后的表格
+    const filteredTables = allTables.filter(table => 
+      table.toLowerCase().includes(searchTableValue.toLowerCase())
+    );
+
+    // 检查当前过滤后的表是否全部选中
+    const isAllSelected = filteredTables.length > 0 && 
+      filteredTables.every(table => selectedTables.includes(table));
+
+    const paginatedTables = filteredTables.slice(0, currentTablePage * tablePageSize);
+
+    const tableSelector = (
+      <div style={{ width: '300px' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          marginBottom: '16px', 
+          gap: '8px',
+          flexWrap: 'wrap'
+        }}>
+          <Input.Search
+            placeholder="搜索表名"
+            value={searchTableValue}
+            onChange={e => this.handleSearchTable(e.target.value)}
+            style={{ width: 'calc(100% - 180px)' }}
+            size="small"
+            loading={isSearching}
+          />
+          <Button 
+            size="small" 
+            onClick={this.handleSelectAllTables}
+            style={{ height: '24px', lineHeight: '22px', width: '80px' }}
+            type={isAllSelected ? 'primary' : 'default'}
+          >
+            {isAllSelected ? '取消全选' : '全选'}
+          </Button>
+          <Button 
+            size="small" 
+            onClick={this.handleClearAllTables}
+            disabled={selectedTables.length === 0}
+            style={{ height: '24px', lineHeight: '22px', width: '80px' }}
+          >
+            清空选择
+          </Button>
+        </div>
+        <div style={{ 
+          marginBottom: '8px', 
+          fontSize: '12px', 
+          color: '#666' 
+        }}>
+          {`当前选中 ${selectedTables.length} 个表${searchTableValue ? `，过滤显示 ${filteredTables.length} 个表` : ''}`}
+        </div>
+        <div style={{ height: '400px', overflow: 'hidden' }}>
+          <VirtualList
+            data={paginatedTables}
+            height={400}
+            itemHeight={36}
+            itemKey="key"
+            onScroll={this.handleTableListScroll}
+          >
+            {(table) => (
+              <List.Item
+                onClick={() => this.handleTableSelect(table)}
+                style={{
+                  cursor: 'pointer',
+                  backgroundColor: selectedTables.includes(table) ? '#e6f7ff' : 'transparent',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <Checkbox checked={selectedTables.includes(table)} style={{ marginRight: '8px' }} />
+                {table}
+              </List.Item>
+            )}
+          </VirtualList>
+        </div>
+      </div>
+    );
 
     return (
       <div style={{ 
@@ -746,7 +913,13 @@ class SQLAssistant extends Component {
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px', gap: '8px' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          alignItems: 'center', 
+          marginBottom: '8px', 
+          gap: '8px' 
+        }}>
           <Button 
             size="small" 
             onClick={this.toggleHistoryDrawer}
@@ -909,21 +1082,6 @@ class SQLAssistant extends Component {
           />
         </Drawer>
 
-        {selectedTables.length > 0 && (
-          <Card size="small" style={{ marginBottom: '8px' }}>
-            <div>
-              <Text strong>已选择表格:</Text>
-              <div style={{ marginTop: '4px' }}>
-                {selectedTables.map(table => (
-                  <Tag key={table} color="blue" style={{ marginBottom: '4px' }}>
-                    {table}
-                  </Tag>
-                ))}
-              </div>
-            </div>
-          </Card>
-        )}
-
         <div style={{
           flexShrink: 0,
           border: '1px solid #d9d9d9',
@@ -932,6 +1090,55 @@ class SQLAssistant extends Component {
           backgroundColor: '#fff',
           marginTop: 'auto'
         }}>
+          <div style={{ 
+            marginBottom: '8px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '4px' 
+          }}>
+            <Popover
+              content={tableSelector}
+              title="选择表"
+              trigger="click"
+              visible={showTableSelector}
+              onVisibleChange={visible => this.setState({ showTableSelector: visible })}
+              placement="topLeft"
+              overlayStyle={{ width: '320px' }}
+            >
+              <Button 
+                size="small" 
+                icon="plus" 
+                style={{ marginRight: '8px', flexShrink: 0 }}
+              >
+                选择表
+              </Button>
+            </Popover>
+            <div style={{ 
+              flex: 1, 
+              overflow: 'auto', 
+              whiteSpace: 'nowrap', 
+              paddingBottom: '4px',
+              maxHeight: '64px',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignContent: 'flex-start'
+            }}>
+              {selectedTables.map(table => (
+                <Tag
+                  key={table}
+                  closable
+                  onClose={(e) => {
+                    e.preventDefault();
+                    this.handleTableSelect(table);
+                  }}
+                  style={{ margin: '2px', flexShrink: 0 }}
+                >
+                  {table}
+                </Tag>
+              ))}
+            </div>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
             <div style={{ flex: 1 }}>
               <TextArea
@@ -987,13 +1194,9 @@ class SQLAssistant extends Component {
             marginTop: '8px', 
             fontSize: '12px', 
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',
             alignItems: 'center'
           }}>
-            <div style={{ color: '#666' }}>
-              <Icon type="database" style={{ marginRight: '4px' }} />
-              当前配置: <span>{cluster && cluster !== '选择集群名' ? cluster : '未选择'}/{instance || '未选择'}/{database || '未选择'}</span>
-            </div>
             <div style={{ color: '#999' }}>
               按Enter发送，Shift+Enter换行
             </div>
