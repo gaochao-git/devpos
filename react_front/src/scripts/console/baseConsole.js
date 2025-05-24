@@ -21,7 +21,7 @@ import { MyResizeTable } from "../common/resizeTable"
 import {EditableTable} from "./tableBaseInfo"
 import {EditableAlterTable} from "./alterTableBaseInfo"
 import decrypt_aes_cbc from "../common/enc_dec"
-import CodeAgent from '../aiApp/agents/CodeAgent';
+import SQLAssistant from './SQLAssistant';
 const {Option} = Select
 const {TabPane} = Tabs
 const { TextArea } = Input
@@ -93,7 +93,7 @@ export class BaseConsole extends Component {
       end_index: 500,
       current_page: 0,
       default_page_size:500,
-      sqlAssistantDrawerVisible: false,
+      sqlAssistantVisible: false,
       showTableList: false,
       selectedTables: [],
       tempSelectedTables: [],
@@ -835,6 +835,15 @@ onSorter = (a,b) => {
     return mdParser.render(this.state.sql_score);
   }
 
+  // 从助手应用SQL到主编辑器
+  handleApplySQLFromAssistant = (sql) => {
+    if (this.state.sql_content === '') {
+      this.setState({ sql_content: sql });
+    } else {
+      this.setState({ sql_content: this.state.sql_content + '\n\n' + sql });
+    }
+  };
+
   render() {
     const favorite_column = [
       {
@@ -979,191 +988,243 @@ onSorter = (a,b) => {
             </Select>
 
             <hr style={{margin:0}}/>
-            <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
-            <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>解释</Button>
-            <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sql_content:sqlFormatter.format(this.state.sql_content)})}>美化</Button>
-            <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getSqlScore()}>SQL质量</Button>
-            <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sqlAssistantDrawerVisible: true})}>SQL助手</Button>
-            <Button type="link"  icon="star" onClick={()=> this.setState({favoriteVisible:true})}></Button>
-            <Tooltip
-                placement="bottomRight"
-               title={
-                   <div>
-                     <p>
-                        <Button type="link" onClick={()=> this.setState({favorite_type:"db_source"},()=>this.getFavorite())}>我的数据源</Button>
-                     </p>
-                     <p>
-                        <Button type="link" onClick={()=> this.setState({favorite_type:"db_sql"},()=>this.getFavorite())}>我的SQL</Button>
-                     </p>
-                     <p>
-                        <Button type="link" onClick={()=> this.setState({favorite_type:"db_sql"},()=>message.success('开发中'))}>公共快捷键</Button>
-                     </p>
-                   </div>
-               }
-           >
-               <Icon type="folder-open" />
-           </Tooltip>
-           <div style={{ 
-             position: 'relative', 
-             marginBottom: '4px',
-             border: '1px solid #d9d9d9',
-             borderRadius: '4px',
-             backgroundColor: '#fff'
-           }}>
-             {this.state.selectedTables.length > 0 && (
+            <div style={{ display: 'flex', height: 'calc(100vh - 120px)' }}>
+              <div style={{ flex: this.state.sqlAssistantVisible ? '1 1 60%' : '1 1 100%', minWidth: '400px' }}>
+                <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
+                <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>解释</Button>
+                <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sql_content:sqlFormatter.format(this.state.sql_content)})}>美化</Button>
+                <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getSqlScore()}>SQL质量</Button>
+                <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sqlAssistantVisible: !this.state.sqlAssistantVisible})}>
+                  {this.state.sqlAssistantVisible ? '关闭助手' : 'SQL助手'}
+                </Button>
+                <Button type="link"  icon="star" onClick={()=> this.setState({favoriteVisible:true})}></Button>
+                <Tooltip
+                    placement="bottomRight"
+                   title={
+                       <div>
+                         <p>
+                            <Button type="link" onClick={()=> this.setState({favorite_type:"db_source"},()=>this.getFavorite())}>我的数据源</Button>
+                         </p>
+                         <p>
+                            <Button type="link" onClick={()=> this.setState({favorite_type:"db_sql"},()=>this.getFavorite())}>我的SQL</Button>
+                         </p>
+                         <p>
+                            <Button type="link" onClick={()=> this.setState({favorite_type:"db_sql"},()=>message.success('开发中'))}>公共快捷键</Button>
+                         </p>
+                       </div>
+                   }
+               >
+                   <Icon type="folder-open" />
+               </Tooltip>
                <div style={{ 
-                 padding: '4px 40px 0 30px',
-                 display: 'flex', 
-                 flexWrap: 'wrap', 
-                 alignItems: 'center',
-                 borderBottom: this.state.selectedTables.length > 0 ? '1px solid #f0f0f0' : 'none'
+                 position: 'relative', 
+                 marginBottom: '4px',
+                 border: '1px solid #d9d9d9',
+                 borderRadius: '4px',
+                 backgroundColor: '#fff'
                }}>
-                 {this.state.selectedTables.map(table => (
-                   <Tag
-                     key={table}
-                     closable
-                     onClose={() => this.handleRemoveTable(table)}
-                     color="blue"
-                     style={{ marginRight: 4, marginBottom: 4 }}
-                   >
-                     {table}
-                   </Tag>
-                 ))}
-               </div>
-             )}
-             
-             <Button
-               icon="plus"
-               size="small"
-               style={{ 
-                 position: 'absolute', 
-                 left: '4px', 
-                 top: this.state.selectedTables.length > 0 ? 'calc(100% - 32px)' : '4px',
-                 zIndex: 1,
-                 border: 'none',
-                 background: 'transparent'
-               }}
-               onClick={this.onOpenTableList}
-             />
-             
-             <TextArea
-                 ref={this.nlInputRef}
-                 placeholder='输入自然语言自动生成SQL'
-                 style={{ 
+                 {this.state.selectedTables.length > 0 && (
+                   <div style={{ 
+                     padding: '4px 40px 0 30px',
+                     display: 'flex', 
+                     flexWrap: 'wrap', 
+                     alignItems: 'center',
+                     borderBottom: this.state.selectedTables.length > 0 ? '1px solid #f0f0f0' : 'none'
+                   }}>
+                     {this.state.selectedTables.map(table => (
+                       <Tag
+                         key={table}
+                         closable
+                         onClose={() => this.handleRemoveTable(table)}
+                         color="blue"
+                         style={{ marginRight: 4, marginBottom: 4 }}
+                       >
+                         {table}
+                       </Tag>
+                     ))}
+                   </div>
+                 )}
+                 
+                 <Button
+                   icon="plus"
+                   size="small"
+                   style={{ 
+                     position: 'absolute', 
+                     left: '4px', 
+                     top: this.state.selectedTables.length > 0 ? 'calc(100% - 32px)' : '4px',
+                     zIndex: 1,
                      border: 'none',
-                     borderRadius: '0',
-                     boxShadow: 'none',
-                     padding: '4px 40px 4px 30px',
-                     resize: 'none',
-                     backgroundColor: 'transparent'
-                 }}
-                 autoSize={{ minRows: 1, maxRows: 3 }}
-                 onPressEnter={(e) => {
-                     if (!e.shiftKey) {
-                         e.preventDefault();
-                         if (!this.state.isSending && this.nlInputRef.current) {
-                             const inputValue = this.nlInputRef.current.state.value;
-                             if (inputValue.trim()) {
-                                 this.handleSendNlContent(inputValue);
+                     background: 'transparent'
+                   }}
+                   onClick={this.onOpenTableList}
+                 />
+                 
+                 <TextArea
+                     ref={this.nlInputRef}
+                     placeholder='输入自然语言自动生成SQL'
+                     style={{ 
+                         border: 'none',
+                         borderRadius: '0',
+                         boxShadow: 'none',
+                         padding: '4px 40px 4px 30px',
+                         resize: 'none',
+                         backgroundColor: 'transparent'
+                     }}
+                     autoSize={{ minRows: 1, maxRows: 3 }}
+                     onPressEnter={(e) => {
+                         if (!e.shiftKey) {
+                             e.preventDefault();
+                             if (!this.state.isSending && this.nlInputRef.current) {
+                                 const inputValue = this.nlInputRef.current.state.value;
+                                 if (inputValue.trim()) {
+                                     this.handleSendNlContent(inputValue);
+                                 }
                              }
                          }
-                     }
-                 }}
-             />
-             
-             {this.state.isSending ? (
-               <Button
-                 icon="pause"
-                 size="small"
-                 style={{
-                   position: 'absolute',
-                   right: '8px',
-                   top: this.state.selectedTables.length > 0 ? 'calc(100% - 32px)' : '4px',
-                   zIndex: 2
-                 }}
-                 onClick={() => {
-                   this.setState({ nl_cancel: true, isSending: false });
-                   clearInterval(this.state.countdownInterval);
-                 }}
-               >停止 ({this.state.countdown}s)</Button>
-             ) : (
-               <Button
-                 icon="redo"
-                 type="primary"
-                 size="small"
-                 style={{
-                   position: 'absolute',
-                   right: '8px',
-                   top: this.state.selectedTables.length > 0 ? 'calc(100% - 32px)' : '4px',
-                   zIndex: 2
-                 }}
-                 onClick={() => {
-                   this.setState({conversation_id: null});
-                   // 清空输入框
-                   if (this.nlInputRef.current) {
-                     this.nlInputRef.current.setValue('');
-                   }
-                 }}
-               >重置会话</Button>
-             )}
-           </div>
-            <CodeMirror
-              editorDidMount={this.onEditorDidMount}
-              value={this.state.sql_content}
-              resize="vertical"
-              options={{
-                lineNumbers: true,
-                mode: {name: "text/x-mysql"},
-                extraKeys: {"Tab": "autocomplete"},
-                theme: 'idea',
-                styleActiveLine: true,
-                lineWrapping:true,
-                // 代码提示功能
-                hintOptions: {
-                  // 避免由于提示列表只有一个提示信息时，自动填充
-                  completeSingle: false,
-                  // 不同的语言支持从配置中读取自定义配置 sql语言允许配置表和字段信息，用于代码提示
-                  tables: {
-                    "table1": ["c1", "c2"],
-                    "table2": ["c1", "c2"],
-                  },
-                },
-              }}
-              // onChange={(cm) => this.setState({sql_content: cm.getValue()})} // sql变化事件
-              // onFocus={(cm) => this.setState({sql_content: cm.getValue()})}
-               // onCursorActivity={(cm) => this.onCursorActivity(cm)} // 用来完善选中监听
-               onBlur={cm=>this.onBlur(cm)}
-               onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
-            />
-            <Tabs defaultActiveKey='1' tabPosition="top" size="small" style={{ margin:1}}>
-              {
-                  this.state.multi_label.map((item,index)=>{
-                  return(
+                     }}
+                 />
+                 
+                 {this.state.isSending ? (
+                   <Button
+                     icon="pause"
+                     size="small"
+                     style={{
+                       position: 'absolute',
+                       right: '8px',
+                       top: this.state.selectedTables.length > 0 ? 'calc(100% - 32px)' : '4px',
+                       zIndex: 2
+                     }}
+                     onClick={() => {
+                       this.setState({ nl_cancel: true, isSending: false });
+                       clearInterval(this.state.countdownInterval);
+                     }}
+                   >停止 ({this.state.countdown}s)</Button>
+                 ) : (
+                   <Button
+                     icon="redo"
+                     type="primary"
+                     size="small"
+                     style={{
+                       position: 'absolute',
+                       right: '8px',
+                       top: this.state.selectedTables.length > 0 ? 'calc(100% - 32px)' : '4px',
+                       zIndex: 2
+                     }}
+                     onClick={() => {
+                       this.setState({conversation_id: null});
+                       // 清空输入框
+                       if (this.nlInputRef.current) {
+                         this.nlInputRef.current.setValue('');
+                       }
+                     }}
+                   >重置会话</Button>
+                 )}
+               </div>
+                <CodeMirror
+                  editorDidMount={this.onEditorDidMount}
+                  value={this.state.sql_content}
+                  resize="vertical"
+                  options={{
+                    lineNumbers: true,
+                    mode: {name: "text/x-mysql"},
+                    extraKeys: {"Tab": "autocomplete"},
+                    theme: 'idea',
+                    styleActiveLine: true,
+                    lineWrapping:true,
+                    // 代码提示功能
+                    hintOptions: {
+                      // 避免由于提示列表只有一个提示信息时，自动填充
+                      completeSingle: false,
+                      // 不同的语言支持从配置中读取自定义配置 sql语言允许配置表和字段信息，用于代码提示
+                      tables: {
+                        "table1": ["c1", "c2"],
+                        "table2": ["c1", "c2"],
+                      },
+                    },
+                  }}
+                  // onChange={(cm) => this.setState({sql_content: cm.getValue()})} // sql变化事件
+                  // onFocus={(cm) => this.setState({sql_content: cm.getValue()})}
+                   // onCursorActivity={(cm) => this.onCursorActivity(cm)} // 用来完善选中监听
+                   onBlur={cm=>this.onBlur(cm)}
+                   onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
+                />
+                <Tabs defaultActiveKey='1' tabPosition="top" size="small" style={{ margin:1}}>
+                  {
+                      this.state.multi_label.map((item,index)=>{
+                      return(
 
-                      <TabPane tab={item} key={index}>
-                          共{this.state.multi_st_ret[index].query_data.length}条,  查询耗时:{this.state.multi_st_ret[index].query_time} ms, 脱敏耗时:{this.state.multi_st_ret[index].mask_time} ms, 敏感数据探测耗时: {this.state.multi_st_ret[index].sens_time} ms
-                          {
-                              this.state.res_format === 'row'
-                              ?
-                              <div className="components-table-resizable-column">
-                                   <MyResizeTable dataSource={this.state.multi_st_ret[index].query_data} columns={this.state.multi_table_column[index]} onChange={this.onChange}/>
-                              </div>
-                              : <TextArea rows={10} value={this.state.col_format_res_list[index]}/>
+                          <TabPane tab={item} key={index}>
+                              共{this.state.multi_st_ret[index].query_data.length}条,  查询耗时:{this.state.multi_st_ret[index].query_time} ms, 脱敏耗时:{this.state.multi_st_ret[index].mask_time} ms, 敏感数据探测耗时: {this.state.multi_st_ret[index].sens_time} ms
+                              {
+                                  this.state.res_format === 'row'
+                                  ?
+                                  <div className="components-table-resizable-column">
+                                       <MyResizeTable dataSource={this.state.multi_st_ret[index].query_data} columns={this.state.multi_table_column[index]} onChange={this.onChange}/>
+                                  </div>
+                                  : <TextArea rows={10} value={this.state.col_format_res_list[index]}/>
 
-                          }
-                          <Button
-                              style={{marginLeft: '10px'}}
-                              onClick={tableToExcel.bind(this, this.state.multi_st_ret[index].query_data, this.state.multi_table_column[index], 'query_result')}
-                          >
-                              导出
-                          </Button>
-                          <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
-                          <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
-                      </TabPane>
-                  )
-                  })
-              }
-            </Tabs>
+                              }
+                              <Button
+                                  style={{marginLeft: '10px'}}
+                                  onClick={tableToExcel.bind(this, this.state.multi_st_ret[index].query_data, this.state.multi_table_column[index], 'query_result')}
+                              >
+                                  导出
+                              </Button>
+                              <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'row'})}>行显示</Button>
+                              <Button type="primary" style={{marginLeft:10}} onClick={()=> this.setState({res_format:'col'})}>列显示</Button>
+                          </TabPane>
+                      )
+                      })
+                  }
+                </Tabs>
+              </div>
+              
+              {this.state.sqlAssistantVisible && (
+                <Resizable
+                  defaultSize={{ width: '40%' }}
+                  minWidth="300px"
+                  maxWidth="70%"
+                  enable={{ left: true, right: false, top: false, bottom: false }}
+                  style={{
+                    borderLeft: '1px solid #d9d9d9',
+                    backgroundColor: '#fff',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <div style={{ 
+                    height: '100%', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    padding: '8px'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '8px',
+                      paddingBottom: '8px',
+                      borderBottom: '1px solid #f0f0f0'
+                    }}>
+                      <span style={{ fontSize: '16px', fontWeight: 'bold' }}>SQL助手</span>
+                      <Button 
+                        icon="close" 
+                        size="small" 
+                        onClick={() => this.setState({sqlAssistantVisible: false})}
+                      />
+                    </div>
+                    <div style={{ flex: 1, overflow: 'auto' }}>
+                      <SQLAssistant 
+                        defaultInstance={this.state.instance_name}
+                        defaultDatabase={this.state.current_schema}
+                        defaultCluster={this.state.cluster_name}
+                        selectedTables={this.state.selectedTables}
+                        onApplySQL={this.handleApplySQLFromAssistant}
+                      />
+                    </div>
+                  </div>
+                </Resizable>
+              )}
+            </div>
           </Content>
         </Layout>
 
@@ -1247,19 +1308,6 @@ onSorter = (a,b) => {
         >
             <MdEditor value={this.state.sql_score} view={{ menu: false, md: false, html: true }} readOnly={true} shortcuts={true} toolbars={false} style={{ height: '500px' }} renderHTML={text => this.renderHTML()}/>
         </Modal>
-        <Drawer
-          title="SQL助手"
-          placement="right"
-          width={1000}
-          onClose={() => this.setState({sqlAssistantDrawerVisible: false})}
-          visible={this.state.sqlAssistantDrawerVisible}
-        >
-          <CodeAgent 
-            defaultInstance={this.state.instance_name}
-            defaultDatabase={this.state.current_schema}
-            defaultTables={this.state.source_slider_info.map(item => item.key)}
-          />
-        </Drawer>
         <Modal
           visible={this.state.showTableList}
           title="选择表名"
