@@ -942,73 +942,13 @@ onSorter = (a,b) => {
               </Sider>
           </div>
           <Content style={{margin:0,padding:0}}>
-            <Icon
-                className="trigger"
-                type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
-                onClick={this.onCollapseTable}
-            />
-            <Switch
-              checkedChildren="Select"
-              unCheckedChildren="Input"
-              defaultChecked
-              size="small"
-              style={{marginLeft:5}}
-              onClick={()=>this.setState({input_source_type:!this.state.input_source_type,instance_name:"",db_info:""})}
-            />
-            {
-              this.state.input_source_type ?
-              <Input size="small" style={{ width: 150,marginLeft:2}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
-              :
-              <span>
-                  <Select
-                  size="small"
-                  showSearch
-                  filterOption={(input,option)=>
-                      option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
-                  }
-                  style={{width:180,marginLeft:2}}
-                  value={this.state.cluster_name}
-                  onChange={e=>this.getClusterIns(e)}
-              >
-                  {this.state.cluster_name_list.map(record =>{
-                      return <Option value={record.cluster_name} key={record.cluster_name}>{record.cluster_name}</Option>
-                  })}
-              </Select>
-              <Select
-                  size="small"
-                  showSearch
-                  filterOption={(input,option)=>
-                      option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
-                  }
-                  style={{width:200,marginLeft:2}}
-                  value={this.state.instance_name}
-                  onChange={e=>this.setState({instance_name:e},()=>this.getSchema())}
-              >
-                  {this.state.instance_list.map(record =>{
-                      return <Option value={record.instance_name} key={record.instance_name}>{record.instance_name}({record.instance_role})</Option>
-                  })}
-              </Select>
-              </span>
-            }
-            <Select
-                size="small"
-                showSearch
-                filterOption={(input,option)=>
-                    option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
-                }
-                style={{width:200,marginLeft:2}}
-                value={this.state.current_schema}
-                onChange={e=>this.setState({current_schema:e},()=>this.getTable())}
-//                onDropdownVisibleChange={open=>open ?this.getSchema(): null}
-            >
-                {this.state.schema_list.map(record =>{
-                    return <Option value={record.Database} key={record.Database}>{record.Database}</Option>
-                })}
-            </Select>
-
-            <hr style={{margin:0}}/>
-            <div style={{ display: 'flex', height: 'calc(100vh - 120px)' }}>
-              <div style={{ flex: this.state.sqlAssistantVisible ? '1 1 60%' : '1 1 100%', minWidth: '400px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <Icon
+                    className="trigger"
+                    type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
+                    onClick={this.onCollapseTable}
+                />
                 <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
                 <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>解释</Button>
                 <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sql_content:sqlFormatter.format(this.state.sql_content)})}>美化</Button>
@@ -1016,7 +956,7 @@ onSorter = (a,b) => {
                 <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sqlAssistantVisible: !this.state.sqlAssistantVisible})}>
                   {this.state.sqlAssistantVisible ? '关闭助手' : 'SQL助手'}
                 </Button>
-                <Button type="link"  icon="star" onClick={()=> this.setState({favoriteVisible:true})}></Button>
+                <Button type="link" icon="star" onClick={()=> this.setState({favoriteVisible:true})}></Button>
                 <Tooltip
                     placement="bottomRight"
                    title={
@@ -1032,9 +972,72 @@ onSorter = (a,b) => {
                          </p>
                        </div>
                    }
-               >
+                >
                    <Icon type="folder-open" />
-               </Tooltip>
+                </Tooltip>
+              </div>
+              <div>
+                <Switch
+                  checkedChildren="Select"
+                  unCheckedChildren="Input"
+                  defaultChecked
+                  size="small"
+                  onClick={()=>this.setState({input_source_type:!this.state.input_source_type,instance_name:"",db_info:""})}
+                />
+                {
+                  this.state.input_source_type ?
+                  <Input size="small" style={{ width: 150,marginLeft:2}} value={this.state.instance_name} placeholder="ip_port" onChange={e => this.setState({instance_name:e.target.value})}/>
+                  :
+                  <span>
+                      <Select
+                      size="small"
+                      showSearch
+                      filterOption={(input,option)=>
+                          option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                      }
+                      style={{width:180,marginLeft:2}}
+                      value={this.state.cluster_name}
+                      onChange={e=>this.getClusterIns(e)}
+                  >
+                      {this.state.cluster_name_list.map(record =>{
+                          return <Option value={record.cluster_name} key={record.cluster_name}>{record.cluster_name}</Option>
+                      })}
+                  </Select>
+                  <Select
+                      size="small"
+                      showSearch
+                      filterOption={(input,option)=>
+                          option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                      }
+                      style={{width:200,marginLeft:2}}
+                      value={this.state.instance_name}
+                      onChange={e=>this.setState({instance_name:e},()=>this.getSchema())}
+                  >
+                      {this.state.instance_list.map(record =>{
+                          return <Option value={record.instance_name} key={record.instance_name}>{record.instance_name}({record.instance_role})</Option>
+                      })}
+                  </Select>
+                  </span>
+                }
+                <Select
+                    size="small"
+                    showSearch
+                    filterOption={(input,option)=>
+                        option.props.children.toLowerCase().indexOf(input.toLowerCase())>=0
+                    }
+                    style={{width:200,marginLeft:2}}
+                    value={this.state.current_schema}
+                    onChange={e=>this.setState({current_schema:e},()=>this.getTable())}
+    //                onDropdownVisibleChange={open=>open ?this.getSchema(): null}
+                >
+                    {this.state.schema_list.map(record =>{
+                        return <Option value={record.Database} key={record.Database}>{record.Database}</Option>
+                    })}
+                </Select>
+              </div>
+            </div>
+            <div style={{ display: 'flex', height: 'calc(100vh - 120px)' }}>
+              <div style={{ flex: this.state.sqlAssistantVisible ? '1 1 60%' : '1 1 100%', minWidth: '400px' }}>
                <div style={{ 
                  position: 'relative', 
                  marginBottom: '4px',
