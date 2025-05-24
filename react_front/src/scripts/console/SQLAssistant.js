@@ -1,18 +1,236 @@
 import React, { Component } from 'react';
-import { Input, Button, Card, List, message, Tag, Select, Typography, Divider, Spin, Icon } from 'antd';
-import { UnControlled as CodeMirror } from 'react-codemirror2';
+import { Input, Button, Card, List, message, Tag, Select, Typography, Spin, Icon } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import 'codemirror/lib/codemirror.css';
-import 'codemirror/mode/sql/sql';
-import 'codemirror/theme/idea.css';
 
 const { TextArea } = Input;
 const { Option } = Select;
 const { Text, Paragraph } = Typography;
 
-// 优化的消息项组件 - 使用React.memo防止不必要的重渲染
-const MessageItem = React.memo(({ item, onCopySQL, onApplySQL, renderMessageContent }) => {
+// 共享的 Markdown 样式配置
+const markdownComponents = {
+  code: ({ node, inline, className, children, ...props }) => {
+    const match = /language-(\w+)/.exec(className || '');
+    const language = match ? match[1] : '';
+    const codeContent = String(children).replace(/\n$/, '');
+    
+    if (!inline && codeContent) {
+      const lineCount = codeContent.split('\n').length;
+      const maxHeight = lineCount > 10 ? '220px' : 'auto';
+      
+      return (
+        <div style={{ margin: '8px 0' }}>
+          <div style={{ 
+            backgroundColor: '#f6f8fa', 
+            border: '1px solid #e1e4e8',
+            borderRadius: '6px',
+            overflow: 'hidden'
+          }}>
+            {language && (
+              <div style={{ 
+                backgroundColor: '#f1f3f4', 
+                padding: '4px 8px', 
+                fontSize: '12px',
+                color: '#666',
+                borderBottom: '1px solid #e1e4e8'
+              }}>
+                {language}
+              </div>
+            )}
+            
+            <pre style={{ 
+              margin: 0, 
+              padding: '12px',
+              backgroundColor: '#fff',
+              fontSize: '14px',
+              fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+              overflow: lineCount > 10 ? 'auto' : 'visible',
+              maxHeight: maxHeight,
+              lineHeight: '1.5',
+              whiteSpace: 'pre',
+              overflowX: 'auto',
+              width: '100%'
+            }}>
+              <code
+                className={className}
+                style={{
+                  display: 'block',
+                  padding: 0,
+                  fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                  color: language === 'sql' ? '#0000ff' : 'inherit',
+                }}
+                {...props}
+              >
+                {children}
+              </code>
+            </pre>
+          </div>
+          
+          <div style={{ marginTop: '4px' }}>
+            <Button 
+              size="small" 
+              onClick={() => props.onCopySQL && props.onCopySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``)}
+              style={{ marginRight: '8px' }}
+              icon="copy"
+            >
+              复制
+            </Button>
+            {language === 'sql' && props.onApplySQL && (
+              <>
+                <Button 
+                  size="small" 
+                  type="primary"
+                  onClick={() => props.onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, false)}
+                  style={{ marginRight: '8px' }}
+                  icon="arrow-right"
+                >
+                  应用到编辑器
+                </Button>
+                <Button 
+                  size="small"
+                  type="primary"
+                  danger
+                  onClick={() => props.onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, true)}
+                  icon="play-circle"
+                >
+                  应用并执行
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <code 
+        style={{ 
+          backgroundColor: '#f1f3f4',
+          padding: '2px 4px',
+          borderRadius: '3px',
+          fontSize: '85%',
+          fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace'
+        }}
+        {...props}
+      >
+        {children}
+      </code>
+    );
+  },
+  
+  table: ({ children, ...props }) => (
+    <div style={{ overflow: 'auto', margin: '8px 0', maxHeight: '400px' }}>
+      <table 
+        style={{ 
+          borderCollapse: 'collapse',
+          width: '100%',
+          border: '1px solid #e1e4e8',
+          fontSize: '14px'
+        }}
+        {...props}
+      >
+        {children}
+      </table>
+    </div>
+  ),
+  
+  th: ({ children, ...props }) => (
+    <th 
+      style={{ 
+        backgroundColor: '#f6f8fa',
+        border: '1px solid #e1e4e8',
+        padding: '8px 12px',
+        textAlign: 'left',
+        fontWeight: 'bold',
+        position: 'sticky',
+        top: 0,
+        zIndex: 1
+      }}
+      {...props}
+    >
+      {children}
+    </th>
+  ),
+  
+  td: ({ children, ...props }) => (
+    <td 
+      style={{ 
+        border: '1px solid #e1e4e8',
+        padding: '8px 12px',
+        maxWidth: '200px',
+        wordBreak: 'break-word'
+      }}
+      {...props}
+    >
+      {children}
+    </td>
+  ),
+  
+  ul: ({ children, ...props }) => (
+    <ul style={{ marginLeft: '20px', marginBottom: '8px' }} {...props}>
+      {children}
+    </ul>
+  ),
+  
+  ol: ({ children, ...props }) => (
+    <ol style={{ marginLeft: '20px', marginBottom: '8px' }} {...props}>
+      {children}
+    </ol>
+  ),
+  
+  a: ({ children, ...props }) => (
+    <a 
+      style={{ color: '#1890ff', textDecoration: 'underline' }}
+      target="_blank"
+      rel="noopener noreferrer"
+      {...props}
+    >
+      {children}
+    </a>
+  ),
+  
+  blockquote: ({ children, ...props }) => (
+    <blockquote 
+      style={{ 
+        borderLeft: '4px solid #dfe2e5',
+        paddingLeft: '16px',
+        margin: '8px 0',
+        color: '#6a737d',
+        fontStyle: 'italic'
+      }}
+      {...props}
+    >
+      {children}
+    </blockquote>
+  ),
+  
+  h1: ({ children, ...props }) => (
+    <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: '16px 0 8px 0' }} {...props}>
+      {children}
+    </h1>
+  ),
+  
+  h2: ({ children, ...props }) => (
+    <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '14px 0 6px 0' }} {...props}>
+      {children}
+    </h2>
+  ),
+  
+  h3: ({ children, ...props }) => (
+    <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '12px 0 4px 0' }} {...props}>
+      {children}
+    </h3>
+  ),
+  
+  p: ({ children, ...props }) => (
+    <p style={{ margin: '4px 0', lineHeight: '1.5' }} {...props}>
+      {children}
+    </p>
+  )
+};
+
+// 优化的消息项组件
+const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
   return (
     <List.Item style={{ padding: '8px 0', border: 'none' }}>
       <Card 
@@ -38,252 +256,23 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL, renderMessageCont
             {item.content}
           </Paragraph>
         ) : (
-          <MessageContentWithContext content={item.content} onCopySQL={onCopySQL} onApplySQL={onApplySQL} />
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            skipHtml={false}
+            components={{
+              ...markdownComponents,
+              code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
+            }}
+          >
+            {item.content}
+          </ReactMarkdown>
         )}
       </Card>
     </List.Item>
   );
 });
 
-// 历史消息内容组件 - 带有回调上下文
-const MessageContentWithContext = React.memo(({ content, onCopySQL, onApplySQL }) => {
-  if (!content) return null;
-  
-  return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      skipHtml={false}
-      components={{
-        // 懒加载的代码块组件 - 带回调
-        code: ({ node, inline, className, children, ...props }) => {
-          const match = /language-(\w+)/.exec(className || '');
-          const language = match ? match[1] : '';
-          const codeContent = String(children).replace(/\n$/, '');
-          
-          if (!inline && codeContent) {
-            // 计算行数
-            const lineCount = codeContent.split('\n').length;
-            const maxHeight = lineCount > 10 ? '220px' : 'auto'; // 10行约为220px高度
-            
-            return (
-              <div style={{ margin: '8px 0' }}>
-                <div style={{ 
-                  backgroundColor: '#f6f8fa', 
-                  border: '1px solid #e1e4e8',
-                  borderRadius: '6px',
-                  overflow: 'hidden'
-                }}>
-                  {language && (
-                    <div style={{ 
-                      backgroundColor: '#f1f3f4', 
-                      padding: '4px 8px', 
-                      fontSize: '12px',
-                      color: '#666',
-                      borderBottom: '1px solid #e1e4e8'
-                    }}>
-                      {language}
-                    </div>
-                  )}
-                  
-                  <pre style={{ 
-                    margin: 0, 
-                    padding: '12px',
-                    backgroundColor: '#fff',
-                    fontSize: '14px',
-                    fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-                    overflow: lineCount > 10 ? 'auto' : 'visible',
-                    maxHeight: maxHeight,
-                    lineHeight: '1.5',
-                    whiteSpace: 'pre',
-                    overflowX: 'auto',
-                    width: '100%'
-                  }}>
-                    <code
-                      className={className}
-                      style={{
-                        display: 'block',
-                        padding: 0,
-                        fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-                        color: language === 'sql' ? '#0000ff' : 'inherit',
-                      }}
-                      {...props}
-                    >
-                      {children}
-                    </code>
-                  </pre>
-                </div>
-                
-                <div style={{ marginTop: '4px' }}>
-                  <Button 
-                    size="small" 
-                    onClick={() => onCopySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``)}
-                    style={{ marginRight: '8px' }}
-                    icon="copy"
-                  >
-                    复制
-                  </Button>
-                  {language === 'sql' && (
-                    <>
-                      <Button 
-                        size="small" 
-                        type="primary"
-                        onClick={() => onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, false)}
-                        style={{ marginRight: '8px' }}
-                        icon="arrow-right"
-                      >
-                        应用到编辑器
-                      </Button>
-                      <Button 
-                        size="small"
-                        type="primary"
-                        danger
-                        onClick={() => onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, true)}
-                        icon="play-circle"
-                      >
-                        应用并执行
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          }
-          
-          // 内联代码
-          return (
-            <code 
-              style={{ 
-                backgroundColor: '#f1f3f4',
-                padding: '2px 4px',
-                borderRadius: '3px',
-                fontSize: '85%',
-                fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace'
-              }}
-              {...props}
-            >
-              {children}
-            </code>
-          );
-        },
-        
-        // 其他组件保持不变...
-        table: ({ children, ...props }) => (
-          <div style={{ overflow: 'auto', margin: '8px 0', maxHeight: '400px' }}>
-            <table 
-              style={{ 
-                borderCollapse: 'collapse',
-                width: '100%',
-                border: '1px solid #e1e4e8',
-                fontSize: '14px'
-              }}
-              {...props}
-            >
-              {children}
-            </table>
-          </div>
-        ),
-        
-        th: ({ children, ...props }) => (
-          <th 
-            style={{ 
-              backgroundColor: '#f6f8fa',
-              border: '1px solid #e1e4e8',
-              padding: '8px 12px',
-              textAlign: 'left',
-              fontWeight: 'bold',
-              position: 'sticky',
-              top: 0,
-              zIndex: 1
-            }}
-            {...props}
-          >
-            {children}
-          </th>
-        ),
-        
-        td: ({ children, ...props }) => (
-          <td 
-            style={{ 
-              border: '1px solid #e1e4e8',
-              padding: '8px 12px',
-              maxWidth: '200px',
-              wordBreak: 'break-word'
-            }}
-            {...props}
-          >
-            {children}
-          </td>
-        ),
-        
-        ul: ({ children, ...props }) => (
-          <ul style={{ marginLeft: '20px', marginBottom: '8px' }} {...props}>
-            {children}
-          </ul>
-        ),
-        
-        ol: ({ children, ...props }) => (
-          <ol style={{ marginLeft: '20px', marginBottom: '8px' }} {...props}>
-            {children}
-          </ol>
-        ),
-        
-        a: ({ children, ...props }) => (
-          <a 
-            style={{ color: '#1890ff', textDecoration: 'underline' }}
-            target="_blank"
-            rel="noopener noreferrer"
-            {...props}
-          >
-            {children}
-          </a>
-        ),
-        
-        blockquote: ({ children, ...props }) => (
-          <blockquote 
-            style={{ 
-              borderLeft: '4px solid #dfe2e5',
-              paddingLeft: '16px',
-              margin: '8px 0',
-              color: '#6a737d',
-              fontStyle: 'italic'
-            }}
-            {...props}
-          >
-            {children}
-          </blockquote>
-        ),
-        
-        h1: ({ children, ...props }) => (
-          <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: '16px 0 8px 0' }} {...props}>
-            {children}
-          </h1>
-        ),
-        
-        h2: ({ children, ...props }) => (
-          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '14px 0 6px 0' }} {...props}>
-            {children}
-          </h2>
-        ),
-        
-        h3: ({ children, ...props }) => (
-          <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '12px 0 4px 0' }} {...props}>
-            {children}
-          </h3>
-        ),
-        
-        p: ({ children, ...props }) => (
-          <p style={{ margin: '4px 0', lineHeight: '1.5' }} {...props}>
-            {children}
-          </p>
-        )
-      }}
-    >
-      {content}
-    </ReactMarkdown>
-  );
-});
-
-// 流式消息组件 - 优化为两阶段渲染
+// 流式消息组件
 const StreamingMessage = React.memo(({ currentMessage, isComplete = false }) => {
   return (
     <List.Item style={{ padding: '8px 0', border: 'none' }}>
@@ -304,9 +293,14 @@ const StreamingMessage = React.memo(({ currentMessage, isComplete = false }) => 
           {!isComplete && <Spin size="small" />}
         </div>
         {currentMessage ? (
-          // 流式过程中使用简单文本渲染，完成后使用完整markdown渲染
           isComplete ? (
-            <StreamingMessageContent content={currentMessage} />
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              skipHtml={false}
+              components={markdownComponents}
+            >
+              {currentMessage}
+            </ReactMarkdown>
           ) : (
             <div style={{ 
               fontFamily: 'inherit',
@@ -327,253 +321,6 @@ const StreamingMessage = React.memo(({ currentMessage, isComplete = false }) => 
   );
 });
 
-// 流式消息内容组件 - 完成后的完整渲染
-const StreamingMessageContent = React.memo(({ content }) => {
-  if (!content) return null;
-  
-  return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      skipHtml={false}
-      components={{
-        // 懒加载的代码块组件
-        code: ({ node, inline, className, children, ...props }) => {
-          const match = /language-(\w+)/.exec(className || '');
-          const language = match ? match[1] : '';
-          const codeContent = String(children).replace(/\n$/, '');
-          
-          if (!inline && codeContent) {
-            // 计算行数
-            const lineCount = codeContent.split('\n').length;
-            const maxHeight = lineCount > 10 ? '220px' : 'auto'; // 10行约为220px高度
-            
-            return (
-              <div style={{ margin: '8px 0' }}>
-                <div style={{ 
-                  backgroundColor: '#f6f8fa', 
-                  border: '1px solid #e1e4e8',
-                  borderRadius: '6px',
-                  overflow: 'hidden'
-                }}>
-                  {language && (
-                    <div style={{ 
-                      backgroundColor: '#f1f3f4', 
-                      padding: '4px 8px', 
-                      fontSize: '12px',
-                      color: '#666',
-                      borderBottom: '1px solid #e1e4e8'
-                    }}>
-                      {language}
-                    </div>
-                  )}
-                  
-                  <pre style={{ 
-                    margin: 0, 
-                    padding: '12px',
-                    backgroundColor: '#fff',
-                    fontSize: '14px',
-                    fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-                    overflow: lineCount > 10 ? 'auto' : 'visible',
-                    maxHeight: maxHeight,
-                    lineHeight: '1.5',
-                    whiteSpace: 'pre',
-                    overflowX: 'auto',
-                    width: '100%'
-                  }}>
-                    <code
-                      className={className}
-                      style={{
-                        display: 'block',
-                        padding: 0,
-                        fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-                        color: language === 'sql' ? '#0000ff' : 'inherit',
-                      }}
-                      {...props}
-                    >
-                      {children}
-                    </code>
-                  </pre>
-                </div>
-                
-                <div style={{ marginTop: '4px' }}>
-                  <Button 
-                    size="small" 
-                    onClick={() => {
-                      navigator.clipboard.writeText(codeContent);
-                      message.success('内容已复制到剪贴板');
-                    }}
-                    style={{ marginRight: '8px' }}
-                    icon="copy"
-                  >
-                    复制
-                  </Button>
-                  {language === 'sql' && (
-                    <>
-                      <Button 
-                        size="small" 
-                        type="primary"
-                        onClick={() => {
-                          // 这里需要通过context或props传递onApplySQL
-                          message.success('SQL已应用到编辑器');
-                        }}
-                        style={{ marginRight: '8px' }}
-                        icon="arrow-right"
-                      >
-                        应用到编辑器
-                      </Button>
-                      <Button 
-                        size="small"
-                        type="primary"
-                        danger
-                        onClick={() => {
-                          // 这里需要通过context或props传递onApplySQL
-                          message.success('SQL已应用到编辑器并执行');
-                        }}
-                        icon="play-circle"
-                      >
-                        应用并执行
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          }
-          
-          // 内联代码
-          return (
-            <code 
-              style={{ 
-                backgroundColor: '#f1f3f4',
-                padding: '2px 4px',
-                borderRadius: '3px',
-                fontSize: '85%',
-                fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace'
-              }}
-              {...props}
-            >
-              {children}
-            </code>
-          );
-        },
-        
-        // 其他组件保持原样...
-        table: ({ children, ...props }) => (
-          <div style={{ overflow: 'auto', margin: '8px 0', maxHeight: '400px' }}>
-            <table 
-              style={{ 
-                borderCollapse: 'collapse',
-                width: '100%',
-                border: '1px solid #e1e4e8',
-                fontSize: '14px'
-              }}
-              {...props}
-            >
-              {children}
-            </table>
-          </div>
-        ),
-        
-        th: ({ children, ...props }) => (
-          <th 
-            style={{ 
-              backgroundColor: '#f6f8fa',
-              border: '1px solid #e1e4e8',
-              padding: '8px 12px',
-              textAlign: 'left',
-              fontWeight: 'bold',
-              position: 'sticky',
-              top: 0,
-              zIndex: 1
-            }}
-            {...props}
-          >
-            {children}
-          </th>
-        ),
-        
-        td: ({ children, ...props }) => (
-          <td 
-            style={{ 
-              border: '1px solid #e1e4e8',
-              padding: '8px 12px',
-              maxWidth: '200px',
-              wordBreak: 'break-word'
-            }}
-            {...props}
-          >
-            {children}
-          </td>
-        ),
-        
-        ul: ({ children, ...props }) => (
-          <ul style={{ marginLeft: '20px', marginBottom: '8px' }} {...props}>
-            {children}
-          </ul>
-        ),
-        
-        ol: ({ children, ...props }) => (
-          <ol style={{ marginLeft: '20px', marginBottom: '8px' }} {...props}>
-            {children}
-          </ol>
-        ),
-        
-        a: ({ children, ...props }) => (
-          <a 
-            style={{ color: '#1890ff', textDecoration: 'underline' }}
-            target="_blank"
-            rel="noopener noreferrer"
-            {...props}
-          >
-            {children}
-          </a>
-        ),
-        
-        blockquote: ({ children, ...props }) => (
-          <blockquote 
-            style={{ 
-              borderLeft: '4px solid #dfe2e5',
-              paddingLeft: '16px',
-              margin: '8px 0',
-              color: '#6a737d',
-              fontStyle: 'italic'
-            }}
-            {...props}
-          >
-            {children}
-          </blockquote>
-        ),
-        
-        h1: ({ children, ...props }) => (
-          <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: '16px 0 8px 0' }} {...props}>
-            {children}
-          </h1>
-        ),
-        
-        h2: ({ children, ...props }) => (
-          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '14px 0 6px 0' }} {...props}>
-            {children}
-          </h2>
-        ),
-        
-        h3: ({ children, ...props }) => (
-          <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '12px 0 4px 0' }} {...props}>
-            {children}
-          </h3>
-        ),
-        
-        p: ({ children, ...props }) => (
-          <p style={{ margin: '4px 0', lineHeight: '1.5' }} {...props}>
-            {children}
-          </p>
-        )
-      }}
-    >
-      {content}
-    </ReactMarkdown>
-  );
-});
-
 class SQLAssistant extends Component {
   constructor(props) {
     super(props);
@@ -588,33 +335,57 @@ class SQLAssistant extends Component {
       cluster: props.defaultCluster || '',
       streamingId: null,
       conversation_id: null,
-      streamingComplete: false, // 新增：标记流式输出是否完成
-      isUserBrowsing: false, // 新增：用户是否在浏览历史内容
-      isUserScrolling: false // 新增：用户是否在手动滚动
+      streamingComplete: false,
+      isUserBrowsing: false,
+      isUserScrolling: false
     };
+    
     this.inputRef = React.createRef();
     this.chatContainerRef = React.createRef();
     
-    // 节流函数，限制滚动频率
-    this.throttledScrollToBottom = this.throttle(this.scrollToBottom, 300);
+    // 优化的节流函数实现
+    this.throttledScrollToBottom = this.throttle(() => {
+      if (this.chatContainerRef.current) {
+        requestAnimationFrame(() => {
+          const { scrollHeight, clientHeight } = this.chatContainerRef.current;
+          this.chatContainerRef.current.scrollTop = scrollHeight - clientHeight;
+        });
+      }
+    }, 300);
     
-    // 节流函数，限制流式消息更新频率 - 延长到200ms
     this.throttledUpdateStreamingMessage = this.throttle((message) => {
       this.setState({ currentStreamingMessage: message });
     }, 200);
 
-    // 节流函数，限制滚动检测频率
-    this.throttledScrollCheck = this.throttle(this.checkScrollPosition, 100);
+    this.throttledScrollCheck = this.throttle(() => {
+      if (this.chatContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = this.chatContainerRef.current;
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+        
+        if (isAtBottom && this.state.isUserScrolling) {
+          this.setState({ isUserScrolling: false });
+        }
+        else if (!isAtBottom && !this.state.isUserBrowsing && !this.state.isUserScrolling) {
+          this.setState({ isUserScrolling: true });
+        }
+      }
+    }, 100);
   }
 
-  // 节流工具函数
+  // 优化的节流函数
   throttle = (func, wait) => {
-    let timeout;
+    let timeout = null;
     let previous = 0;
     
-    const throttled = function(...args) {
+    return (...args) => {
       const now = Date.now();
       const remaining = wait - (now - previous);
+      
+      const later = () => {
+        previous = now;
+        timeout = null;
+        func.apply(this, args);
+      };
       
       if (remaining <= 0 || remaining > wait) {
         if (timeout) {
@@ -624,108 +395,46 @@ class SQLAssistant extends Component {
         previous = now;
         func.apply(this, args);
       } else if (!timeout) {
-        timeout = setTimeout(() => {
-          previous = Date.now();
+        timeout = setTimeout(later, remaining);
+      }
+      
+      return () => {
+        if (timeout) {
+          clearTimeout(timeout);
           timeout = null;
-          func.apply(this, args);
-        }, remaining);
-      }
+          previous = 0;
+        }
+      };
     };
-    
-    // 添加cancel方法
-    throttled.cancel = () => {
-      if (timeout) {
-        clearTimeout(timeout);
-        timeout = null;
-      }
-      previous = 0;
-    };
-    
-    return throttled;
   };
 
   componentDidUpdate(prevProps, prevState) {
-    // 当props中的表格选择发生变化时更新state
-    if (prevProps.selectedTables !== this.props.selectedTables) {
+    // 更新表格选择
+    if (this.props.selectedTables !== prevProps.selectedTables) {
       this.setState({ selectedTables: this.props.selectedTables || [] });
     }
-    if (prevProps.defaultInstance !== this.props.defaultInstance) {
-      this.setState({ instance: this.props.defaultInstance || '' });
-    }
-    if (prevProps.defaultDatabase !== this.props.defaultDatabase) {
-      this.setState({ database: this.props.defaultDatabase || '' });
-    }
-    if (prevProps.defaultCluster !== this.props.defaultCluster) {
-      this.setState({ cluster: this.props.defaultCluster || '' });
-    }
     
-    // 智能滚动逻辑 - 只有在用户没有浏览且没有手动滚动时才自动滚动
-    if ((prevState.conversationHistory.length !== this.state.conversationHistory.length) ||
-        (this.state.isStreaming && prevState.currentStreamingMessage !== this.state.currentStreamingMessage)) {
-      
-      // 只有在用户不在浏览历史内容且不在手动滚动时才自动滚动到底部
-      if (!this.state.isUserBrowsing && !this.state.isUserScrolling) {
-        // 添加短延迟确保内容已渲染
-        setTimeout(() => {
-          this.throttledScrollToBottom();
-        }, 10);
+    // 更新配置信息
+    ['Instance', 'Database', 'Cluster'].forEach(key => {
+      const propKey = `default${key}`;
+      if (this.props[propKey] !== prevProps[propKey]) {
+        this.setState({ [key.toLowerCase()]: this.props[propKey] || '' });
       }
+    });
+    
+    // 智能滚动逻辑
+    const shouldAutoScroll = 
+      (prevState.conversationHistory.length !== this.state.conversationHistory.length) ||
+      (this.state.isStreaming && prevState.currentStreamingMessage !== this.state.currentStreamingMessage);
+    
+    if (shouldAutoScroll && !this.state.isUserBrowsing && !this.state.isUserScrolling) {
+      requestAnimationFrame(this.throttledScrollToBottom);
     }
   }
 
-  // 检查滚动位置，判断用户是否在底部
-  checkScrollPosition = () => {
-    if (this.chatContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = this.chatContainerRef.current;
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px容差
-      
-      // 如果用户滚动到底部，取消手动滚动状态
-      if (isAtBottom && this.state.isUserScrolling) {
-        this.setState({ isUserScrolling: false });
-      }
-      // 如果用户不在底部且不在浏览状态，标记为手动滚动
-      else if (!isAtBottom && !this.state.isUserBrowsing && !this.state.isUserScrolling) {
-        this.setState({ isUserScrolling: true });
-      }
-    }
-  };
-
-  // 处理鼠标进入聊天区域
-  handleMouseEnterChat = () => {
-    this.setState({ isUserBrowsing: true });
-  };
-
-  // 处理鼠标离开聊天区域
-  handleMouseLeaveChat = () => {
-    this.setState({ isUserBrowsing: false });
-    // 如果用户不在手动滚动状态，离开浏览区域后立即滚动到底部
-    if (!this.state.isUserScrolling) {
-      // 使用setTimeout确保状态更新后再执行滚动
-      setTimeout(() => {
-        this.scrollToBottom();
-      }, 50);
-    }
-  };
-
-  // 处理聊天区域滚动事件
-  handleChatScroll = () => {
-    this.throttledScrollCheck();
-  };
-
-  // 滚动到底部
-  scrollToBottom = () => {
-    if (this.chatContainerRef.current) {
-      // 使用requestAnimationFrame优化滚动性能
-      requestAnimationFrame(() => {
-        const { scrollHeight, clientHeight } = this.chatContainerRef.current;
-        this.chatContainerRef.current.scrollTop = scrollHeight - clientHeight;
-      });
-    }
-  };
-
   // 发送消息并处理流式响应
   handleSendMessage = async () => {
-    const { inputValue, selectedTables, instance, database, conversation_id } = this.state;
+    const { inputValue, instance, database, selectedTables, conversation_id } = this.state;
     
     if (!inputValue.trim()) {
       message.warning('请输入问题');
@@ -737,7 +446,6 @@ class SQLAssistant extends Component {
       return;
     }
 
-    // 添加用户消息到历史记录
     const userMessage = {
       id: Date.now(),
       type: 'user',
@@ -751,30 +459,28 @@ class SQLAssistant extends Component {
       isStreaming: true,
       currentStreamingMessage: '',
       streamingId: Date.now() + 1,
-      streamingComplete: false, // 重置完成状态
-      isUserScrolling: false // 新消息开始时重置滚动状态，但保持浏览状态
+      streamingComplete: false,
+      isUserScrolling: false
     });
 
     try {
-      const requestBody = {
-        inputs: {
-          instance_name: instance,
-          schema_name: database,
-          table_names: selectedTables.join(',')
-        },
-        query: inputValue,
-        response_mode: 'streaming',
-        conversation_id: conversation_id,
-        user: 'system',
-      };
-
       const response = await fetch('http://127.0.0.1/v1/chat-messages', {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer app-iKVZRkmmxnILnrRF4JrOyq5V',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          inputs: {
+            instance_name: instance,
+            schema_name: database,
+            table_names: selectedTables.join(',')
+          },
+          query: inputValue,
+          response_mode: 'streaming',
+          conversation_id,
+          user: 'system',
+        }),
       });
 
       if (!response.ok) {
@@ -784,38 +490,27 @@ class SQLAssistant extends Component {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantMessage = '';
-      let conversationId = null;
+      let newConversationId = null;
 
       try {
         while (true) {
           const { done, value } = await reader.read();
           
-          if (done) break;
-
-          // 检查是否被停止
-          if (!this.state.isStreaming) {
-            reader.cancel();
-            break;
-          }
+          if (done || !this.state.isStreaming) break;
 
           const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
-
-          for (const line of lines) {
+          for (const line of chunk.split('\n')) {
             if (line.startsWith('data: ')) {
               try {
                 const dataStr = line.slice(6).trim();
-                if (dataStr === '[DONE]') {
-                  break;
-                }
+                if (dataStr === '[DONE]') break;
                 
                 const data = JSON.parse(dataStr);
-                
                 if (data.event === 'message') {
                   assistantMessage += data.answer;
                   this.throttledUpdateStreamingMessage(assistantMessage);
                 } else if (data.event === 'message_end') {
-                  conversationId = data.conversation_id;
+                  newConversationId = data.conversation_id;
                 }
               } catch (e) {
                 console.warn('解析流式数据失败:', e);
@@ -827,21 +522,21 @@ class SQLAssistant extends Component {
         reader.releaseLock();
       }
 
-      // 只有在仍然处于流式状态时才添加消息到历史记录
       if (this.state.isStreaming) {
-        const assistantMessageObj = {
-          id: this.state.streamingId,
-          type: 'assistant',
-          content: assistantMessage,
-          timestamp: new Date()
-        };
-
         this.setState({
-          conversationHistory: [...this.state.conversationHistory, assistantMessageObj],
+          conversationHistory: [
+            ...this.state.conversationHistory,
+            {
+              id: this.state.streamingId,
+              type: 'assistant',
+              content: assistantMessage,
+              timestamp: new Date()
+            }
+          ],
           isStreaming: false,
           currentStreamingMessage: '',
           streamingId: null,
-          conversation_id: conversationId || this.state.conversation_id,
+          conversation_id: newConversationId || this.state.conversation_id,
           streamingComplete: true
         });
       }
@@ -858,30 +553,26 @@ class SQLAssistant extends Component {
     }
   };
 
-  // 停止流式传输
   handleStopStreaming = () => {
     this.setState({
       isStreaming: false,
       currentStreamingMessage: '',
       streamingId: null,
       streamingComplete: true,
-      isUserScrolling: false // 停止时重置滚动状态
-    });
-  };
-
-  // 清空对话历史
-  handleClearHistory = () => {
-    this.setState({
-      conversationHistory: [],
-      conversation_id: null,
-      isUserBrowsing: false, // 清空历史时重置所有浏览状态
       isUserScrolling: false
     });
   };
 
-  // 复制SQL到剪贴板
+  handleClearHistory = () => {
+    this.setState({
+      conversationHistory: [],
+      conversation_id: null,
+      isUserBrowsing: false,
+      isUserScrolling: false
+    });
+  };
+
   handleCopySQL = (content) => {
-    // 提取SQL代码块
     const sqlMatch = content.match(/```sql\n([\s\S]*?)\n```/);
     if (sqlMatch) {
       navigator.clipboard.writeText(sqlMatch[1]);
@@ -892,7 +583,6 @@ class SQLAssistant extends Component {
     }
   };
 
-  // 应用SQL到主编辑器
   handleApplySQL = (content, execute = false) => {
     const sqlMatch = content.match(/```sql\n([\s\S]*?)\n```/);
     if (sqlMatch && this.props.onApplySQL) {
@@ -901,18 +591,24 @@ class SQLAssistant extends Component {
     }
   };
 
-  // 组件卸载时清理资源
+  handleMouseEnterChat = () => {
+    this.setState({ isUserBrowsing: true });
+  };
+
+  handleMouseLeaveChat = () => {
+    this.setState({ isUserBrowsing: false });
+    if (!this.state.isUserScrolling) {
+      requestAnimationFrame(this.throttledScrollToBottom);
+    }
+  };
+
   componentWillUnmount() {
-    // 清理节流函数
-    if (this.throttledScrollToBottom && this.throttledScrollToBottom.cancel) {
-      this.throttledScrollToBottom.cancel();
-    }
-    if (this.throttledUpdateStreamingMessage && this.throttledUpdateStreamingMessage.cancel) {
-      this.throttledUpdateStreamingMessage.cancel();
-    }
-    if (this.throttledScrollCheck && this.throttledScrollCheck.cancel) {
-      this.throttledScrollCheck.cancel();
-    }
+    // 清理所有节流函数
+    [
+      this.throttledScrollToBottom,
+      this.throttledUpdateStreamingMessage,
+      this.throttledScrollCheck
+    ].forEach(fn => fn && fn.cancel && fn.cancel());
   }
 
   render() {
@@ -924,7 +620,8 @@ class SQLAssistant extends Component {
       selectedTables,
       instance,
       database,
-      cluster
+      cluster,
+      streamingComplete
     } = this.state;
 
     return (
@@ -932,13 +629,12 @@ class SQLAssistant extends Component {
         height: '100%', 
         display: 'flex', 
         flexDirection: 'column',
-        overflow: 'hidden' // 防止整体容器滚动
+        overflow: 'hidden'
       }}>
-        {/* 对话历史区域 - 使用flex-grow使其填充剩余空间 */}
         <div style={{ 
           position: 'relative', 
           flex: 1,
-          minHeight: 0, // 关键：允许内容区域收缩
+          minHeight: 0,
           display: 'flex',
           flexDirection: 'column'
         }}>
@@ -946,7 +642,7 @@ class SQLAssistant extends Component {
             ref={this.chatContainerRef}
             onMouseEnter={this.handleMouseEnterChat}
             onMouseLeave={this.handleMouseLeaveChat}
-            onScroll={this.handleChatScroll}
+            onScroll={this.throttledScrollCheck}
             style={{ 
               flex: 1,
               overflow: 'auto',
@@ -985,13 +681,14 @@ class SQLAssistant extends Component {
               )}
             />
             
-            {/* 流式传输中的消息 */}
             {isStreaming && (
-              <StreamingMessage currentMessage={currentStreamingMessage} isComplete={this.state.streamingComplete} />
+              <StreamingMessage 
+                currentMessage={currentStreamingMessage} 
+                isComplete={streamingComplete} 
+              />
             )}
           </div>
 
-          {/* 浮动的滚动指示器和按钮 */}
           {(this.state.isUserBrowsing || this.state.isUserScrolling) && (
             <div style={{
               position: 'absolute',
@@ -1014,31 +711,30 @@ class SQLAssistant extends Component {
                 </div>
               )}
               
-              {(this.state.isUserScrolling || this.state.isUserBrowsing) && (
-                <Button
-                  size="small"
-                  type="primary"
-                  shape="circle"
-                  icon="down"
-                  onClick={() => {
-                    this.setState({ isUserScrolling: false, isUserBrowsing: false });
-                    this.scrollToBottom();
-                  }}
-                  style={{
-                    backgroundColor: '#52c41a',
-                    borderColor: '#52c41a',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                    display: 'block',
-                    margin: '0 auto'
-                  }}
-                  title="滚动到底部并恢复自动滚动"
-                />
-              )}
+              <Button
+                size="small"
+                type="primary"
+                shape="circle"
+                icon="down"
+                onClick={() => {
+                  this.setState({ 
+                    isUserScrolling: false, 
+                    isUserBrowsing: false 
+                  }, this.throttledScrollToBottom);
+                }}
+                style={{
+                  backgroundColor: '#52c41a',
+                  borderColor: '#52c41a',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  display: 'block',
+                  margin: '0 auto'
+                }}
+                title="滚动到底部并恢复自动滚动"
+              />
             </div>
           )}
         </div>
 
-        {/* 清空历史按钮 */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
           <Button 
             size="small" 
@@ -1049,7 +745,6 @@ class SQLAssistant extends Component {
           </Button>
         </div>
 
-        {/* 选中表格卡片 - 如果有选中表格时显示 */}
         {selectedTables.length > 0 && (
           <Card size="small" style={{ marginBottom: '8px' }}>
             <div>
@@ -1065,14 +760,13 @@ class SQLAssistant extends Component {
           </Card>
         )}
 
-        {/* 输入区域 - 使用flex-shrink: 0确保不被压缩 */}
         <div style={{
-          flexShrink: 0, // 防止输入框被压缩
+          flexShrink: 0,
           border: '1px solid #d9d9d9',
           borderRadius: '6px',
           padding: '8px',
           backgroundColor: '#fff',
-          marginTop: 'auto' // 确保紧贴底部
+          marginTop: 'auto'
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
             <div style={{ flex: 1 }}>
