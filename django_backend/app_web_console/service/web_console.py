@@ -11,7 +11,7 @@ from utils.go_inception_ import MyGoInception
 logger = logging.getLogger('devops')
 
 
-def get_table_data(des_ip_port, sql, schema_name, explain):
+def get_table_data(des_ip_port, sql, schema_name, type):
     """
     获取数据
     :param ip:
@@ -19,7 +19,7 @@ def get_table_data(des_ip_port, sql, schema_name, explain):
     :param sql:
     :return:
     """
-    return web_console_dao.get_table_data_dao(des_ip_port, sql, schema_name, explain)
+    return web_console_dao.get_table_data_dao(des_ip_port, sql, schema_name, type)
 
 
 def get_favorite_data(favorite_type):

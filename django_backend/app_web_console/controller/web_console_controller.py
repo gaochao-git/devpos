@@ -33,7 +33,7 @@ class GetTableDataController(BaseView):
             "schema_name": forms.CharField(required=True, min_length=3, max_length=64,
                                   error_messages={"required": "库名为必填", "min_length": "库名长度不合法,最少为2",
                                                   "max_length": "库名长度不合法,最长为64"}),
-            "explain": forms.ChoiceField(choices=([('no', '分析SQL'), ('yes', '执行SQL')]),
+            "type": forms.ChoiceField(choices=([('query', '执行SQL'), ('explain', '分析SQL')]),
                                          error_messages={"invalid": "可选参数不合法"})
 
         }
@@ -46,17 +46,17 @@ class GetTableDataController(BaseView):
             "des_ip_port": [lambda x: common.CheckValidators.check_instance_name(x)['status'] == "ok"],
             "sql": [Required, Length(2, 10000),],
             "schema_name": [Required, Length(2, 64),],
-            "explain": [Required, Length(2, 100)],
+            "type": [Required, Length(2, 100)],
         }
 
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid: return self.my_response({"status": "error", "message": str(valid_ret.errors)})
         des_ip_port = request_body.get('des_ip_port')
         sql = request_body.get('sql')
-        explain = request_body.get('explain')
+        type = request_body.get('type')
         schema_name = request_body.get('schema_name')
         if schema_name=="选择库名": schema_name=None
-        ret = web_console.get_table_data(des_ip_port, sql, schema_name, explain)
+        ret = web_console.get_table_data(des_ip_port, sql, schema_name, type)
         return self.my_response(ret)
 
 

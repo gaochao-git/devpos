@@ -20,7 +20,7 @@ from utils import enc_dec
 logger = logging.getLogger('devops')
 
 
-def get_table_data_dao(des_ip_port, sql, schema_name, explain):
+def get_table_data_dao(des_ip_port, sql, schema_name, type):
     """
     获取数据
     :param ip:
@@ -37,8 +37,8 @@ def get_table_data_dao(des_ip_port, sql, schema_name, explain):
     sql_list = sqlparse.split(sql)
     while '' in sql_list:sql_list.remove('')
     if len(sql_list) > 10: return {"status": "error", "message": "最多10条"}
-    if explain not in['yes', 'no']: return {"status": "error", "message": "explain参数不合法"}
-    if explain == 'yes': sql_list = ['explain ' + i for i in sql_list]
+    if type not in['query', 'explain']: return {"status": "error", "message": "type参数不合法"}
+    if type == 'explain': sql_list = ['explain ' + i for i in sql_list]
     # 处理SQL
     sql_index = 0
     for item_sql in sql_list:

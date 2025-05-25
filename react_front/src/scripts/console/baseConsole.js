@@ -45,7 +45,7 @@ export class BaseConsole extends Component {
     // 添加输入框ref
     this.nlInputRef = React.createRef();
     this.state = {
-      sql_content: '',
+      content: '',
       sql: '',
       table_data:[],
       table_column:[],
@@ -103,9 +103,9 @@ export class BaseConsole extends Component {
       isSending: false,
       nl_cancel: false,
       conversation_id: null,
-      login_user_name: '',
-      dify_url: '',
-      dify_sql_asst_key: ''
+      login_user_name: 'system',
+      dify_url: 'http://127.0.0.1',
+      dify_sql_asst_key: 'app-iKVZRkmmxnILnrRF4JrOyq5V'
     }
   }
 
@@ -132,7 +132,7 @@ export class BaseConsole extends Component {
 
   onCursorActivity = (cm) => {
     if (cm.getSelection()) {
-      this.setState({sql_content: cm.getSelection()});
+      this.setState({content: cm.getSelection()});
     }
   }
 
@@ -159,12 +159,12 @@ onSorter = (a,b) => {
 };
 
 
-  async getTableData(explain) {
+  async getTableData(type) {
       let params = {
         des_ip_port:this.state.instance_name,
         schema_name:this.state.current_schema,
         sql:this.state.sql,
-        explain:explain
+        type:type
       };
       this.setState({
           multi_label: [],
@@ -290,13 +290,13 @@ onSorter = (a,b) => {
         var sql = "show table status like " + "'" + table + "'" + ";"
     }
     // 设置状态
-    if (this.state.sql_content===""){
-        this.setState({sql_content: sql});
-        var sql_content = sql
+    if (this.state.content===""){
+        this.setState({content: sql});
+        var content = sql
     }else{
-        var sql_content = this.state.sql_content + '\n' + sql
+        var content = this.state.content + '\n' + sql
     }
-    this.setState({sql: sql,sql_content:sql_content,DrawerVisible:false,contextMenuVisiable:false},()=>this.getTableData('no'))
+    this.setState({sql: sql,content:content,DrawerVisible:false,contextMenuVisiable:false},()=>this.getTableData('query'))
   };
 
 
@@ -384,7 +384,7 @@ onSorter = (a,b) => {
       if (cm.getSelection()!==""){
           this.setState({sql:cm.getSelection(),get_data:false})
       }else{
-          this.setState({sql:cm.getValue(),sql_content:cm.getValue(),get_data:false})
+          this.setState({sql:cm.getValue(),content:cm.getValue(),get_data:false})
       }
   }
 
@@ -684,12 +684,12 @@ onSorter = (a,b) => {
     if (this.state.favorite_type==="db_source"){
         this.setState({instance_name: favorite_detail,input_source_type:true,DrawerVisible:false});
     }else if (this.state.favorite_type==="db_sql"){
-        if (this.state.sql_content===""){
-            this.setState({sql_content: favorite_detail});
+        if (this.state.content===""){
+            this.setState({content: favorite_detail});
         }else{
-            this.setState({sql_content: this.state.sql_content + '\n' + favorite_detail});
+            this.setState({content: this.state.content + '\n' + favorite_detail});
         }
-        this.setState({sql: favorite_detail,DrawerVisible:false},()=>this.getTableData('no'))
+        this.setState({sql: favorite_detail,DrawerVisible:false},()=>this.getTableData('query'))
     }
   };
 
@@ -813,7 +813,7 @@ onSorter = (a,b) => {
           if (this.state.nl_cancel) return; // If canceled, do not process response
           
           this.setState({
-              sql_content: `${this.state.sql_content}\n# 问题: ${inputValue}(下面回答内容为大模型生成，请仔细核对)\n${responseJson['answer']}\n`,
+              content: `${this.state.content}\n# 问题: ${inputValue}(下面回答内容为大模型生成，请仔细核对)\n${responseJson['answer']}\n`,
               isSending: false,
               countdown: COUNTDOWN_TIME,
               conversation_id: responseJson['conversation_id']
@@ -841,24 +841,24 @@ onSorter = (a,b) => {
   // 处理从SQL助手应用SQL
   handleApplySQLFromAssistant = (sql, execute = false) => {
     // 如果当前编辑器有内容，添加换行
-    if (this.state.sql_content) {
+    if (this.state.content) {
       this.setState({
-        sql_content: this.state.sql_content + '\n' + sql,
+        content: this.state.content + '\n' + sql,
         sql: sql
       }, () => {
         if (execute) {
           // 如果需要执行，调用getTableData
-          this.getTableData('no');
+          this.getTableData('query');
         }
       });
     } else {
       this.setState({
-        sql_content: sql,
+        content: sql,
         sql: sql
       }, () => {
         if (execute) {
           // 如果需要执行，调用getTableData
-          this.getTableData('no');
+          this.getTableData('query');
         }
       });
     }
@@ -950,9 +950,9 @@ onSorter = (a,b) => {
                     type={this.state.collapsed ? 'menu-unfold' : 'menu-fold'}
                     onClick={this.onCollapseTable}
                 />
-                <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('no')}>执行</Button>
-                <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('yes')}>解释</Button>
-                <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sql_content:sqlFormatter.format(this.state.sql_content)})}>美化</Button>
+                <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('query')}>执行</Button>
+                <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('explain')}>解释</Button>
+                <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({content:sqlFormatter.format(this.state.content)})}>美化</Button>
                 <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getSqlScore()}>SQL质量</Button>
                 <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sqlAssistantVisible: !this.state.sqlAssistantVisible})}>
                   {this.state.sqlAssistantVisible ? '关闭助手' : 'SQL助手'}
@@ -1145,7 +1145,7 @@ onSorter = (a,b) => {
                </div>
                 <CodeMirror
                   editorDidMount={this.onEditorDidMount}
-                  value={this.state.sql_content}
+                  value={this.state.content}
                   resize="vertical"
                   options={{
                     lineNumbers: true,
@@ -1165,8 +1165,8 @@ onSorter = (a,b) => {
                       },
                     },
                   }}
-                  // onChange={(cm) => this.setState({sql_content: cm.getValue()})} // sql变化事件
-                  // onFocus={(cm) => this.setState({sql_content: cm.getValue()})}
+                  // onChange={(cm) => this.setState({content: cm.getValue()})} // sql变化事件
+                  // onFocus={(cm) => this.setState({content: cm.getValue()})}
                    // onCursorActivity={(cm) => this.onCursorActivity(cm)} // 用来完善选中监听
                    onBlur={cm=>this.onBlur(cm)}
                    onInputRead={(cm, change, editor) => this.onInputRead(cm, change, editor)}  // 自动补全
