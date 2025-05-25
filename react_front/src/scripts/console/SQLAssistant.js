@@ -228,8 +228,199 @@ const markdownComponents = {
   )
 };
 
+// 处理工具输入和观察结果的格式化显示
+const formatJsonString = (jsonStr) => {
+  if (!jsonStr) return '';
+  try {
+    // 尝试解析JSON字符串
+    const parsed = JSON.parse(jsonStr);
+    return JSON.stringify(parsed, null, 2);
+  } catch (e) {
+    // 如果解析失败，返回原始字符串
+    return jsonStr;
+  }
+};
+
+// 工具调用组件
+const ToolCallItem = React.memo(({ tool }) => {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+  
+  // 如果没有工具名称或没有观察结果，不显示
+  if (!tool.tool || !tool.observation) return null;
+  
+  return (
+    <div style={{ marginBottom: '8px' }}>
+      <div 
+        onClick={() => setIsExpanded(!isExpanded)}
+        style={{ 
+          backgroundColor: '#fff2e8',
+          padding: '4px 8px', 
+          borderRadius: isExpanded ? '4px 4px 0 0' : '4px',
+          border: '1px solid #ffcfad',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          userSelect: 'none'
+        }}
+      >
+        <Text strong style={{ 
+          color: '#fa8c16', 
+          fontSize: '12px',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          <Icon type="tool" style={{ marginRight: '4px' }} />
+          工具调用: {tool.tool}
+        </Text>
+        <Icon type={isExpanded ? 'up' : 'down'} style={{ fontSize: '12px', color: '#fa8c16' }} />
+      </div>
+      
+      {isExpanded && (
+        <div style={{ 
+          backgroundColor: '#fff',
+          padding: '8px', 
+          borderRadius: '0 0 4px 4px',
+          border: '1px solid #ffcfad',
+          borderTop: 'none'
+        }}>
+          {tool.tool_input && (
+            <div>
+              <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '2px' }}>
+                <Icon type="code" style={{ marginRight: '4px' }} />
+                输入参数:
+              </Text>
+              <div style={{ 
+                backgroundColor: '#f9f9f9', 
+                padding: '4px', 
+                borderRadius: '2px', 
+                fontSize: '12px',
+                fontFamily: 'monospace',
+                overflowX: 'auto',
+                marginBottom: '8px'
+              }}>
+                <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                  {formatJsonString(tool.tool_input)}
+                </pre>
+              </div>
+            </div>
+          )}
+          
+          {tool.observation && (
+            <div>
+              <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '2px' }}>
+                <Icon type="eye" style={{ marginRight: '4px' }} />
+                观察结果:
+              </Text>
+              <div style={{ 
+                backgroundColor: '#f9f9f9', 
+                padding: '4px', 
+                borderRadius: '2px', 
+                fontSize: '12px',
+                fontFamily: 'monospace',
+                overflowX: 'auto'
+              }}>
+                <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                  {formatJsonString(tool.observation)}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// 流式消息组件
+const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [], messageSegments = [] }) => {
+  // 过滤只有工具调用且有观察结果的思考
+  const toolCalls = agentThoughts.filter(t => t.tool && t.observation);
+  
+  return (
+    <List.Item style={{ padding: '8px 0', border: 'none' }}>
+      <Card 
+        size="small" 
+        style={{ 
+          width: '100%', 
+          backgroundColor: '#f6ffed',
+          border: '1px solid #b7eb8f',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <Text strong style={{ color: '#52c41a' }}>
+            <Icon type="robot" style={{ marginRight: '4px' }} />
+            SQL助手
+          </Text>
+          {!isComplete && <Spin size="small" />}
+        </div>
+        
+        {/* 按照消息流的顺序显示工具调用和文本内容 */}
+        {currentMessage ? (
+          <div>
+            {/* 如果有消息段落，按顺序显示 */}
+            {messageSegments.length > 0 ? (
+              messageSegments.map((segment, index) => (
+                <React.Fragment key={index}>
+                  {segment.type === 'tool' && (
+                    <ToolCallItem tool={segment.data} />
+                  )}
+                  {segment.type === 'text' && (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      skipHtml={false}
+                      components={{
+                        ...markdownComponents,
+                        code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
+                      }}
+                    >
+                      {segment.content}
+                    </ReactMarkdown>
+                  )}
+                </React.Fragment>
+              ))
+            ) : (
+              <>
+                {/* 如果没有消息段落，则显示所有工具调用 */}
+                {toolCalls.length > 0 && (
+                  <div style={{ marginBottom: '12px' }}>
+                    {toolCalls.map((tool, index) => (
+                      <ToolCallItem key={index} tool={tool} />
+                    ))}
+                  </div>
+                )}
+                
+                {/* 显示消息内容 */}
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  skipHtml={false}
+                  components={{
+                    ...markdownComponents,
+                    code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
+                  }}
+                >
+                  {currentMessage}
+                </ReactMarkdown>
+              </>
+            )}
+          </div>
+        ) : (
+          <div style={{ color: '#999', fontStyle: 'italic' }}>
+            正在思考中...
+          </div>
+        )}
+      </Card>
+    </List.Item>
+  );
+});
+
 // 优化的消息项组件
 const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
+  // 过滤只有工具调用且有观察结果的思考
+  const toolCalls = item.thoughts ? item.thoughts.filter(t => t.tool && t.observation) : [];
+  const messageSegments = item.messageSegments || [];
+  
   return (
     <List.Item style={{ padding: '8px 0', border: 'none' }}>
       <Card 
@@ -263,57 +454,53 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
             )}
           </>
         ) : (
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            skipHtml={false}
-            components={{
-              ...markdownComponents,
-              code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
-            }}
-          >
-            {item.content}
-          </ReactMarkdown>
-        )}
-      </Card>
-    </List.Item>
-  );
-});
-
-// 流式消息组件
-const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCopySQL, onApplySQL }) => {
-  return (
-    <List.Item style={{ padding: '8px 0', border: 'none' }}>
-      <Card 
-        size="small" 
-        style={{ 
-          width: '100%', 
-          backgroundColor: '#f6ffed',
-          border: '1px solid #b7eb8f',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-          <Text strong style={{ color: '#52c41a' }}>
-            <Icon type="robot" style={{ marginRight: '4px' }} />
-            SQL助手
-          </Text>
-          {!isComplete && <Spin size="small" />}
-        </div>
-        {currentMessage ? (
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            skipHtml={false}
-            components={{
-              ...markdownComponents,
-              code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
-            }}
-          >
-            {currentMessage}
-          </ReactMarkdown>
-        ) : (
-          <div style={{ color: '#999', fontStyle: 'italic' }}>
-            正在思考中...
-          </div>
+          <>
+            {/* 按照消息流的顺序显示工具调用和文本内容 */}
+            {messageSegments.length > 0 ? (
+              messageSegments.map((segment, index) => (
+                <React.Fragment key={index}>
+                  {segment.type === 'tool' && (
+                    <ToolCallItem tool={segment.data} />
+                  )}
+                  {segment.type === 'text' && (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      skipHtml={false}
+                      components={{
+                        ...markdownComponents,
+                        code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
+                      }}
+                    >
+                      {segment.content}
+                    </ReactMarkdown>
+                  )}
+                </React.Fragment>
+              ))
+            ) : (
+              <>
+                {/* 如果没有消息段落，则显示所有工具调用 */}
+                {toolCalls.length > 0 && (
+                  <div style={{ marginBottom: '12px' }}>
+                    {toolCalls.map((tool, index) => (
+                      <ToolCallItem key={index} tool={tool} />
+                    ))}
+                  </div>
+                )}
+                
+                {/* 显示消息内容 */}
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  skipHtml={false}
+                  components={{
+                    ...markdownComponents,
+                    code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
+                  }}
+                >
+                  {item.content}
+                </ReactMarkdown>
+              </>
+            )}
+          </>
         )}
       </Card>
     </List.Item>
@@ -355,6 +542,7 @@ class SQLAssistant extends Component {
       dify_url: props.defaultDifyUrl || '',
       dify_sql_asst_key: props.defaultDifyKey || '',
       login_user_name: props.defaultUser || '',
+      agentThoughts: [], // 添加思考过程状态
     };
     
     this.inputRef = React.createRef();
@@ -475,7 +663,8 @@ class SQLAssistant extends Component {
       currentStreamingMessage: '',
       streamingId: Date.now() + 1,
       streamingComplete: false,
-      isUserScrolling: false
+      isUserScrolling: false,
+      agentThoughts: [], // 重置思考过程
     });
 
     try {
@@ -502,6 +691,12 @@ class SQLAssistant extends Component {
       const decoder = new TextDecoder();
       let assistantMessage = '';
       let newConversationId = null;
+      let currentThoughts = [];
+      
+      // 创建消息段落数组，包含文本和工具调用，按照流的顺序排列
+      let messageSegments = [];
+      let lastPosition = 0;
+      let nextTextPosition = 0;
 
       try {
         while (true) {
@@ -517,11 +712,114 @@ class SQLAssistant extends Component {
                 if (dataStr === '[DONE]') break;
                 
                 const data = JSON.parse(dataStr);
+                
+                // 处理不同类型的事件
                 if (['message', 'agent_message'].includes(data.event)) {
-                  assistantMessage += data.answer;
+                  // 如果有新的文本内容，添加到消息段落中
+                  if (data.answer && data.answer.length > 0) {
+                    const newText = data.answer;
+                    assistantMessage += newText;
+                    
+                    // 检查是否需要创建或更新文本段落
+                    const textSegmentIndex = messageSegments.findIndex(s => s.type === 'text');
+                    
+                    if (textSegmentIndex === -1) {
+                      // 创建新的文本段落
+                      messageSegments.push({
+                        type: 'text',
+                        position: nextTextPosition,
+                        content: assistantMessage
+                      });
+                    } else {
+                      // 更新现有文本段落
+                      messageSegments[textSegmentIndex].content = assistantMessage;
+                    }
+                    
+                    // 按位置排序所有段落
+                    messageSegments.sort((a, b) => a.position - b.position);
+                  }
+                  
                   this.throttledUpdateStreamingMessage(assistantMessage);
                 } else if (data.event === 'message_end') {
                   newConversationId = data.conversation_id;
+                } else if (data.event === 'agent_thought') {
+                  // 处理思考过程
+                  const thoughtIndex = currentThoughts.findIndex(t => t.id === data.id);
+                  
+                  if (thoughtIndex === -1) {
+                    // 新的思考
+                    const newThought = {
+                      id: data.id,
+                      position: data.position,
+                      thought: data.thought,
+                      tool: data.tool,
+                      tool_input: data.tool_input,
+                      observation: data.observation
+                    };
+                    
+                    currentThoughts.push(newThought);
+                    
+                    // 如果工具调用有完整信息，将其插入到消息段落中
+                    if (newThought.tool && newThought.observation) {
+                      // 按照位置顺序插入工具调用
+                      messageSegments.push({
+                        type: 'tool',
+                        position: newThought.position,
+                        data: newThought
+                      });
+                      
+                      // 更新下一个文本位置
+                      nextTextPosition = Math.max(nextTextPosition, newThought.position + 1);
+                      
+                      // 按位置排序所有段落
+                      messageSegments.sort((a, b) => a.position - b.position);
+                    }
+                  } else {
+                    // 更新现有思考
+                    currentThoughts[thoughtIndex] = {
+                      ...currentThoughts[thoughtIndex],
+                      thought: data.thought || currentThoughts[thoughtIndex].thought,
+                      tool: data.tool || currentThoughts[thoughtIndex].tool,
+                      tool_input: data.tool_input || currentThoughts[thoughtIndex].tool_input,
+                      observation: data.observation || currentThoughts[thoughtIndex].observation
+                    };
+                    
+                    // 如果工具调用完成，更新消息段落
+                    if (currentThoughts[thoughtIndex].tool && currentThoughts[thoughtIndex].observation) {
+                      // 查找是否已存在该工具的段落
+                      const segmentIndex = messageSegments.findIndex(s => 
+                        s.type === 'tool' && s.data.id === currentThoughts[thoughtIndex].id
+                      );
+                      
+                      if (segmentIndex === -1) {
+                        // 如果不存在，添加新段落
+                        messageSegments.push({
+                          type: 'tool',
+                          position: currentThoughts[thoughtIndex].position,
+                          data: currentThoughts[thoughtIndex]
+                        });
+                        
+                        // 更新下一个文本位置
+                        nextTextPosition = Math.max(nextTextPosition, currentThoughts[thoughtIndex].position + 1);
+                      } else {
+                        // 如果存在，更新段落
+                        messageSegments[segmentIndex].data = currentThoughts[thoughtIndex];
+                      }
+                      
+                      // 按位置排序所有段落
+                      messageSegments.sort((a, b) => a.position - b.position);
+                    }
+                  }
+                  
+                  // 按位置排序思考
+                  currentThoughts.sort((a, b) => a.position - b.position);
+                  
+                  // 更新状态
+                  this.setState({ 
+                    agentThoughts: [...currentThoughts],
+                    // 将排序后的消息段落传递给流式消息组件
+                    messageSegments: [...messageSegments]
+                  });
                 }
               } catch (e) {
                 console.warn('解析流式数据失败:', e);
@@ -534,6 +832,9 @@ class SQLAssistant extends Component {
       }
 
       if (this.state.isStreaming) {
+        // 保存最终消息，包括思考过程
+        const finalThoughts = [...this.state.agentThoughts];
+        
         this.setState({
           conversationHistory: [
             ...this.state.conversationHistory,
@@ -541,14 +842,18 @@ class SQLAssistant extends Component {
               id: this.state.streamingId,
               type: 'assistant',
               content: assistantMessage,
-              timestamp: new Date()
+              timestamp: new Date(),
+              thoughts: finalThoughts, // 保存思考过程
+              messageSegments: messageSegments // 保存消息段落
             }
           ],
           isStreaming: false,
           currentStreamingMessage: '',
           streamingId: null,
           conversation_id: newConversationId || this.state.conversation_id,
-          streamingComplete: true
+          streamingComplete: true,
+          agentThoughts: [], // 清空思考过程
+          messageSegments: [] // 清空消息段落
         });
       }
 
@@ -559,7 +864,9 @@ class SQLAssistant extends Component {
         isStreaming: false,
         currentStreamingMessage: '',
         streamingId: null,
-        streamingComplete: true
+        streamingComplete: true,
+        agentThoughts: [], // 清空思考过程
+        messageSegments: [] // 清空消息段落
       });
     }
   };
@@ -827,7 +1134,8 @@ class SQLAssistant extends Component {
       selectedConversation,
       tablePageSize,
       currentTablePage,
-      isSearching
+      isSearching,
+      agentThoughts, // 添加思考过程
     } = this.state;
 
     // 获取过滤后的表格
@@ -1007,6 +1315,8 @@ class SQLAssistant extends Component {
                 isComplete={streamingComplete} 
                 onCopySQL={this.handleCopySQL}
                 onApplySQL={this.handleApplySQL}
+                agentThoughts={agentThoughts} // 传递思考过程
+                messageSegments={this.state.messageSegments} // 传递消息段落
               />
             )}
           </div>
