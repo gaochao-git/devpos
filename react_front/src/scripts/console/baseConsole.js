@@ -105,7 +105,7 @@ export class BaseConsole extends Component {
       conversation_id: null,
       login_user_name: 'system',
       dify_url: 'http://127.0.0.1',
-      dify_sql_asst_key: 'app-iKVZRkmmxnILnrRF4JrOyq5V'
+      dify_sql_asst_key: 'app-E0zLopSWm7H89E5kWobFtiyC'
     }
   }
 

@@ -518,7 +518,7 @@ class SQLAssistant extends Component {
                 if (dataStr === '[DONE]') break;
                 
                 const data = JSON.parse(dataStr);
-                if (data.event === 'message') {
+                if (['message', 'agent_message'].includes(data.event)) {
                   assistantMessage += data.answer;
                   this.throttledUpdateStreamingMessage(assistantMessage);
                 } else if (data.event === 'message_end') {
