@@ -253,9 +253,17 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
           </Text>
         </div>
         {item.type === 'user' ? (
-          <Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-            {item.content}
-          </Paragraph>
+          <>
+            <Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+              {item.content}
+            </Paragraph>
+            {item.contextInfo && (
+              <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: '4px', color: '#888' }}>
+                <Icon type="info-circle" style={{ marginRight: '4px' }} />
+                系统自动添加上下文：{item.contextInfo}
+              </Text>
+            )}
+          </>
         ) : (
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -458,10 +466,15 @@ class SQLAssistant extends Component {
       return;
     }
 
+    // 将实例名、数据库名和表名与用户问题拼接为一个完整的查询
+    const tables = selectedTables.length > 0 ? `，表名: ${selectedTables.join(', ')}` : '';
+    const completeQuery = `实例: ${instance}, 数据库: ${database}${tables}。问题: ${inputValue}`;
+
     const userMessage = {
       id: Date.now(),
       type: 'user',
       content: inputValue,
+      contextInfo: `实例: ${instance}, 数据库: ${database}${tables ? tables : ''}`,
       timestamp: new Date()
     };
 
@@ -483,12 +496,8 @@ class SQLAssistant extends Component {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          inputs: {
-            instance_name: instance,
-            schema_name: database,
-            table_names: selectedTables.join(',')
-          },
-          query: inputValue,
+        inputs:{},
+          query: completeQuery, // 使用拼接后的完整查询
           response_mode: 'streaming',
           conversation_id,
           user: login_user_name,
@@ -970,7 +979,7 @@ class SQLAssistant extends Component {
                 <Icon type="message" style={{ fontSize: '24px', marginBottom: '8px' }} />
                 <div>开始你的SQL查询对话吧！</div>
                 <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                  例如：查询用户表中的所有数据
+                  例如：查询最近一周新增的用户数量
                 </div>
               </div>
             )}
@@ -1146,7 +1155,7 @@ class SQLAssistant extends Component {
                 ref={this.inputRef}
                 value={inputValue}
                 onChange={(e) => this.setState({ inputValue: e.target.value })}
-                placeholder="请输入您的问题，比如：查询用户表中的所有数据"
+                placeholder="请直接输入您的问题，系统会自动添加数据库和表的上下文信息"
                 autoSize={{ minRows: 2, maxRows: 4 }}
                 style={{ 
                   border: 'none',
