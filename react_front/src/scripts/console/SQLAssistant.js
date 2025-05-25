@@ -280,7 +280,7 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
 });
 
 // 流式消息组件
-const StreamingMessage = React.memo(({ currentMessage, isComplete = false }) => {
+const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCopySQL, onApplySQL }) => {
   return (
     <List.Item style={{ padding: '8px 0', border: 'none' }}>
       <Card 
@@ -300,24 +300,16 @@ const StreamingMessage = React.memo(({ currentMessage, isComplete = false }) => 
           {!isComplete && <Spin size="small" />}
         </div>
         {currentMessage ? (
-          isComplete ? (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              skipHtml={false}
-              components={markdownComponents}
-            >
-              {currentMessage}
-            </ReactMarkdown>
-          ) : (
-            <div style={{ 
-              fontFamily: 'inherit',
-              lineHeight: '1.5',
-              whiteSpace: 'pre-wrap',
-              color: '#333'
-            }}>
-              {currentMessage}
-            </div>
-          )
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            skipHtml={false}
+            components={{
+              ...markdownComponents,
+              code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
+            }}
+          >
+            {currentMessage}
+          </ReactMarkdown>
         ) : (
           <div style={{ color: '#999', fontStyle: 'italic' }}>
             正在思考中...
@@ -362,7 +354,7 @@ class SQLAssistant extends Component {
       cluster: props.defaultCluster || '',
       dify_url: props.defaultDifyUrl || '',
       dify_sql_asst_key: props.defaultDifyKey || '',
-      login_user_name: props.defaulUser || '',
+      login_user_name: props.defaultUser || '',
     };
     
     this.inputRef = React.createRef();
@@ -1013,6 +1005,8 @@ class SQLAssistant extends Component {
               <StreamingMessage 
                 currentMessage={currentStreamingMessage} 
                 isComplete={streamingComplete} 
+                onCopySQL={this.handleCopySQL}
+                onApplySQL={this.handleApplySQL}
               />
             )}
           </div>
