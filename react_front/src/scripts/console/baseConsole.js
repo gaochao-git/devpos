@@ -103,8 +103,9 @@ export class BaseConsole extends Component {
       isSending: false,
       nl_cancel: false,
       conversation_id: null,
-      dify_url: 'http://127.0.0.1',
-      dify_sql_asst_key: 'app-iKVZRkmmxnILnrRF4JrOyq5V'
+      login_user_name: '',
+      dify_url: '',
+      dify_sql_asst_key: ''
     }
   }
 
@@ -1236,6 +1237,9 @@ onSorter = (a,b) => {
                     </div>
                     <div style={{ flex: 1, overflow: 'auto' }}>
                       <SQLAssistant 
+                        defaulUser={this.state.login_user_name}
+                        defaultDifyUrl={this.state.dify_url}
+                        defaultDifySqlAsstKey={this.state.dify_sql_asst_key}
                         defaultInstance={this.state.instance_name}
                         defaultDatabase={this.state.current_schema}
                         defaultCluster={this.state.cluster_name}

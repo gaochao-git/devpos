@@ -335,9 +335,6 @@ class SQLAssistant extends Component {
       allTables: props.allTables || [],
       showTableSelector: false,
       searchTableValue: '',
-      instance: props.defaultInstance || '',
-      database: props.defaultDatabase || '',
-      cluster: props.defaultCluster || '',
       streamingId: null,
       conversation_id: null,
       streamingComplete: false,
@@ -349,13 +346,17 @@ class SQLAssistant extends Component {
       hasMoreConversations: false,
       selectedConversation: null,
       lastConversationId: null,
-      dify_url: 'http://127.0.0.1',
-      dify_sql_asst_key: 'app-iKVZRkmmxnILnrRF4JrOyq5V',
       tablePageSize: 100,
       currentTablePage: 1,
       searchTimeout: null,
       isSearching: false,
       isSelectingAll: false,
+      instance: props.defaultInstance || '',
+      database: props.defaultDatabase || '',
+      cluster: props.defaultCluster || '',
+      dify_url: props.defaultDifyUrl || '',
+      dify_sql_asst_key: props.defaultDifySqlAsstKey || '',
+      login_user_name: props.defaulUser || '',
     };
     
     this.inputRef = React.createRef();
@@ -445,7 +446,7 @@ class SQLAssistant extends Component {
 
   // 发送消息并处理流式响应
   handleSendMessage = async () => {
-    const { inputValue, instance, database, selectedTables, conversation_id, dify_url, dify_sql_asst_key } = this.state;
+    const { inputValue, instance, database, selectedTables, conversation_id, dify_url, dify_sql_asst_key, login_user_name } = this.state;
     
     if (!inputValue.trim()) {
       message.warning('请输入问题');
@@ -490,7 +491,7 @@ class SQLAssistant extends Component {
           query: inputValue,
           response_mode: 'streaming',
           conversation_id,
-          user: 'system',
+          user: login_user_name,
         }),
       });
 
@@ -629,10 +630,10 @@ class SQLAssistant extends Component {
   }
 
   fetchConversationHistory = async () => {
-    const { lastConversationId, dify_url, dify_sql_asst_key } = this.state;
+    const { lastConversationId, dify_url, dify_sql_asst_key, login_user_name } = this.state;
     this.setState({ isLoadingHistory: true });
     try {
-      const response = await fetch(`${dify_url}/v1/conversations?user=system&last_id=${lastConversationId || ''}&limit=20`, {
+      const response = await fetch(`${dify_url}/v1/conversations?user=${login_user_name}&last_id=${lastConversationId || ''}&limit=20`, {
         headers: {
           'Authorization': `Bearer ${dify_sql_asst_key}`
         }
@@ -657,9 +658,9 @@ class SQLAssistant extends Component {
   };
 
   fetchConversationMessages = async (conversationId) => {
-    const { dify_url, dify_sql_asst_key } = this.state;
+    const { dify_url, dify_sql_asst_key, login_user_name } = this.state;
     try {
-      const response = await fetch(`${dify_url}/v1/messages?user=system&conversation_id=${conversationId}`, {
+      const response = await fetch(`${dify_url}/v1/messages?user=${login_user_name}&conversation_id=${conversationId}`, {
         headers: {
           'Authorization': `Bearer ${dify_sql_asst_key}`
         }
