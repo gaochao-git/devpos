@@ -1,8 +1,13 @@
 import React, { Component } from 'react';
-import { Input, Button, Card, List, message, Tag, Select, Typography, Spin, Icon, Drawer, Timeline, Checkbox, Popover } from 'antd';
+import { Input, Button, Card, List, message, Tag, Select, Typography, Spin, Icon, Drawer, Timeline, Checkbox, Popover, Pagination } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import VirtualList from 'rc-virtual-list';
+
+// 控制是否使用虚拟列表的配置
+const USE_VIRTUAL_LIST = false; // 外网环境设置为 true，内网环境手动改为 false
+
+// 根据配置决定是否导入 VirtualList
+const VirtualList = USE_VIRTUAL_LIST ? require('rc-virtual-list').default : null;
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -354,8 +359,8 @@ class SQLAssistant extends Component {
       hasMoreConversations: false,
       selectedConversation: null,
       lastConversationId: null,
-      tablePageSize: 100,
-      currentTablePage: 1,
+      tablePageSize: 20, // 每页显示的表数量
+      currentTablePage: 1, // 当前页码
       searchTimeout: null,
       isSearching: false,
       isSelectingAll: false,
@@ -811,6 +816,11 @@ class SQLAssistant extends Component {
     }
   };
 
+  // 处理分页变化
+  handleTablePageChange = (page) => {
+    this.setState({ currentTablePage: page });
+  };
+
   render() {
     const { 
       inputValue, 
@@ -844,7 +854,9 @@ class SQLAssistant extends Component {
     const isAllSelected = filteredTables.length > 0 && 
       filteredTables.every(table => selectedTables.includes(table));
 
-    const paginatedTables = filteredTables.slice(0, currentTablePage * tablePageSize);
+    // 修改分页数据的计算逻辑
+    const startIndex = (currentTablePage - 1) * tablePageSize;
+    const paginatedTables = filteredTables.slice(startIndex, startIndex + tablePageSize);
 
     const tableSelector = (
       <div style={{ width: '300px' }}>
@@ -880,38 +892,74 @@ class SQLAssistant extends Component {
             清空选择
           </Button>
         </div>
-        <div style={{ 
-          marginBottom: '8px', 
-          fontSize: '12px', 
-          color: '#666' 
-        }}>
+        <div style={{ marginBottom: '8px', fontSize: '12px', color: '#666' }}>
           {`当前选中 ${selectedTables.length} 个表${searchTableValue ? `，过滤显示 ${filteredTables.length} 个表` : ''}`}
         </div>
         <div style={{ height: '400px', overflow: 'hidden' }}>
-          <VirtualList
-            data={paginatedTables}
-            height={400}
-            itemHeight={36}
-            itemKey="key"
-            onScroll={this.handleTableListScroll}
-          >
-            {(table) => (
-              <List.Item
-                onClick={() => this.handleTableSelect(table)}
-                style={{
-                  cursor: 'pointer',
-                  backgroundColor: selectedTables.includes(table) ? '#e6f7ff' : 'transparent',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                <Checkbox checked={selectedTables.includes(table)} style={{ marginRight: '8px' }} />
-                {table}
-              </List.Item>
-            )}
-          </VirtualList>
+          {USE_VIRTUAL_LIST ? (
+            <VirtualList
+              data={filteredTables}
+              height={400}
+              itemHeight={36}
+              itemKey="key"
+              onScroll={this.handleTableListScroll}
+            >
+              {(table) => (
+                <List.Item
+                  onClick={() => this.handleTableSelect(table)}
+                  style={{
+                    cursor: 'pointer',
+                    backgroundColor: selectedTables.includes(table) ? '#e6f7ff' : 'transparent',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <Checkbox checked={selectedTables.includes(table)} style={{ marginRight: '8px' }} />
+                  {table}
+                </List.Item>
+              )}
+            </VirtualList>
+          ) : (
+            <>
+              <List
+                dataSource={paginatedTables}
+                renderItem={(table) => (
+                  <List.Item
+                    onClick={() => this.handleTableSelect(table)}
+                    style={{
+                      cursor: 'pointer',
+                      backgroundColor: selectedTables.includes(table) ? '#e6f7ff' : 'transparent',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Checkbox checked={selectedTables.includes(table)} style={{ marginRight: '8px' }} />
+                    {table}
+                  </List.Item>
+                )}
+                style={{ maxHeight: 340, overflow: 'auto' }}
+              />
+              <div style={{ 
+                padding: '8px', 
+                textAlign: 'center',
+                borderTop: '1px solid #f0f0f0'
+              }}>
+                <Pagination
+                  size="small"
+                  current={currentTablePage}
+                  pageSize={tablePageSize}
+                  total={filteredTables.length}
+                  onChange={this.handleTablePageChange}
+                  showSizeChanger={false}
+                  showQuickJumper
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
