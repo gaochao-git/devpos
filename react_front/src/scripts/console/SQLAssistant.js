@@ -2,13 +2,6 @@ import React, { Component } from 'react';
 import { Input, Button, Card, List, message, Tag, Select, Typography, Spin, Icon, Drawer, Timeline, Checkbox, Popover, Pagination } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-
-// 控制是否使用虚拟列表的配置
-const USE_VIRTUAL_LIST = false; // 外网环境设置为 true，内网环境手动改为 false
-
-// 根据配置决定是否导入 VirtualList
-const VirtualList = USE_VIRTUAL_LIST ? require('rc-virtual-list').default : null;
-
 const { TextArea } = Input;
 const { Option } = Select;
 const { Text, Paragraph } = Typography;
@@ -369,7 +362,7 @@ class SQLAssistant extends Component {
       cluster: props.defaultCluster || '',
       dify_url: props.defaultDifyUrl || '',
       dify_sql_asst_key: props.defaultDifyKey || '',
-      login_user_name: props.defaultUser || '',
+      login_user_name: props.defaulUser || '',
     };
     
     this.inputRef = React.createRef();
@@ -896,33 +889,7 @@ class SQLAssistant extends Component {
           {`当前选中 ${selectedTables.length} 个表${searchTableValue ? `，过滤显示 ${filteredTables.length} 个表` : ''}`}
         </div>
         <div style={{ height: '400px', overflow: 'hidden' }}>
-          {USE_VIRTUAL_LIST ? (
-            <VirtualList
-              data={filteredTables}
-              height={400}
-              itemHeight={36}
-              itemKey="key"
-              onScroll={this.handleTableListScroll}
-            >
-              {(table) => (
-                <List.Item
-                  onClick={() => this.handleTableSelect(table)}
-                  style={{
-                    cursor: 'pointer',
-                    backgroundColor: selectedTables.includes(table) ? '#e6f7ff' : 'transparent',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  <Checkbox checked={selectedTables.includes(table)} style={{ marginRight: '8px' }} />
-                  {table}
-                </List.Item>
-              )}
-            </VirtualList>
-          ) : (
-            <>
+          
               <List
                 dataSource={paginatedTables}
                 renderItem={(table) => (
@@ -958,8 +925,6 @@ class SQLAssistant extends Component {
                   showQuickJumper
                 />
               </div>
-            </>
-          )}
         </div>
       </div>
     );
