@@ -368,8 +368,8 @@ class SQLAssistant extends Component {
       database: props.defaultDatabase || '',
       cluster: props.defaultCluster || '',
       dify_url: props.defaultDifyUrl || '',
-      dify_sql_asst_key: props.defaultDifySqlAsstKey || '',
-      login_user_name: props.defaulUser || '',
+      dify_sql_asst_key: props.defaultDifyKey || '',
+      login_user_name: props.defaultUser || '',
     };
     
     this.inputRef = React.createRef();
