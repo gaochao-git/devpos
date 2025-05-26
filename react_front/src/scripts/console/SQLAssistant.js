@@ -1,511 +1,9 @@
 import React, { Component } from 'react';
-import { Input, Button, Card, List, message, Tag, Select, Typography, Spin, Icon, Drawer, Timeline, Checkbox, Popover, Pagination } from 'antd';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { Input, Button, message, Tag, Select, Typography, Icon, Drawer, List, Checkbox, Popover, Pagination } from 'antd';
+import MessageRenderer from './MessageRenderer';
 const { TextArea } = Input;
 const { Option } = Select;
-const { Text, Paragraph } = Typography;
-
-// 共享的 Markdown 样式配置
-const markdownComponents = {
-  code: ({ node, inline, className, children, ...props }) => {
-    const match = /language-(\w+)/.exec(className || '');
-    const language = match ? match[1] : '';
-    const codeContent = String(children).replace(/\n$/, '');
-    
-    if (!inline && codeContent) {
-      const lineCount = codeContent.split('\n').length;
-      const maxHeight = lineCount > 10 ? '220px' : 'auto';
-      
-      return (
-        <div style={{ margin: '8px 0' }}>
-          <div style={{ 
-            backgroundColor: '#f6f8fa', 
-            border: '1px solid #e1e4e8',
-            borderRadius: '6px',
-            overflow: 'hidden'
-          }}>
-            {language && (
-              <div style={{ 
-                backgroundColor: '#f1f3f4', 
-                padding: '4px 8px', 
-                fontSize: '12px',
-                color: '#666',
-                borderBottom: '1px solid #e1e4e8'
-              }}>
-                {language}
-              </div>
-            )}
-            
-            <pre style={{ 
-              margin: 0, 
-              padding: '12px',
-              backgroundColor: '#fff',
-              fontSize: '14px',
-              fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-              overflow: lineCount > 10 ? 'auto' : 'visible',
-              maxHeight: maxHeight,
-              lineHeight: '1.5',
-              whiteSpace: 'pre',
-              overflowX: 'auto',
-              width: '100%'
-            }}>
-              <code
-                className={className}
-                style={{
-                  display: 'block',
-                  padding: 0,
-                  fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-                  color: language === 'sql' ? '#0000ff' : 'inherit',
-                }}
-                {...props}
-              >
-                {children}
-              </code>
-            </pre>
-          </div>
-          
-          <div style={{ marginTop: '4px' }}>
-            <Button 
-              size="small" 
-              onClick={() => props.onCopySQL && props.onCopySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``)}
-              style={{ marginRight: '8px' }}
-              icon="copy"
-            >
-              复制
-            </Button>
-            {language === 'sql' && props.onApplySQL && (
-              <>
-                <Button 
-                  size="small" 
-                  type="primary"
-                  onClick={() => props.onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, false)}
-                  style={{ marginRight: '8px' }}
-                  icon="arrow-right"
-                >
-                  应用到编辑器
-                </Button>
-                <Button 
-                  size="small"
-                  type="primary"
-                  danger
-                  onClick={() => props.onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, true)}
-                  icon="play-circle"
-                >
-                  应用并执行
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      );
-    }
-    
-    return (
-      <code 
-        style={{ 
-          backgroundColor: '#f1f3f4',
-          padding: '2px 4px',
-          borderRadius: '3px',
-          fontSize: '85%',
-          fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace'
-        }}
-        {...props}
-      >
-        {children}
-      </code>
-    );
-  },
-  
-  table: ({ children, ...props }) => (
-    <div style={{ overflow: 'auto', margin: '8px 0', maxHeight: '400px' }}>
-      <table 
-        style={{ 
-          borderCollapse: 'collapse',
-          width: '100%',
-          border: '1px solid #e1e4e8',
-          fontSize: '14px'
-        }}
-        {...props}
-      >
-        {children}
-      </table>
-    </div>
-  ),
-  
-  th: ({ children, ...props }) => (
-    <th 
-      style={{ 
-        backgroundColor: '#f6f8fa',
-        border: '1px solid #e1e4e8',
-        padding: '8px 12px',
-        textAlign: 'left',
-        fontWeight: 'bold',
-        position: 'sticky',
-        top: 0,
-        zIndex: 1
-      }}
-      {...props}
-    >
-      {children}
-    </th>
-  ),
-  
-  td: ({ children, ...props }) => (
-    <td 
-      style={{ 
-        border: '1px solid #e1e4e8',
-        padding: '8px 12px',
-        maxWidth: '200px',
-        wordBreak: 'break-word'
-      }}
-      {...props}
-    >
-      {children}
-    </td>
-  ),
-  
-  ul: ({ children, ...props }) => (
-    <ul style={{ marginLeft: '20px', marginBottom: '8px' }} {...props}>
-      {children}
-    </ul>
-  ),
-  
-  ol: ({ children, ...props }) => (
-    <ol style={{ marginLeft: '20px', marginBottom: '8px' }} {...props}>
-      {children}
-    </ol>
-  ),
-  
-  a: ({ children, ...props }) => (
-    <a 
-      style={{ color: '#1890ff', textDecoration: 'underline' }}
-      target="_blank"
-      rel="noopener noreferrer"
-      {...props}
-    >
-      {children}
-    </a>
-  ),
-  
-  blockquote: ({ children, ...props }) => (
-    <blockquote 
-      style={{ 
-        borderLeft: '4px solid #dfe2e5',
-        paddingLeft: '16px',
-        margin: '8px 0',
-        color: '#6a737d',
-        fontStyle: 'italic'
-      }}
-      {...props}
-    >
-      {children}
-    </blockquote>
-  ),
-  
-  h1: ({ children, ...props }) => (
-    <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: '16px 0 8px 0' }} {...props}>
-      {children}
-    </h1>
-  ),
-  
-  h2: ({ children, ...props }) => (
-    <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '14px 0 6px 0' }} {...props}>
-      {children}
-    </h2>
-  ),
-  
-  h3: ({ children, ...props }) => (
-    <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '12px 0 4px 0' }} {...props}>
-      {children}
-    </h3>
-  ),
-  
-  p: ({ children, ...props }) => (
-    <p style={{ margin: '4px 0', lineHeight: '1.5' }} {...props}>
-      {children}
-    </p>
-  )
-};
-
-// 处理工具输入和观察结果的格式化显示
-const formatJsonString = (jsonStr) => {
-  if (!jsonStr) return '';
-  try {
-    // 尝试解析JSON字符串
-    const parsed = JSON.parse(jsonStr);
-    return JSON.stringify(parsed, null, 2);
-  } catch (e) {
-    // 如果解析失败，返回原始字符串
-    return jsonStr;
-  }
-};
-
-// 工具调用组件
-const ToolCallItem = React.memo(({ tool }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
-  
-  // 如果没有工具名称或没有观察结果，不显示
-  if (!tool.tool || !tool.observation) return null;
-  
-  return (
-    <div style={{ marginBottom: '8px' }}>
-      <div 
-        onClick={() => setIsExpanded(!isExpanded)}
-        style={{ 
-          backgroundColor: '#fff2e8',
-          padding: '4px 8px', 
-          borderRadius: isExpanded ? '4px 4px 0 0' : '4px',
-          border: '1px solid #ffcfad',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
-          userSelect: 'none'
-        }}
-      >
-        <Text strong style={{ 
-          color: '#fa8c16', 
-          fontSize: '12px',
-          display: 'flex',
-          alignItems: 'center'
-        }}>
-          <Icon type="tool" style={{ marginRight: '4px' }} />
-          工具调用: {tool.tool}
-        </Text>
-        <Icon type={isExpanded ? 'up' : 'down'} style={{ fontSize: '12px', color: '#fa8c16' }} />
-      </div>
-      
-      {isExpanded && (
-        <div style={{ 
-          backgroundColor: '#fff',
-          padding: '8px', 
-          borderRadius: '0 0 4px 4px',
-          border: '1px solid #ffcfad',
-          borderTop: 'none'
-        }}>
-          {tool.tool_input && (
-            <div>
-              <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '2px' }}>
-                <Icon type="code" style={{ marginRight: '4px' }} />
-                输入参数:
-              </Text>
-              <div style={{ 
-                backgroundColor: '#f9f9f9', 
-                padding: '4px', 
-                borderRadius: '2px', 
-                fontSize: '12px',
-                fontFamily: 'monospace',
-                overflowX: 'auto',
-                marginBottom: '8px'
-              }}>
-                <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                  {formatJsonString(tool.tool_input)}
-                </pre>
-              </div>
-            </div>
-          )}
-          
-          {tool.observation && (
-            <div>
-              <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '2px' }}>
-                <Icon type="eye" style={{ marginRight: '4px' }} />
-                观察结果:
-              </Text>
-              <div style={{ 
-                backgroundColor: '#f9f9f9', 
-                padding: '4px', 
-                borderRadius: '2px', 
-                fontSize: '12px',
-                fontFamily: 'monospace',
-                overflowX: 'auto'
-              }}>
-                <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                  {formatJsonString(tool.observation)}
-                </pre>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-});
-
-// 流式消息组件
-const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [], messageSegments = [] }) => {
-  // 过滤只有工具调用且有观察结果的思考
-  const toolCalls = agentThoughts.filter(t => t.tool && t.observation);
-  
-  return (
-    <List.Item style={{ padding: '8px 0', border: 'none' }}>
-      <Card 
-        size="small" 
-        style={{ 
-          width: '100%', 
-          backgroundColor: '#f6ffed',
-          border: '1px solid #b7eb8f',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-          <Text strong style={{ color: '#52c41a' }}>
-            <Icon type="robot" style={{ marginRight: '4px' }} />
-            SQL助手
-          </Text>
-          {!isComplete && <Spin size="small" />}
-        </div>
-        
-        {/* 按照消息流的顺序显示工具调用和文本内容 */}
-        {currentMessage ? (
-          <div>
-            {/* 如果有消息段落，按顺序显示 */}
-            {messageSegments.length > 0 ? (
-              messageSegments.map((segment, index) => (
-                <React.Fragment key={index}>
-                  {segment.type === 'tool' && (
-                    <ToolCallItem tool={segment.data} />
-                  )}
-                  {segment.type === 'text' && (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      skipHtml={false}
-                      components={{
-                        ...markdownComponents,
-                        code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
-                      }}
-                    >
-                      {segment.content}
-                    </ReactMarkdown>
-                  )}
-                </React.Fragment>
-              ))
-            ) : (
-              <>
-                {/* 如果没有消息段落，则显示所有工具调用 */}
-                {toolCalls.length > 0 && (
-                  <div style={{ marginBottom: '12px' }}>
-                    {toolCalls.map((tool, index) => (
-                      <ToolCallItem key={index} tool={tool} />
-                    ))}
-                  </div>
-                )}
-                
-                {/* 显示消息内容 */}
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  skipHtml={false}
-                  components={{
-                    ...markdownComponents,
-                    code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
-                  }}
-                >
-                  {currentMessage}
-                </ReactMarkdown>
-              </>
-            )}
-          </div>
-        ) : (
-          <div style={{ color: '#999', fontStyle: 'italic' }}>
-            正在思考中...
-          </div>
-        )}
-      </Card>
-    </List.Item>
-  );
-});
-
-// 优化的消息项组件
-const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
-  // 过滤只有工具调用且有观察结果的思考
-  const toolCalls = item.thoughts ? item.thoughts.filter(t => t.tool && t.observation) : [];
-  const messageSegments = item.messageSegments || [];
-  
-  return (
-    <List.Item style={{ padding: '8px 0', border: 'none' }}>
-      <Card 
-        size="small" 
-        style={{ 
-          width: '100%',
-          backgroundColor: item.type === 'user' ? '#e6f7ff' : '#f6ffed',
-          border: item.type === 'user' ? '1px solid #91d5ff' : '1px solid #b7eb8f',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-          <Text strong style={{ color: item.type === 'user' ? '#1890ff' : '#52c41a' }}>
-            <Icon type={item.type === 'user' ? 'user' : 'robot'} style={{ marginRight: '4px' }} />
-            {item.type === 'user' ? '你' : 'SQL助手'}
-          </Text>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
-            {item.timestamp.toLocaleTimeString()}
-          </Text>
-        </div>
-        {item.type === 'user' ? (
-          <>
-            <Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-              {item.content}
-            </Paragraph>
-            {item.contextInfo && (
-              <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: '4px', color: '#888' }}>
-                <Icon type="info-circle" style={{ marginRight: '4px' }} />
-                系统自动添加上下文：{item.contextInfo}
-              </Text>
-            )}
-          </>
-        ) : (
-          <>
-            {/* 按照消息流的顺序显示工具调用和文本内容 */}
-            {messageSegments.length > 0 ? (
-              messageSegments.map((segment, index) => (
-                <React.Fragment key={index}>
-                  {segment.type === 'tool' && (
-                    <ToolCallItem tool={segment.data} />
-                  )}
-                  {segment.type === 'text' && (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      skipHtml={false}
-                      components={{
-                        ...markdownComponents,
-                        code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
-                      }}
-                    >
-                      {segment.content}
-                    </ReactMarkdown>
-                  )}
-                </React.Fragment>
-              ))
-            ) : (
-              <>
-                {/* 如果没有消息段落，则显示所有工具调用 */}
-                {toolCalls.length > 0 && (
-                  <div style={{ marginBottom: '12px' }}>
-                    {toolCalls.map((tool, index) => (
-                      <ToolCallItem key={index} tool={tool} />
-                    ))}
-                  </div>
-                )}
-                
-                {/* 显示消息内容 */}
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  skipHtml={false}
-                  components={{
-                    ...markdownComponents,
-                    code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
-                  }}
-                >
-                  {item.content}
-                </ReactMarkdown>
-              </>
-            )}
-          </>
-        )}
-      </Card>
-    </List.Item>
-  );
-});
+const { Text } = Typography;
 
 class SQLAssistant extends Component {
   constructor(props) {
@@ -543,38 +41,22 @@ class SQLAssistant extends Component {
       dify_sql_asst_key: props.defaultDifyKey || '',
       login_user_name: props.defaultUser || '',
       agentThoughts: [], // 添加思考过程状态
+      messageSegments: [], // 添加消息段落状态
     };
     
     this.inputRef = React.createRef();
-    this.chatContainerRef = React.createRef();
+    this.messageRendererRef = React.createRef();
     
     // 优化的节流函数实现
     this.throttledScrollToBottom = this.throttle(() => {
-      if (this.chatContainerRef.current) {
-        requestAnimationFrame(() => {
-          const { scrollHeight, clientHeight } = this.chatContainerRef.current;
-          this.chatContainerRef.current.scrollTop = scrollHeight - clientHeight;
-        });
+      if (this.messageRendererRef.current) {
+        this.messageRendererRef.current.scrollToBottom();
       }
     }, 300);
     
     this.throttledUpdateStreamingMessage = this.throttle((message) => {
       this.setState({ currentStreamingMessage: message });
     }, 200);
-
-    this.throttledScrollCheck = this.throttle(() => {
-      if (this.chatContainerRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = this.chatContainerRef.current;
-        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
-        
-        if (isAtBottom && this.state.isUserScrolling) {
-          this.setState({ isUserScrolling: false });
-        }
-        else if (!isAtBottom && !this.state.isUserBrowsing && !this.state.isUserScrolling) {
-          this.setState({ isUserScrolling: true });
-        }
-      }
-    }, 100);
   }
 
   // 优化的节流函数
@@ -617,16 +99,6 @@ class SQLAssistant extends Component {
     // 更新表格选择
     if (this.props.allTables !== prevProps.allTables) {
       this.setState({ allTables: this.props.allTables || [] });
-    }
-   
-    
-    // 智能滚动逻辑
-    const shouldAutoScroll = 
-      (prevState.conversationHistory.length !== this.state.conversationHistory.length) ||
-      (this.state.isStreaming && prevState.currentStreamingMessage !== this.state.currentStreamingMessage);
-    
-    if (shouldAutoScroll && !this.state.isUserBrowsing && !this.state.isUserScrolling) {
-      requestAnimationFrame(this.throttledScrollToBottom);
     }
   }
 
@@ -877,7 +349,9 @@ class SQLAssistant extends Component {
       currentStreamingMessage: '',
       streamingId: null,
       streamingComplete: true,
-      isUserScrolling: false
+      isUserScrolling: false,
+      agentThoughts: [], // 清空思考过程
+      messageSegments: [] // 清空消息段落
     });
   };
 
@@ -921,17 +395,13 @@ class SQLAssistant extends Component {
 
   handleMouseLeaveChat = () => {
     this.setState({ isUserBrowsing: false });
-    if (!this.state.isUserScrolling) {
-      requestAnimationFrame(this.throttledScrollToBottom);
-    }
   };
 
   componentWillUnmount() {
     // 清理所有节流函数
     [
       this.throttledScrollToBottom,
-      this.throttledUpdateStreamingMessage,
-      this.throttledScrollCheck
+      this.throttledUpdateStreamingMessage
     ].forEach(fn => fn && fn.cancel && fn.cancel());
   }
 
@@ -1259,113 +729,36 @@ class SQLAssistant extends Component {
           </Button>
         </div>
 
-        <div style={{ 
-          position: 'relative', 
-          flex: 1,
-          minHeight: 0,
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <div 
-            ref={this.chatContainerRef}
-            onMouseEnter={this.handleMouseEnterChat}
-            onMouseLeave={this.handleMouseLeaveChat}
-            onScroll={this.throttledScrollCheck}
-            style={{ 
-              flex: 1,
-              overflow: 'auto',
-              marginBottom: '8px',
-              padding: '0 4px',
-              backgroundColor: '#fafafa',
-              borderRadius: '4px',
-              border: '1px solid #f0f0f0',
-              cursor: 'default'
-            }}
-          >
-            {conversationHistory.length === 0 && !isStreaming && (
-              <div style={{ 
-                padding: '20px', 
-                textAlign: 'center', 
-                color: '#999',
-                fontSize: '14px'
-              }}>
-                <Icon type="message" style={{ fontSize: '24px', marginBottom: '8px' }} />
-                <div>开始你的SQL查询对话吧！</div>
-                <div style={{ fontSize: '12px', marginTop: '4px' }}>
-                  例如：查询最近一周新增的用户数量
-                </div>
-              </div>
-            )}
-            
-            <List
-              dataSource={conversationHistory}
-              renderItem={(item) => (
-                <MessageItem 
-                  key={item.id} 
-                  item={item} 
-                  onCopySQL={this.handleCopySQL} 
-                  onApplySQL={this.handleApplySQL} 
-                />
-              )}
-            />
-            
-            {isStreaming && (
-              <StreamingMessage 
-                currentMessage={currentStreamingMessage} 
-                isComplete={streamingComplete} 
-                onCopySQL={this.handleCopySQL}
-                onApplySQL={this.handleApplySQL}
-                agentThoughts={agentThoughts} // 传递思考过程
-                messageSegments={this.state.messageSegments} // 传递消息段落
-              />
-            )}
-          </div>
-
-          {(this.state.isUserBrowsing || this.state.isUserScrolling) && (
-            <div style={{
-              position: 'absolute',
-              top: '8px',
-              right: '8px',
-              zIndex: 10
-            }}>
-              {this.state.isUserBrowsing && (
-                <div style={{
-                  backgroundColor: 'rgba(24, 144, 255, 0.9)',
-                  color: 'white',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  marginBottom: '4px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                }}>
-                  <Icon type="eye" style={{ marginRight: '4px' }} />
-                  浏览模式 - 自动滚动已暂停
-                </div>
-              )}
-              
-              <Button
-                size="small"
-                type="primary"
-                shape="circle"
-                icon="down"
-                onClick={() => {
-                  this.setState({ 
-                    isUserScrolling: false, 
-                    isUserBrowsing: false 
-                  }, this.throttledScrollToBottom);
-                }}
-                style={{
-                  backgroundColor: '#52c41a',
-                  borderColor: '#52c41a',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                  display: 'block',
-                  margin: '0 auto'
-                }}
-                title="滚动到底部并恢复自动滚动"
-              />
-            </div>
-          )}
-        </div>
+        <MessageRenderer
+          ref={this.messageRendererRef}
+          conversationHistory={conversationHistory}
+          isStreaming={isStreaming}
+          currentStreamingMessage={currentStreamingMessage}
+          agentThoughts={agentThoughts}
+          messageSegments={this.state.messageSegments}
+          onCopySQL={this.handleCopySQL}
+          onApplySQL={this.handleApplySQL}
+          onMouseEnter={this.handleMouseEnterChat}
+          onMouseLeave={this.handleMouseLeaveChat}
+          isUserBrowsing={this.state.isUserBrowsing}
+          isUserScrolling={this.state.isUserScrolling}
+          onScrollToBottom={() => {
+            this.setState({ 
+              isUserScrolling: false, 
+              isUserBrowsing: false 
+            });
+          }}
+          shouldAutoScroll={!this.state.isUserBrowsing && !this.state.isUserScrolling}
+          onScrollStateChange={(isAtBottom) => {
+            if (isAtBottom && this.state.isUserScrolling) {
+              this.setState({ isUserScrolling: false });
+            }
+            else if (!isAtBottom && !this.state.isUserBrowsing && !this.state.isUserScrolling) {
+              this.setState({ isUserScrolling: true });
+            }
+          }}
+          streamingComplete={streamingComplete}
+        />
 
         <Drawer
           title="历史会话"
