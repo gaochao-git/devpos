@@ -356,7 +356,8 @@ const parseMessageContent = (content, agentThoughts = []) => {
   
   // 使用一个正则表达式匹配所有特殊内容（思考块和工具调用）
   // 兼容两种思考格式：<details>...</details> 和 <think>...</think>
-  const allPattern = /(<details[^>]*style[^>]*>\s*<summary[^>]*>\s*Thinking\.\.\.\s*<\/summary>([\s\S]*?)(?:<\/details>|$)|<think[^>]*>([\s\S]*?)<\/think>|\[TOOL:([^:]+):([^\]]+)\])/gi;
+  // <think> 标签只需匹配开头，支持流式传输中的不完整内容
+  const allPattern = /(<details[^>]*style[^>]*>\s*<summary[^>]*>\s*Thinking\.\.\.\s*<\/summary>([\s\S]*?)(?:<\/details>|$)|<think[^>]*>([\s\S]*?)(?:<\/think>|$)|\[TOOL:([^:]+):([^\]]+)\])/gi;
   
   let lastIndex = 0;
   let match;
