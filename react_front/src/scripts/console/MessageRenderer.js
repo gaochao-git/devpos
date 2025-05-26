@@ -352,11 +352,7 @@ const ToolCallItem = React.memo(({ tool }) => {
 const parseMessageContent = (content, agentThoughts = []) => {
   if (!content) return [];
   
-  // 简单的调试信息
-  if (content.includes('[TOOL:')) {
-    console.log('发现工具标记在内容中:', content);
-    console.log('可用的agentThoughts:', agentThoughts);
-  }
+
   
   const segments = [];
   const toolPattern = /\[TOOL:([^:]+):([^\]]+)\]/g;
@@ -380,12 +376,16 @@ const parseMessageContent = (content, agentThoughts = []) => {
     const toolName = match[2];
     const toolData = agentThoughts.find(t => t.id === toolId);
     
-    if (toolData) {
-      segments.push({
-        type: 'tool',
-        data: toolData
-      });
-    }
+    // 无论是否找到完整数据，都显示工具调用
+    segments.push({
+      type: 'tool',
+      data: toolData || {
+        id: toolId,
+        tool: toolName,
+        tool_input: null,
+        observation: null
+      }
+    });
     
     lastIndex = toolPattern.lastIndex;
   }

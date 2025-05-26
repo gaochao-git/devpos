@@ -203,7 +203,6 @@ class SQLAssistant extends Component {
                     
                     // 添加工具标记到assistantMessage中
                     assistantMessage += `\n[TOOL:${newThought.id}:${newThought.tool}]\n`;
-                    console.log('添加完整工具调用到assistantMessage:', assistantMessage);
                     
                     // 实时更新状态
                     this.setState({ 
