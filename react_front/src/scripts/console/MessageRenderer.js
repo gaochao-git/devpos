@@ -353,146 +353,60 @@ const parseMessageContent = (content, agentThoughts = []) => {
   if (!content) return [];
 
   const segments = [];
-  let processedContent = content;
   
-  // 先处理思考内容 - 匹配 <details style 开始的思考块
-  const thinkingPattern = /<details[^>]*style[^>]*>\s*<summary[^>]*>\s*Thinking\.\.\.\s*<\/summary>([\s\S]*?)(?:<\/details>|$)/gi;
-  let thinkingMatches = [];
-  let thinkingMatch;
+  // 使用一个正则表达式匹配所有特殊内容（思考块和工具调用）
+  const allPattern = /(<details[^>]*style[^>]*>\s*<summary[^>]*>\s*Thinking\.\.\.\s*<\/summary>([\s\S]*?)(?:<\/details>|$)|\[TOOL:([^:]+):([^\]]+)\])/gi;
   
-  // 找到所有思考内容
-  while ((thinkingMatch = thinkingPattern.exec(content)) !== null) {
-    thinkingMatches.push({
-      fullMatch: thinkingMatch[0],
-      thinkingContent: thinkingMatch[1].trim(),
-      startIndex: thinkingMatch.index,
-      endIndex: thinkingMatch.index + thinkingMatch[0].length
-    });
-  }
-  
-  // 按位置倒序处理，避免索引变化
-  thinkingMatches.reverse().forEach((thinking, index) => {
-    const placeholder = `[THINKING:${thinking.startIndex}]`;
-    processedContent = processedContent.substring(0, thinking.startIndex) + 
-                     placeholder + 
-                     processedContent.substring(thinking.endIndex);
-  });
-  
-  // 处理工具调用
-  const toolPattern = /\[TOOL:([^:]+):([^\]]+)\]/g;
   let lastIndex = 0;
   let match;
   
-  while ((match = toolPattern.exec(processedContent)) !== null) {
-    // 添加工具调用前的文本
+  while ((match = allPattern.exec(content)) !== null) {
+    // 添加前面的普通文本
     if (match.index > lastIndex) {
-      const textContent = processedContent.slice(lastIndex, match.index).trim();
+      const textContent = content.slice(lastIndex, match.index).trim();
       if (textContent) {
-        // 检查文本中是否包含思考占位符
-        const thinkingPlaceholderPattern = /\[THINKING:(\d+)\]/g;
-        let textLastIndex = 0;
-        let thinkingMatch;
-        
-        while ((thinkingMatch = thinkingPlaceholderPattern.exec(textContent)) !== null) {
-          // 添加思考前的文本
-          if (thinkingMatch.index > textLastIndex) {
-            const beforeThinking = textContent.slice(textLastIndex, thinkingMatch.index).trim();
-            if (beforeThinking) {
-              segments.push({
-                type: 'text',
-                content: beforeThinking
-              });
-            }
-          }
-          
-          // 添加思考内容
-          const thinkingIndex = parseInt(thinkingMatch[1]);
-          const thinkingData = thinkingMatches.find(t => t.startIndex === thinkingIndex);
-          if (thinkingData) {
-            segments.push({
-              type: 'thinking',
-              content: thinkingData.thinkingContent
-            });
-          }
-          
-          textLastIndex = thinkingPlaceholderPattern.lastIndex;
-        }
-        
-        // 添加剩余文本
-        if (textLastIndex < textContent.length) {
-          const remainingText = textContent.slice(textLastIndex).trim();
-          if (remainingText) {
-            segments.push({
-              type: 'text',
-              content: remainingText
-            });
-          }
-        }
+        segments.push({
+          type: 'text',
+          content: textContent
+        });
       }
     }
     
-    // 添加工具调用
-    const toolId = match[1];
-    const toolName = match[2];
-    const toolData = agentThoughts.find(t => t.id === toolId);
+    // 判断匹配到的是思考内容还是工具调用
+    if (match[0].startsWith('<details')) {
+      // 思考内容
+      segments.push({
+        type: 'thinking',
+        content: match[2] ? match[2].trim() : ''
+      });
+    } else if (match[0].startsWith('[TOOL:')) {
+      // 工具调用
+      const toolId = match[3];
+      const toolName = match[4];
+      const toolData = agentThoughts.find(t => t.id === toolId);
+      
+      segments.push({
+        type: 'tool',
+        data: toolData || {
+          id: toolId,
+          tool: toolName,
+          tool_input: null,
+          observation: null
+        }
+      });
+    }
     
-    segments.push({
-      type: 'tool',
-      data: toolData || {
-        id: toolId,
-        tool: toolName,
-        tool_input: null,
-        observation: null
-      }
-    });
-    
-    lastIndex = toolPattern.lastIndex;
+    lastIndex = allPattern.lastIndex;
   }
   
   // 添加最后剩余的文本
-  if (lastIndex < processedContent.length) {
-    const textContent = processedContent.slice(lastIndex).trim();
+  if (lastIndex < content.length) {
+    const textContent = content.slice(lastIndex).trim();
     if (textContent) {
-      // 检查文本中是否包含思考占位符
-      const thinkingPlaceholderPattern = /\[THINKING:(\d+)\]/g;
-      let textLastIndex = 0;
-      let thinkingMatch;
-      
-      while ((thinkingMatch = thinkingPlaceholderPattern.exec(textContent)) !== null) {
-        // 添加思考前的文本
-        if (thinkingMatch.index > textLastIndex) {
-          const beforeThinking = textContent.slice(textLastIndex, thinkingMatch.index).trim();
-          if (beforeThinking) {
-            segments.push({
-              type: 'text',
-              content: beforeThinking
-            });
-          }
-        }
-        
-        // 添加思考内容
-        const thinkingIndex = parseInt(thinkingMatch[1]);
-        const thinkingData = thinkingMatches.find(t => t.startIndex === thinkingIndex);
-        if (thinkingData) {
-          segments.push({
-            type: 'thinking',
-            content: thinkingData.thinkingContent
-          });
-        }
-        
-        textLastIndex = thinkingPlaceholderPattern.lastIndex;
-      }
-      
-      // 添加剩余文本
-      if (textLastIndex < textContent.length) {
-        const remainingText = textContent.slice(textLastIndex).trim();
-        if (remainingText) {
-          segments.push({
-            type: 'text',
-            content: remainingText
-          });
-        }
-      }
+      segments.push({
+        type: 'text',
+        content: textContent
+      });
     }
   }
   
