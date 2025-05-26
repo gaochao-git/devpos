@@ -348,26 +348,86 @@ const ToolCallItem = React.memo(({ tool }) => {
   );
 });
 
-// 解析消息内容，分离文本和工具调用
+// 解析消息内容，分离文本、工具调用和思考内容
 const parseMessageContent = (content, agentThoughts = []) => {
   if (!content) return [];
-  
 
-  
   const segments = [];
+  let processedContent = content;
+  
+  // 先处理思考内容 - 匹配 <details style 开始的思考块
+  const thinkingPattern = /<details[^>]*style[^>]*>\s*<summary[^>]*>\s*Thinking\.\.\.\s*<\/summary>([\s\S]*?)(?:<\/details>|$)/gi;
+  let thinkingMatches = [];
+  let thinkingMatch;
+  
+  // 找到所有思考内容
+  while ((thinkingMatch = thinkingPattern.exec(content)) !== null) {
+    thinkingMatches.push({
+      fullMatch: thinkingMatch[0],
+      thinkingContent: thinkingMatch[1].trim(),
+      startIndex: thinkingMatch.index,
+      endIndex: thinkingMatch.index + thinkingMatch[0].length
+    });
+  }
+  
+  // 按位置倒序处理，避免索引变化
+  thinkingMatches.reverse().forEach((thinking, index) => {
+    const placeholder = `[THINKING:${thinking.startIndex}]`;
+    processedContent = processedContent.substring(0, thinking.startIndex) + 
+                     placeholder + 
+                     processedContent.substring(thinking.endIndex);
+  });
+  
+  // 处理工具调用
   const toolPattern = /\[TOOL:([^:]+):([^\]]+)\]/g;
   let lastIndex = 0;
   let match;
   
-  while ((match = toolPattern.exec(content)) !== null) {
+  while ((match = toolPattern.exec(processedContent)) !== null) {
     // 添加工具调用前的文本
     if (match.index > lastIndex) {
-      const textContent = content.slice(lastIndex, match.index).trim();
+      const textContent = processedContent.slice(lastIndex, match.index).trim();
       if (textContent) {
-        segments.push({
-          type: 'text',
-          content: textContent
-        });
+        // 检查文本中是否包含思考占位符
+        const thinkingPlaceholderPattern = /\[THINKING:(\d+)\]/g;
+        let textLastIndex = 0;
+        let thinkingMatch;
+        
+        while ((thinkingMatch = thinkingPlaceholderPattern.exec(textContent)) !== null) {
+          // 添加思考前的文本
+          if (thinkingMatch.index > textLastIndex) {
+            const beforeThinking = textContent.slice(textLastIndex, thinkingMatch.index).trim();
+            if (beforeThinking) {
+              segments.push({
+                type: 'text',
+                content: beforeThinking
+              });
+            }
+          }
+          
+          // 添加思考内容
+          const thinkingIndex = parseInt(thinkingMatch[1]);
+          const thinkingData = thinkingMatches.find(t => t.startIndex === thinkingIndex);
+          if (thinkingData) {
+            segments.push({
+              type: 'thinking',
+              content: thinkingData.thinkingContent
+            });
+          }
+          
+          textLastIndex = thinkingPlaceholderPattern.lastIndex;
+        }
+        
+        // 添加剩余文本
+        if (textLastIndex < textContent.length) {
+          const remainingText = textContent.slice(textLastIndex).trim();
+          if (remainingText) {
+            segments.push({
+              type: 'text',
+              content: remainingText
+            });
+          }
+        }
       }
     }
     
@@ -376,7 +436,6 @@ const parseMessageContent = (content, agentThoughts = []) => {
     const toolName = match[2];
     const toolData = agentThoughts.find(t => t.id === toolId);
     
-    // 无论是否找到完整数据，都显示工具调用
     segments.push({
       type: 'tool',
       data: toolData || {
@@ -391,18 +450,108 @@ const parseMessageContent = (content, agentThoughts = []) => {
   }
   
   // 添加最后剩余的文本
-  if (lastIndex < content.length) {
-    const textContent = content.slice(lastIndex).trim();
+  if (lastIndex < processedContent.length) {
+    const textContent = processedContent.slice(lastIndex).trim();
     if (textContent) {
-      segments.push({
-        type: 'text',
-        content: textContent
-      });
+      // 检查文本中是否包含思考占位符
+      const thinkingPlaceholderPattern = /\[THINKING:(\d+)\]/g;
+      let textLastIndex = 0;
+      let thinkingMatch;
+      
+      while ((thinkingMatch = thinkingPlaceholderPattern.exec(textContent)) !== null) {
+        // 添加思考前的文本
+        if (thinkingMatch.index > textLastIndex) {
+          const beforeThinking = textContent.slice(textLastIndex, thinkingMatch.index).trim();
+          if (beforeThinking) {
+            segments.push({
+              type: 'text',
+              content: beforeThinking
+            });
+          }
+        }
+        
+        // 添加思考内容
+        const thinkingIndex = parseInt(thinkingMatch[1]);
+        const thinkingData = thinkingMatches.find(t => t.startIndex === thinkingIndex);
+        if (thinkingData) {
+          segments.push({
+            type: 'thinking',
+            content: thinkingData.thinkingContent
+          });
+        }
+        
+        textLastIndex = thinkingPlaceholderPattern.lastIndex;
+      }
+      
+      // 添加剩余文本
+      if (textLastIndex < textContent.length) {
+        const remainingText = textContent.slice(textLastIndex).trim();
+        if (remainingText) {
+          segments.push({
+            type: 'text',
+            content: remainingText
+          });
+        }
+      }
     }
   }
   
   return segments;
 };
+
+// 思考内容组件
+const ThinkingItem = React.memo(({ content }) => {
+  const [isExpanded, setIsExpanded] = React.useState(true); // 默认展开
+  
+  return (
+    <div style={{ marginBottom: '8px' }}>
+      <div 
+        onClick={() => setIsExpanded(!isExpanded)}
+        style={{ 
+          backgroundColor: '#f8f8f8',
+          padding: '8px',
+          borderRadius: isExpanded ? '4px 4px 0 0' : '4px',
+          border: '1px solid #e0e0e0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          userSelect: 'none'
+        }}
+      >
+        <Text style={{ 
+          color: '#666', 
+          fontSize: '12px',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          <Icon type="bulb" style={{ marginRight: '4px' }} />
+          Thinking...
+        </Text>
+        <Icon type={isExpanded ? 'up' : 'down'} style={{ fontSize: '12px', color: '#666' }} />
+      </div>
+      
+      {isExpanded && (
+        <div style={{ 
+          backgroundColor: '#f8f8f8',
+          padding: '8px', 
+          borderRadius: '0 0 4px 4px',
+          border: '1px solid #e0e0e0',
+          borderTop: 'none',
+          color: '#666'
+        }}>
+          <div style={{ 
+            fontSize: '12px',
+            lineHeight: '1.4',
+            whiteSpace: 'pre-wrap'
+          }}>
+            {content}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
 
 // 流式消息组件
 const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [] }) => {
@@ -435,6 +584,9 @@ const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCop
               <React.Fragment key={index}>
                 {segment.type === 'tool' && (
                   <ToolCallItem tool={segment.data} />
+                )}
+                {segment.type === 'thinking' && (
+                  <ThinkingItem content={segment.content} />
                 )}
                 {segment.type === 'text' && (
                   <ReactMarkdown
@@ -506,6 +658,9 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
                 <React.Fragment key={index}>
                   {segment.type === 'tool' && (
                     <ToolCallItem tool={segment.data} />
+                  )}
+                  {segment.type === 'thinking' && (
+                    <ThinkingItem content={segment.content} />
                   )}
                   {segment.type === 'text' && (
                     <ReactMarkdown
