@@ -355,7 +355,8 @@ const parseMessageContent = (content, agentThoughts = []) => {
   const segments = [];
   
   // 使用一个正则表达式匹配所有特殊内容（思考块和工具调用）
-  const allPattern = /(<details[^>]*style[^>]*>\s*<summary[^>]*>\s*Thinking\.\.\.\s*<\/summary>([\s\S]*?)(?:<\/details>|$)|\[TOOL:([^:]+):([^\]]+)\])/gi;
+  // 兼容两种思考格式：<details>...</details> 和 <think>...</think>
+  const allPattern = /(<details[^>]*style[^>]*>\s*<summary[^>]*>\s*Thinking\.\.\.\s*<\/summary>([\s\S]*?)(?:<\/details>|$)|<think[^>]*>([\s\S]*?)<\/think>|\[TOOL:([^:]+):([^\]]+)\])/gi;
   
   let lastIndex = 0;
   let match;
@@ -373,27 +374,47 @@ const parseMessageContent = (content, agentThoughts = []) => {
     }
     
     // 判断匹配到的是思考内容还是工具调用
-    if (match[0].startsWith('<details')) {
-      // 思考内容
-      segments.push({
-        type: 'thinking',
-        content: match[2] ? match[2].trim() : ''
-      });
-    } else if (match[0].startsWith('[TOOL:')) {
-      // 工具调用
-      const toolId = match[3];
-      const toolName = match[4];
-      const toolData = agentThoughts.find(t => t.id === toolId);
-      
-      segments.push({
-        type: 'tool',
-        data: toolData || {
-          id: toolId,
-          tool: toolName,
-          tool_input: null,
-          observation: null
-        }
-      });
+    const matchType = match[0].startsWith('<details') ? 'details' :
+                     match[0].startsWith('<think') ? 'think' :
+                     match[0].startsWith('[TOOL:') ? 'tool' : 'unknown';
+    
+    switch (matchType) {
+      case 'details':
+        // <details> 格式的思考内容
+        segments.push({
+          type: 'thinking',
+          content: match[2] ? match[2].trim() : ''
+        });
+        break;
+        
+      case 'think':
+        // <think> 格式的思考内容
+        segments.push({
+          type: 'thinking',
+          content: match[3] ? match[3].trim() : ''
+        });
+        break;
+        
+      case 'tool':
+        // 工具调用
+        const toolId = match[4];
+        const toolName = match[5];
+        const toolData = agentThoughts.find(t => t.id === toolId);
+        
+        segments.push({
+          type: 'tool',
+          data: toolData || {
+            id: toolId,
+            tool: toolName,
+            tool_input: null,
+            observation: null
+          }
+        });
+        break;
+        
+      default:
+        console.warn('Unknown match type:', match[0]);
+        break;
     }
     
     lastIndex = allPattern.lastIndex;
