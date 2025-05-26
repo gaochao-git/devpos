@@ -40,8 +40,7 @@ class SQLAssistant extends Component {
       dify_url: props.defaultDifyUrl || '',
       dify_sql_asst_key: props.defaultDifyKey || '',
       login_user_name: props.defaultUser || '',
-      agentThoughts: [], // 添加思考过程状态
-      messageSegments: [], // 添加消息段落状态
+      agentThoughts: [] // 添加思考过程状态
     };
     
     this.inputRef = React.createRef();
@@ -164,11 +163,6 @@ class SQLAssistant extends Component {
       let assistantMessage = '';
       let newConversationId = null;
       let currentThoughts = [];
-      
-      // 创建消息段落数组，包含文本和工具调用，按照流的顺序排列
-      let messageSegments = [];
-      let lastPosition = 0;
-      let nextTextPosition = 0;
 
       try {
         while (true) {
@@ -187,39 +181,15 @@ class SQLAssistant extends Component {
                 
                 // 处理不同类型的事件
                 if (['message', 'agent_message'].includes(data.event)) {
-                  // 如果有新的文本内容，添加到消息段落中
+                  // 处理文本消息
                   if (data.answer && data.answer.length > 0) {
-                    const newText = data.answer;
-                    assistantMessage += newText;
-                    
-                    // 检查是否需要创建或更新文本段落
-                    const textSegmentIndex = messageSegments.findIndex(s => s.type === 'text');
-                    
-                    if (textSegmentIndex === -1) {
-                      // 创建新的文本段落
-                      messageSegments.push({
-                        type: 'text',
-                        position: nextTextPosition,
-                        content: assistantMessage
-                      });
-                    } else {
-                      // 更新现有文本段落
-                      messageSegments[textSegmentIndex].content = assistantMessage;
-                    }
-                    
-                    // 按位置排序所有段落
-                    messageSegments.sort((a, b) => a.position - b.position);
+                    assistantMessage += data.answer;
                   }
-                  
-                  this.throttledUpdateStreamingMessage(assistantMessage);
                 } else if (data.event === 'message_end') {
                   newConversationId = data.conversation_id;
                 } else if (data.event === 'agent_thought') {
-                  // 处理思考过程
-                  const thoughtIndex = currentThoughts.findIndex(t => t.id === data.id);
-                  
-                  if (thoughtIndex === -1) {
-                    // 新的思考
+                  // 处理工具调用，只有当observation不为空时才认为是完整的工具调用
+                  if (data.tool && data.observation) {
                     const newThought = {
                       id: data.id,
                       position: data.position,
@@ -231,68 +201,19 @@ class SQLAssistant extends Component {
                     
                     currentThoughts.push(newThought);
                     
-                    // 如果工具调用有完整信息，将其插入到消息段落中
-                    if (newThought.tool && newThought.observation) {
-                      // 按照位置顺序插入工具调用
-                      messageSegments.push({
-                        type: 'tool',
-                        position: newThought.position,
-                        data: newThought
-                      });
-                      
-                      // 更新下一个文本位置
-                      nextTextPosition = Math.max(nextTextPosition, newThought.position + 1);
-                      
-                      // 按位置排序所有段落
-                      messageSegments.sort((a, b) => a.position - b.position);
-                    }
-                  } else {
-                    // 更新现有思考
-                    currentThoughts[thoughtIndex] = {
-                      ...currentThoughts[thoughtIndex],
-                      thought: data.thought || currentThoughts[thoughtIndex].thought,
-                      tool: data.tool || currentThoughts[thoughtIndex].tool,
-                      tool_input: data.tool_input || currentThoughts[thoughtIndex].tool_input,
-                      observation: data.observation || currentThoughts[thoughtIndex].observation
-                    };
+                    // 添加工具标记到assistantMessage中
+                    assistantMessage += `\n[TOOL:${newThought.id}:${newThought.tool}]\n`;
+                    console.log('添加完整工具调用到assistantMessage:', assistantMessage);
                     
-                    // 如果工具调用完成，更新消息段落
-                    if (currentThoughts[thoughtIndex].tool && currentThoughts[thoughtIndex].observation) {
-                      // 查找是否已存在该工具的段落
-                      const segmentIndex = messageSegments.findIndex(s => 
-                        s.type === 'tool' && s.data.id === currentThoughts[thoughtIndex].id
-                      );
-                      
-                      if (segmentIndex === -1) {
-                        // 如果不存在，添加新段落
-                        messageSegments.push({
-                          type: 'tool',
-                          position: currentThoughts[thoughtIndex].position,
-                          data: currentThoughts[thoughtIndex]
-                        });
-                        
-                        // 更新下一个文本位置
-                        nextTextPosition = Math.max(nextTextPosition, currentThoughts[thoughtIndex].position + 1);
-                      } else {
-                        // 如果存在，更新段落
-                        messageSegments[segmentIndex].data = currentThoughts[thoughtIndex];
-                      }
-                      
-                      // 按位置排序所有段落
-                      messageSegments.sort((a, b) => a.position - b.position);
-                    }
+                    // 实时更新状态
+                    this.setState({ 
+                      agentThoughts: [...currentThoughts]
+                    });
                   }
-                  
-                  // 按位置排序思考
-                  currentThoughts.sort((a, b) => a.position - b.position);
-                  
-                  // 更新状态
-                  this.setState({ 
-                    agentThoughts: [...currentThoughts],
-                    // 将排序后的消息段落传递给流式消息组件
-                    messageSegments: [...messageSegments]
-                  });
                 }
+                
+                // 统一更新流式消息
+                this.throttledUpdateStreamingMessage(assistantMessage);
               } catch (e) {
                 console.warn('解析流式数据失败:', e);
               }
@@ -315,8 +236,7 @@ class SQLAssistant extends Component {
               type: 'assistant',
               content: assistantMessage,
               timestamp: new Date(),
-              thoughts: finalThoughts, // 保存思考过程
-              messageSegments: messageSegments // 保存消息段落
+              thoughts: finalThoughts // 保存思考过程
             }
           ],
           isStreaming: false,
@@ -324,8 +244,7 @@ class SQLAssistant extends Component {
           streamingId: null,
           conversation_id: newConversationId || this.state.conversation_id,
           streamingComplete: true,
-          agentThoughts: [], // 清空思考过程
-          messageSegments: [] // 清空消息段落
+          agentThoughts: [] // 清空思考过程
         });
       }
 
@@ -337,8 +256,7 @@ class SQLAssistant extends Component {
         currentStreamingMessage: '',
         streamingId: null,
         streamingComplete: true,
-        agentThoughts: [], // 清空思考过程
-        messageSegments: [] // 清空消息段落
+        agentThoughts: [] // 清空思考过程
       });
     }
   };
@@ -350,8 +268,7 @@ class SQLAssistant extends Component {
       streamingId: null,
       streamingComplete: true,
       isUserScrolling: false,
-      agentThoughts: [], // 清空思考过程
-      messageSegments: [] // 清空消息段落
+      agentThoughts: [] // 清空思考过程
     });
   };
 
@@ -729,15 +646,14 @@ class SQLAssistant extends Component {
           </Button>
         </div>
 
-        <MessageRenderer
+                <MessageRenderer
           ref={this.messageRendererRef}
           conversationHistory={conversationHistory}
           isStreaming={isStreaming}
           currentStreamingMessage={currentStreamingMessage}
           agentThoughts={agentThoughts}
-          messageSegments={this.state.messageSegments}
-          onCopySQL={this.handleCopySQL}
-          onApplySQL={this.handleApplySQL}
+          onCopySQL={this.handleCopySQL} 
+          onApplySQL={this.handleApplySQL} 
           onMouseEnter={this.handleMouseEnterChat}
           onMouseLeave={this.handleMouseLeaveChat}
           isUserBrowsing={this.state.isUserBrowsing}

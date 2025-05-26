@@ -244,8 +244,8 @@ const formatJsonString = (jsonStr) => {
 const ToolCallItem = React.memo(({ tool }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   
-  // 如果没有工具名称或没有观察结果，不显示
-  if (!tool.tool || !tool.observation) return null;
+  // 如果没有工具名称，不显示
+  if (!tool.tool) return null;
   
   return (
     <div style={{ marginBottom: '8px' }}>
@@ -271,6 +271,11 @@ const ToolCallItem = React.memo(({ tool }) => {
         }}>
           <Icon type="tool" style={{ marginRight: '4px' }} />
           工具调用: {tool.tool}
+          {!tool.observation && (
+            <span style={{ marginLeft: '8px', color: '#999', fontSize: '10px' }}>
+              (执行中...)
+            </span>
+          )}
         </Text>
         <Icon type={isExpanded ? 'up' : 'down'} style={{ fontSize: '12px', color: '#fa8c16' }} />
       </div>
@@ -305,7 +310,7 @@ const ToolCallItem = React.memo(({ tool }) => {
             </div>
           )}
           
-          {tool.observation && (
+          {tool.observation ? (
             <div>
               <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '2px' }}>
                 <Icon type="eye" style={{ marginRight: '4px' }} />
@@ -324,6 +329,18 @@ const ToolCallItem = React.memo(({ tool }) => {
                 </pre>
               </div>
             </div>
+          ) : (
+            <div style={{ 
+              backgroundColor: '#f0f0f0', 
+              padding: '8px', 
+              borderRadius: '2px', 
+              fontSize: '12px',
+              color: '#666',
+              textAlign: 'center',
+              fontStyle: 'italic'
+            }}>
+              工具正在执行中，请稍候...
+            </div>
           )}
         </div>
       )}
@@ -331,10 +348,66 @@ const ToolCallItem = React.memo(({ tool }) => {
   );
 });
 
+// 解析消息内容，分离文本和工具调用
+const parseMessageContent = (content, agentThoughts = []) => {
+  if (!content) return [];
+  
+  // 简单的调试信息
+  if (content.includes('[TOOL:')) {
+    console.log('发现工具标记在内容中:', content);
+    console.log('可用的agentThoughts:', agentThoughts);
+  }
+  
+  const segments = [];
+  const toolPattern = /\[TOOL:([^:]+):([^\]]+)\]/g;
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = toolPattern.exec(content)) !== null) {
+    // 添加工具调用前的文本
+    if (match.index > lastIndex) {
+      const textContent = content.slice(lastIndex, match.index).trim();
+      if (textContent) {
+        segments.push({
+          type: 'text',
+          content: textContent
+        });
+      }
+    }
+    
+    // 添加工具调用
+    const toolId = match[1];
+    const toolName = match[2];
+    const toolData = agentThoughts.find(t => t.id === toolId);
+    
+    if (toolData) {
+      segments.push({
+        type: 'tool',
+        data: toolData
+      });
+    }
+    
+    lastIndex = toolPattern.lastIndex;
+  }
+  
+  // 添加最后剩余的文本
+  if (lastIndex < content.length) {
+    const textContent = content.slice(lastIndex).trim();
+    if (textContent) {
+      segments.push({
+        type: 'text',
+        content: textContent
+      });
+    }
+  }
+  
+  return segments;
+};
+
 // 流式消息组件
-const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [], messageSegments = [] }) => {
-  // 过滤只有工具调用且有观察结果的思考
-  const toolCalls = agentThoughts.filter(t => t.tool && t.observation);
+const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [] }) => {
+  // 解析消息内容
+  const segments = parseMessageContent(currentMessage, agentThoughts);
   
   return (
     <List.Item style={{ padding: '8px 0', border: 'none' }}>
@@ -355,54 +428,28 @@ const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCop
           {!isComplete && <Spin size="small" />}
         </div>
         
-        {/* 按照消息流的顺序显示工具调用和文本内容 */}
-        {currentMessage ? (
+        {/* 按照流的顺序显示内容 */}
+        {segments.length > 0 ? (
           <div>
-            {/* 如果有消息段落，按顺序显示 */}
-            {messageSegments.length > 0 ? (
-              messageSegments.map((segment, index) => (
-                <React.Fragment key={index}>
-                  {segment.type === 'tool' && (
-                    <ToolCallItem tool={segment.data} />
-                  )}
-                  {segment.type === 'text' && (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      skipHtml={false}
-                      components={{
-                        ...markdownComponents,
-                        code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
-                      }}
-                    >
-                      {segment.content}
-                    </ReactMarkdown>
-                  )}
-                </React.Fragment>
-              ))
-            ) : (
-              <>
-                {/* 如果没有消息段落，则显示所有工具调用 */}
-                {toolCalls.length > 0 && (
-                  <div style={{ marginBottom: '12px' }}>
-                    {toolCalls.map((tool, index) => (
-                      <ToolCallItem key={index} tool={tool} />
-                    ))}
-                  </div>
+            {segments.map((segment, index) => (
+              <React.Fragment key={index}>
+                {segment.type === 'tool' && (
+                  <ToolCallItem tool={segment.data} />
                 )}
-                
-                {/* 显示消息内容 */}
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  skipHtml={false}
-                  components={{
-                    ...markdownComponents,
-                    code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
-                  }}
-                >
-                  {currentMessage}
-                </ReactMarkdown>
-              </>
-            )}
+                {segment.type === 'text' && (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    skipHtml={false}
+                    components={{
+                      ...markdownComponents,
+                      code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
+                    }}
+                  >
+                    {segment.content}
+                  </ReactMarkdown>
+                )}
+              </React.Fragment>
+            ))}
           </div>
         ) : (
           <div style={{ color: '#999', fontStyle: 'italic' }}>
@@ -416,9 +463,8 @@ const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCop
 
 // 优化的消息项组件
 const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
-  // 过滤只有工具调用且有观察结果的思考
-  const toolCalls = item.thoughts ? item.thoughts.filter(t => t.tool && t.observation) : [];
-  const messageSegments = item.messageSegments || [];
+  // 解析消息内容
+  const segments = item.type === 'assistant' ? parseMessageContent(item.content, item.thoughts || []) : [];
   
   return (
     <List.Item style={{ padding: '8px 0', border: 'none' }}>
@@ -454,9 +500,9 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
           </>
         ) : (
           <>
-            {/* 按照消息流的顺序显示工具调用和文本内容 */}
-            {messageSegments.length > 0 ? (
-              messageSegments.map((segment, index) => (
+            {/* 按照流的顺序显示内容 */}
+            {segments.length > 0 ? (
+              segments.map((segment, index) => (
                 <React.Fragment key={index}>
                   {segment.type === 'tool' && (
                     <ToolCallItem tool={segment.data} />
@@ -476,28 +522,16 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
                 </React.Fragment>
               ))
             ) : (
-              <>
-                {/* 如果没有消息段落，则显示所有工具调用 */}
-                {toolCalls.length > 0 && (
-                  <div style={{ marginBottom: '12px' }}>
-                    {toolCalls.map((tool, index) => (
-                      <ToolCallItem key={index} tool={tool} />
-                    ))}
-                  </div>
-                )}
-                
-                {/* 显示消息内容 */}
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  skipHtml={false}
-                  components={{
-                    ...markdownComponents,
-                    code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
-                  }}
-                >
-                  {item.content}
-                </ReactMarkdown>
-              </>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                skipHtml={false}
+                components={{
+                  ...markdownComponents,
+                  code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
+                }}
+              >
+                {item.content}
+              </ReactMarkdown>
             )}
           </>
         )}
@@ -597,7 +631,6 @@ class MessageRenderer extends Component {
       isStreaming = false,
       currentStreamingMessage = '',
       agentThoughts = [],
-      messageSegments = [],
       onCopySQL,
       onApplySQL,
       onMouseEnter,
@@ -666,7 +699,6 @@ class MessageRenderer extends Component {
               onCopySQL={onCopySQL}
               onApplySQL={onApplySQL}
               agentThoughts={agentThoughts}
-              messageSegments={messageSegments}
             />
           )}
         </div>
