@@ -645,6 +645,40 @@ onSorter = (a,b) => {
       ).catch(err=>message.error(err.message))
   }
 
+  //SQL美化功能
+  formatSql = () => {
+    if (!this.editor) {
+      return;
+    }
+    
+    const selectedText = this.editor.getSelection();
+    
+    if (selectedText && selectedText.trim()) {
+      // 如果有选中文本，只美化选中的部分
+      try {
+        const formattedSql = sqlFormatter.format(selectedText);
+        this.editor.replaceSelection(formattedSql);
+        message.success('选中SQL美化完成');
+      } catch (error) {
+        message.error('SQL美化失败：' + error.message);
+      }
+    } else {
+      // 如果没有选中文本，美化全部内容
+      try {
+        const allContent = this.editor.getValue();
+        if (allContent.trim()) {
+          const formattedSql = sqlFormatter.format(allContent);
+          this.setState({content: formattedSql});
+          message.success('全部SQL美化完成');
+        } else {
+          message.warning('没有可美化的SQL内容');
+        }
+      } catch (error) {
+        message.error('SQL美化失败：' + error.message);
+      }
+    }
+  };
+
   //获取SQL质量
   async getSqlScore() {
       let params = {
@@ -952,7 +986,7 @@ onSorter = (a,b) => {
                 />
                 <Button type="primary" size="small" loading={this.state.global_loading} onClick={()=> this.getTableData('query')}>执行</Button>
                 <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getTableData('explain')}>解释</Button>
-                <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({content:sqlFormatter.format(this.state.content)})}>美化</Button>
+                <Button type="dashed" size="small" style={{marginLeft:10}} onClick={this.formatSql}>美化</Button>
                 <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.getSqlScore()}>SQL质量</Button>
                 <Button type="dashed" size="small" style={{marginLeft:10}} onClick={()=> this.setState({sqlAssistantVisible: !this.state.sqlAssistantVisible})}>
                   {this.state.sqlAssistantVisible ? '关闭助手' : 'SQL助手'}
