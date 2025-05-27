@@ -843,7 +843,7 @@ onSorter = (a,b) => {
     // 如果当前编辑器有内容，添加换行
     if (this.state.content) {
       this.setState({
-        content: this.state.content + '\n' + sql,
+        content: this.state.content + '\n\n' + sql,
         sql: sql
       }, () => {
         if (execute) {
