@@ -163,6 +163,7 @@ class SQLAssistant extends Component {
       let assistantMessage = '';
       let newConversationId = null;
       let currentThoughts = [];
+      let buffer = '';
 
       try {
         while (true) {
@@ -170,12 +171,15 @@ class SQLAssistant extends Component {
           
           if (done || !this.state.isStreaming) break;
 
-          const chunk = decoder.decode(value);
-          for (const line of chunk.split('\n')) {
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          
+          for (const line of lines) {
             if (line.startsWith('data: ')) {
               try {
                 const dataStr = line.slice(6).trim();
-                if (dataStr === '[DONE]') break;
+                if (dataStr === '[DONE]' || !dataStr) continue;
                 
                 const data = JSON.parse(dataStr);
                 

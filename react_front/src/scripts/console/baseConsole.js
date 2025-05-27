@@ -998,7 +998,7 @@ onSorter = (a,b) => {
                       }
                       style={{width:180,marginLeft:2}}
                       value={this.state.cluster_name}
-                      onChange={e=>this.getClusterIns(e)}
+                      onChange={e=>this.setState({sqlAssistantVisible:false},()=>this.getClusterIns(e))}
                   >
                       {this.state.cluster_name_list.map(record =>{
                           return <Option value={record.cluster_name} key={record.cluster_name}>{record.cluster_name}</Option>
@@ -1012,7 +1012,7 @@ onSorter = (a,b) => {
                       }
                       style={{width:200,marginLeft:2}}
                       value={this.state.instance_name}
-                      onChange={e=>this.setState({instance_name:e},()=>this.getSchema())}
+                      onChange={e=>this.setState({instance_name:e, sqlAssistantVisible:false},()=>this.getSchema())}
                   >
                       {this.state.instance_list.map(record =>{
                           return <Option value={record.instance_name} key={record.instance_name}>{record.instance_name}({record.instance_role})</Option>
@@ -1028,7 +1028,7 @@ onSorter = (a,b) => {
                     }
                     style={{width:200,marginLeft:2}}
                     value={this.state.current_schema}
-                    onChange={e=>this.setState({current_schema:e},()=>this.getTable())}
+                    onChange={e=>this.setState({current_schema:e,sqlAssistantVisible:false},()=>this.getTable())}
     //                onDropdownVisibleChange={open=>open ?this.getSchema(): null}
                 >
                     {this.state.schema_list.map(record =>{
