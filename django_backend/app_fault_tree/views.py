@@ -872,6 +872,9 @@ class GetCluster(BaseView):
     
 
 class GetAllTableNamesAndComments(BaseView):
+    # 字符数阈值，超过此值才执行分表合并
+    CHAR_THRESHOLD = 32 * 10
+    
     def post(self, request):
         request_body = self.request_params
         rules = {
@@ -890,14 +893,66 @@ class GetAllTableNamesAndComments(BaseView):
         ip = instance_name.split('_')[0]
         port = instance_name.split('_')[1]
         sql = f"SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.tables WHERE TABLE_SCHEMA='{schema_name}'"
-        print(sql)
+        logger.info(f"执行SQL: {sql}")
         results = db_helper.target_source_find_all(ip,port,sql)
         data = results.get('data')
+        
+        # 处理分表合并逻辑
+        if data:
+            # 计算字符数量
+            total_chars = sum(len(row.get('TABLE_NAME', '') or '') + len(row.get('TABLE_COMMENT', '') or '') for row in data)
+            logger.info(f"数据字数: {total_chars} 字符，阈值: {self.CHAR_THRESHOLD}")
+            
+            # 只有超过阈值才执行分组
+            if total_chars > self.CHAR_THRESHOLD:
+                logger.info("数据字数过多，执行分表合并")
+                data = self._process_table_grouping(data)
+            else:
+                logger.info("数据字数适中，使用原始结果")
+        
         return self.my_response({
             "status": "ok",
             "data": data,
             "message": "获取库中所有表名和表备注成功"
         })
+    
+    def _process_table_grouping(self, data):
+        """处理表分组逻辑"""
+        grouped_tables = {}
+        
+        # 分组处理
+        for row in data:
+            table_name = row.get('TABLE_NAME', '')
+            table_comment = row.get('TABLE_COMMENT', '')
+            
+            prefix, suffix = self._parse_table_name(table_name)
+            key = prefix if suffix else table_name
+            
+            if key not in grouped_tables:
+                grouped_tables[key] = {'numbers': [], 'comment': table_comment, 'is_partitioned': bool(suffix)}
+            
+            if suffix:
+                grouped_tables[key]['numbers'].append(suffix)
+        
+        # 生成最终结果
+        return sorted([self._format_table_entry(key, value) for key, value in grouped_tables.items()], 
+                     key=lambda x: x['TABLE_NAME'])
+    
+    def _parse_table_name(self, table_name):
+        """解析表名，返回前缀和数字后缀"""
+        parts = table_name.split('_')
+        if len(parts) >= 2 and parts[-1].isdigit():
+            return '_'.join(parts[:-1]), parts[-1]
+        return table_name, None
+    
+    def _format_table_entry(self, key, value):
+        """格式化表条目"""
+        if not value['is_partitioned']:
+            return {'TABLE_NAME': key, 'TABLE_COMMENT': value['comment']}
+        
+        numbers = sorted(value['numbers'])
+        table_name = f"{key}_{numbers[0]}" if len(numbers) == 1 else f"{key}_[{numbers[0]}-{numbers[-1]}]"
+        return {'TABLE_NAME': table_name, 'TABLE_COMMENT': value['comment']}
     
 
 class GetTableStructures(BaseView):
