@@ -36,19 +36,31 @@ const markdownComponents = {
               </div>
             )}
             
-            <pre style={{ 
-              margin: 0, 
-              padding: '12px',
-              backgroundColor: '#fff',
-              fontSize: '14px',
-              fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-              overflow: lineCount > 10 ? 'auto' : 'visible',
-              maxHeight: maxHeight,
-              lineHeight: '1.5',
-              whiteSpace: 'pre',
-              overflowX: 'auto',
-              width: '100%'
-            }}>
+            <pre 
+              ref={(el) => {
+                // 流式输出时自动滚动到底部
+                if (el && props.isStreaming) {
+                  setTimeout(() => {
+                    if (el) {
+                      el.scrollTop = el.scrollHeight;
+                    }
+                  }, 0);
+                }
+              }}
+              style={{ 
+                margin: 0, 
+                padding: '12px',
+                backgroundColor: '#fff',
+                fontSize: '14px',
+                fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                overflow: lineCount > 10 ? 'auto' : 'visible',
+                maxHeight: maxHeight,
+                lineHeight: '1.5',
+                whiteSpace: 'pre',
+                overflowX: 'auto',
+                width: '100%'
+              }}
+            >
               <code
                 className={className}
                 style={{
@@ -530,7 +542,7 @@ const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCop
                     skipHtml={false}
                     components={{
                       ...markdownComponents,
-                      code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
+                      code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL, isStreaming: !isComplete })
                     }}
                   >
                     {segment.content}
@@ -604,7 +616,7 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
                       skipHtml={false}
                       components={{
                         ...markdownComponents,
-                        code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
+                        code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL, isStreaming: false })
                       }}
                     >
                       {segment.content}
@@ -618,7 +630,7 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
                 skipHtml={false}
                 components={{
                   ...markdownComponents,
-                  code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL })
+                  code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL, isStreaming: false })
                 }}
               >
                 {item.content}
