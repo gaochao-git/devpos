@@ -265,14 +265,42 @@ class SQLAssistant extends Component {
   };
 
   handleStopStreaming = () => {
-    this.setState({
-      isStreaming: false,
-      currentStreamingMessage: '',
-      streamingId: null,
-      streamingComplete: true,
-      isUserScrolling: false,
-      agentThoughts: [] // 清空思考过程
-    });
+    const { currentStreamingMessage, streamingId, agentThoughts } = this.state;
+    
+    // 如果有正在生成的内容，保存到历史记录中
+    if (currentStreamingMessage.trim()) {
+      const interruptedMessage = currentStreamingMessage + '\n\n---\n*[用户已打断输出]*';
+      
+      this.setState(prevState => ({
+        conversationHistory: [
+          ...prevState.conversationHistory,
+          {
+            id: streamingId,
+            type: 'assistant',
+            content: interruptedMessage,
+            timestamp: new Date(),
+            thoughts: [...agentThoughts], // 保存已有的思考过程
+            interrupted: true // 标记为被打断的消息
+          }
+        ],
+        isStreaming: false,
+        currentStreamingMessage: '',
+        streamingId: null,
+        streamingComplete: true,
+        isUserScrolling: false,
+        agentThoughts: [] // 清空思考过程
+      }));
+    } else {
+      // 如果没有内容，只清理状态
+      this.setState({
+        isStreaming: false,
+        currentStreamingMessage: '',
+        streamingId: null,
+        streamingComplete: true,
+        isUserScrolling: false,
+        agentThoughts: [] // 清空思考过程
+      });
+    }
   };
 
   handleClearHistory = () => {

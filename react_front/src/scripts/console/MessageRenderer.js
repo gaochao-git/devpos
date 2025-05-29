@@ -573,7 +573,8 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
         style={{ 
           width: '100%',
           backgroundColor: item.type === 'user' ? '#e6f7ff' : '#f6ffed',
-          border: item.type === 'user' ? '1px solid #91d5ff' : '1px solid #b7eb8f',
+          border: item.type === 'user' ? '1px solid #91d5ff' : 
+                  item.interrupted ? '1px solid #ff9c6e' : '1px solid #b7eb8f',
           boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
         }}
       >
@@ -581,6 +582,12 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
           <Text strong style={{ color: item.type === 'user' ? '#1890ff' : '#52c41a' }}>
             <Icon type={item.type === 'user' ? 'user' : 'robot'} style={{ marginRight: '4px' }} />
             {item.type === 'user' ? '你' : 'SQL助手'}
+            {item.interrupted && (
+              <Text type="secondary" style={{ fontSize: '12px', marginLeft: '8px', color: '#fa8c16' }}>
+                <Icon type="pause-circle" style={{ marginRight: '2px' }} />
+                已打断
+              </Text>
+            )}
           </Text>
           <Text type="secondary" style={{ fontSize: '12px' }}>
             {item.timestamp.toLocaleTimeString()}
