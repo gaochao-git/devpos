@@ -5,6 +5,19 @@ import remarkGfm from 'remark-gfm';
 
 const { Text, Paragraph } = Typography;
 
+// 时间格式化方法
+const formatTimestamp = (timestamp) => {
+  return timestamp.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit', 
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).replace(/\//g, '-');
+};
+
 // 共享的 Markdown 样式配置
 const markdownComponents = {
   code: ({ node, inline, className, children, ...props }) => {
@@ -590,7 +603,7 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
             )}
           </Text>
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            {item.timestamp.toLocaleTimeString()}
+            {formatTimestamp(item.timestamp)}
           </Text>
         </div>
         {item.type === 'user' ? (
