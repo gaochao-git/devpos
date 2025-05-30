@@ -1033,7 +1033,7 @@ def get_datasets_dao(cluster_group_name, schema_name):
     :param schema_name: 数据库名
     :return:
     """
-    sql = """
+    sql = f"""
         SELECT 
             id,
             dataset_name,
@@ -1046,12 +1046,12 @@ def get_datasets_dao(cluster_group_name, schema_name):
             create_time,
             update_time
         FROM web_console_datasets 
-        WHERE cluster_group_name = %s AND schema_name = %s
+        WHERE cluster_group_name = '{cluster_group_name}' AND schema_name = '{schema_name}'
         ORDER BY update_time DESC
     """
     
     try:
-        ret = db_helper.find_all(sql, (cluster_group_name, schema_name))
+        ret = db_helper.find_all(sql)
         if ret['status'] == 'ok':
             return {"status": "ok", "message": "获取数据集列表成功", "data": ret['data']}
         else:
@@ -1073,32 +1073,24 @@ def create_dataset_dao(dataset_name, dataset_description, dataset_content, clust
     :return:
     """
     # 检查是否已存在相同名称的数据集
-    check_sql = """
+    check_sql = f"""
         SELECT 1 FROM web_console_datasets 
-        WHERE dataset_name = %s AND cluster_group_name = %s AND schema_name = %s
+        WHERE dataset_name = '{dataset_name}' AND cluster_group_name = '{cluster_group_name}' AND schema_name = '{schema_name}'
     """
     
     try:
-        check_ret = db_helper.find_all(check_sql, (dataset_name, cluster_group_name, schema_name))
+        check_ret = db_helper.find_all(check_sql)
         if check_ret['status'] == 'ok' and len(check_ret['data']) > 0:
             return {"status": "error", "message": "该数据集名称已存在"}
         
         # 创建数据集
-        insert_sql = """
+        insert_sql = f"""
             INSERT INTO web_console_datasets 
             (dataset_name, dataset_description, dataset_content, cluster_group_name, schema_name, create_by, update_by) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            VALUES ('{dataset_name}', '{dataset_description}', '{dataset_content}', '{cluster_group_name}', '{schema_name}', '{create_by}', '{create_by}')
         """
         
-        ret = db_helper.dml(insert_sql, (
-            dataset_name, 
-            dataset_description, 
-            dataset_content, 
-            cluster_group_name, 
-            schema_name, 
-            create_by, 
-            create_by
-        ))
+        ret = db_helper.dml(insert_sql)
         
         if ret['status'] == 'ok':
             return {"status": "ok", "message": "数据集创建成功"}
@@ -1121,12 +1113,12 @@ def update_dataset_dao(dataset_id, dataset_name, dataset_description, dataset_co
     :return:
     """
     # 检查数据集是否存在且用户有权限修改
-    check_sql = """
-        SELECT create_by FROM web_console_datasets WHERE id = %s
+    check_sql = f"""
+        SELECT create_by FROM web_console_datasets WHERE id = '{dataset_id}'
     """
     
     try:
-        check_ret = db_helper.find_all(check_sql, (dataset_id,))
+        check_ret = db_helper.find_all(check_sql)
         if check_ret['status'] != 'ok':
             return {"status": "error", "message": "查询数据集失败"}
             
@@ -1139,23 +1131,17 @@ def update_dataset_dao(dataset_id, dataset_name, dataset_description, dataset_co
             return {"status": "error", "message": "只有数据集创建者可以修改"}
         
         # 更新数据集
-        update_sql = """
+        update_sql = f"""
             UPDATE web_console_datasets 
-            SET dataset_name = %s, 
-                dataset_description = %s, 
-                dataset_content = %s, 
-                update_by = %s,
+            SET dataset_name = '{dataset_name}', 
+                dataset_description = '{dataset_description}', 
+                dataset_content = '{dataset_content}', 
+                update_by = '{update_by}',
                 update_time = CURRENT_TIMESTAMP
-            WHERE id = %s
+            WHERE id = '{dataset_id}'
         """
         
-        ret = db_helper.dml(update_sql, (
-            dataset_name, 
-            dataset_description, 
-            dataset_content, 
-            update_by, 
-            dataset_id
-        ))
+        ret = db_helper.dml(update_sql)
         
         if ret['status'] == 'ok':
             return {"status": "ok", "message": "数据集更新成功"}
@@ -1175,12 +1161,12 @@ def delete_dataset_dao(dataset_id, user_name):
     :return:
     """
     # 检查数据集是否存在且用户有权限删除
-    check_sql = """
-        SELECT create_by FROM web_console_datasets WHERE id = %s
+    check_sql = f"""
+        SELECT create_by FROM web_console_datasets WHERE id = '{dataset_id}'
     """
     
     try:
-        check_ret = db_helper.find_all(check_sql, (dataset_id,))
+        check_ret = db_helper.find_all(check_sql)
         if check_ret['status'] != 'ok':
             return {"status": "error", "message": "查询数据集失败"}
             
@@ -1193,11 +1179,11 @@ def delete_dataset_dao(dataset_id, user_name):
             return {"status": "error", "message": "只有数据集创建者可以删除"}
         
         # 删除数据集
-        delete_sql = """
-            DELETE FROM web_console_datasets WHERE id = %s
+        delete_sql = f"""
+            DELETE FROM web_console_datasets WHERE id = '{dataset_id}'
         """
         
-        ret = db_helper.dml(delete_sql, (dataset_id,))
+        ret = db_helper.dml(delete_sql)
         
         if ret['status'] == 'ok':
             return {"status": "ok", "message": "数据集删除成功"}
