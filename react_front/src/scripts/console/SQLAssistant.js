@@ -45,7 +45,16 @@ class SQLAssistant extends Component {
       agentThoughts: [], // 添加思考过程状态
       
       // 数据集管理相关状态
-      showDatasetManager: false
+      showDatasetManager: false,
+      
+      // 新的选择器相关状态
+      showUnifiedSelector: false,
+      selectedCategory: 'tables', // 'tables' 或 'datasets'
+      datasets: [],
+      loadingDatasets: false,
+      datasetSearchKeyword: '',
+      selectedDataset: null,
+      useDatasetContext: false
     };
     
     this.inputRef = React.createRef();
@@ -108,7 +117,7 @@ class SQLAssistant extends Component {
 
   // 发送消息并处理流式响应
   handleSendMessage = async () => {
-    const { inputValue, instance, database, selectedTables, conversation_id, dify_url, dify_sql_asst_key, login_user_name } = this.state;
+    const { inputValue, instance, database, selectedTables, conversation_id, dify_url, dify_sql_asst_key, login_user_name, selectedDataset, useDatasetContext } = this.state;
     
     if (!inputValue.trim()) {
       message.warning('请输入问题');
@@ -120,15 +129,26 @@ class SQLAssistant extends Component {
       return;
     }
 
-    // 将实例名、数据库名和表名与用户问题拼接为一个完整的查询
-    const tables = selectedTables.length > 0 ? `，表名: ${selectedTables.join(', ')}` : '';
-    const completeQuery = `实例: ${instance}, 数据库: ${database}${tables}。问题: ${inputValue}`;
+    // 构建查询内容和上下文信息
+    let completeQuery = '';
+    let contextInfo = '';
+
+    if (useDatasetContext && selectedDataset) {
+      // 使用数据集上下文，也包含实例和数据库信息
+      completeQuery = `实例: ${instance}, 数据库: ${database}, 数据集信息:\n${selectedDataset.dataset_content}\n\n用户问题: ${inputValue}`;
+      contextInfo = `实例: ${instance}, 数据库: ${database}, 数据集: ${selectedDataset.dataset_name}`;
+    } else {
+      // 使用表名上下文
+      const tables = selectedTables.length > 0 ? `，表名: ${selectedTables.join(', ')}` : '';
+      completeQuery = `实例: ${instance}, 数据库: ${database}${tables}。问题: ${inputValue}`;
+      contextInfo = `实例: ${instance}, 数据库: ${database}${tables ? tables : ''}`;
+    }
 
     const userMessage = {
       id: Date.now(),
       type: 'user',
       content: inputValue,
-      contextInfo: `实例: ${instance}, 数据库: ${database}${tables ? tables : ''}`,
+      contextInfo: contextInfo,
       timestamp: new Date()
     };
 
@@ -319,7 +339,12 @@ class SQLAssistant extends Component {
       isLoadingHistory: false,
       hasMoreConversations: false,
       selectedConversation: null,
-      lastConversationId: null
+      lastConversationId: null,
+      
+      // 清空数据集选择
+      selectedDataset: null,
+      useDatasetContext: false,
+      selectedTables: []
     });
   };
 
@@ -458,7 +483,11 @@ class SQLAssistant extends Component {
     this.setState(prevState => ({
       selectedTables: prevState.selectedTables.includes(table) 
         ? prevState.selectedTables.filter(t => t !== table)
-        : [...prevState.selectedTables, table]
+        : [...prevState.selectedTables, table],
+      
+      // 选择表时清空数据集
+      selectedDataset: null,
+      useDatasetContext: false
     }));
   };
 
@@ -526,7 +555,11 @@ class SQLAssistant extends Component {
         selectedTables: [...new Set([
           ...prevState.selectedTables,
           ...filteredTables
-        ])]
+        ])],
+        
+        // 选择表时清空数据集
+        selectedDataset: null,
+        useDatasetContext: false
       }));
     }
   };
@@ -534,6 +567,61 @@ class SQLAssistant extends Component {
   // 处理分页变化
   handleTablePageChange = (page) => {
     this.setState({ currentTablePage: page });
+  };
+
+  // 获取数据集列表
+  fetchDatasets = async () => {
+    const { instance, database } = this.state;
+    if (!instance || !database) return [];
+
+    this.setState({ loadingDatasets: true });
+    try {
+      const response = await MyAxios.post('/web_console/v1/get_datasets/', {
+        cluster_group_name: instance,
+        schema_name: database
+      });
+      
+      if (response.data.status === 'ok') {
+        this.setState({ datasets: response.data.data });
+        return response.data.data;
+      } else {
+        message.error(response.data.message);
+        return [];
+      }
+    } catch (error) {
+      message.error('获取数据集列表失败');
+      console.error(error);
+      return [];
+    } finally {
+      this.setState({ loadingDatasets: false });
+    }
+  };
+
+  // 选择数据集
+  handleSelectDataset = (dataset) => {
+    this.setState({
+      selectedDataset: dataset,
+      useDatasetContext: true,
+      selectedTables: [], // 清空表选择
+      showUnifiedSelector: false
+    });
+    message.success(`已选择数据集: ${dataset.dataset_name}`);
+  };
+
+  // 切换分类
+  handleCategoryChange = async (category) => {
+    this.setState({ selectedCategory: category });
+    if (category === 'datasets' && this.state.datasets.length === 0) {
+      await this.fetchDatasets();
+    }
+  };
+
+  // 跳转到数据集管理
+  handleGoToDatasetManager = () => {
+    this.setState({ 
+      showUnifiedSelector: false,
+      showDatasetManager: true 
+    });
   };
 
   render() {
@@ -559,6 +647,15 @@ class SQLAssistant extends Component {
       currentTablePage,
       isSearching,
       agentThoughts, // 添加思考过程
+      
+      // 新的选择器状态
+      showUnifiedSelector,
+      selectedCategory,
+      datasets,
+      loadingDatasets,
+      datasetSearchKeyword,
+      selectedDataset,
+      useDatasetContext
     } = this.state;
 
     // 获取过滤后的表格
@@ -574,80 +671,243 @@ class SQLAssistant extends Component {
     const startIndex = (currentTablePage - 1) * tablePageSize;
     const paginatedTables = filteredTables.slice(startIndex, startIndex + tablePageSize);
 
-    const tableSelector = (
-      <div style={{ width: '300px' }}>
+    // 统一选择器组件
+    const unifiedSelector = (
+      <div style={{ width: '500px', height: '400px', display: 'flex' }}>
+        {/* 左侧分类选择 */}
         <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          marginBottom: '16px', 
-          gap: '8px',
-          flexWrap: 'wrap'
+          width: '120px', 
+          backgroundColor: '#f5f5f5', 
+          borderRight: '1px solid #d9d9d9',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
-          <Input.Search
-            placeholder="搜索表名"
-            value={searchTableValue}
-            onChange={e => this.handleSearchTable(e.target.value)}
-            style={{ width: 'calc(100% - 180px)' }}
-            size="small"
-            loading={isSearching}
-          />
-          <Button 
-            size="small" 
-            onClick={this.handleSelectAllTables}
-            style={{ height: '24px', lineHeight: '22px', width: '80px' }}
-            type={isAllSelected ? 'primary' : 'default'}
+          <div 
+            style={{
+              padding: '12px',
+              cursor: 'pointer',
+              backgroundColor: selectedCategory === 'tables' ? '#1890ff' : 'transparent',
+              color: selectedCategory === 'tables' ? '#fff' : '#333',
+              borderBottom: '1px solid #d9d9d9',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '12px'
+            }}
+            onClick={() => this.handleCategoryChange('tables')}
           >
-            {isAllSelected ? '取消全选' : '全选'}
-          </Button>
-          <Button 
-            size="small" 
-            onClick={this.handleClearAllTables}
-            disabled={selectedTables.length === 0}
-            style={{ height: '24px', lineHeight: '22px', width: '80px' }}
+            <Icon type="table" />
+            <span>数据源</span>
+          </div>
+          <div 
+            style={{
+              padding: '12px',
+              cursor: 'pointer',
+              backgroundColor: selectedCategory === 'datasets' ? '#1890ff' : 'transparent',
+              color: selectedCategory === 'datasets' ? '#fff' : '#333',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '12px'
+            }}
+            onClick={() => this.handleCategoryChange('datasets')}
           >
-            清空选择
-          </Button>
+            <Icon type="database" />
+            <span>AI数据集</span>
+          </div>
         </div>
-        <div style={{ marginBottom: '8px', fontSize: '12px', color: '#666' }}>
-          {`当前选中 ${selectedTables.length} 个表${searchTableValue ? `，过滤显示 ${filteredTables.length} 个表` : ''}`}
-        </div>
-        <div style={{ height: '400px', overflow: 'hidden' }}>
-          
-              <List
-                dataSource={paginatedTables}
-                renderItem={(table) => (
-                  <List.Item
-                    onClick={() => this.handleTableSelect(table)}
-                    style={{
-                      cursor: 'pointer',
-                      backgroundColor: selectedTables.includes(table) ? '#e6f7ff' : 'transparent',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <Checkbox checked={selectedTables.includes(table)} style={{ marginRight: '8px' }} />
-                    {table}
-                  </List.Item>
-                )}
-                style={{ maxHeight: 340, overflow: 'auto' }}
-              />
-              <div style={{ 
-                padding: '8px', 
-                textAlign: 'center',
-                borderTop: '1px solid #f0f0f0'
-              }}>
-                <Pagination
-                  size="small"
-                  current={currentTablePage}
-                  pageSize={tablePageSize}
-                  total={filteredTables.length}
-                  onChange={this.handleTablePageChange}
-                  showSizeChanger={false}
-                  showQuickJumper
-                />
-              </div>
+
+        {/* 右侧内容区域 */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* 搜索框 */}
+          <div style={{ padding: '12px', borderBottom: '1px solid #f0f0f0' }}>
+            <Input.Search
+              placeholder={selectedCategory === 'tables' ? '搜索表名' : '搜索数据集'}
+              value={selectedCategory === 'tables' ? searchTableValue : datasetSearchKeyword}
+              onChange={e => {
+                if (selectedCategory === 'tables') {
+                  this.handleSearchTable(e.target.value);
+                } else {
+                  this.setState({ datasetSearchKeyword: e.target.value });
+                }
+              }}
+              size="small"
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          {/* 列表内容 */}
+          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            {selectedCategory === 'tables' ? (
+              // 表列表
+              <>
+                <div style={{ padding: '8px 12px', fontSize: '12px', color: '#666', borderBottom: '1px solid #f0f0f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>已选择 {selectedTables.length} 个表</span>
+                    <div>
+                      <Button 
+                        size="small" 
+                        type="link"
+                        onClick={this.handleSelectAllTables}
+                        style={{ padding: 0, marginRight: 8 }}
+                      >
+                        {isAllSelected ? '取消全选' : '全选'}
+                      </Button>
+                      <Button 
+                        size="small" 
+                        type="link"
+                        onClick={this.handleClearAllTables}
+                        disabled={selectedTables.length === 0}
+                        style={{ padding: 0 }}
+                      >
+                        清空
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
+                  <List
+                    dataSource={paginatedTables}
+                    renderItem={(table) => (
+                      <List.Item 
+                        style={{ 
+                          padding: '6px 8px', 
+                          border: 'none',
+                          borderRadius: '4px',
+                          margin: '2px 0',
+                          backgroundColor: selectedTables.includes(table) ? '#e6f7ff' : 'transparent',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => this.handleTableSelect(table)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                          <Icon 
+                            type="table" 
+                            style={{ 
+                              marginRight: '8px', 
+                              color: selectedTables.includes(table) ? '#1890ff' : '#8c8c8c' 
+                            }} 
+                          />
+                          <span style={{ 
+                            fontSize: '12px',
+                            color: selectedTables.includes(table) ? '#1890ff' : '#333'
+                          }}>
+                            {table}
+                          </span>
+                          {selectedTables.includes(table) && (
+                            <Icon 
+                              type="check" 
+                              style={{ 
+                                marginLeft: 'auto', 
+                                color: '#1890ff' 
+                              }} 
+                            />
+                          )}
+                        </div>
+                      </List.Item>
+                    )}
+                  />
+                  {filteredTables.length > tablePageSize && (
+                    <div style={{ textAlign: 'center', padding: '8px' }}>
+                      <Pagination
+                        size="small"
+                        current={currentTablePage}
+                        pageSize={tablePageSize}
+                        total={filteredTables.length}
+                        onChange={this.handleTablePageChange}
+                        showSizeChanger={false}
+                        simple
+                      />
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              // 数据集列表
+              <>
+                <div style={{ padding: '8px 12px', fontSize: '12px', color: '#666', borderBottom: '1px solid #f0f0f0' }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <span>数据集列表</span>
+                     <Button 
+                       size="small" 
+                       type="link"
+                       onClick={this.handleGoToDatasetManager}
+                       style={{ padding: 0, fontSize: '12px' }}
+                     >
+                       管理数据集
+                     </Button>
+                   </div>
+                 </div>
+                <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
+                  <List
+                    dataSource={(datasets || []).filter(dataset => {
+                      const keyword = datasetSearchKeyword || '';
+                      return dataset.dataset_name.toLowerCase().includes(keyword.toLowerCase()) ||
+                        (dataset.dataset_description && dataset.dataset_description.toLowerCase().includes(keyword.toLowerCase()));
+                    })}
+                    loading={loadingDatasets}
+                    renderItem={(dataset) => (
+                      <List.Item 
+                        style={{ 
+                          padding: '8px', 
+                          border: 'none',
+                          borderRadius: '4px',
+                          margin: '2px 0',
+                          backgroundColor: 'transparent',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => this.handleSelectDataset(dataset)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                          <Icon 
+                            type="database" 
+                            style={{ 
+                              marginRight: '8px', 
+                              color: '#52c41a' 
+                            }} 
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#333' }}>
+                              {dataset.dataset_name}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
+                              {dataset.dataset_description || '无描述'}
+                            </div>
+                          </div>
+                        </div>
+                      </List.Item>
+                    )}
+                    locale={{ emptyText: '暂无数据集，请先创建数据集' }}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 底部操作区 */}
+          <div style={{ 
+            padding: '12px', 
+            borderTop: '1px solid #f0f0f0',
+            backgroundColor: '#fafafa',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '12px', color: '#666' }}>
+              {selectedCategory === 'tables' 
+                ? `已选择 ${selectedTables.length} 个表` 
+                : '点击选择数据集'
+              }
+            </span>
+            <Button 
+              size="small"
+              type="primary"
+              disabled={selectedCategory === 'tables' && selectedTables.length === 0}
+              onClick={() => this.setState({ showUnifiedSelector: false })}
+            >
+              确认
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -666,14 +926,6 @@ class SQLAssistant extends Component {
           marginBottom: '8px', 
           gap: '8px' 
         }}>
-          <Button 
-            size="small" 
-            onClick={() => this.setState({ showDatasetManager: true })}
-            icon="database"
-            style={{ marginRight: 'auto' }}
-          >
-            数据集管理
-          </Button>
           <Button 
             size="small" 
             onClick={this.toggleHistoryDrawer}
@@ -785,20 +1037,20 @@ class SQLAssistant extends Component {
             gap: '4px' 
           }}>
             <Popover
-              content={tableSelector}
-              title="选择表"
+              content={unifiedSelector}
+              title="选择数据源或数据集"
               trigger="click"
-              visible={showTableSelector}
-              onVisibleChange={visible => this.setState({ showTableSelector: visible })}
+              visible={showUnifiedSelector}
+              onVisibleChange={visible => this.setState({ showUnifiedSelector: visible })}
               placement="topLeft"
-              overlayStyle={{ width: '320px' }}
+              overlayStyle={{ width: '520px' }}
             >
               <Button 
                 size="small" 
                 icon="plus" 
                 style={{ marginRight: '8px', flexShrink: 0 }}
               >
-                选择表
+                选择数据源
               </Button>
             </Popover>
             <div style={{ 
@@ -811,19 +1063,40 @@ class SQLAssistant extends Component {
               flexWrap: 'wrap',
               alignContent: 'flex-start'
             }}>
-              {selectedTables.map(table => (
+              {useDatasetContext && selectedDataset ? (
                 <Tag
-                  key={table}
                   closable
-                  onClose={(e) => {
-                    e.preventDefault();
-                    this.handleTableSelect(table);
+                  onClose={() => this.setState({ 
+                    selectedDataset: null, 
+                    useDatasetContext: false 
+                  })}
+                  style={{ 
+                    margin: '2px', 
+                    flexShrink: 0, 
+                    backgroundColor: '#52c41a', 
+                    color: '#fff',
+                    border: 'none'
                   }}
-                  style={{ margin: '2px', flexShrink: 0 }}
                 >
-                  {table}
+                  <Icon type="database" style={{ marginRight: '4px' }} />
+                  {selectedDataset.dataset_name}
                 </Tag>
-              ))}
+              ) : (
+                selectedTables.map(table => (
+                  <Tag
+                    key={table}
+                    closable
+                    onClose={(e) => {
+                      e.preventDefault();
+                      this.handleTableSelect(table);
+                    }}
+                    style={{ margin: '2px', flexShrink: 0 }}
+                  >
+                    <Icon type="table" style={{ marginRight: '4px' }} />
+                    {table}
+                  </Tag>
+                ))
+              )}
             </div>
           </div>
 
@@ -882,9 +1155,24 @@ class SQLAssistant extends Component {
             marginTop: '8px', 
             fontSize: '12px', 
             display: 'flex',
-            justifyContent: 'flex-end',
+            justifyContent: 'space-between',
             alignItems: 'center'
           }}>
+            <div style={{ color: '#999' }}>
+              {useDatasetContext && selectedDataset ? (
+                <span style={{ color: '#52c41a' }}>
+                  <Icon type="database" style={{ marginRight: '4px' }} />
+                  使用数据集: {selectedDataset.dataset_name}
+                </span>
+              ) : selectedTables.length > 0 ? (
+                <span style={{ color: '#1890ff' }}>
+                  <Icon type="table" style={{ marginRight: '4px' }} />
+                  已选择 {selectedTables.length} 个表
+                </span>
+              ) : (
+                '请选择数据源或数据集'
+              )}
+            </div>
             <div style={{ color: '#999' }}>
               按Enter发送，Shift+Enter换行
             </div>
