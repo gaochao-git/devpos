@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Input, Button, message, Tag, Select, Typography, Icon, Drawer, List, Checkbox, Popover, Pagination } from 'antd';
+import { Input, Button, message, Tag, Select, Typography, Icon, Drawer, List, Checkbox, Popover, Pagination, Modal } from 'antd';
 import MessageRenderer from './MessageRenderer';
 import DatasetManager from './DatasetManager';
 import MyAxios from '../common/interface';
@@ -54,7 +54,11 @@ class SQLAssistant extends Component {
       loadingDatasets: false,
       datasetSearchKeyword: '',
       selectedDataset: null,
-      useDatasetContext: false
+      useDatasetContext: false,
+      
+      // 数据集预览相关状态
+      previewDataset: null,
+      showDatasetPreview: false
     };
     
     this.inputRef = React.createRef();
@@ -624,6 +628,23 @@ class SQLAssistant extends Component {
     });
   };
 
+  // 预览数据集
+  handlePreviewDataset = (dataset, event) => {
+    event.stopPropagation(); // 阻止冒泡，避免触发选择
+    this.setState({
+      previewDataset: dataset,
+      showDatasetPreview: true
+    });
+  };
+
+  // 关闭预览
+  handleClosePreview = () => {
+    this.setState({
+      previewDataset: null,
+      showDatasetPreview: false
+    });
+  };
+
   render() {
     const { 
       inputValue, 
@@ -655,7 +676,11 @@ class SQLAssistant extends Component {
       loadingDatasets,
       datasetSearchKeyword,
       selectedDataset,
-      useDatasetContext
+      useDatasetContext,
+      
+      // 数据集预览相关状态
+      previewDataset,
+      showDatasetPreview
     } = this.state;
 
     // 获取过滤后的表格
@@ -874,6 +899,18 @@ class SQLAssistant extends Component {
                               {dataset.dataset_description || '无描述'}
                             </div>
                           </div>
+                          <Button
+                            type="link"
+                            size="small"
+                            icon="eye"
+                            onClick={(e) => this.handlePreviewDataset(dataset, e)}
+                            style={{ 
+                              padding: '0 4px',
+                              marginLeft: '8px',
+                              color: '#1890ff'
+                            }}
+                            title="预览数据集内容"
+                          />
                         </div>
                       </List.Item>
                     )}
@@ -1021,6 +1058,58 @@ class SQLAssistant extends Component {
           database={this.state.database}
           allTables={this.state.allTables}
         />
+
+        {/* 数据集预览模态框 */}
+        <Modal
+          title={`数据集预览: ${previewDataset ? previewDataset.dataset_name : ''}`}
+          visible={showDatasetPreview}
+          onCancel={this.handleClosePreview}
+          width={800}
+          footer={[
+            <Button key="close" onClick={this.handleClosePreview}>
+              关闭
+            </Button>,
+            <Button 
+              key="select" 
+              type="primary" 
+              onClick={() => {
+                this.handleSelectDataset(previewDataset);
+                this.handleClosePreview();
+              }}
+              disabled={!previewDataset}
+            >
+              选择此数据集
+            </Button>
+          ]}
+        >
+          {previewDataset && (
+            <div>
+              <div style={{ marginBottom: '16px' }}>
+                <Text strong>描述：</Text>
+                <div style={{ marginTop: '4px', color: '#666' }}>
+                  {previewDataset.dataset_description || '无描述'}
+                </div>
+              </div>
+              <div>
+                <Text strong>数据集内容：</Text>
+                <div style={{ 
+                  marginTop: '8px',
+                  padding: '12px',
+                  backgroundColor: '#f5f5f5',
+                  borderRadius: '4px',
+                  maxHeight: '400px',
+                  overflow: 'auto',
+                  fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                  fontSize: '12px',
+                  whiteSpace: 'pre-wrap',
+                  border: '1px solid #d9d9d9'
+                }}>
+                  {previewDataset.dataset_content}
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal>
 
         <div style={{
           flexShrink: 0,
