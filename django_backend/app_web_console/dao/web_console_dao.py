@@ -1113,7 +1113,7 @@ def create_dataset_dao(dataset_name, dataset_description, dataset_content, clust
         return check_ret
     if len(check_ret['data']) > 0:
         return {"status": "error", "message": "该数据集名称已存在"}
-    
+    dataset_content = pymysql.escape_string(dataset_content)
     # 创建数据集
     insert_sql = f"""
         INSERT INTO web_console_datasets 
@@ -1153,7 +1153,7 @@ def update_dataset_dao(dataset_id, dataset_name, dataset_description, dataset_co
     admin = dataset_info['admin_by']
     if creator != update_by and admin != update_by:
         return {"status": "error", "message": "只有数据集创建者或管理员可以修改"}
-    
+    dataset_content = pymysql.escape_string(dataset_content)
     # 更新数据集
     update_sql = f"""
         UPDATE web_console_datasets 
