@@ -1050,15 +1050,7 @@ def get_datasets_dao(cluster_group_name, database_name):
         ORDER BY update_time DESC
     """
     
-    try:
-        ret = db_helper.find_all(sql)
-        if ret['status'] == 'ok':
-            return {"status": "ok", "message": "获取数据集列表成功", "data": ret['data']}
-        else:
-            return {"status": "error", "message": f"获取数据集列表失败: {ret['message']}"}
-    except Exception as e:
-        logger.exception(e)
-        return {"status": "error", "message": f"获取数据集列表失败: {str(e)}"}
+    return db_helper.find_all(sql)
 
 
 def create_dataset_dao(dataset_name, dataset_description, dataset_content, cluster_group_name, database_name, create_by):
@@ -1078,28 +1070,20 @@ def create_dataset_dao(dataset_name, dataset_description, dataset_content, clust
         WHERE dataset_name = '{dataset_name}' AND cluster_group_name = '{cluster_group_name}' AND database_name = '{database_name}'
     """
     
-    try:
-        check_ret = db_helper.find_all(check_sql)
-        if check_ret['status'] == 'ok' and len(check_ret['data']) > 0:
-            return {"status": "error", "message": "该数据集名称已存在"}
-        
-        # 创建数据集
-        insert_sql = f"""
-            INSERT INTO web_console_datasets 
-            (dataset_name, dataset_description, dataset_content, cluster_group_name, database_name, create_by, update_by) 
-            VALUES ('{dataset_name}', '{dataset_description}', '{dataset_content}', '{cluster_group_name}', '{database_name}', '{create_by}', '{create_by}')
-        """
-        
-        ret = db_helper.dml(insert_sql)
-        
-        if ret['status'] == 'ok':
-            return {"status": "ok", "message": "数据集创建成功"}
-        else:
-            return {"status": "error", "message": f"数据集创建失败: {ret['message']}"}
-            
-    except Exception as e:
-        logger.exception(e)
-        return {"status": "error", "message": f"数据集创建失败: {str(e)}"}
+    check_ret = db_helper.find_all(check_sql)
+    if check_ret['status'] != 'ok':
+        return check_ret
+    if len(check_ret['data']) > 0:
+        return {"status": "error", "message": "该数据集名称已存在"}
+    
+    # 创建数据集
+    insert_sql = f"""
+        INSERT INTO web_console_datasets 
+        (dataset_name, dataset_description, dataset_content, cluster_group_name, database_name, create_by, update_by) 
+        VALUES ('{dataset_name}', '{dataset_description}', '{dataset_content}', '{cluster_group_name}', '{database_name}', '{create_by}', '{create_by}')
+    """
+    
+    return db_helper.dml(insert_sql)
 
 
 def update_dataset_dao(dataset_id, dataset_name, dataset_description, dataset_content, update_by):
@@ -1117,40 +1101,30 @@ def update_dataset_dao(dataset_id, dataset_name, dataset_description, dataset_co
         SELECT create_by FROM web_console_datasets WHERE id = '{dataset_id}'
     """
     
-    try:
-        check_ret = db_helper.find_all(check_sql)
-        if check_ret['status'] != 'ok':
-            return {"status": "error", "message": "查询数据集失败"}
-            
-        if len(check_ret['data']) == 0:
-            return {"status": "error", "message": "数据集不存在"}
+    check_ret = db_helper.find_all(check_sql)
+    if check_ret['status'] != 'ok':
+        return check_ret
         
-        # 权限检查：只有创建者可以修改
-        creator = check_ret['data'][0]['create_by']
-        if creator != update_by:
-            return {"status": "error", "message": "只有数据集创建者可以修改"}
-        
-        # 更新数据集
-        update_sql = f"""
-            UPDATE web_console_datasets 
-            SET dataset_name = '{dataset_name}', 
-                dataset_description = '{dataset_description}', 
-                dataset_content = '{dataset_content}', 
-                update_by = '{update_by}',
-                update_time = CURRENT_TIMESTAMP
-            WHERE id = '{dataset_id}'
-        """
-        
-        ret = db_helper.dml(update_sql)
-        
-        if ret['status'] == 'ok':
-            return {"status": "ok", "message": "数据集更新成功"}
-        else:
-            return {"status": "error", "message": f"数据集更新失败: {ret['message']}"}
-            
-    except Exception as e:
-        logger.exception(e)
-        return {"status": "error", "message": f"数据集更新失败: {str(e)}"}
+    if len(check_ret['data']) == 0:
+        return {"status": "error", "message": "数据集不存在"}
+    
+    # 权限检查：只有创建者可以修改
+    creator = check_ret['data'][0]['create_by']
+    if creator != update_by:
+        return {"status": "error", "message": "只有数据集创建者可以修改"}
+    
+    # 更新数据集
+    update_sql = f"""
+        UPDATE web_console_datasets 
+        SET dataset_name = '{dataset_name}', 
+            dataset_description = '{dataset_description}', 
+            dataset_content = '{dataset_content}', 
+            update_by = '{update_by}',
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = '{dataset_id}'
+    """
+    
+    return db_helper.dml(update_sql)
 
 
 def delete_dataset_dao(dataset_id, user_name):
@@ -1165,32 +1139,22 @@ def delete_dataset_dao(dataset_id, user_name):
         SELECT create_by FROM web_console_datasets WHERE id = '{dataset_id}'
     """
     
-    try:
-        check_ret = db_helper.find_all(check_sql)
-        if check_ret['status'] != 'ok':
-            return {"status": "error", "message": "查询数据集失败"}
-            
-        if len(check_ret['data']) == 0:
-            return {"status": "error", "message": "数据集不存在"}
+    check_ret = db_helper.find_all(check_sql)
+    if check_ret['status'] != 'ok':
+        return check_ret
         
-        # 权限检查：只有创建者可以删除
-        creator = check_ret['data'][0]['create_by']
-        if creator != user_name:
-            return {"status": "error", "message": "只有数据集创建者可以删除"}
-        
-        # 删除数据集
-        delete_sql = f"""
-            DELETE FROM web_console_datasets WHERE id = '{dataset_id}'
-        """
-        
-        ret = db_helper.dml(delete_sql)
-        
-        if ret['status'] == 'ok':
-            return {"status": "ok", "message": "数据集删除成功"}
-        else:
-            return {"status": "error", "message": f"数据集删除失败: {ret['message']}"}
-            
-    except Exception as e:
-        logger.exception(e)
-        return {"status": "error", "message": f"数据集删除失败: {str(e)}"}
+    if len(check_ret['data']) == 0:
+        return {"status": "error", "message": "数据集不存在"}
+    
+    # 权限检查：只有创建者可以删除
+    creator = check_ret['data'][0]['create_by']
+    if creator != user_name:
+        return {"status": "error", "message": "只有数据集创建者可以删除"}
+    
+    # 删除数据集
+    delete_sql = f"""
+        DELETE FROM web_console_datasets WHERE id = '{dataset_id}'
+    """
+    
+    return db_helper.dml(delete_sql)
 
