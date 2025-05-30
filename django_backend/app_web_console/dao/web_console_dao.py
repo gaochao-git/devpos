@@ -1026,11 +1026,12 @@ class TableGroupingManager:
         # TODO: 实现自定义规则的添加逻辑
         pass
 
-def get_datasets_dao(cluster_group_name, database_name):
+def get_datasets_dao(cluster_group_name, database_name, user_name):
     """
-    获取数据集列表
+    获取数据集列表(包含个人数据集和团队共享数据集)
     :param cluster_group_name: 集群组名
     :param database_name: 数据库名
+    :param user_name: 用户名
     :return:
     """
     sql = f"""
@@ -1041,19 +1042,23 @@ def get_datasets_dao(cluster_group_name, database_name):
             dataset_content,
             cluster_group_name,
             database_name,
+            is_shared,
             create_by,
+            admin_by,
             update_by,
             create_time,
             update_time
         FROM web_console_datasets 
-        WHERE cluster_group_name = '{cluster_group_name}' AND database_name = '{database_name}'
-        ORDER BY update_time DESC
+        WHERE cluster_group_name = '{cluster_group_name}' 
+          AND database_name = '{database_name}'
+          AND (create_by = '{user_name}' OR is_shared = 1)
+        ORDER BY is_shared ASC, update_time DESC
     """
     
     return db_helper.find_all(sql)
 
 
-def create_dataset_dao(dataset_name, dataset_description, dataset_content, cluster_group_name, database_name, create_by):
+def create_dataset_dao(dataset_name, dataset_description, dataset_content, cluster_group_name, database_name, is_shared, create_by):
     """
     创建数据集
     :param dataset_name: 数据集名称
@@ -1061,6 +1066,7 @@ def create_dataset_dao(dataset_name, dataset_description, dataset_content, clust
     :param dataset_content: 数据集内容
     :param cluster_group_name: 集群组名
     :param database_name: 数据库名
+    :param is_shared: 是否团队共享(0:个人,1:团队共享)
     :param create_by: 创建人
     :return:
     """
@@ -1079,26 +1085,27 @@ def create_dataset_dao(dataset_name, dataset_description, dataset_content, clust
     # 创建数据集
     insert_sql = f"""
         INSERT INTO web_console_datasets 
-        (dataset_name, dataset_description, dataset_content, cluster_group_name, database_name, create_by, update_by) 
-        VALUES ('{dataset_name}', '{dataset_description}', '{dataset_content}', '{cluster_group_name}', '{database_name}', '{create_by}', '{create_by}')
+        (dataset_name, dataset_description, dataset_content, cluster_group_name, database_name, is_shared, create_by, admin_by, update_by) 
+        VALUES ('{dataset_name}', '{dataset_description}', '{dataset_content}', '{cluster_group_name}', '{database_name}', {is_shared}, '{create_by}', '{create_by}', '{create_by}')
     """
     
     return db_helper.dml(insert_sql)
 
 
-def update_dataset_dao(dataset_id, dataset_name, dataset_description, dataset_content, update_by):
+def update_dataset_dao(dataset_id, dataset_name, dataset_description, dataset_content, is_shared, update_by):
     """
     更新数据集
     :param dataset_id: 数据集ID
     :param dataset_name: 数据集名称
     :param dataset_description: 数据集描述
     :param dataset_content: 数据集内容
+    :param is_shared: 是否团队共享(0:个人,1:团队共享)
     :param update_by: 更新人
     :return:
     """
     # 检查数据集是否存在且用户有权限修改
     check_sql = f"""
-        SELECT create_by FROM web_console_datasets WHERE id = '{dataset_id}'
+        SELECT create_by, admin_by FROM web_console_datasets WHERE id = '{dataset_id}'
     """
     
     check_ret = db_helper.find_all(check_sql)
@@ -1108,10 +1115,12 @@ def update_dataset_dao(dataset_id, dataset_name, dataset_description, dataset_co
     if len(check_ret['data']) == 0:
         return {"status": "error", "message": "数据集不存在"}
     
-    # 权限检查：只有创建者可以修改
-    creator = check_ret['data'][0]['create_by']
-    if creator != update_by:
-        return {"status": "error", "message": "只有数据集创建者可以修改"}
+    # 权限检查：创建者或管理员可以修改
+    dataset_info = check_ret['data'][0]
+    creator = dataset_info['create_by']
+    admin = dataset_info['admin_by']
+    if creator != update_by and admin != update_by:
+        return {"status": "error", "message": "只有数据集创建者或管理员可以修改"}
     
     # 更新数据集
     update_sql = f"""
@@ -1119,6 +1128,7 @@ def update_dataset_dao(dataset_id, dataset_name, dataset_description, dataset_co
         SET dataset_name = '{dataset_name}', 
             dataset_description = '{dataset_description}', 
             dataset_content = '{dataset_content}', 
+            is_shared = {is_shared},
             update_by = '{update_by}',
             update_time = CURRENT_TIMESTAMP
         WHERE id = '{dataset_id}'
@@ -1136,7 +1146,7 @@ def delete_dataset_dao(dataset_id, user_name):
     """
     # 检查数据集是否存在且用户有权限删除
     check_sql = f"""
-        SELECT create_by FROM web_console_datasets WHERE id = '{dataset_id}'
+        SELECT create_by, admin_by FROM web_console_datasets WHERE id = '{dataset_id}'
     """
     
     check_ret = db_helper.find_all(check_sql)
@@ -1146,10 +1156,12 @@ def delete_dataset_dao(dataset_id, user_name):
     if len(check_ret['data']) == 0:
         return {"status": "error", "message": "数据集不存在"}
     
-    # 权限检查：只有创建者可以删除
-    creator = check_ret['data'][0]['create_by']
-    if creator != user_name:
-        return {"status": "error", "message": "只有数据集创建者可以删除"}
+    # 权限检查：创建者或管理员可以删除
+    dataset_info = check_ret['data'][0]
+    creator = dataset_info['create_by']
+    admin = dataset_info['admin_by']
+    if creator != user_name and admin != user_name:
+        return {"status": "error", "message": "只有数据集创建者或管理员可以删除"}
     
     # 删除数据集
     delete_sql = f"""
@@ -1157,4 +1169,73 @@ def delete_dataset_dao(dataset_id, user_name):
     """
     
     return db_helper.dml(delete_sql)
+
+
+def get_my_datasets_dao(cluster_group_name, database_name, user_name):
+    """
+    获取用户自己创建的数据集列表（用于管理页面）
+    :param cluster_group_name: 集群组名
+    :param database_name: 数据库名
+    :param user_name: 用户名
+    :return:
+    """
+    sql = f"""
+        SELECT 
+            id,
+            dataset_name,
+            dataset_description,
+            dataset_content,
+            cluster_group_name,
+            database_name,
+            is_shared,
+            create_by,
+            admin_by,
+            update_by,
+            create_time,
+            update_time
+        FROM web_console_datasets 
+        WHERE cluster_group_name = '{cluster_group_name}' 
+          AND database_name = '{database_name}'
+          AND create_by = '{user_name}'
+        ORDER BY update_time DESC
+    """
+    
+    return db_helper.find_all(sql)
+
+
+def transfer_admin_dao(dataset_id, new_admin, current_user):
+    """
+    转移数据集管理员权限
+    :param dataset_id: 数据集ID
+    :param new_admin: 新管理员用户名
+    :param current_user: 当前用户（必须是当前管理员）
+    :return:
+    """
+    # 检查数据集是否存在且用户有权限转移
+    check_sql = f"""
+        SELECT admin_by FROM web_console_datasets WHERE id = '{dataset_id}'
+    """
+    
+    check_ret = db_helper.find_all(check_sql)
+    if check_ret['status'] != 'ok':
+        return check_ret
+        
+    if len(check_ret['data']) == 0:
+        return {"status": "error", "message": "数据集不存在"}
+    
+    # 权限检查：只有当前管理员可以转移管理权
+    current_admin = check_ret['data'][0]['admin_by']
+    if current_admin != current_user:
+        return {"status": "error", "message": "只有当前管理员可以转移管理权"}
+    
+    # 转移管理员权限
+    transfer_sql = f"""
+        UPDATE web_console_datasets 
+        SET admin_by = '{new_admin}',
+            update_by = '{current_user}',
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = '{dataset_id}'
+    """
+    
+    return db_helper.dml(transfer_sql)
 
