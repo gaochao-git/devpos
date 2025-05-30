@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import { Input, Button, message, Tag, Select, Typography, Icon, Drawer, List, Checkbox, Popover, Pagination } from 'antd';
 import MessageRenderer from './MessageRenderer';
+import DatasetManager from './DatasetManager';
+import MyAxios from '../common/interface';
 const { TextArea } = Input;
 const { Option } = Select;
 const { Text } = Typography;
@@ -40,7 +42,10 @@ class SQLAssistant extends Component {
       dify_url: props.defaultDifyUrl || '',
       dify_sql_asst_key: props.defaultDifyKey || '',
       login_user_name: props.defaultUser || '',
-      agentThoughts: [] // 添加思考过程状态
+      agentThoughts: [], // 添加思考过程状态
+      
+      // 数据集管理相关状态
+      showDatasetManager: false
     };
     
     this.inputRef = React.createRef();
@@ -663,6 +668,14 @@ class SQLAssistant extends Component {
         }}>
           <Button 
             size="small" 
+            onClick={() => this.setState({ showDatasetManager: true })}
+            icon="database"
+            style={{ marginRight: 'auto' }}
+          >
+            数据集管理
+          </Button>
+          <Button 
+            size="small" 
             onClick={this.toggleHistoryDrawer}
             icon="history"
           >
@@ -748,6 +761,14 @@ class SQLAssistant extends Component {
             }
           />
         </Drawer>
+
+        <DatasetManager 
+          visible={this.state.showDatasetManager}
+          onCancel={() => this.setState({ showDatasetManager: false })}
+          instance={this.state.instance}
+          database={this.state.database}
+          allTables={this.state.allTables}
+        />
 
         <div style={{
           flexShrink: 0,
