@@ -26,8 +26,14 @@ urlpatterns = [
     path('v1/get_design_table_snap_shot/', web_console_controller.GetDesignTableSnapShotController.as_view(),kwargs={"access": RouterAccess.all}),  # 获取用户自身设计保存信息
     path('v1/get_target_table_info/', web_console_controller.GetTargetTableInfoController.as_view(),kwargs={"access": RouterAccess.all}),  # 获取用户自身设计保存信息
 
-
     # soar sql质量
     path('v1/get_sql_score/', web_console_controller.GetSqlScoreController.as_view(),kwargs={"access": RouterAccess.all}),
+    path('v1/get_all_table_names_and_comments/', web_console_controller.GetAllTableNamesAndComments.as_view(),kwargs={"access": RouterAccess.all}),
+    path('v1/get_table_structures/', web_console_controller.GetTableStructures.as_view(),kwargs={"access": RouterAccess.all}),  # 获取表结构，多表拼接表结构
 
+    # 数据集管理
+    path('v1/get_datasets/', web_console_controller.GetDatasetsController.as_view(),kwargs={"access": RouterAccess.all}),  # 获取数据集列表
+    path('v1/create_dataset/', web_console_controller.CreateDatasetController.as_view(),kwargs={"access": RouterAccess.all}),  # 创建数据集
+    path('v1/update_dataset/', web_console_controller.UpdateDatasetController.as_view(),kwargs={"access": RouterAccess.all}),  # 更新数据集
+    path('v1/delete_dataset/', web_console_controller.DeleteDatasetController.as_view(),kwargs={"access": RouterAccess.all}),  # 删除数据集
 ]

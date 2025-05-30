@@ -20,9 +20,7 @@ from .views import (
     GetESIndexFields,
     GetESMetrics,
     GetClusterServers,
-    GetCluster,
-    GetAllTableNamesAndComments,
-    GetTableStructures
+    GetCluster
 )
 
 urlpatterns = [
@@ -51,6 +49,4 @@ urlpatterns = [
     path('v1/get_es_metrics/', GetESMetrics.as_view()),
     path('v1/get_cluster/', GetCluster.as_view()),
     path('v1/get_cluster_servers/', GetClusterServers.as_view()),
-    path('v1/get_all_table_names_and_comments/', GetAllTableNamesAndComments.as_view()),
-    path('v1/get_table_structures/', GetTableStructures.as_view()),
 ]

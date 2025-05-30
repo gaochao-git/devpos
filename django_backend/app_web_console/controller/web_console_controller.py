@@ -338,3 +338,162 @@ class GetTableFrmController(BaseView):
         ret = web_console_dao.get_table_frm_dao(ip,port,schema_name,table_name)
         print(ret)
         return self.my_response(ret)
+    
+
+class GetAllTableNamesAndComments(BaseView):
+    def post(self, request):
+        request_body = self.request_params
+        rules = {
+            "instance_name": [Required],
+            "schema_name": [Required],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+                return self.my_response({
+                    "status": "error",
+                    "message": str(valid_ret.errors),
+                    "code": 400
+                })
+        instance_name = request_body.get('instance_name')
+        schema_name = request_body.get('schema_name')
+        ip = instance_name.split('_')[0]
+        port = instance_name.split('_')[1]
+        ret = web_console_dao.get_all_table_names_and_comments_dao(ip,port,schema_name)
+        return self.my_response(ret)
+    
+
+class GetTableStructures(BaseView):
+    def post(self, request):
+        request_body = self.request_params
+        rules = {
+            "instance_name": [Required],
+            "schema_name": [Required],
+            "table_names": []
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error","message": str(valid_ret.errors),"code": 400})
+        instance_name = request_body.get('instance_name').strip()
+        schema_name = request_body.get('schema_name').strip()
+        table_names = request_body.get('table_names')
+        if table_names: table_names = table_names.split(',')
+        ip = instance_name.split('_')[0]
+        port = instance_name.split('_')[1]
+        ret = web_console_dao.get_table_structures_dao(ip,port,schema_name,table_names)
+        return self.my_response(ret)
+
+
+class GetDatasetsController(BaseView):
+    def post(self, request):
+        """
+        获取数据集列表
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "cluster_group_name": [Required, Length(1, 64)],
+            "schema_name": [Required, Length(1, 64)],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        
+        cluster_group_name = request_body.get('cluster_group_name')
+        schema_name = request_body.get('schema_name')
+        
+        ret = web_console_dao.get_datasets_dao(cluster_group_name, schema_name)
+        return self.my_response(ret)
+
+
+class CreateDatasetController(BaseView):
+    def post(self, request):
+        """
+        创建数据集
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "dataset_name": [Required, Length(1, 128)],
+            "dataset_description": [Length(0, 128)],
+            "dataset_content": [Required, Length(1, 65535)],
+            "cluster_group_name": [Required, Length(1, 64)],
+            "schema_name": [Required, Length(1, 64)],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        
+        dataset_name = request_body.get('dataset_name')
+        dataset_description = request_body.get('dataset_description', '')
+        dataset_content = request_body.get('dataset_content')
+        cluster_group_name = request_body.get('cluster_group_name')
+        schema_name = request_body.get('schema_name')
+        create_by = self.request_user_info.get('username')
+        
+        ret = web_console_dao.create_dataset_dao(
+            dataset_name, 
+            dataset_description, 
+            dataset_content, 
+            cluster_group_name, 
+            schema_name, 
+            create_by
+        )
+        return self.my_response(ret)
+
+
+class UpdateDatasetController(BaseView):
+    def post(self, request):
+        """
+        更新数据集
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "dataset_id": [Required, InstanceOf(int)],
+            "dataset_name": [Required, Length(1, 128)],
+            "dataset_description": [Length(0, 128)],
+            "dataset_content": [Required, Length(1, 65535)],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        
+        dataset_id = request_body.get('dataset_id')
+        dataset_name = request_body.get('dataset_name')
+        dataset_description = request_body.get('dataset_description', '')
+        dataset_content = request_body.get('dataset_content')
+        update_by = self.request_user_info.get('username')
+        
+        ret = web_console_dao.update_dataset_dao(
+            dataset_id, 
+            dataset_name, 
+            dataset_description, 
+            dataset_content, 
+            update_by
+        )
+        return self.my_response(ret)
+
+
+class DeleteDatasetController(BaseView):
+    def post(self, request):
+        """
+        删除数据集
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "dataset_id": [Required, InstanceOf(int)],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        
+        dataset_id = request_body.get('dataset_id')
+        user_name = self.request_user_info.get('username')
+        
+        ret = web_console_dao.delete_dataset_dao(dataset_id, user_name)
+        return self.my_response(ret)

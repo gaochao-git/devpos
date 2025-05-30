@@ -502,7 +502,8 @@ def get_design_table_snap_shot_dao(use_name):
 #         for m in index_ret['data']:
 #             if m.get('Key_name') == n:
 #                 column_obj['index_type'] = "unique" if m.get('Non_unique') == 0 else "normal"
-#                 column_names = f"{column_names}`{m.get('Column_name')}`," if m.get('Sub_part') is None else f"{column_names}`{m.get('Column_name')}`({m.get('Sub_part')}),"
+#                 column_names = f"{column_names}`{m.get('Column_name')}`," if m.get(
+#                     'Sub_part') is None else f"{column_names}`{m.get('Column_name')}`({m.get('Sub_part')}),"
 #                 pos1 = pos1 + 1
 #                 index_column_dict = {"key": pos1}
 #                 index_column_dict["column_name"] = m.get('Column_name')
@@ -785,3 +786,425 @@ def get_table_frm_dao(ip,port,schema_name,table_name):
     sql = f"show create table {schema_name}.{table_name}"
     ret = db_helper.target_source_find_all(ip,port,sql)
     return ret
+
+def get_table_structures_dao(ip,port,schema_name,table_names):
+    """
+    获取表结构
+    :param ip: 数据库实例ip
+    :param port: 数据库实例port
+    :param schema_name: 数据库名
+    :param table_names: 表名列表
+    :return: 表结构
+    """
+    structures = []
+    for table_name in table_names:
+        # 获取表结构
+        table_name = table_name.strip()
+        sql = f"SHOW CREATE TABLE {schema_name}.{table_name}"
+        res = db_helper.target_source_find_all(ip, port, sql)  # 获取所有结果和错误信息
+        if res['status'] != "ok": return {"status": "error","message": res['message'],"code": 400}
+        structures.append(res['data'][0]['Create Table'])  # 表结构在 'Create Table' 列
+    return {"status": "ok","message": "获取表结构成功","data": structures}
+
+
+def get_all_table_names_and_comments_dao(ip,port,schema_name):
+    sql = f"SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.tables WHERE TABLE_SCHEMA='{schema_name}'"
+    results = db_helper.target_source_find_all(ip,port,sql)
+    data = results.get('data')
+    if data:
+        table_grouping_manager = TableGroupingManager()
+        data = table_grouping_manager.process_table_grouping(data)
+    return {"status": "ok","message": "获取表名和表备注成功","data": data}
+
+
+class TableGroupingManager:
+    """表分组管理器，用于处理分表的合并显示逻辑"""
+    
+    # 字符数阈值，超过此值才执行分表合并
+    CHAR_THRESHOLD = 32 * 10
+    
+    def __init__(self):
+        """初始化表分组管理器"""
+        pass
+    
+    def should_group_tables(self, data):
+        """判断是否需要执行分表合并
+        
+        Args:
+            data: 表数据列表
+            
+        Returns:
+            bool: 是否需要分组
+        """
+        if not data:
+            return False
+            
+        # 计算字符数量
+        total_chars = sum(
+            len(row.get('TABLE_NAME', '') or '') + len(row.get('TABLE_COMMENT', '') or '') 
+            for row in data
+        )
+        logger.info(f"数据字数: {total_chars} 字符，阈值: {self.CHAR_THRESHOLD}")
+        
+        return total_chars > self.CHAR_THRESHOLD
+    
+    def process_table_grouping(self, data):
+        """处理表分组逻辑
+        
+        Args:
+            data: 原始表数据列表
+            
+        Returns:
+            list: 处理后的表数据列表
+        """
+        if not data:
+            return data
+            
+        # 只有超过阈值才执行分组
+        if not self.should_group_tables(data):
+            logger.info("数据字数适中，使用原始结果")
+            return data
+            
+        logger.info("数据字数过多，执行分表合并")
+        grouped_tables = {}
+        
+        # 分组处理
+        for row in data:
+            table_name = row.get('TABLE_NAME', '')
+            table_comment = row.get('TABLE_COMMENT', '')
+            
+            prefix, suffixes = self._parse_table_name(table_name)
+            key = prefix if suffixes else table_name
+            
+            if key not in grouped_tables:
+                grouped_tables[key] = {
+                    'suffix_combinations': [], 
+                    'comment': table_comment, 
+                    'is_partitioned': bool(suffixes)
+                }
+            
+            if suffixes:
+                grouped_tables[key]['suffix_combinations'].append(suffixes)
+        
+        # 生成最终结果
+        return sorted(
+            [self._format_table_entry(key, value) for key, value in grouped_tables.items()], 
+            key=lambda x: x['TABLE_NAME']
+        )
+    
+    def _parse_table_name(self, table_name):
+        """解析表名，返回前缀和数字后缀列表
+        
+        Args:
+            table_name: 表名
+            
+        Returns:
+            tuple: (前缀, 数字后缀列表)，如果没有数字后缀则返回 (表名, None)
+        """
+        parts = table_name.split('_')
+        
+        # 从后往前找连续的数字部分
+        numeric_suffixes = []
+        non_numeric_parts = []
+        
+        # 倒序遍历parts，收集连续的数字部分
+        for i in range(len(parts) - 1, -1, -1):
+            if parts[i].isdigit():
+                numeric_suffixes.insert(0, parts[i])  # 插入到开头保持顺序
+            else:
+                non_numeric_parts = parts[:i+1]  # 剩余的非数字部分
+                break
+        
+        if numeric_suffixes:
+            prefix = '_'.join(non_numeric_parts)
+            return prefix, numeric_suffixes
+        
+        return table_name, None
+    
+    def _format_table_entry(self, key, value):
+        """格式化表条目
+        
+        Args:
+            key: 表名前缀
+            value: 包含suffix_combinations、comment、is_partitioned的字典
+            
+        Returns:
+            dict: 格式化后的表条目
+        """
+        if not value['is_partitioned']:
+            return {'TABLE_NAME': key, 'TABLE_COMMENT': value['comment']}
+        
+        suffix_combinations = value['suffix_combinations']
+        if not suffix_combinations:
+            return {'TABLE_NAME': key, 'TABLE_COMMENT': value['comment']}
+        
+        # 处理多级分表的格式化
+        formatted_suffixes = self._format_multi_level_suffixes(suffix_combinations)
+        
+        # 生成示例真实表名
+        example_table_name = self._generate_example_table_name(key, suffix_combinations)
+        
+        # 在表名后添加分表合并说明，使用 # 注释格式
+        table_name_with_comment = f"{key}_{formatted_suffixes} # 这种格式为分表合并，使用时需要用完整表名，如: {example_table_name}"
+            
+        return {'TABLE_NAME': table_name_with_comment, 'TABLE_COMMENT': value['comment']}
+    
+    def _generate_example_table_name(self, prefix, suffix_combinations):
+        """生成示例真实表名
+        
+        Args:
+            prefix: 表名前缀
+            suffix_combinations: 后缀组合列表
+            
+        Returns:
+            str: 示例表名
+        """
+        if not suffix_combinations:
+            return prefix
+            
+        # 取第一个后缀组合作为示例
+        first_combination = suffix_combinations[0]
+        example_suffixes = '_'.join(first_combination)
+        
+        return f"{prefix}_{example_suffixes}"
+    
+    def _format_multi_level_suffixes(self, suffix_combinations):
+        """格式化多级分表后缀
+        
+        Args:
+            suffix_combinations: 后缀组合列表，如 [['00', '01'], ['01', '02']]
+            
+        Returns:
+            str: 格式化后的后缀字符串，如 '[00-01]_[01-02]'
+        """
+        if not suffix_combinations:
+            return ""
+            
+        # 如果只有一个组合，直接处理
+        if len(suffix_combinations) == 1:
+            suffixes = suffix_combinations[0]
+            if len(suffixes) == 1:
+                return suffixes[0]
+            else:
+                # 多个后缀的情况，每个后缀位置分别处理
+                result_parts = []
+                for i in range(len(suffixes)):
+                    values = [combo[i] for combo in suffix_combinations if i < len(combo)]
+                    if len(set(values)) == 1:
+                        result_parts.append(values[0])
+                    else:
+                        sorted_values = sorted(set(values))
+                        result_parts.append(f"[{sorted_values[0]}-{sorted_values[-1]}]")
+                return '_'.join(result_parts)
+        
+        # 多个组合的情况，按位置分组处理
+        max_suffix_len = max(len(combo) for combo in suffix_combinations)
+        result_parts = []
+        
+        for i in range(max_suffix_len):
+            # 收集第i个位置的所有值
+            values = []
+            for combo in suffix_combinations:
+                if i < len(combo):
+                    values.append(combo[i])
+            
+            if values:
+                unique_values = sorted(set(values))
+                if len(unique_values) == 1:
+                    result_parts.append(unique_values[0])
+                else:
+                    result_parts.append(f"[{unique_values[0]}-{unique_values[-1]}]")
+        
+        return '_'.join(result_parts)
+    
+    def add_grouping_rule(self, rule_func):
+        """添加自定义分组规则（预留接口）
+        
+        Args:
+            rule_func: 自定义规则函数
+        """
+        # TODO: 实现自定义规则的添加逻辑
+        pass
+
+def get_datasets_dao(cluster_group_name, schema_name):
+    """
+    获取数据集列表
+    :param cluster_group_name: 集群组名
+    :param schema_name: 数据库名
+    :return:
+    """
+    sql = """
+        SELECT 
+            id,
+            dataset_name,
+            dataset_description,
+            dataset_content,
+            cluster_group_name,
+            schema_name,
+            create_by,
+            update_by,
+            create_time,
+            update_time
+        FROM web_console_datasets 
+        WHERE cluster_group_name = %s AND schema_name = %s
+        ORDER BY update_time DESC
+    """
+    
+    try:
+        ret = db_helper.find_all(sql, (cluster_group_name, schema_name))
+        if ret['status'] == 'ok':
+            return {"status": "ok", "message": "获取数据集列表成功", "data": ret['data']}
+        else:
+            return {"status": "error", "message": f"获取数据集列表失败: {ret['message']}"}
+    except Exception as e:
+        logger.exception(e)
+        return {"status": "error", "message": f"获取数据集列表失败: {str(e)}"}
+
+
+def create_dataset_dao(dataset_name, dataset_description, dataset_content, cluster_group_name, schema_name, create_by):
+    """
+    创建数据集
+    :param dataset_name: 数据集名称
+    :param dataset_description: 数据集描述
+    :param dataset_content: 数据集内容
+    :param cluster_group_name: 集群组名
+    :param schema_name: 数据库名
+    :param create_by: 创建人
+    :return:
+    """
+    # 检查是否已存在相同名称的数据集
+    check_sql = """
+        SELECT 1 FROM web_console_datasets 
+        WHERE dataset_name = %s AND cluster_group_name = %s AND schema_name = %s
+    """
+    
+    try:
+        check_ret = db_helper.find_all(check_sql, (dataset_name, cluster_group_name, schema_name))
+        if check_ret['status'] == 'ok' and len(check_ret['data']) > 0:
+            return {"status": "error", "message": "该数据集名称已存在"}
+        
+        # 创建数据集
+        insert_sql = """
+            INSERT INTO web_console_datasets 
+            (dataset_name, dataset_description, dataset_content, cluster_group_name, schema_name, create_by, update_by) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        ret = db_helper.dml(insert_sql, (
+            dataset_name, 
+            dataset_description, 
+            dataset_content, 
+            cluster_group_name, 
+            schema_name, 
+            create_by, 
+            create_by
+        ))
+        
+        if ret['status'] == 'ok':
+            return {"status": "ok", "message": "数据集创建成功"}
+        else:
+            return {"status": "error", "message": f"数据集创建失败: {ret['message']}"}
+            
+    except Exception as e:
+        logger.exception(e)
+        return {"status": "error", "message": f"数据集创建失败: {str(e)}"}
+
+
+def update_dataset_dao(dataset_id, dataset_name, dataset_description, dataset_content, update_by):
+    """
+    更新数据集
+    :param dataset_id: 数据集ID
+    :param dataset_name: 数据集名称
+    :param dataset_description: 数据集描述
+    :param dataset_content: 数据集内容
+    :param update_by: 更新人
+    :return:
+    """
+    # 检查数据集是否存在且用户有权限修改
+    check_sql = """
+        SELECT create_by FROM web_console_datasets WHERE id = %s
+    """
+    
+    try:
+        check_ret = db_helper.find_all(check_sql, (dataset_id,))
+        if check_ret['status'] != 'ok':
+            return {"status": "error", "message": "查询数据集失败"}
+            
+        if len(check_ret['data']) == 0:
+            return {"status": "error", "message": "数据集不存在"}
+        
+        # 权限检查：只有创建者可以修改
+        creator = check_ret['data'][0]['create_by']
+        if creator != update_by:
+            return {"status": "error", "message": "只有数据集创建者可以修改"}
+        
+        # 更新数据集
+        update_sql = """
+            UPDATE web_console_datasets 
+            SET dataset_name = %s, 
+                dataset_description = %s, 
+                dataset_content = %s, 
+                update_by = %s,
+                update_time = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """
+        
+        ret = db_helper.dml(update_sql, (
+            dataset_name, 
+            dataset_description, 
+            dataset_content, 
+            update_by, 
+            dataset_id
+        ))
+        
+        if ret['status'] == 'ok':
+            return {"status": "ok", "message": "数据集更新成功"}
+        else:
+            return {"status": "error", "message": f"数据集更新失败: {ret['message']}"}
+            
+    except Exception as e:
+        logger.exception(e)
+        return {"status": "error", "message": f"数据集更新失败: {str(e)}"}
+
+
+def delete_dataset_dao(dataset_id, user_name):
+    """
+    删除数据集
+    :param dataset_id: 数据集ID
+    :param user_name: 用户名
+    :return:
+    """
+    # 检查数据集是否存在且用户有权限删除
+    check_sql = """
+        SELECT create_by FROM web_console_datasets WHERE id = %s
+    """
+    
+    try:
+        check_ret = db_helper.find_all(check_sql, (dataset_id,))
+        if check_ret['status'] != 'ok':
+            return {"status": "error", "message": "查询数据集失败"}
+            
+        if len(check_ret['data']) == 0:
+            return {"status": "error", "message": "数据集不存在"}
+        
+        # 权限检查：只有创建者可以删除
+        creator = check_ret['data'][0]['create_by']
+        if creator != user_name:
+            return {"status": "error", "message": "只有数据集创建者可以删除"}
+        
+        # 删除数据集
+        delete_sql = """
+            DELETE FROM web_console_datasets WHERE id = %s
+        """
+        
+        ret = db_helper.dml(delete_sql, (dataset_id,))
+        
+        if ret['status'] == 'ok':
+            return {"status": "ok", "message": "数据集删除成功"}
+        else:
+            return {"status": "error", "message": f"数据集删除失败: {ret['message']}"}
+            
+    except Exception as e:
+        logger.exception(e)
+        return {"status": "error", "message": f"数据集删除失败: {str(e)}"}
+
