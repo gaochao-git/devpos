@@ -1026,11 +1026,11 @@ class TableGroupingManager:
         # TODO: 实现自定义规则的添加逻辑
         pass
 
-def get_datasets_dao(cluster_group_name, schema_name):
+def get_datasets_dao(cluster_group_name, database_name):
     """
     获取数据集列表
     :param cluster_group_name: 集群组名
-    :param schema_name: 数据库名
+    :param database_name: 数据库名
     :return:
     """
     sql = f"""
@@ -1040,13 +1040,13 @@ def get_datasets_dao(cluster_group_name, schema_name):
             dataset_description,
             dataset_content,
             cluster_group_name,
-            schema_name,
+            database_name,
             create_by,
             update_by,
             create_time,
             update_time
         FROM web_console_datasets 
-        WHERE cluster_group_name = '{cluster_group_name}' AND schema_name = '{schema_name}'
+        WHERE cluster_group_name = '{cluster_group_name}' AND database_name = '{database_name}'
         ORDER BY update_time DESC
     """
     
@@ -1061,21 +1061,21 @@ def get_datasets_dao(cluster_group_name, schema_name):
         return {"status": "error", "message": f"获取数据集列表失败: {str(e)}"}
 
 
-def create_dataset_dao(dataset_name, dataset_description, dataset_content, cluster_group_name, schema_name, create_by):
+def create_dataset_dao(dataset_name, dataset_description, dataset_content, cluster_group_name, database_name, create_by):
     """
     创建数据集
     :param dataset_name: 数据集名称
     :param dataset_description: 数据集描述
     :param dataset_content: 数据集内容
     :param cluster_group_name: 集群组名
-    :param schema_name: 数据库名
+    :param database_name: 数据库名
     :param create_by: 创建人
     :return:
     """
     # 检查是否已存在相同名称的数据集
     check_sql = f"""
         SELECT 1 FROM web_console_datasets 
-        WHERE dataset_name = '{dataset_name}' AND cluster_group_name = '{cluster_group_name}' AND schema_name = '{schema_name}'
+        WHERE dataset_name = '{dataset_name}' AND cluster_group_name = '{cluster_group_name}' AND database_name = '{database_name}'
     """
     
     try:
@@ -1086,8 +1086,8 @@ def create_dataset_dao(dataset_name, dataset_description, dataset_content, clust
         # 创建数据集
         insert_sql = f"""
             INSERT INTO web_console_datasets 
-            (dataset_name, dataset_description, dataset_content, cluster_group_name, schema_name, create_by, update_by) 
-            VALUES ('{dataset_name}', '{dataset_description}', '{dataset_content}', '{cluster_group_name}', '{schema_name}', '{create_by}', '{create_by}')
+            (dataset_name, dataset_description, dataset_content, cluster_group_name, database_name, create_by, update_by) 
+            VALUES ('{dataset_name}', '{dataset_description}', '{dataset_content}', '{cluster_group_name}', '{database_name}', '{create_by}', '{create_by}')
         """
         
         ret = db_helper.dml(insert_sql)
