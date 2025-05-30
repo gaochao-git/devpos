@@ -103,7 +103,7 @@ export class BaseConsole extends Component {
       isSending: false,
       nl_cancel: false,
       conversation_id: null,
-      login_user_name: 'system',
+      login_user_name: 'gaochao',
       dify_url: 'http://127.0.0.1',
       dify_sql_asst_key: 'app-E0zLopSWm7H89E5kWobFtiyC'
     }

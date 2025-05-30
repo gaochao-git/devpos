@@ -582,7 +582,7 @@ class SQLAssistant extends Component {
     try {
       const response = await MyAxios.post('/web_console/v1/get_datasets/', {
         cluster_group_name: instance,
-        schema_name: database
+        database_name: database
       });
       
       if (response.data.status === 'ok') {
@@ -894,9 +894,17 @@ class SQLAssistant extends Component {
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#333' }}>
                               {dataset.dataset_name}
+                              {dataset.is_shared === 1 && (
+                                <Tag color="green" size="small" style={{ marginLeft: 4 }}>
+                                  团队共享
+                                </Tag>
+                              )}
                             </div>
                             <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
                               {dataset.dataset_description || '无描述'}
+                            </div>
+                            <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
+                              管理员: {dataset.admin_by}
                             </div>
                           </div>
                           <Button
@@ -1057,6 +1065,7 @@ class SQLAssistant extends Component {
           instance={this.state.instance}
           database={this.state.database}
           allTables={this.state.allTables}
+          currentUser={this.state.login_user_name}
         />
 
         {/* 数据集预览模态框 */}
@@ -1084,6 +1093,25 @@ class SQLAssistant extends Component {
         >
           {previewDataset && (
             <div>
+              <div style={{ marginBottom: '16px' }}>
+                <Text strong>创建人：</Text>
+                <span style={{ marginLeft: '8px', color: '#666' }}>
+                  {previewDataset.create_by}
+                </span>
+              </div>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <Text strong>管理员：</Text>
+                <span style={{ marginLeft: '8px', color: '#666' }}>
+                  {previewDataset.admin_by}
+                </span>
+                {previewDataset.is_shared === 1 && (
+                  <Tag color="green" size="small" style={{ marginLeft: 8 }}>
+                    团队共享
+                  </Tag>
+                )}
+              </div>
+              
               <div style={{ marginBottom: '16px' }}>
                 <Text strong>描述：</Text>
                 <div style={{ marginTop: '4px', color: '#666' }}>

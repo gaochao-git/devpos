@@ -393,16 +393,41 @@ class GetDatasetsController(BaseView):
         request_body = self.request_params
         rules = {
             "cluster_group_name": [Required, Length(1, 64)],
-            "schema_name": [Required, Length(1, 64)],
+            "database_name": [Required, Length(1, 64)],
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid:
             return self.my_response({"status": "error", "message": str(valid_ret.errors)})
         
         cluster_group_name = request_body.get('cluster_group_name')
-        schema_name = request_body.get('schema_name')
+        database_name = request_body.get('database_name')
+        user_name = self.request_user_info.get('username')
         
-        ret = web_console_dao.get_datasets_dao(cluster_group_name, schema_name)
+        ret = web_console_dao.get_datasets_dao(cluster_group_name, database_name, user_name)
+        return self.my_response(ret)
+
+
+class GetManagedDatasetsController(BaseView):
+    def post(self, request):
+        """
+        获取用户管理的数据集列表（只返回admin_by是当前用户的数据集）
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "cluster_group_name": [Required, Length(1, 64)],
+            "database_name": [Required, Length(1, 64)],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        
+        cluster_group_name = request_body.get('cluster_group_name')
+        database_name = request_body.get('database_name')
+        user_name = self.request_user_info.get('username')
+        
+        ret = web_console_dao.get_managed_datasets_dao(cluster_group_name, database_name, user_name)
         return self.my_response(ret)
 
 
@@ -419,7 +444,8 @@ class CreateDatasetController(BaseView):
             "dataset_description": [Length(0, 128)],
             "dataset_content": [Required, Length(1, 65535)],
             "cluster_group_name": [Required, Length(1, 64)],
-            "schema_name": [Required, Length(1, 64)],
+            "database_name": [Required, Length(1, 64)],
+            "is_shared": [InstanceOf(int)],
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid:
@@ -429,7 +455,8 @@ class CreateDatasetController(BaseView):
         dataset_description = request_body.get('dataset_description', '')
         dataset_content = request_body.get('dataset_content')
         cluster_group_name = request_body.get('cluster_group_name')
-        schema_name = request_body.get('schema_name')
+        database_name = request_body.get('database_name')
+        is_shared = request_body.get('is_shared', 0)
         create_by = self.request_user_info.get('username')
         
         ret = web_console_dao.create_dataset_dao(
@@ -437,7 +464,8 @@ class CreateDatasetController(BaseView):
             dataset_description, 
             dataset_content, 
             cluster_group_name, 
-            schema_name, 
+            database_name,
+            is_shared,
             create_by
         )
         return self.my_response(ret)
@@ -456,6 +484,7 @@ class UpdateDatasetController(BaseView):
             "dataset_name": [Required, Length(1, 128)],
             "dataset_description": [Length(0, 128)],
             "dataset_content": [Required, Length(1, 65535)],
+            "is_shared": [InstanceOf(int)],
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid:
@@ -465,13 +494,15 @@ class UpdateDatasetController(BaseView):
         dataset_name = request_body.get('dataset_name')
         dataset_description = request_body.get('dataset_description', '')
         dataset_content = request_body.get('dataset_content')
+        is_shared = request_body.get('is_shared', 0)
         update_by = self.request_user_info.get('username')
         
         ret = web_console_dao.update_dataset_dao(
             dataset_id, 
             dataset_name, 
             dataset_description, 
-            dataset_content, 
+            dataset_content,
+            is_shared,
             update_by
         )
         return self.my_response(ret)
@@ -496,4 +527,28 @@ class DeleteDatasetController(BaseView):
         user_name = self.request_user_info.get('username')
         
         ret = web_console_dao.delete_dataset_dao(dataset_id, user_name)
+        return self.my_response(ret)
+
+
+class TransferAdminController(BaseView):
+    def post(self, request):
+        """
+        转移数据集管理员权限
+        :param request:
+        :return:
+        """
+        request_body = self.request_params
+        rules = {
+            "dataset_id": [Required, InstanceOf(int)],
+            "new_admin": [Required, Length(1, 64)],
+        }
+        valid_ret = validate(rules, request_body)
+        if not valid_ret.valid:
+            return self.my_response({"status": "error", "message": str(valid_ret.errors)})
+        
+        dataset_id = request_body.get('dataset_id')
+        new_admin = request_body.get('new_admin')
+        current_user = self.request_user_info.get('username')
+        
+        ret = web_console_dao.transfer_admin_dao(dataset_id, new_admin, current_user)
         return self.my_response(ret)

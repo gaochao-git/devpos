@@ -33,7 +33,9 @@ urlpatterns = [
 
     # 数据集管理
     path('v1/get_datasets/', web_console_controller.GetDatasetsController.as_view(),kwargs={"access": RouterAccess.all}),  # 获取数据集列表
+    path('v1/get_managed_datasets/', web_console_controller.GetManagedDatasetsController.as_view(),kwargs={"access": RouterAccess.all}),  # 获取用户管理的数据集列表
     path('v1/create_dataset/', web_console_controller.CreateDatasetController.as_view(),kwargs={"access": RouterAccess.all}),  # 创建数据集
     path('v1/update_dataset/', web_console_controller.UpdateDatasetController.as_view(),kwargs={"access": RouterAccess.all}),  # 更新数据集
     path('v1/delete_dataset/', web_console_controller.DeleteDatasetController.as_view(),kwargs={"access": RouterAccess.all}),  # 删除数据集
+    path('v1/transfer_admin/', web_console_controller.TransferAdminController.as_view(),kwargs={"access": RouterAccess.all}),  # 转移管理员权限
 ]

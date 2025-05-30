@@ -1058,6 +1058,38 @@ def get_datasets_dao(cluster_group_name, database_name, user_name):
     return db_helper.find_all(sql)
 
 
+def get_managed_datasets_dao(cluster_group_name, database_name, user_name):
+    """
+    获取用户管理的数据集列表(只返回admin_by是当前用户的数据集)
+    :param cluster_group_name: 集群组名
+    :param database_name: 数据库名
+    :param user_name: 用户名
+    :return:
+    """
+    sql = f"""
+        SELECT 
+            id,
+            dataset_name,
+            dataset_description,
+            dataset_content,
+            cluster_group_name,
+            database_name,
+            is_shared,
+            create_by,
+            admin_by,
+            update_by,
+            create_time,
+            update_time
+        FROM web_console_datasets 
+        WHERE cluster_group_name = '{cluster_group_name}' 
+          AND database_name = '{database_name}'
+          AND admin_by = '{user_name}'
+        ORDER BY update_time DESC
+    """
+    
+    return db_helper.find_all(sql)
+
+
 def create_dataset_dao(dataset_name, dataset_description, dataset_content, cluster_group_name, database_name, is_shared, create_by):
     """
     创建数据集

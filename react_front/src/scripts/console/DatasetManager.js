@@ -21,6 +21,7 @@ class DatasetManager extends Component {
       datasetName: '',
       datasetDescription: '',
       datasetContent: '',
+      isShared: false,  // 是否团队共享
       
       // 搜索
       searchKeyword: '',
@@ -30,9 +31,15 @@ class DatasetManager extends Component {
       searchTableKeyword: '',
       loadingTableStructures: false,
       
+      // 转移管理员相关
+      transferAdminModalVisible: false,
+      transferTargetUser: '',
+      transferDataset: null,
+      
       instance: props.instance,
       database: props.database,
       allTables: props.allTables || [],
+      currentUser: props.currentUser || '',
     };
   }
 
@@ -46,6 +53,22 @@ class DatasetManager extends Component {
     if (this.props.visible && !prevProps.visible) {
       this.fetchDatasets();
     }
+    
+    // 同步props变化到state
+    if (this.props.currentUser !== prevProps.currentUser) {
+      this.setState({ currentUser: this.props.currentUser });
+    }
+    
+    if (this.props.instance !== prevProps.instance || this.props.database !== prevProps.database) {
+      this.setState({ 
+        instance: this.props.instance,
+        database: this.props.database 
+      });
+    }
+    
+    if (this.props.allTables !== prevProps.allTables) {
+      this.setState({ allTables: this.props.allTables || [] });
+    }
   }
 
   // 获取数据集列表
@@ -55,9 +78,9 @@ class DatasetManager extends Component {
 
     this.setState({ loading: true });
     try {
-      const response = await MyAxios.post('/web_console/v1/get_datasets/', {
+      const response = await MyAxios.post('/web_console/v1/get_managed_datasets/', {
         cluster_group_name: instance,
-        schema_name: database
+        database_name: database
       });
       
       if (response.data.status === 'ok') {
@@ -170,6 +193,7 @@ class DatasetManager extends Component {
       datasetContent: '-- 请在此处输入表结构和业务注释\n-- 或者选择表并点击"获取表结构"按钮自动生成\n',
       datasetName: `${database}_new_dataset`,
       datasetDescription: '',
+      isShared: false,
       selectedTables: [],
       searchTableKeyword: ''
     });
@@ -177,7 +201,7 @@ class DatasetManager extends Component {
 
   // 保存数据集
   handleSaveDataset = async () => {
-    const { datasetName, datasetDescription, datasetContent } = this.state;
+    const { datasetName, datasetDescription, datasetContent, isShared } = this.state;
     const { instance, database } = this.props;
 
     if (!datasetName.trim()) {
@@ -196,7 +220,8 @@ class DatasetManager extends Component {
         dataset_description: datasetDescription,
         dataset_content: datasetContent,
         cluster_group_name: instance,
-        schema_name: database
+        database_name: database,
+        is_shared: isShared ? 1 : 0
       });
 
       if (response.data.status === 'ok') {
@@ -206,6 +231,7 @@ class DatasetManager extends Component {
           datasetName: '',
           datasetDescription: '',
           datasetContent: '',
+          isShared: false,
           selectedTables: []
         });
         this.fetchDatasets();
@@ -220,7 +246,7 @@ class DatasetManager extends Component {
 
   // 更新数据集
   handleUpdateDataset = async () => {
-    const { editingDataset, datasetName, datasetDescription, datasetContent } = this.state;
+    const { editingDataset, datasetName, datasetDescription, datasetContent, isShared } = this.state;
     
     if (!datasetName.trim()) {
       message.warning('请输入数据集名称');
@@ -237,7 +263,8 @@ class DatasetManager extends Component {
         dataset_id: editingDataset.id,
         dataset_name: datasetName,
         dataset_description: datasetDescription,
-        dataset_content: datasetContent
+        dataset_content: datasetContent,
+        is_shared: isShared ? 1 : 0
       });
 
       if (response.data.status === 'ok') {
@@ -247,7 +274,8 @@ class DatasetManager extends Component {
           editingDataset: null,
           datasetName: '',
           datasetDescription: '',
-          datasetContent: ''
+          datasetContent: '',
+          isShared: false
         });
         this.fetchDatasets();
       } else {
@@ -285,8 +313,50 @@ class DatasetManager extends Component {
       editingDataset: dataset,
       datasetName: dataset.dataset_name,
       datasetDescription: dataset.dataset_description,
-      datasetContent: dataset.dataset_content
+      datasetContent: dataset.dataset_content,
+      isShared: dataset.is_shared === 1
     });
+  };
+
+  // 显示转移管理员模态框
+  handleShowTransferAdmin = (dataset) => {
+    this.setState({
+      transferAdminModalVisible: true,
+      transferDataset: dataset,
+      transferTargetUser: ''
+    });
+  };
+
+  // 转移管理员权限
+  handleTransferAdmin = async () => {
+    const { transferDataset, transferTargetUser } = this.state;
+    
+    if (!transferTargetUser.trim()) {
+      message.warning('请输入目标用户名');
+      return;
+    }
+
+    try {
+      const response = await MyAxios.post('/web_console/v1/transfer_admin/', {
+        dataset_id: transferDataset.id,
+        new_admin: transferTargetUser
+      });
+
+      if (response.data.status === 'ok') {
+        message.success('管理员权限转移成功');
+        this.setState({
+          transferAdminModalVisible: false,
+          transferDataset: null,
+          transferTargetUser: ''
+        });
+        this.fetchDatasets();
+      } else {
+        message.error(response.data.message);
+      }
+    } catch (error) {
+      message.error('转移管理员权限失败');
+      console.error(error);
+    }
   };
 
   // 关闭创建模态框
@@ -296,6 +366,7 @@ class DatasetManager extends Component {
       datasetName: '',
       datasetDescription: '',
       datasetContent: '',
+      isShared: false,
       selectedTables: []
     });
   };
@@ -307,7 +378,8 @@ class DatasetManager extends Component {
       editingDataset: null,
       datasetName: '',
       datasetDescription: '',
-      datasetContent: ''
+      datasetContent: '',
+      isShared: false
     });
   };
 
@@ -321,11 +393,16 @@ class DatasetManager extends Component {
       datasetName,
       datasetDescription,
       datasetContent,
+      isShared,
       searchKeyword,
       selectedTables,
       allTables,
       searchTableKeyword,
-      loadingTableStructures
+      loadingTableStructures,
+      transferAdminModalVisible,
+      transferTargetUser,
+      transferDataset,
+      currentUser
     } = this.state;
 
     // 过滤数据集
@@ -344,18 +421,25 @@ class DatasetManager extends Component {
         title: '数据集名称',
         dataIndex: 'dataset_name',
         key: 'dataset_name',
-        width: '25%',
-        render: (text) => (
-          <Tooltip title={text}>
-            <span style={{ cursor: 'pointer' }}>{text}</span>
-          </Tooltip>
+        width: '20%',
+        render: (text, record) => (
+          <div>
+            <Tooltip title={text}>
+              <span style={{ cursor: 'pointer' }}>{text}</span>
+            </Tooltip>
+            {record.is_shared === 1 && (
+              <Tag color="green" size="small" style={{ marginLeft: 4 }}>
+                团队共享
+              </Tag>
+            )}
+          </div>
         )
       },
       {
         title: '描述',
         dataIndex: 'dataset_description',
         key: 'dataset_description',
-        width: '30%',
+        width: '25%',
         render: (text) => (
           <Tooltip title={text}>
             <span>{text || '无描述'}</span>
@@ -366,28 +450,47 @@ class DatasetManager extends Component {
         title: '创建人',
         dataIndex: 'create_by',
         key: 'create_by',
-        width: '15%'
+        width: '12%'
+      },
+      {
+        title: '管理员',
+        dataIndex: 'admin_by',
+        key: 'admin_by',
+        width: '12%',
+        render: (text, record) => (
+          <div>
+            <span>{text}</span>
+          </div>
+        )
       },
       {
         title: '创建时间',
         dataIndex: 'create_time',
         key: 'create_time',
-        width: '20%',
+        width: '16%',
         render: (text) => new Date(text).toLocaleString()
       },
       {
         title: '操作',
         key: 'action',
-        width: '10%',
+        width: 180,
+        fixed: 'right',
         render: (_, record) => (
-          <div>
+          <div style={{ display: 'flex', gap: '4px', whiteSpace: 'nowrap' }}>
             <Button 
               size="small" 
               onClick={() => this.handleEditDataset(record)}
-              style={{ marginRight: 8 }}
             >
               编辑
             </Button>
+            
+            <Button 
+              size="small" 
+              onClick={() => this.handleShowTransferAdmin(record)}
+            >
+              转移管理权
+            </Button>
+            
             <Popconfirm
               title="确定要删除这个数据集吗？"
               onConfirm={() => this.handleDeleteDataset(record.id)}
@@ -405,7 +508,7 @@ class DatasetManager extends Component {
       <>
         {/* 主模态框 */}
         <Modal
-          title="数据集管理"
+          title="我的数据集管理"
           visible={visible}
           onCancel={onCancel}
           width={1000}
@@ -432,6 +535,7 @@ class DatasetManager extends Component {
             dataSource={filteredDatasets}
             loading={loading}
             rowKey="id"
+            scroll={{ x: 800 }}
             pagination={{
               pageSize: 10,
               showSizeChanger: true,
@@ -469,6 +573,15 @@ class DatasetManager extends Component {
                     onChange={e => this.setState({ datasetDescription: e.target.value })}
                     placeholder="请输入数据集描述（可选）"
                   />
+                </Form.Item>
+                
+                <Form.Item label="共享设置">
+                  <Checkbox
+                    checked={isShared}
+                    onChange={e => this.setState({ isShared: e.target.checked })}
+                  >
+                    设为团队共享（团队成员都可以使用此数据集）
+                  </Checkbox>
                 </Form.Item>
               </Form>
 
@@ -534,7 +647,13 @@ class DatasetManager extends Component {
                 )}
 
                 {/* 表列表 */}
-                <div>
+                <div style={{ 
+                  height: '300px', 
+                  overflowY: 'auto',
+                  border: '1px solid #f0f0f0',
+                  borderRadius: '4px',
+                  padding: '8px'
+                }}>
                   <List
                     dataSource={filteredTables}
                     renderItem={(table) => (
@@ -549,7 +668,7 @@ class DatasetManager extends Component {
                       </List.Item>
                     )}
                     pagination={{
-                      pageSize: 100,
+                      pageSize: 50,
                       showSizeChanger: false,
                       showQuickJumper: false,
                       simple: true,
@@ -610,6 +729,15 @@ class DatasetManager extends Component {
               />
             </Form.Item>
             
+            <Form.Item label="共享设置">
+              <Checkbox
+                checked={isShared}
+                onChange={e => this.setState({ isShared: e.target.checked })}
+              >
+                设为团队共享（团队成员都可以使用此数据集）
+              </Checkbox>
+            </Form.Item>
+            
             <Form.Item label="数据集内容" required>
               <div style={{ marginBottom: 8 }}>
                 <span style={{ color: '#666', fontSize: '12px' }}>
@@ -624,6 +752,33 @@ class DatasetManager extends Component {
                 style={{ fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace' }}
               />
             </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* 转移管理员权限模态框 */}
+        <Modal
+          title={`转移管理员权限: ${transferDataset ? transferDataset.dataset_name : ''}`}
+          visible={transferAdminModalVisible}
+          onOk={this.handleTransferAdmin}
+          onCancel={() => this.setState({ 
+            transferAdminModalVisible: false, 
+            transferDataset: null, 
+            transferTargetUser: '' 
+          })}
+          okText="转移"
+          cancelText="取消"
+        >
+          <Form layout="vertical">
+            <Form.Item label="新管理员用户名" required>
+              <Input
+                value={transferTargetUser}
+                onChange={e => this.setState({ transferTargetUser: e.target.value })}
+                placeholder="请输入新管理员的用户名"
+              />
+            </Form.Item>
+            <div style={{ color: '#666', fontSize: '12px' }}>
+              注意：转移后您将失去对此数据集的管理权限
+            </div>
           </Form>
         </Modal>
       </>
