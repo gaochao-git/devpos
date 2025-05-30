@@ -697,7 +697,7 @@ class SQLAssistant extends Component {
             onClick={() => this.handleCategoryChange('tables')}
           >
             <Icon type="table" />
-            <span>数据源</span>
+            <span>数据表</span>
           </div>
           <div 
             style={{
@@ -1038,7 +1038,7 @@ class SQLAssistant extends Component {
           }}>
             <Popover
               content={unifiedSelector}
-              title="选择数据源或数据集"
+              title="选择数据表或AI数据集"
               trigger="click"
               visible={showUnifiedSelector}
               onVisibleChange={visible => this.setState({ showUnifiedSelector: visible })}
@@ -1050,7 +1050,7 @@ class SQLAssistant extends Component {
                 icon="plus" 
                 style={{ marginRight: '8px', flexShrink: 0 }}
               >
-                选择数据源
+                选择数据表或AI数据集
               </Button>
             </Popover>
             <div style={{ 
@@ -1170,7 +1170,7 @@ class SQLAssistant extends Component {
                   已选择 {selectedTables.length} 个表
                 </span>
               ) : (
-                '请选择数据源或数据集'
+                '请选表或AI数据集'
               )}
             </div>
             <div style={{ color: '#999' }}>
