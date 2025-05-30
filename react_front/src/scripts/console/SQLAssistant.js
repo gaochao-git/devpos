@@ -58,7 +58,11 @@ class SQLAssistant extends Component {
       
       // 数据集预览相关状态
       previewDataset: null,
-      showDatasetPreview: false
+      showDatasetPreview: false,
+      
+      // 数据集筛选状态
+      showSharedDatasets: true,   // 显示共享数据集
+      showOwnDatasets: true,      // 显示自己的数据集
     };
     
     this.inputRef = React.createRef();
@@ -680,7 +684,11 @@ class SQLAssistant extends Component {
       
       // 数据集预览相关状态
       previewDataset,
-      showDatasetPreview
+      showDatasetPreview,
+      
+      // 数据集筛选状态
+      showSharedDatasets,   // 显示共享数据集
+      showOwnDatasets,      // 显示自己的数据集
     } = this.state;
 
     // 获取过滤后的表格
@@ -862,13 +870,39 @@ class SQLAssistant extends Component {
                        管理数据集
                      </Button>
                    </div>
+                   
+                   {/* 筛选选项 */}
+                   <div style={{ marginTop: '8px', display: 'flex', gap: '12px' }}>
+                     <Checkbox
+                       checked={showSharedDatasets}
+                       onChange={(e) => this.setState({ showSharedDatasets: e.target.checked })}
+                       style={{ fontSize: '11px' }}
+                     >
+                       共享数据集
+                     </Checkbox>
+                     <Checkbox
+                       checked={showOwnDatasets}
+                       onChange={(e) => this.setState({ showOwnDatasets: e.target.checked })}
+                       style={{ fontSize: '11px' }}
+                     >
+                       我的数据集
+                     </Checkbox>
+                   </div>
                  </div>
                 <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
                   <List
                     dataSource={(datasets || []).filter(dataset => {
+                      // 关键词筛选
                       const keyword = datasetSearchKeyword || '';
-                      return dataset.dataset_name.toLowerCase().includes(keyword.toLowerCase()) ||
+                      const matchesKeyword = dataset.dataset_name.toLowerCase().includes(keyword.toLowerCase()) ||
                         (dataset.dataset_description && dataset.dataset_description.toLowerCase().includes(keyword.toLowerCase()));
+                      
+                      // 类型筛选：根据勾选框状态筛选
+                      const isShared = dataset.is_shared === 1;
+                      const isOwn = dataset.create_by === this.state.login_user_name;
+                      const matchesType = (showSharedDatasets && isShared) || (showOwnDatasets && isOwn);
+                      
+                      return matchesKeyword && matchesType;
                     })}
                     loading={loadingDatasets}
                     renderItem={(dataset) => (
