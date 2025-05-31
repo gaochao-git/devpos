@@ -77,12 +77,12 @@ class SQLAssistant extends Component {
     
     this.throttledUpdateStreamingMessage = this.throttle((message) => {
       this.setState({ currentStreamingMessage: message });
-    }, 200);
+    }, 16); // 约等于60fps的一帧时间
   }
 
-  // 优化的节流函数
+  // 优化的节流函数 - 使用requestAnimationFrame适配不同刷新率
   throttle = (func, wait) => {
-    let timeout = null;
+    let animationId = null;
     let previous = 0;
     
     return (...args) => {
@@ -91,25 +91,25 @@ class SQLAssistant extends Component {
       
       const later = () => {
         previous = now;
-        timeout = null;
+        animationId = null;
         func.apply(this, args);
       };
       
       if (remaining <= 0 || remaining > wait) {
-        if (timeout) {
-          clearTimeout(timeout);
-          timeout = null;
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+          animationId = null;
         }
         previous = now;
         func.apply(this, args);
-      } else if (!timeout) {
-        timeout = setTimeout(later, remaining);
+      } else if (!animationId) {
+        animationId = requestAnimationFrame(later);
       }
       
       return () => {
-        if (timeout) {
-          clearTimeout(timeout);
-          timeout = null;
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+          animationId = null;
           previous = 0;
         }
       };
