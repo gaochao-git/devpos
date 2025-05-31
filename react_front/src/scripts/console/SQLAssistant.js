@@ -737,6 +737,7 @@ class SQLAssistant extends Component {
         fontSize: '12px'
       }}>
         <div>节流状态: {this.ENABLE_THROTTLING ? '🟢 启用' : '🔴 禁用'}</div>
+        <div>流式memo: 🔴 已全部移除</div>
         <div>流式状态: {isStreaming ? '🟡 进行中' : '⚪ 空闲'}</div>
         <div>消息长度: {currentStreamingMessage?.length || 0}</div>
         <div>平台: {navigator.platform}</div>

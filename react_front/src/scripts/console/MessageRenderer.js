@@ -266,7 +266,7 @@ const formatJsonString = (jsonStr) => {
 };
 
 // 工具调用组件
-const ToolCallItem = React.memo(({ tool }) => {
+const ToolCallItem = ({ tool }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   
   // 如果没有工具名称，不显示
@@ -371,7 +371,7 @@ const ToolCallItem = React.memo(({ tool }) => {
       )}
     </div>
   );
-});
+};
 
 // 解析消息内容，分离文本、工具调用和思考内容
 const parseMessageContent = (content, agentThoughts = []) => {
@@ -480,7 +480,7 @@ const parseMessageContent = (content, agentThoughts = []) => {
 };
 
 // 思考内容组件
-const ThinkingItem = React.memo(({ content }) => {
+const ThinkingItem = ({ content }) => {
   const [isExpanded, setIsExpanded] = React.useState(true); // 默认展开
   
   return (
@@ -531,10 +531,10 @@ const ThinkingItem = React.memo(({ content }) => {
       )}
     </div>
   );
-});
+};
 
 // 流式消息组件
-const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [] }) => {
+const StreamingMessage = ({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [] }) => {
   console.log(`🖼️ [StreamingMessage渲染] 消息长度: ${currentMessage?.length || 0}, isComplete: ${isComplete}`);
   
   // 解析消息内容
@@ -595,7 +595,7 @@ const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCop
       </Card>
     </List.Item>
   );
-});
+};
 
 // 优化的消息项组件
 const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
