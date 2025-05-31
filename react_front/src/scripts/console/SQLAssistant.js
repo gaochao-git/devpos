@@ -170,6 +170,8 @@ class SQLAssistant extends Component {
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               try {
+                // 添加微小延时，解决Windows输出按块输出问题，具体暂停ms数值不是很大影响，但是确解决了一直按块输出的问题,这个位置改了好多天，终于解决了
+                await new Promise(resolve => setTimeout(resolve, 0));
                 const dataStr = line.slice(6).trim();
                 if (dataStr === '[DONE]' || !dataStr) continue;
                 
