@@ -111,6 +111,9 @@ class BaseView(APIView):
         :param access:
         :return:
         """
+        # 如果access为空列表(RouterAccess.no)，表示无需权限验证的公开接口
+        if not access.value:
+            return True
         user_role = self.request_user_info.get('user_role')
         return user_role in access.value
 
@@ -120,14 +123,30 @@ class BaseView(APIView):
         :param request:
         :return:
         """
-        bearer_token = request.META.get('HTTP_AUTHORIZATION')
-        token = bearer_token.split(' ')[1]
-        self.request_user_info = jwt_decode_handler(token)   # auth已经校验了,所以token肯定有效能获取到值
-        exp_timestamp = time.localtime(self.request_user_info['exp'])
-        orig_iat_timestamp = time.localtime(self.request_user_info['orig_iat'])
-        self.request_user_info['exp_format'] = time.strftime("%Y-%m-%d %H:%M:%S", exp_timestamp)
-        self.request_user_info['orig_iat_format'] = time.strftime("%Y-%m-%d %H:%M:%S", orig_iat_timestamp)
-        self.request_user_info['user_role'] = 'dba'    # 后续在用户信息中加入该角色动态获取
+        # 设置默认用户信息
+        self.request_user_info = {
+            'username': 'anonymous',
+            'user_role': 'common',
+            'exp': 0,
+            'orig_iat': 0,
+            'exp_format': '',
+            'orig_iat_format': ''
+        }
+        
+        try:
+            bearer_token = request.META.get('HTTP_AUTHORIZATION')
+            if bearer_token and 'Bearer ' in bearer_token:
+                token = bearer_token.split('Bearer ', 1)[1].strip()
+                self.request_user_info = jwt_decode_handler(token)
+                
+                exp_timestamp = time.localtime(self.request_user_info['exp'])
+                orig_iat_timestamp = time.localtime(self.request_user_info['orig_iat'])
+                self.request_user_info['exp_format'] = time.strftime("%Y-%m-%d %H:%M:%S", exp_timestamp)
+                self.request_user_info['orig_iat_format'] = time.strftime("%Y-%m-%d %H:%M:%S", orig_iat_timestamp)
+                self.request_user_info['user_role'] = 'dba'
+        except:
+            # 解析失败，继续使用默认用户信息
+            pass
 
     def _audit_log(self, ret_info):
         """

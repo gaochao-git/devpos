@@ -28,8 +28,8 @@ urlpatterns = [
 
     # soar sql质量
     path('v1/get_sql_score/', web_console_controller.GetSqlScoreController.as_view(),kwargs={"access": RouterAccess.all}),
-    path('v1/get_all_table_names_and_comments/', web_console_controller.GetAllTableNamesAndComments.as_view(),kwargs={"access": RouterAccess.all}),
-    path('v1/get_table_structures/', web_console_controller.GetTableStructures.as_view(),kwargs={"access": RouterAccess.all}),  # 获取表结构，多表拼接表结构
+    path('v1/get_all_table_names_and_comments/', web_console_controller.GetAllTableNamesAndComments.as_view(),kwargs={"access": RouterAccess.no}),
+    path('v1/get_table_structures/', web_console_controller.GetTableStructures.as_view(),kwargs={"access": RouterAccess.no}),  # 获取表结构，多表拼接表结构
 
     # 数据集管理
     path('v1/get_datasets/', web_console_controller.GetDatasetsController.as_view(),kwargs={"access": RouterAccess.all}),  # 获取数据集列表

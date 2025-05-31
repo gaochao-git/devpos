@@ -13,6 +13,7 @@ class RouterAccess(Enum):
     all = ['common', 'dba', 'admin']
     dba = ['dba', 'admin']
     admin = ['admin']
+    no = []  # 无需权限验证的公开接口
 
 
 urlpatterns = [
