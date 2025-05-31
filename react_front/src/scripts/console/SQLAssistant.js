@@ -221,6 +221,13 @@ class SQLAssistant extends Component {
                   // 处理文本消息
                   if (data.answer && data.answer.length > 0) {
                     assistantMessage += data.answer;
+                    
+                    // 直接使用requestAnimationFrame进行更新
+                    requestAnimationFrame(() => {
+                      if (this.state.isStreaming) {
+                        this.setState({ currentStreamingMessage: assistantMessage });
+                      }
+                    });
                   }
                 } else if (data.event === 'message_end') {
                   newConversationId = data.conversation_id;
@@ -244,6 +251,13 @@ class SQLAssistant extends Component {
                     // 实时更新状态
                     this.setState({ 
                       agentThoughts: [...currentThoughts]
+                    });
+                    
+                    // 直接使用requestAnimationFrame进行更新
+                    requestAnimationFrame(() => {
+                      if (this.state.isStreaming) {
+                        this.setState({ currentStreamingMessage: assistantMessage });
+                      }
                     });
                   }
                 }
