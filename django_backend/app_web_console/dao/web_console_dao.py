@@ -809,15 +809,8 @@ def get_table_structures_dao(ip,port,schema_name,table_names):
 
 def get_all_table_names_and_comments_dao(ip,port,schema_name):
     sql = f"SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.tables WHERE TABLE_SCHEMA='{schema_name}'"
-    results = db_helper.target_source_find_all(ip,port,sql)
-    data = results.get('data')
-    if data:
-        table_grouping_manager = TableGroupingManager()
-        data = table_grouping_manager.process_table_grouping(data)
-    return {"status": "ok","message": "获取表名和表备注成功","data": data}
+    return db_helper.target_source_find_all(ip,port,sql)
 
-
-class TableGroupingManager:
     """表分组管理器，用于处理分表的合并显示逻辑"""
     
     # 字符数阈值，超过此值才执行分表合并
