@@ -375,7 +375,12 @@ const ToolCallItem = React.memo(({ tool }) => {
 
 // 解析消息内容，分离文本、工具调用和思考内容
 const parseMessageContent = (content, agentThoughts = []) => {
-  if (!content) return [];
+  console.log(`🔍 [解析开始] 输入内容: "${content}", 长度: ${content?.length || 0}`);
+  
+  if (!content) {
+    console.log(`❌ [解析结束] 内容为空`);
+    return [];
+  }
 
   const segments = [];
   
@@ -386,12 +391,19 @@ const parseMessageContent = (content, agentThoughts = []) => {
   
   let lastIndex = 0;
   let match;
+  let matchCount = 0;
+  
+  console.log(`🔎 [正则匹配] 开始匹配特殊内容...`);
   
   while ((match = allPattern.exec(content)) !== null) {
+    matchCount++;
+    console.log(`🎯 [匹配${matchCount}] 位置: ${match.index}-${allPattern.lastIndex}, 内容: "${match[0]}"`);
+    
     // 添加前面的普通文本
     if (match.index > lastIndex) {
       const textContent = content.slice(lastIndex, match.index).trim();
       if (textContent) {
+        console.log(`📝 [添加文本] "${textContent}"`);
         segments.push({
           type: 'text',
           content: textContent
@@ -403,6 +415,8 @@ const parseMessageContent = (content, agentThoughts = []) => {
     const matchType = match[0].startsWith('<details') ? 'details' :
                      match[0].startsWith('<think') ? 'think' :
                      match[0].startsWith('[TOOL:') ? 'tool' : 'unknown';
+    
+    console.log(`🏷️ [匹配类型] ${matchType}`);
     
     switch (matchType) {
       case 'details':
@@ -446,9 +460,12 @@ const parseMessageContent = (content, agentThoughts = []) => {
     lastIndex = allPattern.lastIndex;
   }
   
+  console.log(`🔍 [正则完成] 共匹配${matchCount}个特殊内容, lastIndex: ${lastIndex}, 内容总长度: ${content.length}`);
+  
   // 添加最后剩余的文本
   if (lastIndex < content.length) {
     const textContent = content.slice(lastIndex).trim();
+    console.log(`📝 [最后文本] "${textContent}", 长度: ${textContent.length}`);
     if (textContent) {
       segments.push({
         type: 'text',
@@ -456,6 +473,8 @@ const parseMessageContent = (content, agentThoughts = []) => {
       });
     }
   }
+  
+  console.log(`✅ [解析完成] 总段数: ${segments.length}, 文本段: ${segments.filter(s => s.type === 'text').length}, 工具段: ${segments.filter(s => s.type === 'tool').length}, 思考段: ${segments.filter(s => s.type === 'thinking').length}`);
   
   return segments;
 };
