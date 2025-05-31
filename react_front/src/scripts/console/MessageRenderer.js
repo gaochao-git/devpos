@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { List, Card, Typography, Spin, Icon, Button } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { throttle } from '../common/throttle';
 
 const { Text, Paragraph } = Typography;
 
@@ -669,8 +670,8 @@ class MessageRenderer extends Component {
     super(props);
     this.chatContainerRef = React.createRef();
     
-    // 优化的节流函数实现
-    this.throttledScrollToBottom = this.throttle(() => {
+    // 自动滚动到底部节流 - 控制DOM滚动操作频率
+    this.throttledScrollToBottom = throttle(() => {
       if (this.chatContainerRef.current) {
         requestAnimationFrame(() => {
           const { scrollHeight, clientHeight } = this.chatContainerRef.current;
@@ -679,7 +680,8 @@ class MessageRenderer extends Component {
       }
     }, 300);
 
-    this.throttledScrollCheck = this.throttle(() => {
+    // 滚动状态检查节流 - 控制智能滚动检测频率
+    this.throttledScrollCheck = throttle(() => {
       if (this.chatContainerRef.current && this.props.onScrollStateChange) {
         const { scrollTop, scrollHeight, clientHeight } = this.chatContainerRef.current;
         const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
@@ -689,42 +691,6 @@ class MessageRenderer extends Component {
     }, 100);
   }
 
-  // 优化的节流函数
-  throttle = (func, wait) => {
-    let timeout = null;
-    let previous = 0;
-    
-    return (...args) => {
-      const now = Date.now();
-      const remaining = wait - (now - previous);
-      
-      const later = () => {
-        previous = now;
-        timeout = null;
-        func.apply(this, args);
-      };
-      
-      if (remaining <= 0 || remaining > wait) {
-        if (timeout) {
-          clearTimeout(timeout);
-          timeout = null;
-        }
-        previous = now;
-        func.apply(this, args);
-      } else if (!timeout) {
-        timeout = setTimeout(later, remaining);
-      }
-      
-      return () => {
-        if (timeout) {
-          clearTimeout(timeout);
-          timeout = null;
-          previous = 0;
-        }
-      };
-    };
-  };
-
   componentDidUpdate(prevProps) {
     // 智能滚动逻辑
     const shouldAutoScroll = 
@@ -732,16 +698,18 @@ class MessageRenderer extends Component {
       (this.props.isStreaming && prevProps.currentStreamingMessage !== this.props.currentStreamingMessage);
     
     if (shouldAutoScroll && this.props.shouldAutoScroll) {
-      requestAnimationFrame(this.throttledScrollToBottom);
+      this.throttledScrollToBottom(); // 直接调用，去掉外层RAF包装
     }
   }
 
   componentWillUnmount() {
-    // 清理所有节流函数
-    [
-      this.throttledScrollToBottom,
-      this.throttledScrollCheck
-    ].forEach(fn => fn && fn.cancel && fn.cancel());
+    // 清理节流函数
+    if (this.throttledScrollToBottom && this.throttledScrollToBottom.cancel) {
+      this.throttledScrollToBottom.cancel();
+    }
+    if (this.throttledScrollCheck && this.throttledScrollCheck.cancel) {
+      this.throttledScrollCheck.cancel();
+    }
   }
 
   scrollToBottom = () => {

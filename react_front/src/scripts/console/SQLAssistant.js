@@ -3,6 +3,7 @@ import { Input, Button, message, Tag, Select, Typography, Icon, Drawer, List, Ch
 import MessageRenderer from './MessageRenderer';
 import DatasetManager from './DatasetManager';
 import MyAxios from '../common/interface';
+import { throttle } from '../common/throttle';
 const { TextArea } = Input;
 const { Option } = Select;
 const { Text } = Typography;
@@ -68,53 +69,11 @@ class SQLAssistant extends Component {
     this.inputRef = React.createRef();
     this.messageRendererRef = React.createRef();
     
-    // 优化的节流函数实现
-    this.throttledScrollToBottom = this.throttle(() => {
-      if (this.messageRendererRef.current) {
-        this.messageRendererRef.current.scrollToBottom();
-      }
-    }, 300);
-    
-    this.throttledUpdateStreamingMessage = this.throttle((message) => {
+    // 流式消息更新节流 - 控制React状态更新频率
+    this.throttledUpdateStreamingMessage = throttle((message) => {
       this.setState({ currentStreamingMessage: message });
     }, 200);
   }
-
-  // 优化的节流函数
-  throttle = (func, wait) => {
-    let timeout = null;
-    let previous = 0;
-    
-    return (...args) => {
-      const now = Date.now();
-      const remaining = wait - (now - previous);
-      
-      const later = () => {
-        previous = now;
-        timeout = null;
-        func.apply(this, args);
-      };
-      
-      if (remaining <= 0 || remaining > wait) {
-        if (timeout) {
-          clearTimeout(timeout);
-          timeout = null;
-        }
-        previous = now;
-        func.apply(this, args);
-      } else if (!timeout) {
-        timeout = setTimeout(later, remaining);
-      }
-      
-      return () => {
-        if (timeout) {
-          clearTimeout(timeout);
-          timeout = null;
-          previous = 0;
-        }
-      };
-    };
-  };
 
   componentDidUpdate(prevProps, prevState) {
     // 更新表格选择
@@ -384,11 +343,10 @@ class SQLAssistant extends Component {
   };
 
   componentWillUnmount() {
-    // 清理所有节流函数
-    [
-      this.throttledScrollToBottom,
-      this.throttledUpdateStreamingMessage
-    ].forEach(fn => fn && fn.cancel && fn.cancel());
+    // 清理节流函数
+    if (this.throttledUpdateStreamingMessage && this.throttledUpdateStreamingMessage.cancel) {
+      this.throttledUpdateStreamingMessage.cancel();
+    }
   }
 
   fetchConversationHistory = async () => {
