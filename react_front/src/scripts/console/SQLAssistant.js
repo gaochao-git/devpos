@@ -131,6 +131,11 @@ class SQLAssistant extends Component {
     });
 
     try {
+      //如果用nginx代理记得关闭nginx缓冲
+      // location /v1/chat-messages {
+      //   proxy_buffering off;
+      //   proxy_cache off;
+      // }
       const response = await fetch(`${dify_url}/v1/chat-messages`, {
         method: 'POST',
         headers: {
