@@ -531,7 +531,7 @@ const ThinkingItem = React.memo(({ content }) => {
 });
 
 // 流式消息组件
-const StreamingMessage = ({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [], lastUpdateTime = 0 }) => {
+const StreamingMessage = ({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [], lastUpdateTime = 0, debugMode = true }) => {
   // 解析消息内容
   const segments = parseMessageContent(currentMessage, agentThoughts);
   
@@ -578,17 +578,46 @@ const StreamingMessage = ({ currentMessage, isComplete = false, onCopySQL, onApp
                   <ThinkingItem content={segment.content} />
                 )}
                 {segment.type === 'text' && (
-                  <ReactMarkdown
-                    key={`markdown-${index}-${renderKey}`}
-                    remarkPlugins={[remarkGfm]}
-                    skipHtml={false}
-                    components={{
-                      ...markdownComponents,
-                      code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL, isStreaming: !isComplete })
-                    }}
-                  >
-                    {segment.content}
-                  </ReactMarkdown>
+                  <div key={`text-wrapper-${index}-${renderKey}`}>
+                    {/* 添加实时更新指示器 */}
+                    <div style={{ 
+                      fontSize: '10px', 
+                      color: '#999', 
+                      marginBottom: '4px',
+                      fontFamily: 'monospace'
+                    }}>
+                      [渲染时间: {Date.now()}] [内容长度: {segment.content.length}]
+                    </div>
+                    
+                    {debugMode ? (
+                      /* 调试模式：显示纯文本 */
+                      <div style={{ 
+                        whiteSpace: 'pre-wrap',
+                        fontFamily: 'monospace',
+                        fontSize: '14px',
+                        lineHeight: '1.5',
+                        backgroundColor: '#fff9c4',
+                        padding: '8px',
+                        border: '1px dashed #ffc107',
+                        borderRadius: '4px'
+                      }}>
+                        {segment.content}
+                      </div>
+                    ) : (
+                      /* 正常模式：ReactMarkdown渲染 */
+                      <ReactMarkdown
+                        key={`markdown-${index}-${renderKey}-${segment.content.length}`}
+                        remarkPlugins={[remarkGfm]}
+                        skipHtml={false}
+                        components={{
+                          ...markdownComponents,
+                          code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL, isStreaming: !isComplete })
+                        }}
+                      >
+                        {segment.content}
+                      </ReactMarkdown>
+                    )}
+                  </div>
                 )}
               </React.Fragment>
             ))}
@@ -604,7 +633,7 @@ const StreamingMessage = ({ currentMessage, isComplete = false, onCopySQL, onApp
 };
 
 // 优化的消息项组件
-const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
+const MessageItem = React.memo(({ item, onCopySQL, onApplySQL, debugMode = true }) => {
   // 解析消息内容
   const segments = item.type === 'assistant' ? parseMessageContent(item.content, item.thoughts || []) : [];
   
@@ -660,16 +689,46 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
                     <ThinkingItem content={segment.content} />
                   )}
                   {segment.type === 'text' && (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      skipHtml={false}
-                      components={{
-                        ...markdownComponents,
-                        code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL, isStreaming: false })
-                      }}
-                    >
-                      {segment.content}
-                    </ReactMarkdown>
+                    <div key={`text-wrapper-${index}-${renderKey}`}>
+                      {/* 添加实时更新指示器 */}
+                      <div style={{ 
+                        fontSize: '10px', 
+                        color: '#999', 
+                        marginBottom: '4px',
+                        fontFamily: 'monospace'
+                      }}>
+                        [渲染时间: {Date.now()}] [内容长度: {segment.content.length}]
+                      </div>
+                      
+                      {debugMode ? (
+                        /* 调试模式：显示纯文本 */
+                        <div style={{ 
+                          whiteSpace: 'pre-wrap',
+                          fontFamily: 'monospace',
+                          fontSize: '14px',
+                          lineHeight: '1.5',
+                          backgroundColor: '#fff9c4',
+                          padding: '8px',
+                          border: '1px dashed #ffc107',
+                          borderRadius: '4px'
+                        }}>
+                          {segment.content}
+                        </div>
+                      ) : (
+                        /* 正常模式：ReactMarkdown渲染 */
+                        <ReactMarkdown
+                          key={`markdown-${index}-${renderKey}-${segment.content.length}`}
+                          remarkPlugins={[remarkGfm]}
+                          skipHtml={false}
+                          components={{
+                            ...markdownComponents,
+                            code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL, isStreaming: !isComplete })
+                          }}
+                        >
+                          {segment.content}
+                        </ReactMarkdown>
+                      )}
+                    </div>
                   )}
                 </React.Fragment>
               ))
@@ -765,7 +824,8 @@ class MessageRenderer extends Component {
       isUserBrowsing = false,
       isUserScrolling = false,
       onScrollToBottom,
-      streamingComplete = false
+      streamingComplete = false,
+      debugMode = true
     } = this.props;
 
     return (
@@ -815,6 +875,7 @@ class MessageRenderer extends Component {
                 item={item} 
                 onCopySQL={onCopySQL} 
                 onApplySQL={onApplySQL} 
+                debugMode={debugMode}
               />
             )}
           />
@@ -827,6 +888,7 @@ class MessageRenderer extends Component {
               onApplySQL={onApplySQL}
               agentThoughts={agentThoughts}
               lastUpdateTime={lastUpdateTime}
+              debugMode={debugMode}
             />
           )}
         </div>
