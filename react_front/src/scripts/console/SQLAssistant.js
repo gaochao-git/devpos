@@ -866,39 +866,67 @@ class SQLAssistant extends Component {
                     renderItem={(dataset) => (
                       <List.Item 
                         style={{ 
-                          padding: '8px', 
+                          padding: '6px 8px', 
                           border: 'none',
                           borderRadius: '4px',
                           margin: '2px 0',
                           backgroundColor: 'transparent',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          minHeight: '32px'
                         }}
                         onClick={() => this.handleSelectDataset(dataset)}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '8px' }}>
                           <Icon 
                             type="database" 
                             style={{ 
-                              marginRight: '8px', 
-                              color: '#52c41a' 
+                              color: '#52c41a',
+                              flexShrink: 0
                             }} 
                           />
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#333' }}>
-                              {dataset.dataset_name}
-                              {dataset.is_shared === 1 && (
-                                <Tag color="green" size="small" style={{ marginLeft: 4 }}>
-                                  团队共享
-                                </Tag>
-                              )}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
-                              {dataset.dataset_description || '无描述'}
-                            </div>
-                            <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
-                              管理员: {dataset.admin_by}
-                            </div>
-                          </div>
+                          
+                          {/* 数据集名称 */}
+                          <span style={{ 
+                            fontSize: '12px', 
+                            fontWeight: 'bold', 
+                            color: '#333',
+                            flexShrink: 0,
+                            marginRight: '4px'
+                          }}>
+                            {dataset.dataset_name}
+                          </span>
+                          
+                          {/* 团队共享标签 */}
+                          {dataset.is_shared === 1 && (
+                            <Tag color="green" size="small" style={{ margin: 0, flexShrink: 0 }}>
+                              共享
+                            </Tag>
+                          )}
+                          
+                          {/* 描述 */}
+                          <span style={{ 
+                            fontSize: '11px', 
+                            color: '#666',
+                            flex: 1,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            marginRight: '8px'
+                          }}>
+                            {dataset.dataset_description || '无描述'}
+                          </span>
+                          
+                          {/* 管理员 */}
+                          <span style={{ 
+                            fontSize: '10px', 
+                            color: '#999',
+                            flexShrink: 0,
+                            marginRight: '8px'
+                          }}>
+                            {dataset.admin_by}
+                          </span>
+                          
+                          {/* 预览按钮 */}
                           <Button
                             type="link"
                             size="small"
@@ -906,8 +934,10 @@ class SQLAssistant extends Component {
                             onClick={(e) => this.handlePreviewDataset(dataset, e)}
                             style={{ 
                               padding: '0 4px',
-                              marginLeft: '8px',
-                              color: '#1890ff'
+                              color: '#1890ff',
+                              flexShrink: 0,
+                              height: '20px',
+                              minWidth: '20px'
                             }}
                             title="预览数据集内容"
                           />
