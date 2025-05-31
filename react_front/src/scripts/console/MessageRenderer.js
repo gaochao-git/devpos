@@ -637,6 +637,9 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL, debugMode = true 
   // 解析消息内容
   const segments = item.type === 'assistant' ? parseMessageContent(item.content, item.thoughts || []) : [];
   
+  // 为MessageItem组件生成renderKey
+  const renderKey = `${item.id}-${item.type}`;
+  
   return (
     <List.Item style={{ padding: '8px 0', border: 'none' }}>
       <Card 
@@ -722,7 +725,7 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL, debugMode = true 
                           skipHtml={false}
                           components={{
                             ...markdownComponents,
-                            code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL, isStreaming: !isComplete })
+                            code: (props) => markdownComponents.code({ ...props, onCopySQL, onApplySQL, isStreaming: false })
                           }}
                         >
                           {segment.content}
