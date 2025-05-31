@@ -184,6 +184,8 @@ class SQLAssistant extends Component {
       agentThoughts: [], // 重置思考过程
     });
 
+    console.log(`🚀 [开始流式] 设置isStreaming=true, streamingId=${Date.now() + 1}`);
+
     try {
       const response = await fetch(`${dify_url}/v1/chat-messages`, {
         method: 'POST',
@@ -235,10 +237,14 @@ class SQLAssistant extends Component {
                   if (data.answer && data.answer.length > 0) {
                     assistantMessage += data.answer;
                     
+                    console.log(`🔄 [流式更新] 长度: ${assistantMessage.length}, 新增: ${data.answer.length}字符`);
+                    
                     // 直接使用requestAnimationFrame进行更新
                     requestAnimationFrame(() => {
+                      console.log(`🎨 [RAF更新] 当前流式状态: ${this.state.isStreaming}, 消息长度: ${assistantMessage.length}`);
                       if (this.state.isStreaming) {
                         this.setState({ currentStreamingMessage: assistantMessage });
+                        console.log(`✅ [状态已更新] currentStreamingMessage长度: ${assistantMessage.length}`);
                       }
                     });
                   }
@@ -731,6 +737,9 @@ class SQLAssistant extends Component {
         fontSize: '12px'
       }}>
         <div>节流状态: {this.ENABLE_THROTTLING ? '🟢 启用' : '🔴 禁用'}</div>
+        <div>流式状态: {isStreaming ? '🟡 进行中' : '⚪ 空闲'}</div>
+        <div>消息长度: {currentStreamingMessage?.length || 0}</div>
+        <div>平台: {navigator.platform}</div>
         <button
           onClick={() => {
             this.ENABLE_THROTTLING = !this.ENABLE_THROTTLING;

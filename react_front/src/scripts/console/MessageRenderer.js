@@ -516,8 +516,12 @@ const ThinkingItem = React.memo(({ content }) => {
 
 // 流式消息组件
 const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [] }) => {
+  console.log(`🖼️ [StreamingMessage渲染] 消息长度: ${currentMessage?.length || 0}, isComplete: ${isComplete}`);
+  
   // 解析消息内容
   const segments = parseMessageContent(currentMessage, agentThoughts);
+  
+  console.log(`📝 [消息解析] 分段数量: ${segments.length}, 文本段数量: ${segments.filter(s => s.type === 'text').length}`);
   
   return (
     <List.Item style={{ padding: '8px 0', border: 'none' }}>
@@ -738,12 +742,17 @@ class MessageRenderer extends Component {
   };
 
   componentDidUpdate(prevProps) {
+    console.log(`🔄 [MessageRenderer更新] 历史消息数: ${this.props.conversationHistory.length}, 流式状态: ${this.props.isStreaming}, 流式消息长度: ${this.props.currentStreamingMessage?.length || 0}`);
+    
     // 智能滚动逻辑
     const shouldAutoScroll = 
       (prevProps.conversationHistory.length !== this.props.conversationHistory.length) ||
       (this.props.isStreaming && prevProps.currentStreamingMessage !== this.props.currentStreamingMessage);
     
+    console.log(`📜 [滚动检查] shouldAutoScroll: ${shouldAutoScroll}, shouldAutoScroll配置: ${this.props.shouldAutoScroll}`);
+    
     if (shouldAutoScroll && this.props.shouldAutoScroll) {
+      console.log(`🔽 [触发滚动] 执行自动滚动到底部`);
       requestAnimationFrame(this.throttledScrollToBottom);
     }
   }
