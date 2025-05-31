@@ -599,7 +599,7 @@ const StreamingMessage = ({ currentMessage, isComplete = false, onCopySQL, onApp
 };
 
 // 优化的消息项组件
-const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
+const MessageItem = ({ item, onCopySQL, onApplySQL }) => {
   // 解析消息内容
   const segments = item.type === 'assistant' ? parseMessageContent(item.content, item.thoughts || []) : [];
   
@@ -685,7 +685,7 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
       </Card>
     </List.Item>
   );
-});
+};
 
 // 主要的消息渲染器组件
 class MessageRenderer extends Component {
@@ -697,69 +697,23 @@ class MessageRenderer extends Component {
     
     this.chatContainerRef = React.createRef();
     
-    // 优化的节流函数 - 使用requestAnimationFrame适配不同刷新率
-    this.throttledScrollToBottom = this.throttle(() => {
+    // 直接执行，不使用节流
+    this.scrollToBottom = () => {
       if (this.chatContainerRef.current) {
-        requestAnimationFrame(() => {
-          const { scrollHeight, clientHeight } = this.chatContainerRef.current;
-          this.chatContainerRef.current.scrollTop = scrollHeight - clientHeight;
-        });
+        const { scrollHeight, clientHeight } = this.chatContainerRef.current;
+        this.chatContainerRef.current.scrollTop = scrollHeight - clientHeight;
       }
-    }, 300);
+    };
 
-    this.throttledScrollCheck = this.throttle(() => {
+    this.handleScrollCheck = () => {
       if (this.chatContainerRef.current && this.props.onScrollStateChange) {
         const { scrollTop, scrollHeight, clientHeight } = this.chatContainerRef.current;
         const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
         
         this.props.onScrollStateChange(isAtBottom);
       }
-    }, 16); // 约等于60fps的一帧时间
-  }
-
-  // 优化的节流函数 - 使用requestAnimationFrame适配不同刷新率
-  throttle = (func, wait) => {
-    // 如果禁用节流，直接返回原函数
-    if (!this.ENABLE_THROTTLING) {
-      return (...args) => {
-        func.apply(this, args);
-        return () => {}; // 返回空的清理函数
-      };
-    }
-    
-    let animationId = null;
-    let previous = 0;
-    
-    return (...args) => {
-      const now = Date.now();
-      const remaining = wait - (now - previous);
-      
-      const later = () => {
-        previous = now;
-        animationId = null;
-        func.apply(this, args);
-      };
-      
-      if (remaining <= 0 || remaining > wait) {
-        if (animationId) {
-          cancelAnimationFrame(animationId);
-          animationId = null;
-        }
-        previous = now;
-        func.apply(this, args);
-      } else if (!animationId) {
-        animationId = requestAnimationFrame(later);
-      }
-      
-      return () => {
-        if (animationId) {
-          cancelAnimationFrame(animationId);
-          animationId = null;
-          previous = 0;
-        }
-      };
     };
-  };
+  }
 
   componentDidUpdate(prevProps) {
     console.log(`🔄 [MessageRenderer更新] 历史消息数: ${this.props.conversationHistory.length}, 流式状态: ${this.props.isStreaming}, 流式消息长度: ${this.props.currentStreamingMessage?.length || 0}`);
@@ -773,21 +727,17 @@ class MessageRenderer extends Component {
     
     if (shouldAutoScroll && this.props.shouldAutoScroll) {
       console.log(`🔽 [触发滚动] 执行自动滚动到底部`);
-      requestAnimationFrame(this.throttledScrollToBottom);
+      requestAnimationFrame(this.scrollToBottom);
     }
   }
 
   componentWillUnmount() {
     // 清理所有节流函数
     [
-      this.throttledScrollToBottom,
-      this.throttledScrollCheck
+      this.scrollToBottom,
+      this.handleScrollCheck
     ].forEach(fn => fn && fn.cancel && fn.cancel());
   }
-
-  scrollToBottom = () => {
-    this.throttledScrollToBottom();
-  };
 
   render() {
     const {
@@ -817,7 +767,7 @@ class MessageRenderer extends Component {
           ref={this.chatContainerRef}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
-          onScroll={this.throttledScrollCheck}
+          onScroll={this.handleScrollCheck}
           style={{ 
             flex: 1,
             overflow: 'auto',

@@ -11,7 +11,7 @@ class SQLAssistant extends Component {
   constructor(props) {
     super(props);
     
-    // 节流开关配置 - 设为false可以完全禁用节流进行测试
+    // 节流开关配置 - 完全禁用
     this.ENABLE_THROTTLING = false;
     
     this.nlInputRef = React.createRef();
@@ -71,58 +71,7 @@ class SQLAssistant extends Component {
     
     this.inputRef = React.createRef();
     this.messageRendererRef = React.createRef();
-    
-    // 优化的节流函数实现
-    this.throttledScrollToBottom = this.throttle(() => {
-      if (this.messageRendererRef.current) {
-        this.messageRendererRef.current.scrollToBottom();
-      }
-    }, 300);
   }
-
-  // 优化的节流函数 - 使用requestAnimationFrame适配不同刷新率
-  throttle = (func, wait) => {
-    // 如果禁用节流，直接返回原函数
-    if (!this.ENABLE_THROTTLING) {
-      return (...args) => {
-        func.apply(this, args);
-        return () => {}; // 返回空的清理函数
-      };
-    }
-    
-    let animationId = null;
-    let previous = 0;
-    
-    return (...args) => {
-      const now = Date.now();
-      const remaining = wait - (now - previous);
-      
-      const later = () => {
-        previous = now;
-        animationId = null;
-        func.apply(this, args);
-      };
-      
-      if (remaining <= 0 || remaining > wait) {
-        if (animationId) {
-          cancelAnimationFrame(animationId);
-          animationId = null;
-        }
-        previous = now;
-        func.apply(this, args);
-      } else if (!animationId) {
-        animationId = requestAnimationFrame(later);
-      }
-      
-      return () => {
-        if (animationId) {
-          cancelAnimationFrame(animationId);
-          animationId = null;
-          previous = 0;
-        }
-      };
-    };
-  };
 
   componentDidUpdate(prevProps, prevState) {
     // 更新表格选择
@@ -417,10 +366,10 @@ class SQLAssistant extends Component {
   };
 
   componentWillUnmount() {
-    // 清理所有节流函数
-    [
-      this.throttledScrollToBottom,
-    ].forEach(fn => fn && fn.cancel && fn.cancel());
+    // 清理定时器
+    if (this.state.searchTimeout) {
+      clearTimeout(this.state.searchTimeout);
+    }
   }
 
   fetchConversationHistory = async () => {
@@ -736,32 +685,14 @@ class SQLAssistant extends Component {
         borderRadius: '4px',
         fontSize: '12px'
       }}>
-        <div>节流状态: {this.ENABLE_THROTTLING ? '🟢 启用' : '🔴 禁用'}</div>
-        <div>流式memo: 🔴 已全部移除</div>
+        <div>🔴 所有节流已移除</div>
+        <div>🔴 所有memo已移除</div>
         <div>流式状态: {isStreaming ? '🟡 进行中' : '⚪ 空闲'}</div>
         <div>消息长度: {currentStreamingMessage?.length || 0}</div>
         <div>平台: {navigator.platform}</div>
-        <div>浏览器: {navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Other'}</div>
-        <div>刷新率: {screen.refreshRate || 'Unknown'}Hz</div>
-        <button
-          onClick={() => {
-            this.ENABLE_THROTTLING = !this.ENABLE_THROTTLING;
-            this.forceUpdate();
-            console.log(`🎛️ 节流已${this.ENABLE_THROTTLING ? '启用' : '禁用'}`);
-          }}
-          style={{
-            marginTop: '4px',
-            padding: '2px 6px',
-            fontSize: '11px',
-            backgroundColor: this.ENABLE_THROTTLING ? '#ff4444' : '#44ff44',
-            color: 'white',
-            border: 'none',
-            borderRadius: '2px',
-            cursor: 'pointer'
-          }}
-        >
-          {this.ENABLE_THROTTLING ? '禁用节流' : '启用节流'}
-        </button>
+        <div style={{ marginTop: '4px', fontSize: '10px', color: '#ccc' }}>
+          实时无缓存模式
+        </div>
       </div>
     );
 
