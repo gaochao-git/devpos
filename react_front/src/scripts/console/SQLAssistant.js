@@ -10,6 +10,10 @@ const { Text } = Typography;
 class SQLAssistant extends Component {
   constructor(props) {
     super(props);
+    
+    // 节流开关配置 - 设为false可以完全禁用节流进行测试
+    this.ENABLE_THROTTLING = false;
+    
     this.nlInputRef = React.createRef();
     this.state = {
       inputValue: '',
@@ -78,6 +82,14 @@ class SQLAssistant extends Component {
 
   // 优化的节流函数 - 使用requestAnimationFrame适配不同刷新率
   throttle = (func, wait) => {
+    // 如果禁用节流，直接返回原函数
+    if (!this.ENABLE_THROTTLING) {
+      return (...args) => {
+        func.apply(this, args);
+        return () => {}; // 返回空的清理函数
+      };
+    }
+    
     let animationId = null;
     let previous = 0;
     
@@ -116,6 +128,11 @@ class SQLAssistant extends Component {
     // 更新表格选择
     if (this.props.allTables !== prevProps.allTables) {
       this.setState({ allTables: this.props.allTables || [] });
+    }
+    
+    // 输出节流状态（仅在开发时）
+    if (prevState.isStreaming !== this.state.isStreaming && this.state.isStreaming) {
+      console.log(`🎛️ SQL Assistant - 节流状态: ${this.ENABLE_THROTTLING ? '启用' : '禁用'}`);
     }
   }
 
@@ -699,6 +716,42 @@ class SQLAssistant extends Component {
       showSharedDatasets,   // 显示共享数据集
       showOwnDatasets,      // 显示自己的数据集
     } = this.state;
+
+    // 调试控制面板 - 仅在开发环境显示
+    const debugPanel = (
+      <div style={{ 
+        position: 'fixed', 
+        top: '10px', 
+        right: '10px', 
+        zIndex: 9999,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        color: 'white',
+        padding: '8px',
+        borderRadius: '4px',
+        fontSize: '12px'
+      }}>
+        <div>节流状态: {this.ENABLE_THROTTLING ? '🟢 启用' : '🔴 禁用'}</div>
+        <button
+          onClick={() => {
+            this.ENABLE_THROTTLING = !this.ENABLE_THROTTLING;
+            this.forceUpdate();
+            console.log(`🎛️ 节流已${this.ENABLE_THROTTLING ? '启用' : '禁用'}`);
+          }}
+          style={{
+            marginTop: '4px',
+            padding: '2px 6px',
+            fontSize: '11px',
+            backgroundColor: this.ENABLE_THROTTLING ? '#ff4444' : '#44ff44',
+            color: 'white',
+            border: 'none',
+            borderRadius: '2px',
+            cursor: 'pointer'
+          }}
+        >
+          {this.ENABLE_THROTTLING ? '禁用节流' : '启用节流'}
+        </button>
+      </div>
+    );
 
     // 获取过滤后的表格
     const filteredTables = allTables.filter(table => 
@@ -1338,6 +1391,8 @@ class SQLAssistant extends Component {
             </div>
           </div>
         </div>
+
+        {debugPanel}
       </div>
     );
   }

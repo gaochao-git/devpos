@@ -667,6 +667,10 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
 class MessageRenderer extends Component {
   constructor(props) {
     super(props);
+    
+    // 节流开关配置 - 设为false可以完全禁用节流进行测试
+    this.ENABLE_THROTTLING = false;
+    
     this.chatContainerRef = React.createRef();
     
     // 优化的节流函数 - 使用requestAnimationFrame适配不同刷新率
@@ -691,6 +695,14 @@ class MessageRenderer extends Component {
 
   // 优化的节流函数 - 使用requestAnimationFrame适配不同刷新率
   throttle = (func, wait) => {
+    // 如果禁用节流，直接返回原函数
+    if (!this.ENABLE_THROTTLING) {
+      return (...args) => {
+        func.apply(this, args);
+        return () => {}; // 返回空的清理函数
+      };
+    }
+    
     let animationId = null;
     let previous = 0;
     
