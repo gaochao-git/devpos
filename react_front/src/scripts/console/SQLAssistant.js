@@ -74,10 +74,6 @@ class SQLAssistant extends Component {
         this.messageRendererRef.current.scrollToBottom();
       }
     }, 300);
-    
-    this.throttledUpdateStreamingMessage = this.throttle((message) => {
-      this.setState({ currentStreamingMessage: message });
-    }, 16); // 约等于60fps的一帧时间
   }
 
   // 优化的节流函数 - 使用requestAnimationFrame适配不同刷新率
@@ -263,7 +259,7 @@ class SQLAssistant extends Component {
                 }
                 
                 // 统一更新流式消息
-                this.throttledUpdateStreamingMessage(assistantMessage);
+                // this.throttledUpdateStreamingMessage(assistantMessage);
               } catch (e) {
                 console.warn('解析流式数据失败:', e);
               }
@@ -401,7 +397,6 @@ class SQLAssistant extends Component {
     // 清理所有节流函数
     [
       this.throttledScrollToBottom,
-      this.throttledUpdateStreamingMessage
     ].forEach(fn => fn && fn.cancel && fn.cancel());
   }
 
