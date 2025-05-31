@@ -535,7 +535,8 @@ const ThinkingItem = ({ content }) => {
 
 // 流式消息组件
 const StreamingMessage = ({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [] }) => {
-  console.log(`🖼️ [StreamingMessage渲染] 消息长度: ${currentMessage?.length || 0}, isComplete: ${isComplete}`);
+  const renderTime = Date.now();
+  console.log(`🖼️ [StreamingMessage渲染] 时间戳: ${renderTime}, 消息长度: ${currentMessage?.length || 0}, isComplete: ${isComplete}`);
   
   // 解析消息内容
   const segments = parseMessageContent(currentMessage, agentThoughts);

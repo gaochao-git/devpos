@@ -741,6 +741,8 @@ class SQLAssistant extends Component {
         <div>流式状态: {isStreaming ? '🟡 进行中' : '⚪ 空闲'}</div>
         <div>消息长度: {currentStreamingMessage?.length || 0}</div>
         <div>平台: {navigator.platform}</div>
+        <div>浏览器: {navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Other'}</div>
+        <div>刷新率: {screen.refreshRate || 'Unknown'}Hz</div>
         <button
           onClick={() => {
             this.ENABLE_THROTTLING = !this.ENABLE_THROTTLING;
