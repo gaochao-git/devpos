@@ -692,7 +692,7 @@ class MessageRenderer extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    // 智能滚动逻辑
+    // 解释这段代码作用 :这段代码的作用是当conversationHistory发生变化时，或者当isStreaming为true时，自动滚动到聊天窗口的底部。
     const shouldAutoScroll = 
       (prevProps.conversationHistory.length !== this.props.conversationHistory.length) ||
       (this.props.isStreaming && prevProps.currentStreamingMessage !== this.props.currentStreamingMessage);
