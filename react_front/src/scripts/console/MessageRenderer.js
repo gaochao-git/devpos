@@ -378,6 +378,14 @@ const ToolCallItem = React.memo(({ tool }) => {
 const parseMessageContent = (content, agentThoughts = []) => {
   if (!content) return [];
 
+  // 添加调试信息
+  console.log('[Windows调试] parseMessageContent被调用:', {
+    contentLength: content.length,
+    agentThoughtsCount: agentThoughts.length,
+    timestamp: Date.now(),
+    contentPreview: content.substring(0, 100) + (content.length > 100 ? '...' : '')
+  });
+
   const segments = [];
   
   // 使用一个正则表达式匹配所有特殊内容（思考块和工具调用）
@@ -458,6 +466,13 @@ const parseMessageContent = (content, agentThoughts = []) => {
     }
   }
   
+  // 添加返回结果的调试信息
+  console.log('[Windows调试] parseMessageContent返回结果:', {
+    segmentsCount: segments.length,
+    segmentTypes: segments.map(s => s.type),
+    timestamp: Date.now()
+  });
+  
   return segments;
 };
 
@@ -516,12 +531,24 @@ const ThinkingItem = React.memo(({ content }) => {
 });
 
 // 流式消息组件
-const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [] }) => {
+const StreamingMessage = ({ currentMessage, isComplete = false, onCopySQL, onApplySQL, agentThoughts = [], lastUpdateTime = 0 }) => {
   // 解析消息内容
   const segments = parseMessageContent(currentMessage, agentThoughts);
   
+  // 添加强制渲染的key，确保每次更新都能触发重新渲染，特别是Windows系统
+  const renderKey = `${currentMessage.length}-${agentThoughts.length}-${isComplete}-${lastUpdateTime}`;
+  
+  // 添加组件渲染调试信息
+  console.log('[Windows调试] StreamingMessage组件渲染:', {
+    renderKey,
+    currentMessageLength: currentMessage.length,
+    segmentsCount: segments.length,
+    lastUpdateTime,
+    timestamp: Date.now()
+  });
+  
   return (
-    <List.Item style={{ padding: '8px 0', border: 'none' }}>
+    <List.Item key={renderKey} style={{ padding: '8px 0', border: 'none' }}>
       <Card 
         size="small" 
         style={{ 
@@ -541,9 +568,9 @@ const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCop
         
         {/* 按照流的顺序显示内容 */}
         {segments.length > 0 ? (
-          <div>
+          <div key={`segments-${renderKey}`}>
             {segments.map((segment, index) => (
-              <React.Fragment key={index}>
+              <React.Fragment key={`${index}-${segment.type}-${renderKey}`}>
                 {segment.type === 'tool' && (
                   <ToolCallItem tool={segment.data} />
                 )}
@@ -552,6 +579,7 @@ const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCop
                 )}
                 {segment.type === 'text' && (
                   <ReactMarkdown
+                    key={`markdown-${index}-${renderKey}`}
                     remarkPlugins={[remarkGfm]}
                     skipHtml={false}
                     components={{
@@ -573,7 +601,7 @@ const StreamingMessage = React.memo(({ currentMessage, isComplete = false, onCop
       </Card>
     </List.Item>
   );
-});
+};
 
 // 优化的消息项组件
 const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
@@ -670,7 +698,7 @@ class MessageRenderer extends Component {
     super(props);
     this.chatContainerRef = React.createRef();
     
-    // 自动滚动到底部节流 - 控制DOM滚动操作频率
+    // 自动滚动到底部节流 - 控制DOM滚动操作频率，为Windows优化
     this.throttledScrollToBottom = throttle(() => {
       if (this.chatContainerRef.current) {
         requestAnimationFrame(() => {
@@ -678,7 +706,7 @@ class MessageRenderer extends Component {
           this.chatContainerRef.current.scrollTop = scrollHeight - clientHeight;
         });
       }
-    }, 300);
+    }, 100); // 从300ms减少到100ms，提高响应速度
 
     // 滚动状态检查节流 - 控制智能滚动检测频率
     this.throttledScrollCheck = throttle(() => {
@@ -688,17 +716,24 @@ class MessageRenderer extends Component {
         
         this.props.onScrollStateChange(isAtBottom);
       }
-    }, 100);
+    }, 50); // 从100ms减少到50ms，提高检测精度
   }
 
   componentDidUpdate(prevProps) {
-    // 解释这段代码作用 :这段代码的作用是当conversationHistory发生变化时，或者当isStreaming为true时，自动滚动到聊天窗口的底部。
+    // 优化渲染判断逻辑，确保Windows上的流式响应及时更新
     const shouldAutoScroll = 
       (prevProps.conversationHistory.length !== this.props.conversationHistory.length) ||
-      (this.props.isStreaming && prevProps.currentStreamingMessage !== this.props.currentStreamingMessage);
+      (this.props.isStreaming && prevProps.currentStreamingMessage !== this.props.currentStreamingMessage) ||
+      (this.props.isStreaming && this.props.currentStreamingMessage && this.props.currentStreamingMessage.length > 0);
     
     if (shouldAutoScroll && this.props.shouldAutoScroll) {
-      this.throttledScrollToBottom(); // 直接调用，去掉外层RAF包装
+      // 立即执行滚动，不依赖节流
+      requestAnimationFrame(() => {
+        if (this.chatContainerRef.current) {
+          const { scrollHeight, clientHeight } = this.chatContainerRef.current;
+          this.chatContainerRef.current.scrollTop = scrollHeight - clientHeight;
+        }
+      });
     }
   }
 
@@ -722,6 +757,7 @@ class MessageRenderer extends Component {
       isStreaming = false,
       currentStreamingMessage = '',
       agentThoughts = [],
+      lastUpdateTime = 0,
       onCopySQL,
       onApplySQL,
       onMouseEnter,
@@ -790,6 +826,7 @@ class MessageRenderer extends Component {
               onCopySQL={onCopySQL}
               onApplySQL={onApplySQL}
               agentThoughts={agentThoughts}
+              lastUpdateTime={lastUpdateTime}
             />
           )}
         </div>

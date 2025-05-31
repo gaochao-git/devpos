@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import ReactDOM from 'react-dom';
 import { Input, Button, message, Tag, Select, Typography, Icon, Drawer, List, Checkbox, Popover, Pagination, Modal } from 'antd';
 import MessageRenderer from './MessageRenderer';
 import DatasetManager from './DatasetManager';
@@ -64,6 +65,9 @@ class SQLAssistant extends Component {
       // 数据集筛选状态
       showSharedDatasets: true,   // 显示共享数据集
       showOwnDatasets: true,      // 显示自己的数据集
+      
+      // 强制重新渲染的时间戳
+      lastUpdateTime: Date.now(),
     };
     
     this.inputRef = React.createRef();
@@ -72,7 +76,19 @@ class SQLAssistant extends Component {
     // 流式消息更新节流 - 控制React状态更新频率
     this.throttledUpdateStreamingMessage = throttle((message) => {
       this.setState({ currentStreamingMessage: message });
-    }, 200);
+    }, 50); // 从200ms减少到50ms，提高Windows响应速度
+    
+    // 添加直接更新方法，用于重要的流式更新
+    this.directUpdateStreamingMessage = (message) => {
+      // 使用 requestAnimationFrame 确保在下一帧渲染
+      requestAnimationFrame(() => {
+        this.setState({ 
+          currentStreamingMessage: message,
+          // 添加一个时间戳强制重新渲染
+          lastUpdateTime: Date.now()
+        });
+      });
+    };
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -180,35 +196,47 @@ class SQLAssistant extends Component {
                   // 处理文本消息
                   if (data.answer && data.answer.length > 0) {
                     assistantMessage += data.answer;
+                    // 立即更新文本消息，使用flushSync强制同步渲染
+                    ReactDOM.flushSync(() => {
+                      // 添加调试信息
+                      console.log('[Windows优化] 流式文本更新:', {
+                        messageLength: assistantMessage.length,
+                        timestamp: Date.now(),
+                        chunk: data.answer
+                      });
+                      this.setState({ 
+                        currentStreamingMessage: assistantMessage,
+                        lastUpdateTime: Date.now()
+                      });
+                    });
                   }
                 } else if (data.event === 'message_end') {
                   newConversationId = data.conversation_id;
                 } else if (data.event === 'agent_thought') {
-                  // 处理工具调用，只有当observation不为空时才认为是完整的工具调用
-                  if (data.tool && data.observation) {
-                    const newThought = {
-                      id: data.id,
-                      position: data.position,
-                      thought: data.thought,
-                      tool: data.tool,
-                      tool_input: data.tool_input,
-                      observation: data.observation
-                    };
-                    
-                    currentThoughts.push(newThought);
-                    
-                    // 添加工具标记到assistantMessage中
-                    assistantMessage += `\n[TOOL:${newThought.id}:${newThought.tool}]\n`;
-                    
-                    // 实时更新状态
+                  // 解析工具调用信息
+                  const newThought = {
+                    id: data.id,
+                    position: data.position,
+                    thought: data.thought,
+                    tool: data.tool,
+                    tool_input: data.tool_input,
+                    observation: data.observation
+                  };
+                  
+                  currentThoughts.push(newThought);
+                  
+                  // 添加工具标记到assistantMessage中
+                  assistantMessage += `\n[TOOL:${newThought.id}:${newThought.tool}]\n`;
+                  
+                  // 实时更新状态 - 合并更新避免批量处理
+                  ReactDOM.flushSync(() => {
                     this.setState({ 
-                      agentThoughts: [...currentThoughts]
+                      currentStreamingMessage: assistantMessage,
+                      agentThoughts: [...currentThoughts],
+                      lastUpdateTime: Date.now()
                     });
-                  }
+                  });
                 }
-                
-                // 统一更新流式消息
-                this.throttledUpdateStreamingMessage(assistantMessage);
               } catch (e) {
                 console.warn('解析流式数据失败:', e);
               }
@@ -1009,12 +1037,13 @@ class SQLAssistant extends Component {
           </Button>
         </div>
 
-                <MessageRenderer
+        <MessageRenderer
           ref={this.messageRendererRef}
           conversationHistory={conversationHistory}
           isStreaming={isStreaming}
           currentStreamingMessage={currentStreamingMessage}
           agentThoughts={agentThoughts}
+          lastUpdateTime={this.state.lastUpdateTime}
           onCopySQL={this.handleCopySQL} 
           onApplySQL={this.handleApplySQL} 
           onMouseEnter={this.handleMouseEnterChat}
