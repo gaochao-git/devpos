@@ -72,7 +72,7 @@ class SQLAssistant extends Component {
     // 流式消息更新节流 - 控制React状态更新频率
     this.throttledUpdateStreamingMessage = throttle((message) => {
       this.setState({ currentStreamingMessage: message });
-    }, 200);
+    }, 20);
   }
 
   componentDidUpdate(prevProps, prevState) {

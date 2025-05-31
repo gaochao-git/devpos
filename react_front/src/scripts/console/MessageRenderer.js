@@ -664,7 +664,7 @@ const MessageItem = React.memo(({ item, onCopySQL, onApplySQL }) => {
   );
 });
 
-// 主要的消息渲染器组件
+// 主要的消息渲染器组件，windows上这个组件的代码需要优化，否则会卡顿
 class MessageRenderer extends Component {
   constructor(props) {
     super(props);
@@ -678,9 +678,9 @@ class MessageRenderer extends Component {
           this.chatContainerRef.current.scrollTop = scrollHeight - clientHeight;
         });
       }
-    }, 300);
+    }, 30);
 
-    // 滚动状态检查节流 - 控制智能滚动检测频率
+    // 滚动状态检查节流 - 控制智能滚动检测频率，windows上这个节流时间不能太长，否则会卡顿
     this.throttledScrollCheck = throttle(() => {
       if (this.chatContainerRef.current && this.props.onScrollStateChange) {
         const { scrollTop, scrollHeight, clientHeight } = this.chatContainerRef.current;
@@ -688,7 +688,7 @@ class MessageRenderer extends Component {
         
         this.props.onScrollStateChange(isAtBottom);
       }
-    }, 100);
+    }, 10);
   }
 
   componentDidUpdate(prevProps) {
