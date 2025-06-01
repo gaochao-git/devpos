@@ -64,6 +64,9 @@ class SQLAssistant extends Component {
       // 数据集筛选状态
       showSharedDatasets: true,   // 显示共享数据集
       showOwnDatasets: true,      // 显示自己的数据集
+      
+      // 添加task_id用于停止接口
+      currentTaskId: null,
     };
     
     this.inputRef = React.createRef();
@@ -128,6 +131,7 @@ class SQLAssistant extends Component {
       streamingComplete: false,
       isUserScrolling: false,
       agentThoughts: [], // 重置思考过程
+      currentTaskId: null, // 重置task_id
     });
 
     try {
@@ -161,6 +165,7 @@ class SQLAssistant extends Component {
       let newConversationId = null;
       let currentThoughts = [];
       let buffer = '';
+      let currentTaskId = null;
 
       try {
         while (true) {
@@ -181,6 +186,12 @@ class SQLAssistant extends Component {
                 if (dataStr === '[DONE]' || !dataStr) continue;
                 
                 const data = JSON.parse(dataStr);
+                
+                // 保存task_id用于停止接口
+                if (data.task_id && !currentTaskId) {
+                  currentTaskId = data.task_id;
+                  this.setState({ currentTaskId: data.task_id });
+                }
                 
                 // 处理不同类型的事件
                 if (['message', 'agent_message'].includes(data.event)) {
@@ -246,7 +257,8 @@ class SQLAssistant extends Component {
           streamingId: null,
           conversation_id: newConversationId || this.state.conversation_id,
           streamingComplete: true,
-          agentThoughts: [] // 清空思考过程
+          agentThoughts: [], // 清空思考过程
+          currentTaskId: null // 清空task_id
         });
       }
 
@@ -258,13 +270,48 @@ class SQLAssistant extends Component {
         currentStreamingMessage: '',
         streamingId: null,
         streamingComplete: true,
-        agentThoughts: [] // 清空思考过程
+        agentThoughts: [], // 清空思考过程
+        currentTaskId: null // 清空task_id
       });
     }
   };
 
-  handleStopStreaming = () => {
-    const { currentStreamingMessage, streamingId, agentThoughts } = this.state;
+  handleStopStreaming = async () => {
+    const { currentStreamingMessage, streamingId, agentThoughts, dify_url, dify_sql_asst_key, login_user_name, currentTaskId } = this.state;
+    
+    // 如果有currentTaskId，尝试调用后端停止接口
+    if (currentTaskId && dify_url && dify_sql_asst_key) {
+      try {
+        const response = await fetch(`${dify_url}/v1/chat-messages/${currentTaskId}/stop`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${dify_sql_asst_key}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user: login_user_name
+          })
+        });
+        
+        if (response.ok) {
+          try {
+            const result = await response.json();
+            if (result.result === 'success') {
+              console.log('成功停止后端输出');
+              message.success('已停止AI回答');
+            } else {
+              console.warn('停止后端输出返回异常结果:', result);
+            }
+          } catch (parseError) {
+            console.warn('解析停止接口响应失败:', parseError);
+          }
+        } else {
+          console.warn('停止后端输出失败:', response.status);
+        }
+      } catch (error) {
+        console.error('调用停止接口失败:', error);
+      }
+    }
     
     // 如果有正在生成的内容，保存到历史记录中
     if (currentStreamingMessage.trim()) {
@@ -287,7 +334,8 @@ class SQLAssistant extends Component {
         streamingId: null,
         streamingComplete: true,
         isUserScrolling: false,
-        agentThoughts: [] // 清空思考过程
+        agentThoughts: [], // 清空思考过程
+        currentTaskId: null // 清空task_id
       }));
     } else {
       // 如果没有内容，只清理状态
@@ -297,7 +345,8 @@ class SQLAssistant extends Component {
         streamingId: null,
         streamingComplete: true,
         isUserScrolling: false,
-        agentThoughts: [] // 清空思考过程
+        agentThoughts: [], // 清空思考过程
+        currentTaskId: null // 清空task_id
       });
     }
   };
@@ -654,6 +703,9 @@ class SQLAssistant extends Component {
       // 数据集筛选状态
       showSharedDatasets,   // 显示共享数据集
       showOwnDatasets,      // 显示自己的数据集
+      
+      // 添加task_id用于停止接口
+      currentTaskId,
     } = this.state;
 
     // 获取过滤后的表格
