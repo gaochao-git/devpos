@@ -560,11 +560,16 @@ def generate_interval_analysis_prompt(datacenter: str, host_ip: str, time_window
     last_time = max(interval['end_time'] for interval in all_intervals)
     duration_minutes = (last_time - first_time).total_seconds() / 60
     
+    traffic_baseline_mbps = FIREWALL_CONFIG.get('traffic_baseline_bps', 0) / (1000 * 1000)
+    db_baseline_ms = FIREWALL_CONFIG.get('db_response_baseline_ms', 0)
+
     prompt = f"""防火墙流量与数据库响应关联分析：
 
 机房: {datacenter}
 防火墙IP: {host_ip}
 分析时间窗口: {time_window}秒
+流量分析基线: {traffic_baseline_mbps:.1f} Mbps
+数据库响应分析基线: {db_baseline_ms} ms
 
 【综合影响评估】
 {inbound_analysis}
@@ -586,6 +591,11 @@ def generate_interval_impact_report(datacenter: str, host_ip: str, time_window: 
     print(f"防火墙IP: {host_ip}")
     print(f"分析时间窗口: {time_window}秒")
     print(f"总递增区间数: {len(impact_intervals)}")
+
+    traffic_baseline_mbps = FIREWALL_CONFIG.get('traffic_baseline_bps', 0) / (1000 * 1000)
+    db_baseline_ms = FIREWALL_CONFIG.get('db_response_baseline_ms', 0)
+    print(f"流量分析基线: > {traffic_baseline_mbps:.0f} Mbps")
+    print(f"响应分析基线: > {db_baseline_ms} ms")
     
     if debug_mode:
         print(f"\n📊 变化剧烈程度图例:")
