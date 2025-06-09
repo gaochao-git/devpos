@@ -585,22 +585,26 @@ def generate_interval_analysis_prompt(datacenter: str, host_ip: str, time_window
 def generate_interval_impact_report(datacenter: str, host_ip: str, time_window: int, impact_intervals: List[Dict], debug_mode: bool):
     """生成受影响区间的综合分析报告"""
     
-    print(f"\n🔥 防火墙流量递增区间影响分析")
-    print(f"=" * 60)
-    print(f"机房: {datacenter}")
-    print(f"防火墙IP: {host_ip}")
-    print(f"分析时间窗口: {time_window}秒")
-    print(f"总递增区间数: {len(impact_intervals)}")
-
     traffic_baseline_mbps = FIREWALL_CONFIG.get('traffic_baseline_bps', 0) / (1000 * 1000)
     db_baseline_ms = FIREWALL_CONFIG.get('db_response_baseline_ms', 0)
-    print(f"流量分析基线: > {traffic_baseline_mbps:.0f} Mbps")
-    print(f"响应分析基线: > {db_baseline_ms} ms")
+    
+    header = f"""
+🔥 防火墙流量递增区间影响分析
+============================================================
+机房: {datacenter}
+防火墙IP: {host_ip}
+分析时间窗口: {time_window}秒
+总递增区间数: {len(impact_intervals)}
+流量分析基线: > {traffic_baseline_mbps:.0f} Mbps
+响应分析基线: > {db_baseline_ms} ms"""
+    print(header)
     
     if debug_mode:
-        print(f"\n📊 变化剧烈程度图例:")
-        print(f"  * = 轻微(25%以下)   ** = 较小(25-50%)   *** = 中等(50-100%)")
-        print(f"  **** = 较大(100-200%)   ***** = 严重(200-500%)   ****** = 极端(500%+)")
+        legend = f"""
+📊 变化剧烈程度图例:
+  * = 轻微(25%以下)   ** = 较小(25-50%)   *** = 中等(50-100%)
+  **** = 较大(100-200%)   ***** = 严重(200-500%)   ****** = 极端(500%+)"""
+        print(legend)
     
     # 统计最严重的影响
     max_traffic_increase = 0
@@ -624,12 +628,14 @@ def generate_interval_impact_report(datacenter: str, host_ip: str, time_window: 
             # 获取变化剧烈程度标识符
             intensity_indicator = get_change_intensity_indicator(interval['increase_percent'])
             
-            print(f"\n📈 区间 {i+1}: {interval['traffic_type']}流量异常 {intensity_indicator}")
-            print(f"  时间段: {interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"  持续时间: {interval['duration_seconds']:.0f}秒")
-            print(f"  流量变化: {interval['start_formatted']} -> {interval['end_formatted']} (+{interval['increase_percent']:.1f}%)")
-            print(f"  峰值流量: {interval['peak_formatted']}")
-            print(f"  数据库响应: 响应时间{analysis['trend']}, 平均{analysis['avg_ms']:.1f}ms, 最大{analysis['max_ms']:.1f}ms")
+            interval_details = f"""
+📈 区间 {i+1}: {interval['traffic_type']}流量异常 {intensity_indicator}
+  时间段: {interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}
+  持续时间: {interval['duration_seconds']:.0f}秒
+  流量变化: {interval['start_formatted']} -> {interval['end_formatted']} (+{interval['increase_percent']:.1f}%)
+  峰值流量: {interval['peak_formatted']}
+  数据库响应: 响应时间{analysis['trend']}, 平均{analysis['avg_ms']:.1f}ms, 最大{analysis['max_ms']:.1f}ms"""
+            print(interval_details)
     
     # 无论debug模式如何，都要统计最大值用于后续分析
     for i, interval in enumerate(impact_intervals):
@@ -677,7 +683,7 @@ def generate_interval_impact_report(datacenter: str, host_ip: str, time_window: 
                     max_response_recent_avg = recent_avg
     
     # 综合评估 - 分三个维度显示
-    print(f"\n📊 综合影响评估:")
+    assessment_details = ["\n📊 综合影响评估:"]
     
     # 分别统计入站流量、出站流量
     inbound_intervals = [i for i in impact_intervals if i['traffic_type'] == 'inbound']
@@ -689,11 +695,12 @@ def generate_interval_impact_report(datacenter: str, host_ip: str, time_window: 
         max_inbound_interval = max(inbound_intervals, key=lambda x: x['increase_percent'])
         max_inbound_peak_interval = max(inbound_intervals, key=lambda x: x['peak_value'])
         
-        print(f"  【入站流量】")
-        print(f"    最大流量增长率: {max_inbound_increase:.1f}% 流量变化: {max_inbound_interval['start_formatted']} -> {max_inbound_interval['end_formatted']} 发生时间: {max_inbound_interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {max_inbound_interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"    最大流量值: {max_inbound_peak_interval['peak_formatted']} 发生时间: {max_inbound_peak_interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {max_inbound_peak_interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}")
+        inbound_report = f"""  【入站流量】
+    最大流量增长率: {max_inbound_increase:.1f}% 流量变化: {max_inbound_interval['start_formatted']} -> {max_inbound_interval['end_formatted']} 发生时间: {max_inbound_interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {max_inbound_interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}
+    最大流量值: {max_inbound_peak_interval['peak_formatted']} 发生时间: {max_inbound_peak_interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {max_inbound_peak_interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}"""
+        assessment_details.append(inbound_report)
     else:
-        print(f"  【入站流量】无异常区间")
+        assessment_details.append("  【入站流量】无异常区间")
     
     # 出站流量分析
     if outbound_intervals:
@@ -701,30 +708,32 @@ def generate_interval_impact_report(datacenter: str, host_ip: str, time_window: 
         max_outbound_interval = max(outbound_intervals, key=lambda x: x['increase_percent'])
         max_outbound_peak_interval = max(outbound_intervals, key=lambda x: x['peak_value'])
         
-        print(f"  【出站流量】")
-        print(f"    最大流量增长率: {max_outbound_increase:.1f}% 流量变化: {max_outbound_interval['start_formatted']} -> {max_outbound_interval['end_formatted']} 发生时间: {max_outbound_interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {max_outbound_interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"    最大流量值: {max_outbound_peak_interval['peak_formatted']} 发生时间: {max_outbound_peak_interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {max_outbound_peak_interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}")
+        outbound_report = f"""  【出站流量】
+    最大流量增长率: {max_outbound_increase:.1f}% 流量变化: {max_outbound_interval['start_formatted']} -> {max_outbound_interval['end_formatted']} 发生时间: {max_outbound_interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {max_outbound_interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}
+    最大流量值: {max_outbound_peak_interval['peak_formatted']} 发生时间: {max_outbound_peak_interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {max_outbound_peak_interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}"""
+        assessment_details.append(outbound_report)
     else:
-        print(f"  【出站流量】无异常区间")
+        assessment_details.append("  【出站流量】无异常区间")
     
     # 数据库响应耗时分析
-    print(f"  【数据库响应耗时】")
+    db_report_parts = ["  【数据库响应耗时】"]
     if max_response_interval and max_response_degradation > 0:
-        print(f"    最大响应耗时增长率: {max_response_degradation*100:.1f}% 响应变化:{max_response_earlier_avg:.1f}ms->{max_response_recent_avg:.1f}ms 发生时间:{max_response_interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {max_response_interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}")
+        db_report_parts.append(f"    最大响应耗时增长率: {max_response_degradation*100:.1f}% 响应变化:{max_response_earlier_avg:.1f}ms->{max_response_recent_avg:.1f}ms 发生时间:{max_response_interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {max_response_interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}")
     else:
-        print(f"    最大响应耗时增长率: 无法计算（数据不足）")
+        db_report_parts.append("    最大响应耗时增长率: 无法计算（数据不足）")
         
     if max_response_ms_interval:
-        print(f"    最大响应耗时: {max_response_ms:.1f}ms 发生时间:{max_response_ms_interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {max_response_ms_interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}")
+        db_report_parts.append(f"    最大响应耗时: {max_response_ms:.1f}ms 发生时间:{max_response_ms_interval['start_time'].strftime('%Y-%m-%d %H:%M:%S')} ~ {max_response_ms_interval['end_time'].strftime('%Y-%m-%d %H:%M:%S')}")
     else:
-        print(f"    最大响应耗时: 无法计算（数据不足）")
+        db_report_parts.append("    最大响应耗时: 无法计算（数据不足）")
+    
+    assessment_details.append("\n".join(db_report_parts))
+    print("\n".join(assessment_details))
     
     # 总体影响级别评估
     total_intervals = len(impact_intervals)
     severe_intervals = len([i for i in impact_intervals if i['increase_percent'] >= 500])  # ******级别
     critical_intervals = len([i for i in impact_intervals if i['increase_percent'] >= 200])  # *****级别以上
-    
-    # print(f"  影响区间统计: 总计{total_intervals}个, 严重{critical_intervals}个, 极端{severe_intervals}个")
     
     # 影响级别判定
     if severe_intervals >= 3:
@@ -735,15 +744,6 @@ def generate_interval_impact_report(datacenter: str, host_ip: str, time_window: 
         impact_level = "中等"
     else:
         impact_level = "轻微"
-    
-    # print(f"  综合影响级别: {impact_level}")
-    
-    # 时间分布分析
-    # if len(impact_intervals) >= 2:
-    #     first_time = min(interval['start_time'] for interval in impact_intervals)
-    #     last_time = max(interval['end_time'] for interval in impact_intervals)
-    #     duration_minutes = (last_time - first_time).total_seconds() / 60
-    #     print(f"  影响时间跨度: {first_time.strftime('%H:%M:%S')} ~ {last_time.strftime('%H:%M:%S')} (共{duration_minutes:.1f}分钟)")
     
     # 生成AI分析
     if critical_interval:
