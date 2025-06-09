@@ -389,7 +389,7 @@ def get_zabbix_metrics(
         password=ZABBIX_PASSWORD
     )
     try:
-        return client.get_metrics_values('127.0.0.1', metric_name, time_from, time_till, match_type=match_type, limit=limit)
+        return client.get_metrics_values(host_ip, metric_name, time_from, time_till, match_type=match_type, limit=limit)
     finally:
         client.close()
 

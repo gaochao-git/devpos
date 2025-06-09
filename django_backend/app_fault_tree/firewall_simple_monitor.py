@@ -455,8 +455,8 @@ def main():
   模式2 - 指定时间范围: python firewall_simple_monitor.py <IP> <开始时间> <结束时间>
   
 示例:
-  python firewall_simple_monitor.py 192.168.1.1 3600
-  python firewall_simple_monitor.py 192.168.1.1 "2024-01-15 10:00:00" "2024-01-15 12:00:00"
+  python firewall_simple_monitor.py 127.0.0.1 3600
+  python firewall_simple_monitor.py 127.0.0.1 "2025-06-09 10:00:00" "2025-06-09 12:00:00"
   
 说明:
   - 时间范围最多支持6小时
