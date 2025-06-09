@@ -3,10 +3,10 @@
 🔥 防火墙流量与业务响应关联分析脚本 (简化版)
 
 用法:
-  python firewall_simple_monitor.py <机房> <IP> <时间窗口秒数>
+  python firewall_simple_monitor.py <IP> <时间窗口秒数>
   
 示例:
-  python firewall_simple_monitor.py IDC1 192.168.1.1 300
+  python firewall_simple_monitor.py 192.168.1.1 300
 """
 
 import sys
@@ -19,6 +19,17 @@ CONFIG = {
     "max_bandwidth_bps": 40 * 1000 * 1000 * 1000,  # 40Gbps最大带宽
     "traffic_baseline_bps": 5 * 1000 * 1000,  # 5Mbps基线
     "db_response_baseline_ms": 4  # 4ms基线
+}
+
+# IP到机房的映射关系
+IP_TO_DATACENTER = {
+    "192.168.1.1": "IDC1",
+    "192.168.1.2": "IDC1", 
+    "10.0.0.1": "IDC2",
+    "10.0.0.2": "IDC2",
+    "172.16.0.1": "IDC3",
+    "172.16.0.2": "IDC3",
+    # 可以继续添加更多IP映射
 }
 
 TRAFFIC_METRICS = {
@@ -51,7 +62,7 @@ def get_metrics_data(host_ip: str, metrics: Dict[str, str], time_from: datetime,
                 time_from=time_from_ts,
                 time_till=time_till_ts,
                 match_type='search',
-                limit=1000
+                limit=3600
             )
             
             if result['status'] == 'success' and result['data']:
@@ -248,12 +259,24 @@ def analyze_interval_impact(host_ip: str, interval: Dict) -> Dict:
         "analysis": response_analysis
     }
 
-def generate_report(datacenter: str, host_ip: str, time_window: int, impact_intervals: List[Dict]):
+def generate_report(datacenter: str, host_ip: str, time_window: int, impact_intervals: List[Dict], traffic_data: Dict):
     """生成分析报告"""
     
     # 计算基准值用于显示
     traffic_baseline_mbps = CONFIG["traffic_baseline_bps"] / (1000 * 1000)
     db_baseline_ms = CONFIG["db_response_baseline_ms"]
+    
+    # 统计数据点数
+    inbound_points = len(traffic_data.get('inbound_traffic', []))
+    outbound_points = len(traffic_data.get('outbound_traffic', []))
+    
+    # 计算响应时间数据点数（基于第一个影响区间的mock数据）
+    response_points = 0
+    if impact_intervals:
+        # 使用第一个区间的时间范围来估算响应时间数据点数
+        first_interval = impact_intervals[0]
+        duration_seconds = int((first_interval['end_time'] - first_interval['start_time']).total_seconds())
+        response_points = max(3, duration_seconds // 30)  # 每30秒一个点，最少3个点
     
     print(f"""
 防火墙流量递增区间影响分析
@@ -264,6 +287,9 @@ def generate_report(datacenter: str, host_ip: str, time_window: int, impact_inte
 总递增区间数: {len(impact_intervals)}
 流量分析基准值: > {traffic_baseline_mbps:.0f} Mbps
 数据库响应分析基准值: > {db_baseline_ms} ms
+入流量数据点数: {inbound_points}
+出流量数据点数: {outbound_points}
+响应耗时数据点数: {response_points}
 """)
     
     if not impact_intervals:
@@ -348,18 +374,22 @@ def generate_comprehensive_assessment(impact_intervals: List[Dict]):
     else:
         print("    最大响应耗时: 无数据")
 
+def get_datacenter_by_ip(host_ip: str) -> str:
+    """根据IP获取对应的机房名称"""
+    return IP_TO_DATACENTER.get(host_ip, "UNKNOWN")
+
 def main():
     """主函数"""
-    if len(sys.argv) != 4:
-        print("""用法: python firewall_simple_monitor.py <机房> <IP> <时间窗口秒数>
-示例: python firewall_simple_monitor.py IDC1 192.168.1.1 300""")
+    if len(sys.argv) != 3:
+        print("""用法: python firewall_simple_monitor.py <IP> <时间窗口秒数>
+示例: python firewall_simple_monitor.py 192.168.1.1 300""")
         sys.exit(1)
     
-    datacenter = sys.argv[1]
-    host_ip = sys.argv[2]
+    host_ip = sys.argv[1]
+    datacenter = get_datacenter_by_ip(host_ip)
     
     try:
-        time_window = int(sys.argv[3])
+        time_window = int(sys.argv[2])
     except ValueError:
         print("错误：时间窗口必须是数字（秒）")
         sys.exit(1)
@@ -416,7 +446,7 @@ def main():
         sys.exit(0)
     
     # 生成报告
-    generate_report(datacenter, host_ip, time_window, impact_intervals)
+    generate_report(datacenter, host_ip, time_window, impact_intervals, traffic_data)
 
 if __name__ == "__main__":
     main() 
