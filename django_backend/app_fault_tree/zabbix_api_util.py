@@ -4,6 +4,8 @@ from typing_extensions import Literal
 from datetime import datetime
 
 zabbix_url = 'http://82.156.146.51/zabbix/'
+ZABBIX_USER = 'Admin'
+ZABBIX_PASSWORD = 'zabbix'
 class ZabbixClient:
     def __init__(self, url, user, password):
         """初始化Zabbix客户端"""
@@ -383,8 +385,8 @@ def get_zabbix_metrics(
     """
     client = ZabbixClient(
         url=zabbix_url,
-        user='Admin',
-        password='zabbix'
+        user=ZABBIX_USER,
+        password=ZABBIX_PASSWORD
     )
     try:
         return client.get_metrics_values('127.0.0.1', metric_name, time_from, time_till, match_type=match_type, limit=limit)
@@ -407,8 +409,8 @@ def get_zabbix_discovery_rules(
     """
     client = ZabbixClient(
         url=zabbix_url,
-        user='Admin',
-        password='zabbix'
+        user=ZABBIX_USER,
+        password=ZABBIX_PASSWORD
     )
     try:
         return client.get_discovery_rules(host_ip, rule_key, status)
@@ -431,8 +433,8 @@ def get_zabbix_discovery_prototypes(
     """
     client = ZabbixClient(
         url=zabbix_url,
-        user='Admin',
-        password='zabbix'
+        user=ZABBIX_USER,
+        password=ZABBIX_PASSWORD
     )
     try:
         return client.get_discovery_prototypes(host_ip, discovery_rule_id, status)
@@ -449,8 +451,8 @@ def get_disk_free_space(host_ip: str) -> Dict[str, Any]:
     """
     client = ZabbixClient(
         url=zabbix_url,
-        user='Admin',
-        password='zabbix'
+        user=ZABBIX_USER,
+        password=ZABBIX_PASSWORD
     )
     try:
         # 1. 首先获取主机ID
@@ -512,8 +514,8 @@ def get_prototype_metrics(host_ip: str, discovery_rule_name: Optional[str] = Non
     """
     client = ZabbixClient(
         url=zabbix_url,
-        user='Admin',
-        password='zabbix'
+        user=ZABBIX_USER,
+        password=ZABBIX_PASSWORD
     )
     try:
         # 1. 如果指定了规则名称，先获取对应的规则ID
@@ -603,8 +605,8 @@ def get_all_host_metrics(host_ip):
     """
     client = ZabbixClient(
         url=zabbix_url,
-        user='Admin',
-        password='zabbix'
+        user=ZABBIX_USER,
+        password=ZABBIX_PASSWORD
     )
     try:
         return client.get_all_metrics(host_ip)
