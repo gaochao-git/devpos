@@ -3,22 +3,29 @@
 🔥 防火墙流量与业务响应关联分析脚本 (简化版)
 
 用法:
-  python firewall_simple_monitor.py <IP> <时间窗口秒数>
+  模式1 - 指定时间窗口: python firewall_simple_monitor.py <IP> <时间窗口秒数>
+  模式2 - 指定时间范围: python firewall_simple_monitor.py <IP> <开始时间> <结束时间>
   
 示例:
-  python firewall_simple_monitor.py 192.168.1.1 300
+  python firewall_simple_monitor.py 192.168.1.1 3600
+  python firewall_simple_monitor.py 192.168.1.1 "2024-01-15 10:00:00" "2024-01-15 12:00:00"
+  
+说明:
+  - 时间范围最多支持6小时
+  - 时间格式: YYYY-MM-DD HH:MM:SS
 """
 
 import sys
 from datetime import datetime, timedelta
 import requests
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 # 配置
 CONFIG = {
-    "max_bandwidth_bps": 40 * 1000 * 1000 * 1000,  # 40Gbps最大带宽
+    "max_bandwidth_bps": 40 * 1000 * 1000,  # 40Gbps最大带宽
     "traffic_baseline_bps": 5 * 1000 * 1000,  # 5Mbps基线
-    "db_response_baseline_ms": 4  # 4ms基线
+    "db_response_baseline_ms": 4,  # 4ms基线
+    "max_time_range_hours": 6  # 最大时间范围6小时
 }
 
 # IP到机房的映射关系
@@ -259,7 +266,7 @@ def analyze_interval_impact(host_ip: str, interval: Dict) -> Dict:
         "analysis": response_analysis
     }
 
-def generate_report(datacenter: str, host_ip: str, time_window: int, impact_intervals: List[Dict], traffic_data: Dict):
+def generate_report(datacenter: str, host_ip: str, time_window: int, impact_intervals: List[Dict], traffic_data: Dict, time_from: datetime, time_till: datetime):
     """生成分析报告"""
     
     # 计算基准值用于显示
@@ -283,10 +290,9 @@ def generate_report(datacenter: str, host_ip: str, time_window: int, impact_inte
 ============================================================
 机房: {datacenter}
 防火墙IP: {host_ip}
-分析时间窗口: {time_window}秒
-总递增区间数: {len(impact_intervals)}
 流量分析基准值: > {traffic_baseline_mbps:.0f} Mbps
 数据库响应分析基准值: > {db_baseline_ms} ms
+分析时间窗口: {time_window}秒 ({time_from.strftime('%Y-%m-%d %H:%M:%S')} ~ {time_till.strftime('%Y-%m-%d %H:%M:%S')})
 入流量数据点数: {inbound_points}
 出流量数据点数: {outbound_points}
 响应耗时数据点数: {response_points}
@@ -374,31 +380,100 @@ def generate_comprehensive_assessment(impact_intervals: List[Dict]):
     else:
         print("    最大响应耗时: 无数据")
 
+def parse_time_arguments(args: List[str]) -> Tuple[datetime, datetime, int]:
+    """解析时间参数，返回(开始时间, 结束时间, 时间窗口秒数)"""
+    
+    if len(args) == 3:
+        # 模式1: IP + 秒数
+        try:
+            time_window = int(args[2])
+            if time_window <= 0:
+                raise ValueError("时间窗口必须大于0")
+            
+            max_seconds = CONFIG["max_time_range_hours"] * 3600
+            if time_window > max_seconds:
+                raise ValueError(f"时间窗口不能超过{CONFIG['max_time_range_hours']}小时({max_seconds}秒)")
+            
+            time_till = datetime.now()
+            time_from = time_till - timedelta(seconds=time_window)
+            
+            return time_from, time_till, time_window
+            
+        except ValueError as e:
+            if "invalid literal" in str(e):
+                raise ValueError("时间窗口必须是数字（秒）")
+            else:
+                raise e
+    
+    elif len(args) == 4:
+        # 模式2: IP + 开始时间 + 结束时间
+        try:
+            start_time_str = args[2]
+            end_time_str = args[3]
+            
+            # 解析时间字符串
+            time_from = datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
+            time_till = datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S")
+            
+            # 验证时间范围
+            if time_from >= time_till:
+                raise ValueError("开始时间必须早于结束时间")
+            
+            duration = time_till - time_from
+            max_duration = timedelta(hours=CONFIG["max_time_range_hours"])
+            
+            if duration > max_duration:
+                raise ValueError(f"时间范围不能超过{CONFIG['max_time_range_hours']}小时")
+            
+            # 检查是否是未来时间
+            now = datetime.now()
+            if time_till > now:
+                raise ValueError("结束时间不能是未来时间")
+            
+            time_window = int(duration.total_seconds())
+            
+            return time_from, time_till, time_window
+            
+        except ValueError as e:
+            if "time data" in str(e):
+                raise ValueError("时间格式错误，应为: YYYY-MM-DD HH:MM:SS")
+            else:
+                raise e
+    
+    else:
+        raise ValueError("参数数量错误")
+
 def get_datacenter_by_ip(host_ip: str) -> str:
     """根据IP获取对应的机房名称"""
     return IP_TO_DATACENTER.get(host_ip, "UNKNOWN")
 
 def main():
     """主函数"""
-    if len(sys.argv) != 3:
-        print("""用法: python firewall_simple_monitor.py <IP> <时间窗口秒数>
-示例: python firewall_simple_monitor.py 192.168.1.1 300""")
+    if len(sys.argv) not in [3, 4]:
+        print("""用法:
+  模式1 - 指定时间窗口: python firewall_simple_monitor.py <IP> <时间窗口秒数>
+  模式2 - 指定时间范围: python firewall_simple_monitor.py <IP> <开始时间> <结束时间>
+  
+示例:
+  python firewall_simple_monitor.py 192.168.1.1 3600
+  python firewall_simple_monitor.py 192.168.1.1 "2024-01-15 10:00:00" "2024-01-15 12:00:00"
+  
+说明:
+  - 时间范围最多支持6小时
+  - 时间格式: YYYY-MM-DD HH:MM:SS""")
         sys.exit(1)
     
     host_ip = sys.argv[1]
     datacenter = get_datacenter_by_ip(host_ip)
     
     try:
-        time_window = int(sys.argv[2])
-    except ValueError:
-        print("错误：时间窗口必须是数字（秒）")
+        time_from, time_till, time_window = parse_time_arguments(sys.argv)
+    except ValueError as e:
+        print(f"错误：{e}")
         sys.exit(1)
     
-    # 计算时间范围
-    time_till = datetime.now()
-    time_from = time_till - timedelta(seconds=time_window)
-    
-    log_message(f"开始分析 - 机房:{datacenter}, IP:{host_ip}, 时间窗口:{time_window}秒")
+    log_message(f"开始分析 - 机房:{datacenter}, IP:{host_ip}")
+    log_message(f"时间范围: {time_from.strftime('%Y-%m-%d %H:%M:%S')} ~ {time_till.strftime('%Y-%m-%d %H:%M:%S')} (时间窗口:{time_window}秒)")
     
     # 获取流量数据
     traffic_data = get_metrics_data(host_ip, TRAFFIC_METRICS, time_from, time_till)
@@ -410,9 +485,6 @@ def main():
     # 分析流量趋势
     inbound_analysis = analyze_traffic_trend(traffic_data.get('inbound_traffic', []))
     outbound_analysis = analyze_traffic_trend(traffic_data.get('outbound_traffic', []))
-    
-    log_message(f"入流量: {inbound_analysis['trend']}, 最大:{format_traffic_rate(inbound_analysis['max_bps'])}")
-    log_message(f"出流量: {outbound_analysis['trend']}, 最大:{format_traffic_rate(outbound_analysis['max_bps'])}")
     
     # 收集所有递增区间
     all_intervals = []
@@ -429,7 +501,11 @@ def main():
         print(f"结论：机房{datacenter}防火墙{host_ip}流量正常，无业务影响")
         sys.exit(0)
     
-    log_message(f"检测到{len(all_intervals)}个流量递增区间，开始分析业务影响...")
+    # 统计各类型递增区间数量
+    inbound_count = len(inbound_analysis['increase_intervals'])
+    outbound_count = len(outbound_analysis['increase_intervals'])
+    
+    log_message(f"检测到流量递增区间: 入流量{inbound_count}个, 出流量{outbound_count}个, 开始分析业务影响...")
     
     # 分析业务影响
     impact_intervals = []
@@ -446,7 +522,7 @@ def main():
         sys.exit(0)
     
     # 生成报告
-    generate_report(datacenter, host_ip, time_window, impact_intervals, traffic_data)
+    generate_report(datacenter, host_ip, time_window, impact_intervals, traffic_data, time_from, time_till)
 
 if __name__ == "__main__":
     main() 
