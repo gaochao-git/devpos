@@ -79,6 +79,38 @@ def demo_zabbix_monitoring():
         for problem in problems[:3]:  # 只显示前3个
             print(f"  - {problem.get('name', 'Unknown')} (严重程度: {problem.get('severity', 'Unknown')})")
         
+        # 5. 获取CPU空闲时间Top10 IP
+        print("\n5. 获取CPU空闲时间Top10 IP:")
+        top_cpu_ips = zabbix.get_top_ips_by_metric(
+            item_key="system.cpu.util[,idle]",
+            limit=10,
+            hours_back=1
+        )
+        
+        if top_cpu_ips:
+            print(f"找到 {len(top_cpu_ips)} 个主机的CPU数据:")
+            for i, ip_info in enumerate(top_cpu_ips[:3], 1):  # 只显示前3个
+                print(f"  {i}. IP: {ip_info['ip']} ({ip_info['display_name']})")
+                print(f"     平均空闲: {ip_info['avg_value']}%, 最大: {ip_info['max_value']}%")
+        else:
+            print("未找到CPU空闲时间数据")
+        
+        # 6. 获取可用内存Top10 IP
+        print("\n6. 获取可用内存Top10 IP:")
+        top_memory_ips = zabbix.get_top_ips_by_metric(
+            item_key="vm.memory.size[available]",
+            limit=10,
+            hours_back=1
+        )
+        
+        if top_memory_ips:
+            print(f"找到 {len(top_memory_ips)} 个主机的内存数据:")
+            for i, ip_info in enumerate(top_memory_ips[:3], 1):  # 只显示前3个
+                print(f"  {i}. IP: {ip_info['ip']} ({ip_info['display_name']})")
+                print(f"     平均可用: {ip_info['avg_value']:.0f}B, 最大: {ip_info['max_value']:.0f}B")
+        else:
+            print("未找到可用内存数据")
+        
         # 登出
         zabbix.logout()
         print("\n✓ Zabbix会话已结束")

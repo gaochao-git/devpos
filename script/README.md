@@ -39,6 +39,20 @@ monitoring_data = zabbix.get_monitoring_data(
 # 获取问题列表
 problems = zabbix.get_problems()
 
+# 获取CPU使用率Top10 IP
+top_cpu_ips = zabbix.get_top_ips_by_metric(
+    item_key="system.cpu.util",
+    limit=10,
+    hours_back=1
+)
+
+# 获取内存使用率Top10 IP  
+top_memory_ips = zabbix.get_top_ips_by_metric(
+    item_key="vm.memory.util",
+    limit=10,
+    hours_back=1
+)
+
 # 登出
 zabbix.logout()
 ```
@@ -87,6 +101,7 @@ keyword_logs = es_client.search_by_keyword(
 - **监控项管理**: 获取监控项、按主机筛选
 - **数据获取**: 历史数据、趋势数据
 - **问题监控**: 获取当前问题、按严重程度筛选
+- **Top N分析**: 获取某个指标的Top N主机/IP
 - **综合查询**: 一次性获取完整监控数据
 
 ### Elasticsearch API 功能
