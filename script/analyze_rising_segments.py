@@ -33,7 +33,7 @@ CONFIG = dict2ns({
         "threshold": 100*1000  # kbps
     },
     "time": {
-        "time_from_str": "2025-06-13 17:00:00",  # 必须填写
+        "time_from_str": "2025-06-13 18:00:00",  # 必须填写
         "time_till_str": "2025-06-13 20:00:00"   # 必须填写
     }
 })
