@@ -200,8 +200,8 @@ def main():
     zabbix_client = create_zabbix_client(CONFIG.zabbix.url, CONFIG.zabbix.username, CONFIG.zabbix.password)
     
     # 获取时间范围（强制要求字符串）
-    time_from_str = "2025-06-13 18:00:00"
-    time_till_str = "2025-06-13 20:00:00"
+    time_from_str = "2025-06-13 18:25:00"
+    time_till_str = "2025-06-13 18:30:00"
     time_from = datetime.strptime(time_from_str, "%Y-%m-%d %H:%M:%S")
     time_till = datetime.strptime(time_till_str, "%Y-%m-%d %H:%M:%S")
     
