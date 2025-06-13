@@ -16,7 +16,8 @@ CONFIG = {
         "port": 9200,
         "index": "mysql-slow-*",
         "field": "query_time",
-        "threshold": 1  # 秒，判断是否上升段的基础阈值，避免微小波动被误判
+        "threshold": 1,  # 秒，判断是否上升段的基础阈值，避免微小波动被误判
+        "fixed_interval": "5s"  # 聚合间隔
     },
     "zabbix": {
         "url": "http://82.156.146.51/zabbix",
@@ -93,7 +94,7 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
                 "response_time_over_time": {
                     "date_histogram": {
                         "field": "@timestamp",
-                        "fixed_interval": "1m"
+                        "fixed_interval": CONFIG["es"].get("fixed_interval", "1m")
                     },
                     "aggs": {
                         "avg_response_time": {
