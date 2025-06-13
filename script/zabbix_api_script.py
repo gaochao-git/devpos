@@ -242,7 +242,13 @@ class ZabbixAPI:
             time_back: 时间回溯（支持s/m/h/d/w单位，如"2h", "30m", "7d"）
             limit: 数据条数限制
         Returns:
-            历史数据列表
+            历史数据列表，每个元素包含：
+            {
+                "key": "监控项key",
+                "time": "可读时间（YYYY-MM-DD HH:MM:SS）",
+                "value": 监控值,
+                "units": 单位
+            }
         """
         items = self.get_items(host_ips=host_ips, item_keys=item_keys)
         item_ids = [item["itemid"] for item in items]
@@ -255,21 +261,35 @@ class ZabbixAPI:
             "time_from": int(time_from.timestamp()),
             "time_till": int(time_till.timestamp()),
             "sortfield": "clock",
-            "sortorder": "DESC",
+            "sortorder": "ASC",  # 正序
             "limit": limit
         }
-        return self._make_request("history.get", params)
+        raw_data = self._make_request("history.get", params)
+        
+        # 创建itemid到key和单位的映射
+        item_key_map = {item["itemid"]: item["key_"] for item in items}
+        item_units_map = {item["itemid"]: item.get("units", "") for item in items}
+        
+        # 转换数据格式
+        formatted_data = []
+        for item in raw_data:
+            formatted_data.append({
+                "key": item_key_map.get(item["itemid"], "unknown"),
+                "time": datetime.fromtimestamp(int(item["clock"])).strftime("%Y-%m-%d %H:%M:%S"),
+                "value": float(item["value"]),
+                "units": item_units_map.get(item["itemid"], "")
+            })
+        return formatted_data
         
 
     def get_problems(self, host_ips: List[str] = None, severity: int = None) -> List[Dict]:
         """
         获取问题列表（仅支持IP地址）
-        
         Args:
             host_ips: 主机IP地址列表
             severity: 问题严重程度
         Returns:
-            问题列表
+            问题列表，每个问题增加'time'字段（可读时间）和'key_'字段（监控项key）
         """
         host_ids = None
         if host_ips:
@@ -280,7 +300,37 @@ class ZabbixAPI:
             params["hostids"] = host_ids
         if severity is not None:
             params["severities"] = [severity]
-        return self._make_request("problem.get", params)
+        problems = self._make_request("problem.get", params)
+        # 增加可读时间字段
+        for problem in problems:
+            if "clock" in problem:
+                try:
+                    problem["time"] = datetime.fromtimestamp(int(problem["clock"])).strftime("%Y-%m-%d %H:%M:%S")
+                except Exception:
+                    problem["time"] = problem["clock"]
+            # 补充key_字段
+            if problem.get("object") == "0":  # trigger
+                trigger_id = problem.get("objectid")
+                if trigger_id:
+                    trigger_info = self._make_request("trigger.get", {
+                        "triggerids": [trigger_id],
+                        "output": ["expression"],
+                        "selectItems": ["itemid", "key_"]
+                    })
+                    if trigger_info and len(trigger_info) > 0:
+                        # 从trigger关联的items中获取key_
+                        items = trigger_info[0].get("items", [])
+                        if items:
+                            problem["key_"] = items[0].get("key_", "unknown")
+                        else:
+                            problem["key_"] = "unknown"
+                    else:
+                        problem["key_"] = "unknown"
+                else:
+                    problem["key_"] = "unknown"
+            else:
+                problem["key_"] = "unknown"
+        return problems
             
     def _get_host_ip(self, host_info: Dict) -> str:
         """
@@ -304,30 +354,19 @@ class ZabbixAPI:
     def get_top_ips_by_metric(self, item_key: str, limit: int = 10, ip_addresses: List[str] = None, time_from: datetime = None, time_till: datetime = None, time_back: str = None) -> Dict[str, List[Dict]]:
         """
         获取指定监控项Top N的IP列表（可选仅在指定IP范围内）
-        
-        Args:
-            item_key: 监控项key
-            limit: 返回数量限制
-            ip_addresses: 只在这些IP范围内统计
-            time_from: 开始时间
-            time_till: 结束时间
-            time_back: 时间回溯（支持s/m/h/d/w单位，如"2h", "30m", "7d"）
-        Returns:
-            包含两个列表的字典：
-            - avg: 按平均值排序的Top N IP列表
-            - max: 按最大值排序的Top N IP列表
-            每个IP包含以下信息：
-            - ip: IP地址
-            - value: 对应的值（平均值或最大值）
+        返回的avg和max都包含ip、value、units、key_，max还包含time（最大值对应的时间），平均值保留2位小数。
+        同时返回time_from和time_till（可读时间）。
         """
         time_from, time_till = self._resolve_time_range(time_from, time_till, time_back)
         hosts = self.get_hosts(ip_addresses=ip_addresses)
         items = self._make_request("item.get", {
-            "output": ["itemid", "hostid", "key_"],
+            "output": ["itemid", "hostid", "key_", "units"],
             "hostids": [host["hostid"] for host in hosts],
             "search": {"key_": item_key},
             "searchWildcardsEnabled": True
         })
+        # 构建itemid到key_和units的映射
+        itemid_to_info = {item["itemid"]: {"key_": item["key_"], "units": item.get("units", "") } for item in items}
         history = []
         for item in items:
             item_history = self._make_request("history.get", {
@@ -337,9 +376,12 @@ class ZabbixAPI:
                 "time_from": int(time_from.timestamp()),
                 "time_till": int(time_till.timestamp()),
                 "sortfield": "clock",
-                "sortorder": "DESC"
+                "sortorder": "ASC"
             })
             if item_history:
+                for h in item_history:
+                    h["hostid"] = item["hostid"]
+                    h["itemid"] = item["itemid"]
                 history.extend(item_history)
         ip_values = {}
         for item in items:
@@ -348,22 +390,46 @@ class ZabbixAPI:
             if host_info:
                 ip = self._get_host_ip(host_info)
                 if ip:
-                    values = [float(h["value"]) for h in history if h["itemid"] == item["itemid"]]
+                    values = [(float(h["value"]), int(h["clock"])) for h in history if h["itemid"] == item["itemid"]]
                     if values:
+                        avg_value = round(sum(v[0] for v in values) / len(values), 2)
+                        max_value, max_clock = max(values, key=lambda x: x[0])
                         ip_values[ip] = {
-                            "avg_value": sum(values) / len(values),
-                            "max_value": max(values)
+                            "avg_value": avg_value,
+                            "max_value": max_value,
+                            "max_clock": max_clock,
+                            "key_": item["key_"],
+                            "units": item.get("units", "")
                         }
         # 按平均值排序
         sorted_ips_avg = sorted(ip_values.items(), key=lambda x: x[1]["avg_value"], reverse=True)
         # 按最大值排序
         sorted_ips_max = sorted(ip_values.items(), key=lambda x: x[1]["max_value"], reverse=True)
-        
+        result_avg = [
+            {
+                "ip": ip,
+                "value": values["avg_value"],
+                "units": values["units"],
+                "key_": values["key_"]
+            }
+            for ip, values in sorted_ips_avg[:limit]
+        ]
+        result_max = [
+            {
+                "ip": ip,
+                "value": values["max_value"],
+                "units": values["units"],
+                "key_": values["key_"],
+                "time": datetime.fromtimestamp(values["max_clock"]).strftime("%Y-%m-%d %H:%M:%S")
+            }
+            for ip, values in sorted_ips_max[:limit]
+        ]
         return {
-            "avg": [{"ip": ip, "value": values["avg_value"]} for ip, values in sorted_ips_avg[:limit]],
-            "max": [{"ip": ip, "value": values["max_value"]} for ip, values in sorted_ips_max[:limit]]
+            "avg": result_avg,
+            "max": result_max,
+            "time_from": time_from.strftime("%Y-%m-%d %H:%M:%S"),
+            "time_till": time_till.strftime("%Y-%m-%d %H:%M:%S")
         }
-
     def _is_ip_address(self, identifier: str) -> bool:
         """
         判断字符串是否为IP地址
