@@ -22,7 +22,7 @@ CONFIG = dict2ns({
         "url": "http://82.156.146.51:9200",
         "index": "mysql-slow-*",
         "field": "query_time",
-        "threshold": 1,  # 秒，判断是否上升段的基础阈值，避免微小波动被误判
+        "threshold": 3,  # 毫秒，判断是否上升段的基础阈值，避免微小波动被误判
         "fixed_interval": "5s"  # 聚合间隔
     },
     "zabbix": {
@@ -30,7 +30,7 @@ CONFIG = dict2ns({
         "username": "Admin",
         "password": "zabbix",
         "item_keys": ["net.if.in[eth0]"],
-        "threshold": 100*1000  # kbps
+        "threshold": 100*1000  # 100kbps，判断是否上升段的基础阈值，避免微小波动被误判
     }
 })
 
@@ -235,7 +235,8 @@ def main():
     # 设置阈值，控制确认为上升段的基础阈值，避免微小波动被误判
     es_threshold = CONFIG.es.threshold
     zabbix_threshold = CONFIG.zabbix.threshold
-
+    print(es_threshold)
+    print(zabbix_threshold)
     # 找出上升段
     es_rising_segments = find_rising_segments(es_values, es_threshold)
     zabbix_rising_segments = find_rising_segments(zabbix_values, zabbix_threshold)
