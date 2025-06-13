@@ -312,29 +312,25 @@ logger = logging.getLogger(__name__)
 class ElasticsearchAPI:
     """Elasticsearch API 客户端类"""
     
-    def __init__(self, host: str, port: int = 9200, username: str = None, 
-                 password: str = None, use_ssl: bool = False, verify_certs: bool = True):
+    def __init__(self, url: str, username: str = None, password: str = None, use_ssl: bool = False, verify_certs: bool = True):
         """
         初始化Elasticsearch API客户端
         
         Args:
-            host: ES服务器地址
-            port: ES服务器端口
+            url: 完整ES服务URL（如http://host:port）
             username: 用户名
             password: 密码
             use_ssl: 是否使用SSL
             verify_certs: 是否验证证书
         """
-        self.host = host
-        self.port = port
+        self.url = url
         self.username = username
         self.password = password
         self.use_ssl = use_ssl
         self.verify_certs = verify_certs
         
         # 构建基础URL
-        protocol = 'https' if use_ssl else 'http'
-        self.base_url = f"{protocol}://{host}:{port}"
+        self.base_url = url.rstrip('/')
         
         # 创建session
         self.session = requests.Session()
@@ -470,14 +466,13 @@ class ElasticsearchAPI:
         return result
 
 
-def create_elasticsearch_client(host: str, port: int = 9200, username: str = None,
+def create_elasticsearch_client(url: str, username: str = None,
                               password: str = None, use_ssl: bool = False) -> ElasticsearchAPI:
     """
     创建Elasticsearch API客户端
     
     Args:
-        host: ES服务器地址
-        port: ES服务器端口
+        url: 完整ES服务URL（如http://host:port）
         username: 用户名
         password: 密码
         use_ssl: 是否使用SSL
@@ -485,7 +480,7 @@ def create_elasticsearch_client(host: str, port: int = 9200, username: str = Non
     Returns:
         ElasticsearchAPI客户端实例
     """
-    client = ElasticsearchAPI(host, port, username, password, use_ssl)
+    client = ElasticsearchAPI(url, username, password, use_ssl)
     if client.test_connection():
         return client
     else:
@@ -495,14 +490,13 @@ def create_elasticsearch_client(host: str, port: int = 9200, username: str = Non
 # 使用示例
 if __name__ == "__main__":
     # 配置信息
-    ES_HOST = "82.156.146.51"
-    ES_PORT = 9200
+    ES_URL = "http://82.156.146.51:9200"
     ES_USERNAME = None  # 无需认证
     ES_PASSWORD = None  # 无需认证
     
     try:
         # 创建客户端
-        es_client = create_elasticsearch_client(ES_HOST, ES_PORT, ES_USERNAME, ES_PASSWORD)
+        es_client = create_elasticsearch_client(url=ES_URL, username=ES_USERNAME, password=ES_PASSWORD)
         
         # 搜索错误日志
         query = {

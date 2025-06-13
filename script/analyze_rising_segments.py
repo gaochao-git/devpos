@@ -18,8 +18,7 @@ def dict2ns(d):
 
 CONFIG = dict2ns({
     "es": {
-        "host": "82.156.146.51",
-        "port": 9200,
+        "url": "http://82.156.146.51:9200",
         "index": "mysql-slow-*",
         "field": "query_time",
         "threshold": 1,  # 秒，判断是否上升段的基础阈值，避免微小波动被误判
@@ -197,7 +196,7 @@ def format_rising_segments(rising_segments, times, raw_data):
 
 def main():
     # 初始化客户端
-    es_client = create_elasticsearch_client(CONFIG.es.host, CONFIG.es.port)
+    es_client = create_elasticsearch_client(CONFIG.es.url)
     zabbix_client = create_zabbix_client(CONFIG.zabbix.url, CONFIG.zabbix.username, CONFIG.zabbix.password)
     
     # 获取时间范围（强制要求字符串）
