@@ -211,18 +211,26 @@ def call_llm_analysis(prompt, api_url="http://127.0.0.1/v1/chat-messages", api_k
         return response.text
 
 def analyze_es_rising_segments(time_from, time_till):
+    # 获取ES的指标数据
     es_data = get_es_metric_data(time_from, time_till)
+    # 提取时间序列和值序列
     es_times, es_values = extract_time_value_series(es_data)
+    # 找出上升段
     es_threshold = CONFIG.es.threshold
     es_rising_segments = find_rising_segments(es_values, es_threshold)
+    # 格式化上升段
     formatted_es_segments = format_rising_segments(es_rising_segments, es_times, es_data, source="es")
     return formatted_es_segments
 
 def analyze_zabbix_rising_segments(time_from, time_till):
+    # 获取Zabbix的指标数据
     zabbix_data = get_zabbix_metric_data(time_from, time_till)
+    # 提取时间序列和值序列
     zabbix_times, zabbix_values = extract_time_value_series(zabbix_data)
+    # 找出上升段
     zabbix_threshold = CONFIG.zabbix.threshold
     zabbix_rising_segments = find_rising_segments(zabbix_values, zabbix_threshold)
+    # 格式化上升段
     formatted_zabbix_segments = format_rising_segments(zabbix_rising_segments, zabbix_times, zabbix_data, source="zabbix")
     return formatted_zabbix_segments
 
