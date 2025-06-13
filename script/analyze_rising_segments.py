@@ -15,8 +15,8 @@ CONFIG = {
         "host": "82.156.146.51",
         "port": 9200,
         "index": "mysql-slow-*",
-        "field": "response_time",
-        "threshold": 1000  # 毫秒
+        "field": "query_time",
+        "threshold": 1  # 秒，判断是否上升段的基础阈值，避免微小波动被误判
     },
     "zabbix": {
         "url": "http://82.156.146.51/zabbix",
@@ -26,7 +26,7 @@ CONFIG = {
         "threshold": 100*1000  # kbps
     },
     "time": {
-        "hours_back": 1
+        "hours_back": 18
     }
 }
 
@@ -106,7 +106,12 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
         
         es_result = es_client.search_logs(CONFIG["es"]["index"], es_query)
         es_buckets = es_result.get("aggregations", {}).get("response_time_over_time", {}).get("buckets", [])
-        es_data = [(datetime.fromisoformat(bucket["key_as_string"]), bucket["avg_response_time"]["value"]) for bucket in es_buckets]
+        es_data = [
+            (datetime.strptime(bucket["key_as_string"], "%Y-%m-%dT%H:%M:%S.%fZ"), bucket["avg_response_time"]["value"])
+            for bucket in es_buckets
+            if bucket["avg_response_time"]["value"] is not None
+        ]
+        print("[调试] es_data:", es_data)
         logger.info(f"从ES获取到 {len(es_data)} 条数据")
         
         # 获取Zabbix数据
@@ -163,7 +168,23 @@ def format_rising_segments(rising_segments, times, raw_data):
     for start, end, max_value in rising_segments:
         time_from_str = times[start].strftime("%Y-%m-%d %H:%M:%S")
         time_till_str = times[end].strftime("%Y-%m-%d %H:%M:%S")
-        segment_data = raw_data[start:end+1]
+        # 判断数据类型
+        if raw_data and isinstance(raw_data[0], dict):
+            # Zabbix数据
+            segment_data = [
+                {
+                    "key": item.get("key"),
+                    "time": item.get("time"),
+                    "value": item.get("value")
+                }
+                for item in raw_data[start:end+1]
+            ]
+        else:
+            # ES数据
+            segment_data = [
+                (t.strftime("%Y-%m-%d %H:%M:%S") if isinstance(t, datetime) else t, f"{round(v, 2):.2f}")
+                for t, v in raw_data[start:end+1]
+            ]
         formatted_segments.append({
             "time_from": time_from_str,
             "time_till": time_till_str,
