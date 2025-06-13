@@ -8,9 +8,15 @@ import pandas as pd
 from es_api_script import create_elasticsearch_client
 from zabbix_api_script import create_zabbix_client
 import json
+from types import SimpleNamespace
 
 # 全局配置
-CONFIG = {
+def dict2ns(d):
+    if isinstance(d, dict):
+        return SimpleNamespace(**{k: dict2ns(v) for k, v in d.items()})
+    return d
+
+CONFIG = dict2ns({
     "es": {
         "host": "82.156.146.51",
         "port": 9200,
@@ -30,7 +36,7 @@ CONFIG = {
         "time_from_str": "2025-06-13 17:00:00",  # 必须填写
         "time_till_str": "2025-06-13 19:00:00"   # 必须填写
     }
-}
+})
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -94,12 +100,12 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
                 "response_time_over_time": {
                     "date_histogram": {
                         "field": "@timestamp",
-                        "fixed_interval": CONFIG["es"].get("fixed_interval", "1m")
+                        "fixed_interval": CONFIG.es.fixed_interval
                     },
                     "aggs": {
                         "avg_response_time": {
                             "avg": {
-                                "field": CONFIG["es"]["field"]
+                                "field": CONFIG.es.field
                             }
                         }
                     }
@@ -107,7 +113,7 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
             }
         }
         print(f"es_query: {es_query}")
-        es_result = es_client.search_logs(CONFIG["es"]["index"], es_query)
+        es_result = es_client.search_logs(CONFIG.es.index, es_query)
         print(f"es_result: {es_result}")
         es_buckets = es_result.get("aggregations", {}).get("response_time_over_time", {}).get("buckets", [])
         es_data = [
@@ -123,7 +129,7 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
             time_from=time_from,
             time_till=time_till,
             host_ips=None,
-            item_keys=CONFIG["zabbix"]["item_keys"]
+            item_keys=CONFIG.zabbix.item_keys
         )
         logger.info(f"从Zabbix获取到 {len(zabbix_data)} 条数据")
         return es_data, zabbix_data
@@ -197,14 +203,14 @@ def format_rising_segments(rising_segments, times, raw_data):
 
 def main():
     # 初始化客户端
-    es_client = create_elasticsearch_client(CONFIG["es"]["host"], CONFIG["es"]["port"])
-    zabbix_client = create_zabbix_client(CONFIG["zabbix"]["url"], CONFIG["zabbix"]["username"], CONFIG["zabbix"]["password"])
+    es_client = create_elasticsearch_client(CONFIG.es.host, CONFIG.es.port)
+    zabbix_client = create_zabbix_client(CONFIG.zabbix.url, CONFIG.zabbix.username, CONFIG.zabbix.password)
     
     # 获取时间范围（强制要求字符串）
-    time_cfg = CONFIG["time"]
-    if time_cfg.get("time_from_str") and time_cfg.get("time_till_str"):
-        time_from = datetime.strptime(time_cfg["time_from_str"], "%Y-%m-%d %H:%M:%S")
-        time_till = datetime.strptime(time_cfg["time_till_str"], "%Y-%m-%d %H:%M:%S")
+    time_cfg = CONFIG.time
+    if time_cfg.time_from_str and time_cfg.time_till_str:
+        time_from = datetime.strptime(time_cfg.time_from_str, "%Y-%m-%d %H:%M:%S")
+        time_till = datetime.strptime(time_cfg.time_till_str, "%Y-%m-%d %H:%M:%S")
     else:
         raise ValueError("请在CONFIG['time']中填写'time_from_str'和'time_till_str'，格式为'YYYY-MM-DD HH:MM:SS'")
     
@@ -216,8 +222,8 @@ def main():
     zabbix_times, zabbix_values = extract_time_value_series(zabbix_data, is_es=False)
     
     # 设置阈值，控制确认为上升段的基础阈值，避免微小波动被误判
-    es_threshold = CONFIG["es"]["threshold"]
-    zabbix_threshold = CONFIG["zabbix"]["threshold"]
+    es_threshold = CONFIG.es.threshold
+    zabbix_threshold = CONFIG.zabbix.threshold
 
     # 找出上升段
     es_rising_segments = find_rising_segments(es_values, es_threshold)
