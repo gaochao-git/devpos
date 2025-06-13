@@ -5,7 +5,7 @@ Zabbix API 公共方法模块
 用于获取监控数据
 
 ## 主要功能
-- 支持通过IP地址或主机名查询监控数据
+- 支持通过IP地址查询监控数据
 - 支持灵活的时间单位（s/m/h/d/w）
 - 支持标准字符串时间格式（YYYY-MM-DD HH:MM:SS）
 - 获取历史数据、问题列表、Top N统计
@@ -15,112 +15,53 @@ Zabbix API 公共方法模块
 ### 1. 创建客户端
 ```python
 from zabbix_api_script import create_zabbix_client
-
 # 创建Zabbix客户端
-zabbix = create_zabbix_client(
-    url="http://your-zabbix-server/zabbix",
-    username="Admin", 
-    password="zabbix"
-)
+zabbix = create_zabbix_client(url="http://192.168.1.100/zabbix", username="Admin", password="zabbix")
 ```
 
-### 2. 时间单位支持
+### 2. 获取所有主机
 ```python
-# 支持多种时间单位
-data = zabbix.get_monitoring_data(
-    host_identifiers=["server1"],
-    item_keys=["system.cpu.util"],
-    time_back="2h"      # 最近2小时
-)
-
-# 其他时间单位示例
-time_back="30s"     # 30秒
-time_back="15m"     # 15分钟  
-time_back="6h"      # 6小时
-time_back="7d"      # 7天
-time_back="2w"      # 2周
-time_back="1.5h"    # 1.5小时
+hosts = zabbix.get_hosts()
+print(hosts)
 ```
 
-### 3. 字符串时间格式
+### 3. 获取指定IP的主机
 ```python
-# 使用标准字符串时间格式
-data = zabbix.get_monitoring_data(
-    host_identifiers=["server1"],
-    item_keys=["system.cpu.util"],
-    time_from="2025-06-12 09:00:00",
-    time_till="2025-06-12 17:00:00"
-)
+hosts = zabbix.get_hosts(ip_addresses=["127.0.0.1"])
+print(hosts)
 ```
 
-### 4. 主机识别（IP地址或主机名）
+### 4. 获取指定主机的监控项
 ```python
-# 通过主机名查询
-data = zabbix.get_monitoring_data(
-    host_identifiers=["zabbix_server", "web_server"],
-    item_keys=["vm.memory.util"]
-)
-
-# 通过IP地址查询
-data = zabbix.get_monitoring_data(
-    host_identifiers=["192.168.1.100", "10.0.0.50"],
-    item_keys=["system.cpu.util"]
-)
-
-# 混合查询
-data = zabbix.get_monitoring_data(
-    host_identifiers=["server1", "192.168.1.100"],
-    item_keys=["system.cpu.util"]
-)
+items = zabbix.get_items(host_ips=["127.0.0.1"])
+print(items)
 ```
 
-### 5. Top N 统计
+### 5. 获取监控项的历史数据
 ```python
-# 获取CPU使用率Top 10主机
-top_hosts = zabbix.get_top_hosts_by_metric(
-    item_key="system.cpu.util",
-    limit=10,
-    hours_back=1
-)
-
-# 获取内存使用率Top 10 IP
-top_ips = zabbix.get_top_ips_by_metric(
-    item_key="vm.memory.util", 
-    limit=10,
-    hours_back=2
-)
+if items:
+    item_ids = [item["itemid"] for item in items]
+    history = zabbix.get_history(host_ips=None, item_keys=["system.cpu.util[,user]"], time_back="1h")
+    print(history)
 ```
 
-### 6. 完整示例
+### 6. 获取主机当前问题
 ```python
-# 获取综合监控数据
-data = zabbix.get_monitoring_data(
-    host_identifiers=["web_server", "192.168.1.100"],
-    item_keys=["system.cpu.util", "vm.memory.util"],
-    time_back="4h",
-    limit=500
-)
+problems = zabbix.get_problems(host_ips=["127.0.0.1"])
+print(problems)
+```
 
-# 处理返回结果
-if "error" not in data:
-    print(f"查询到 {len(data['hosts'])} 台主机")
-    print(f"获取 {len(data['history'])} 条历史数据")
-    print(f"发现 {len(data['problems'])} 个问题")
-    
-    # 查询信息
-    query_info = data['query_info']
-    print(f"时间范围: {query_info['time_range_hours']}小时")
-    print(f"数据条数: {query_info['history_count']}")
-else:
-    print(f"查询失败: {data['error']}")
-
-# 记得登出
-zabbix.logout()
+### 7. 获取指定监控项的Top N IP
+```python
+top_ips = zabbix.get_top_ips_by_metric(item_key="system.cpu.util[,user]", limit=5, time_back="1h")
+print(top_ips)
 ```
 
 ## 参数说明
-- host_identifiers: 主机标识列表（IP地址或主机名）
+- ip_addresses: 主机IP地址列表
+- host_ips: 主机IP地址列表（用于 get_items/get_problems）
 - item_keys: 监控项key列表
+- item_ids: 监控项ID列表
 - time_from: 开始时间（datetime对象或"YYYY-MM-DD HH:MM:SS"格式字符串）
 - time_till: 结束时间（datetime对象或"YYYY-MM-DD HH:MM:SS"格式字符串）
 - time_back: 时间回溯（支持s/m/h/d/w单位，如"2h", "30m", "7d"）
@@ -129,13 +70,12 @@ zabbix.logout()
 ## 时间参数优先级
 1. time_from + time_till（具体时间范围）
 2. time_back（相对时间回溯）
-3. 默认最近1小时
+3. 默认最近default_time_back时间范围数据
 """
 
-import json
 import requests
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List
 from datetime import datetime, timedelta
 
 # 配置日志
@@ -160,10 +100,9 @@ class ZabbixAPI:
         self.password = password
         self.auth_token = None
         self.session = requests.Session()
-        self.session.headers.update({
-            'Content-Type': 'application/json-rpc',
-            'User-Agent': 'Zabbix API Client'
-        })
+        self.session.headers.update({'Content-Type': 'application/json-rpc','User-Agent': 'Zabbix API Client'})
+        self.default_time_back = "5m"
+        self.default_limit = 1000
         
     def _make_request(self, method: str, params: Dict = None) -> Dict:
         """
@@ -189,20 +128,11 @@ class ZabbixAPI:
         try:
             response = self.session.post(self.url, json=request_data, timeout=30)
             response.raise_for_status()
-            
             result = response.json()
-            
-            if "error" in result:
-                raise Exception(f"Zabbix API Error: {result['error']}")
-                
             return result.get("result", {})
-            
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             logger.error(f"Request failed: {e}")
-            raise
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error: {e}")
-            raise
+            return {"status": "error", "message": str(e)}
             
     def login(self) -> bool:
         """
@@ -212,15 +142,10 @@ class ZabbixAPI:
             登录是否成功
         """
         try:
-            result = self._make_request("user.login", {
-                "user": self.username,
-                "password": self.password
-            })
-            
+            result = self._make_request("user.login", {"user": self.username,"password": self.password})
             self.auth_token = result
             logger.info("Successfully logged in to Zabbix")
             return True
-            
         except Exception as e:
             logger.error(f"Login failed: {e}")
             return False
@@ -238,78 +163,92 @@ class ZabbixAPI:
                 self.auth_token = None
                 logger.info("Successfully logged out from Zabbix")
             return True
-            
         except Exception as e:
             logger.error(f"Logout failed: {e}")
             return False
             
-    def get_hosts(self, group_names: List[str] = None, host_names: List[str] = None) -> List[Dict]:
+    def get_hosts(self, ip_addresses: List[str] = None) -> List[Dict]:
         """
-        获取主机列表
+        获取主机列表（仅支持IP地址）
         
         Args:
-            group_names: 主机组名称列表
-            host_names: 主机名称列表
-            
+            ip_addresses: 主机IP地址列表
         Returns:
             主机信息列表
         """
-        params = {
+        all_hosts = self._make_request("host.get", {
             "output": ["hostid", "host", "name", "status"],
             "selectGroups": ["groupid", "name"],
             "selectInterfaces": ["interfaceid", "ip", "dns", "port"]
-        }
-        
-        if group_names:
-            params["filter"] = {"groups": group_names}
-        if host_names:
-            params["filter"] = params.get("filter", {})
-            params["filter"]["host"] = host_names
-            
-        return self._make_request("host.get", params)
-        
-    def get_items(self, host_ids: List[str] = None, item_keys: List[str] = None) -> List[Dict]:
+        })
+        if not ip_addresses:
+            return all_hosts
+        matched_hosts = []
+        for host in all_hosts:
+            host_ip = self._get_host_ip(host)
+            if host_ip in ip_addresses:
+                matched_hosts.append(host)
+        return matched_hosts
+
+    def get_items(self, host_ips: List[str] = None, item_keys: List[str] = None) -> List[Dict]:
         """
-        获取监控项列表
+        获取监控项列表（仅支持IP地址）
         
         Args:
-            host_ids: 主机ID列表
+            host_ips: 主机IP地址列表
             item_keys: 监控项key列表
-            
         Returns:
             监控项信息列表
         """
+        host_ids = None
+        if host_ips:
+            hosts = self.get_hosts(ip_addresses=host_ips)
+            host_ids = [host["hostid"] for host in hosts]
         params = {
             "output": ["itemid", "name", "key_", "hostid", "status", "value_type", "units"],
             "selectHosts": ["hostid", "host", "name"]
         }
-        
         if host_ids:
             params["hostids"] = host_ids
         if item_keys:
             params["filter"] = {"key_": item_keys}
-            
         return self._make_request("item.get", params)
         
-    def get_history(self, item_ids: List[str], time_from: datetime = None, 
-                   time_till: datetime = None, limit: int = 1000) -> List[Dict]:
+    def _resolve_time_range(self, time_from=None, time_till=None, time_back=None):
         """
-        获取历史数据
+        统一解析时间范围，返回 (time_from, time_till)
+        """
+        if not time_from and not time_till and not time_back:
+            time_back = self.default_time_back
+        if time_back:
+            time_delta = self._parse_time_back(time_back)
+            time_till = datetime.now()
+            time_from = time_till - time_delta
+        if not time_from:
+            time_from = datetime.now() - timedelta(minutes=5)
+        if not time_till:
+            time_till = datetime.now()
+        return time_from, time_till
+
+    def get_history(self, host_ips: List[str], item_keys: List[str], time_from: datetime = None, time_till: datetime = None, time_back: str = None, limit: int = None) -> List[Dict]:
+        """
+        通过监控项key_获取历史数据（可选指定IP）
         
         Args:
-            item_ids: 监控项ID列表
+            host_ips: 主机IP地址列表（可选）
+            item_keys: 监控项key_列表
             time_from: 开始时间
             time_till: 结束时间
+            time_back: 时间回溯（支持s/m/h/d/w单位，如"2h", "30m", "7d"）
             limit: 数据条数限制
-            
         Returns:
             历史数据列表
         """
-        if not time_from:
-            time_from = datetime.now() - timedelta(hours=1)
-        if not time_till:
-            time_till = datetime.now()
-            
+        items = self.get_items(host_ips=host_ips, item_keys=item_keys)
+        item_ids = [item["itemid"] for item in items]
+        if not item_ids:
+            return []
+        time_from, time_till = self._resolve_time_range(time_from, time_till, time_back)
         params = {
             "output": "extend",
             "itemids": item_ids,
@@ -319,211 +258,111 @@ class ZabbixAPI:
             "sortorder": "DESC",
             "limit": limit
         }
-        
         return self._make_request("history.get", params)
         
-    def get_trends(self, item_ids: List[str], time_from: datetime = None,
-                  time_till: datetime = None) -> List[Dict]:
+
+    def get_problems(self, host_ips: List[str] = None, severity: int = None) -> List[Dict]:
         """
-        获取趋势数据
+        获取问题列表（仅支持IP地址）
         
         Args:
-            item_ids: 监控项ID列表
-            time_from: 开始时间
-            time_till: 结束时间
-            
-        Returns:
-            趋势数据列表
-        """
-        if not time_from:
-            time_from = datetime.now() - timedelta(days=1)
-        if not time_till:
-            time_till = datetime.now()
-            
-        params = {
-            "output": "extend",
-            "itemids": item_ids,
-            "time_from": int(time_from.timestamp()),
-            "time_till": int(time_till.timestamp()),
-            "sortfield": "clock",
-            "sortorder": "DESC"
-        }
-        
-        return self._make_request("trend.get", params)
-        
-    def get_problems(self, host_ids: List[str] = None, severity: int = None) -> List[Dict]:
-        """
-        获取问题列表
-        
-        Args:
-            host_ids: 主机ID列表
-            severity: 严重程度 (0-5)
-            
+            host_ips: 主机IP地址列表
+            severity: 问题严重程度
         Returns:
             问题列表
         """
-        params = {
-            "output": "extend",
-            "selectAcknowledges": "extend",
-            "selectTags": "extend",
-            "recent": "true",
-            "sortfield": ["eventid"],
-            "sortorder": "DESC"
-        }
-        
+        host_ids = None
+        if host_ips:
+            hosts = self.get_hosts(ip_addresses=host_ips)
+            host_ids = [host["hostid"] for host in hosts]
+        params = {}
         if host_ids:
             params["hostids"] = host_ids
         if severity is not None:
             params["severities"] = [severity]
-            
         return self._make_request("problem.get", params)
-        
-    def get_top_hosts_by_metric(self, item_key: str, limit: int = 10, 
-                               hours_back: int = 1) -> List[Dict]:
-        """
-        获取某个指标的Top N主机
-        
-        Args:
-            item_key: 监控项key (如 'system.cpu.util', 'vm.memory.util')
-            limit: 返回主机数量限制
-            hours_back: 获取多少小时前的数据
-            
-        Returns:
-            按指标值排序的主机列表
-        """
-        try:
-            # 获取所有主机
-            hosts = self.get_hosts()
-            if not hosts:
-                return []
-                
-            host_ids = [host["hostid"] for host in hosts]
-            
-            # 获取指定监控项
-            items = self.get_items(host_ids=host_ids, item_keys=[item_key])
-            if not items:
-                return []
-                
-            # 获取历史数据
-            item_ids = [item["itemid"] for item in items]
-            time_from = datetime.now() - timedelta(hours=hours_back)
-            history_data = self.get_history(item_ids, time_from=time_from, limit=1000)
-            
-            # 按主机聚合数据并计算平均值
-            host_metrics = {}
-            for record in history_data:
-                item_id = record.get("itemid")
-                value = float(record.get("value", 0))
-                
-                # 找到对应的主机信息
-                item_info = next((item for item in items if item["itemid"] == item_id), None)
-                if not item_info:
-                    continue
-                    
-                host_id = item_info["hostid"]
-                host_info = next((host for host in hosts if host["hostid"] == host_id), None)
-                if not host_info:
-                    continue
-                    
-                host_key = f"{host_info['host']}_{host_info['name']}"
-                
-                if host_key not in host_metrics:
-                    host_metrics[host_key] = {
-                        "host_id": host_id,
-                        "host_name": host_info["host"],
-                        "display_name": host_info["name"],
-                        "ip": self._get_host_ip(host_info),
-                        "item_key": item_key,
-                        "item_name": item_info["name"],
-                        "values": [],
-                        "avg_value": 0,
-                        "max_value": 0,
-                        "min_value": float('inf')
-                    }
-                
-                host_metrics[host_key]["values"].append(value)
-                host_metrics[host_key]["max_value"] = max(host_metrics[host_key]["max_value"], value)
-                host_metrics[host_key]["min_value"] = min(host_metrics[host_key]["min_value"], value)
-            
-            # 计算平均值
-            for host_key in host_metrics:
-                values = host_metrics[host_key]["values"]
-                if values:
-                    host_metrics[host_key]["avg_value"] = sum(values) / len(values)
-                    host_metrics[host_key]["data_points"] = len(values)
-                else:
-                    host_metrics[host_key]["avg_value"] = 0
-                    host_metrics[host_key]["data_points"] = 0
-                    
-                # 清理values数组以节省内存
-                del host_metrics[host_key]["values"]
-            
-            # 按平均值排序并返回Top N
-            sorted_hosts = sorted(
-                host_metrics.values(), 
-                key=lambda x: x["avg_value"], 
-                reverse=True
-            )
-            
-            return sorted_hosts[:limit]
-            
-        except Exception as e:
-            logger.error(f"Failed to get top hosts by metric: {e}")
-            return []
             
     def _get_host_ip(self, host_info: Dict) -> str:
         """
-        获取主机IP地址
+        从主机信息中获取IP地址
         
         Args:
-            host_info: 主机信息
+            host_info: 主机信息字典
             
         Returns:
-            主机IP地址
+            IP地址
         """
-        interfaces = host_info.get("interfaces", [])
-        if interfaces:
-            # 优先返回IP地址，其次返回DNS名称
-            for interface in interfaces:
-                ip = interface.get("ip", "")
-                if ip and ip != "0.0.0.0":
-                    return ip
-                dns = interface.get("dns", "")
-                if dns:
-                    return dns
-        return "Unknown"
+        # 优先使用IP地址
+        if "interfaces" in host_info and host_info["interfaces"]:
+            for interface in host_info["interfaces"]:
+                if "ip" in interface and interface["ip"]:
+                    return interface["ip"]
+                    
+        # 如果没有IP地址，返回主机名
+        return host_info.get("host", "")
         
-    def get_top_ips_by_metric(self, item_key: str, limit: int = 10, 
-                             hours_back: int = 1) -> List[Dict]:
+    def get_top_ips_by_metric(self, item_key: str, limit: int = 10, ip_addresses: List[str] = None, time_from: datetime = None, time_till: datetime = None, time_back: str = None) -> Dict[str, List[Dict]]:
         """
-        获取某个指标的Top N IP地址
+        获取指定监控项Top N的IP列表（可选仅在指定IP范围内）
         
         Args:
             item_key: 监控项key
-            limit: 返回IP数量限制
-            hours_back: 获取多少小时前的数据
-            
+            limit: 返回数量限制
+            ip_addresses: 只在这些IP范围内统计
+            time_from: 开始时间
+            time_till: 结束时间
+            time_back: 时间回溯（支持s/m/h/d/w单位，如"2h", "30m", "7d"）
         Returns:
-            按指标值排序的IP列表
+            包含两个列表的字典：
+            - avg: 按平均值排序的Top N IP列表
+            - max: 按最大值排序的Top N IP列表
+            每个IP包含以下信息：
+            - ip: IP地址
+            - value: 对应的值（平均值或最大值）
         """
-        top_hosts = self.get_top_hosts_by_metric(item_key, limit, hours_back)
-        
-        # 转换为IP格式的结果
-        top_ips = []
-        for host in top_hosts:
-            top_ips.append({
-                "ip": host["ip"],
-                "host_name": host["host_name"],
-                "display_name": host["display_name"],
-                "metric_name": host["item_name"],
-                "metric_key": host["item_key"],
-                "avg_value": round(host["avg_value"], 2),
-                "max_value": round(host["max_value"], 2),
-                "min_value": round(host["min_value"], 2),
-                "data_points": host["data_points"]
+        time_from, time_till = self._resolve_time_range(time_from, time_till, time_back)
+        hosts = self.get_hosts(ip_addresses=ip_addresses)
+        items = self._make_request("item.get", {
+            "output": ["itemid", "hostid", "key_"],
+            "hostids": [host["hostid"] for host in hosts],
+            "search": {"key_": item_key},
+            "searchWildcardsEnabled": True
+        })
+        history = []
+        for item in items:
+            item_history = self._make_request("history.get", {
+                "output": "extend",
+                "history": 0,
+                "itemids": item["itemid"],
+                "time_from": int(time_from.timestamp()),
+                "time_till": int(time_till.timestamp()),
+                "sortfield": "clock",
+                "sortorder": "DESC"
             })
-            
-        return top_ips
+            if item_history:
+                history.extend(item_history)
+        ip_values = {}
+        for item in items:
+            host_id = item["hostid"]
+            host_info = next((h for h in hosts if h["hostid"] == host_id), None)
+            if host_info:
+                ip = self._get_host_ip(host_info)
+                if ip:
+                    values = [float(h["value"]) for h in history if h["itemid"] == item["itemid"]]
+                    if values:
+                        ip_values[ip] = {
+                            "avg_value": sum(values) / len(values),
+                            "max_value": max(values)
+                        }
+        # 按平均值排序
+        sorted_ips_avg = sorted(ip_values.items(), key=lambda x: x[1]["avg_value"], reverse=True)
+        # 按最大值排序
+        sorted_ips_max = sorted(ip_values.items(), key=lambda x: x[1]["max_value"], reverse=True)
+        
+        return {
+            "avg": [{"ip": ip, "value": values["avg_value"]} for ip, values in sorted_ips_avg[:limit]],
+            "max": [{"ip": ip, "value": values["max_value"]} for ip, values in sorted_ips_max[:limit]]
+        }
 
     def _is_ip_address(self, identifier: str) -> bool:
         """
@@ -543,9 +382,9 @@ class ZabbixAPI:
         
         return bool(re.match(ipv4_pattern, identifier) or re.match(ipv6_pattern, identifier))
 
-    def get_hosts_by_ip_or_name(self, identifiers: List[str] = None) -> List[Dict]:
+    def _get_hosts_by_identifiers(self, identifiers: List[str] = None) -> List[Dict]:
         """
-        通过IP地址或主机名获取主机列表（自动识别类型）
+        通过IP地址或主机名获取主机列表（内部方法）
         
         Args:
             identifiers: IP地址或主机名列表
@@ -573,7 +412,7 @@ class ZabbixAPI:
         # 如果有主机名，直接通过API查询（更高效）
         if host_names:
             logger.info(f"通过主机名查询: {host_names}")
-            hosts_by_name = self.get_hosts(host_names=host_names)
+            hosts_by_name = self.get_hosts(ip_addresses=host_names)
             matched_hosts.extend(hosts_by_name)
         
         # 如果有IP地址，需要获取所有主机然后匹配IP
@@ -641,126 +480,6 @@ class ZabbixAPI:
         kwargs = {unit_mapping[unit]: value}
         return timedelta(**kwargs)
 
-    def _parse_datetime(self, dt_input) -> datetime:
-        """
-        解析时间输入，支持datetime对象和标准字符串格式
-        
-        Args:
-            dt_input: datetime对象或时间字符串（格式：YYYY-MM-DD HH:MM:SS）
-            
-        Returns:
-            datetime对象
-        """
-        if dt_input is None:
-            return None
-            
-        if isinstance(dt_input, datetime):
-            return dt_input
-            
-        if isinstance(dt_input, str):
-            # 只支持标准格式：YYYY-MM-DD HH:MM:SS
-            try:
-                parsed_dt = datetime.strptime(dt_input.strip(), "%Y-%m-%d %H:%M:%S")
-                logger.info(f"成功解析时间字符串 '{dt_input}' -> {parsed_dt}")
-                return parsed_dt
-            except ValueError:
-                raise ValueError(f"时间字符串格式错误: '{dt_input}'. 请使用格式: 'YYYY-MM-DD HH:MM:SS'，例如: '2025-06-12 09:00:00'")
-        
-        raise ValueError(f"时间参数类型不支持: {type(dt_input)}. 请使用datetime对象或字符串格式 'YYYY-MM-DD HH:MM:SS'")
-
-    def get_monitoring_data(self, host_identifiers: List[str] = None, item_keys: List[str] = None,
-                          time_from = None, time_till = None, 
-                          time_back: str = None, limit: int = 1000) -> Dict[str, Any]:
-        """
-        获取综合监控数据（支持IP地址或主机名，支持灵活的时间范围）
-        
-        Args:
-            host_identifiers: 主机标识列表（可以是IP地址或主机名）
-            item_keys: 监控项key列表
-            time_from: 开始时间（datetime对象或字符串格式"YYYY-MM-DD HH:MM:SS"）
-            time_till: 结束时间（datetime对象或字符串格式"YYYY-MM-DD HH:MM:SS"）
-            time_back: 时间回溯（支持多种单位：s秒/m分钟/h小时/d天/w周，如"2h", "30m", "7d"）
-            limit: 历史数据条数限制
-            
-        Returns:
-            综合监控数据
-        """
-        try:
-            # 解析时间参数
-            time_from_parsed = self._parse_datetime(time_from)
-            time_till_parsed = self._parse_datetime(time_till)
-            
-            # 参数验证和时间处理
-            if time_from_parsed and time_till_parsed and time_back:
-                logger.warning("同时指定了time_from/time_till和time_back，将忽略time_back参数")
-                time_back = None
-            
-            if not time_from_parsed and not time_till_parsed and not time_back:
-                time_back = "1h"  # 默认获取最近1小时数据
-                
-            if time_back:
-                time_delta = self._parse_time_back(time_back)
-                time_till_parsed = datetime.now()
-                time_from_parsed = time_till_parsed - time_delta
-                logger.info(f"使用time_back参数: 获取最近{time_back}的数据")
-            elif time_from_parsed and not time_till_parsed:
-                time_till_parsed = datetime.now()
-                logger.info(f"未指定结束时间，使用当前时间: {time_till_parsed}")
-            elif time_till_parsed and not time_from_parsed:
-                time_from_parsed = time_till_parsed - timedelta(hours=1)
-                logger.info(f"未指定开始时间，默认获取结束时间前1小时的数据")
-                
-            # 计算时间范围
-            time_range_seconds = (time_till_parsed - time_from_parsed).total_seconds()
-            time_range_hours = time_range_seconds / 3600
-            logger.info(f"查询时间范围: {time_from_parsed} 到 {time_till_parsed} (共{time_range_hours:.1f}小时)")
-            
-            # 通过IP地址或主机名获取主机信息
-            hosts = self.get_hosts_by_ip_or_name(host_identifiers)
-            if not hosts:
-                return {"error": "No hosts found"}
-                
-            host_ids = [host["hostid"] for host in hosts]
-            
-            # 获取监控项
-            items = self.get_items(host_ids=host_ids, item_keys=item_keys)
-            if not items:
-                return {"error": "No items found"}
-                
-            item_ids = [item["itemid"] for item in items]
-            
-            # 获取历史数据
-            history_data = self.get_history(item_ids, time_from=time_from_parsed, time_till=time_till_parsed, limit=limit)
-            
-            # 获取问题（仅获取当前问题，不受时间范围限制）
-            problems = self.get_problems(host_ids=host_ids)
-            
-            # 构建返回结果
-            result = {
-                "hosts": hosts,
-                "items": items,
-                "history": history_data,
-                "problems": problems,
-                "query_info": {
-                    "time_from": time_from_parsed.isoformat(),
-                    "time_till": time_till_parsed.isoformat(),
-                    "time_range_hours": round(time_range_hours, 2),
-                    "time_range_seconds": int(time_range_seconds),
-                    "history_count": len(history_data),
-                    "limit": limit,
-                    "time_back_used": time_back if time_back else None,
-                    "time_from_input": str(time_from) if time_from else None,
-                    "time_till_input": str(time_till) if time_till else None
-                },
-                "timestamp": datetime.now().isoformat()
-            }
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"Failed to get monitoring data: {e}")
-            return {"error": str(e)}
-
 
 def create_zabbix_client(url: str, username: str, password: str) -> ZabbixAPI:
     """
@@ -796,23 +515,31 @@ if __name__ == "__main__":
         # 创建客户端并测试连接
         zabbix = create_zabbix_client(ZABBIX_URL, USERNAME, PASSWORD)
         
-        # 简单测试：获取最近1小时的内存数据
-        data = zabbix.get_monitoring_data(
-            host_identifiers=["zabbix_server"],
-            item_keys=["vm.memory.size[available]"],
-            time_back="1h",
-            limit=5
-        )
+        # 新增：获取所有主机信息
+        all_hosts = zabbix.get_hosts()
+        print("get_hosts(全部) 测试结果:", all_hosts)
         
-        # 检查结果
-        if "error" not in data:
-            query_info = data.get('query_info', {})
-            print(f"✅ API测试成功")
-            print(f"   主机数量: {len(data.get('hosts', []))}")
-            print(f"   数据条数: {query_info.get('history_count', 0)}")
-            print(f"   时间范围: {query_info.get('time_range_hours', 0):.1f}小时")
-        else:
-            print(f"❌ API测试失败: {data['error']}")
+        # 测试 get_hosts
+        hosts = zabbix.get_hosts(ip_addresses=["127.0.0.1"])
+        print("get_hosts 测试结果:", hosts)
+        
+        # 新增：仅指定 host_ips 获取监控项
+        items_by_ip = zabbix.get_items(host_ips=["127.0.0.1"])
+        print("get_items(host_ips) 测试结果:", items_by_ip)
+        
+        # 测试 get_history
+        if items_by_ip:
+            item_keys = [item["key_"] for item in items_by_ip]
+            history = zabbix.get_history(host_ips=["127.0.0.1"], item_keys=item_keys, time_back="1m")
+            print("get_history 测试结果:", history)
+        
+        # 测试 get_problems
+        problems = zabbix.get_problems(host_ips=["127.0.0.1"])
+        print("get_problems 测试结果:", problems)
+        
+        # 测试 get_top_ips_by_metric
+        top_ips = zabbix.get_top_ips_by_metric(item_key="system.cpu.util[,user]", limit=5, time_back="1h")
+        print("get_top_ips_by_metric 测试结果:", top_ips)
         
         # 登出
         zabbix.logout()
