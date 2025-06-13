@@ -1,8 +1,298 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Elasticsearch API 公共方法模块
-用于采集日志数据
+Elasticsearch API 客户端模块
+
+这个模块提供了一个简单易用的 Elasticsearch API 客户端，用于日志数据采集和分析。
+使用原生的 Elasticsearch 查询语法进行搜索。
+
+使用示例：
+```python
+# 创建客户端
+es_client = create_elasticsearch_client(
+    host="your_es_host",
+    port=9200,
+    username="your_username",  # 可选
+    password="your_password",  # 可选
+    use_ssl=False  # 可选，是否使用SSL
+)
+
+# 1. 基础搜索
+query = {
+    "size": 100,
+    "sort": [{"@timestamp": {"order": "desc"}}]
+}
+result = es_client.search_logs("your-index-*", query)
+
+# 2. 时间范围搜索
+# 2.1 使用相对时间
+query = {
+    "size": 100,
+    "query": {
+        "range": {
+            "@timestamp": {
+                "gte": "now-1h",  # 1小时前
+                "lte": "now"      # 当前时间
+            }
+        }
+    },
+    "sort": [{"@timestamp": {"order": "desc"}}]
+}
+result = es_client.search_logs("your-index-*", query)
+
+# 2.2 使用日期范围
+query = {
+    "size": 100,
+    "query": {
+        "range": {
+            "@timestamp": {
+                "gte": "now/d",      # 今天开始
+                "lte": "now/d+1d"    # 明天开始
+            }
+        }
+    },
+    "sort": [{"@timestamp": {"order": "desc"}}]
+}
+result = es_client.search_logs("your-index-*", query)
+
+# 2.3 使用Python datetime对象
+from datetime import datetime, timedelta
+end_time = datetime.now()
+start_time = end_time - timedelta(hours=2)
+query = {
+    "size": 100,
+    "query": {
+        "range": {
+            "@timestamp": {
+                "gte": start_time.isoformat(),  # 转换为ISO格式
+                "lte": end_time.isoformat()
+            }
+        }
+    },
+    "sort": [{"@timestamp": {"order": "desc"}}]
+}
+result = es_client.search_logs("your-index-*", query)
+
+# 2.4 使用带时区的时间范围
+query = {
+    "size": 100,
+    "query": {
+        "range": {
+            "@timestamp": {
+                "gte": "2024-03-13T00:00:00+08:00",  # 东八区时间
+                "lte": "2024-03-13T23:59:59+08:00"
+            }
+        }
+    },
+    "sort": [{"@timestamp": {"order": "desc"}}]
+}
+result = es_client.search_logs("your-index-*", query)
+
+# 2.5 使用时间戳（毫秒）
+query = {
+    "size": 100,
+    "query": {
+        "range": {
+            "@timestamp": {
+                "gte": 1710345600000,  # 毫秒级时间戳
+                "lte": 1710431999000
+            }
+        }
+    },
+    "sort": [{"@timestamp": {"order": "desc"}}]
+}
+result = es_client.search_logs("your-index-*", query)
+
+# 3. 日志级别搜索
+query = {
+    "size": 100,
+    "query": {
+        "match": {
+            "level": "ERROR"
+        }
+    },
+    "sort": [{"@timestamp": {"order": "desc"}}]
+}
+result = es_client.search_logs("your-index-*", query)
+
+# 4. 关键词搜索
+query = {
+    "size": 100,
+    "query": {
+        "multi_match": {
+            "query": "your_keyword",
+            "fields": ["message", "content"]
+        }
+    },
+    "sort": [{"@timestamp": {"order": "desc"}}]
+}
+result = es_client.search_logs("your-index-*", query)
+
+# 5. 组合查询
+query = {
+    "size": 100,
+    "query": {
+        "bool": {
+            "must": [
+                {
+                    "range": {
+                        "@timestamp": {
+                            "gte": start_time.isoformat(),
+                            "lte": end_time.isoformat()
+                        }
+                    }
+                },
+                {
+                    "match": {
+                        "level": "ERROR"
+                    }
+                },
+                {
+                    "multi_match": {
+                        "query": "your_keyword",
+                        "fields": ["message"]
+                    }
+                }
+            ]
+        }
+    },
+    "sort": [{"@timestamp": {"order": "desc"}}]
+}
+result = es_client.search_logs("your-index-*", query)
+
+# 6. 聚合查询示例
+# 6.1 按时间统计日志数量
+query = {
+    "size": 0,
+    "aggs": {
+        "logs_over_time": {
+            "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1h"
+            }
+        }
+    }
+}
+result = es_client.search_logs("your-index-*", query)
+
+# 6.2 按日志级别统计
+query = {
+    "size": 0,
+    "aggs": {
+        "log_levels": {
+            "terms": {
+                "field": "level.keyword",
+                "size": 10
+            }
+        }
+    }
+}
+result = es_client.search_logs("your-index-*", query)
+
+# 6.3 多维度聚合
+query = {
+    "size": 0,
+    "aggs": {
+        "logs_over_time": {
+            "date_histogram": {
+                "field": "@timestamp",
+                "calendar_interval": "1h"
+            },
+            "aggs": {
+                "log_levels": {
+                    "terms": {
+                        "field": "level.keyword",
+                        "size": 10
+                    }
+                }
+            }
+        }
+    }
+}
+result = es_client.search_logs("your-index-*", query)
+
+# 6.4 带过滤条件的聚合
+query = {
+    "size": 0,
+    "query": {
+        "range": {
+            "@timestamp": {
+                "gte": start_time.isoformat(),
+                "lte": end_time.isoformat()
+            }
+        }
+    },
+    "aggs": {
+        "log_levels": {
+            "terms": {
+                "field": "level.keyword",
+                "size": 10
+            }
+        },
+        "avg_response_time": {
+            "avg": {
+                "field": "response_time"
+            }
+        }
+    }
+}
+result = es_client.search_logs("your-index-*", query)
+```
+
+参数说明：
+1. search_logs 方法参数：
+   - index: 索引名称，支持通配符
+   - query: Elasticsearch原生查询体，包含查询条件、排序、分页、聚合等
+
+2. 返回结果格式：
+   {
+       "hits": {
+           "total": {"value": 数量},
+           "hits": [
+               {
+                   "_index": "索引名",
+                   "_source": {
+                       "@timestamp": "时间戳",
+                       "message": "日志消息",
+                       "level": "日志级别",
+                       ...
+                   }
+               }
+           ]
+       },
+       "aggregations": {  # 聚合结果
+           "聚合名称": {
+               "buckets": [
+                   {
+                       "key": "分组值",
+                       "doc_count": 数量
+                   }
+               ]
+           }
+       }
+   }
+
+@timestamp时间范围查询说明：
+1. 相对时间格式：
+   - now: 当前时间
+   - now-1h: 1小时前
+   - now/d: 今天开始
+   - now/d+1d: 明天开始
+   - now/M: 本月开始
+   - now/M+1M: 下月开始
+
+2. ISO 8601 时间格式：
+   - 基本格式：YYYY-MM-DDThh:mm:ssZ
+   - 带时区：YYYY-MM-DDThh:mm:ss+08:00
+   - 示例：2024-03-13T00:00:00+08:00
+
+3. 时间戳格式：
+   - 毫秒级时间戳
+   - 示例：1710345600000
+
+4. Python datetime 对象：
+   - 使用 isoformat() 转换为 ISO 格式
+   - 示例：datetime.now().isoformat()
 """
 
 import json
@@ -12,6 +302,7 @@ from typing import Dict, List, Optional, Any, Union
 from datetime import datetime, timedelta
 from urllib.parse import urljoin
 import base64
+import urllib3
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -62,7 +353,6 @@ class ElasticsearchAPI:
         # SSL设置
         if not verify_certs:
             self.session.verify = False
-            import urllib3
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             
     def _make_request(self, method: str, endpoint: str, data: Dict = None, params: Dict = None) -> Dict:
@@ -140,332 +430,18 @@ class ElasticsearchAPI:
         result = self._make_request('GET', f'/_cat/indices/{pattern}', params={'format': 'json'})
         return result if isinstance(result, list) else []
         
-    def search_logs(self, index: str, query: Dict = None, size: int = 100, 
-                   from_: int = 0, sort: List[Dict] = None) -> Dict:
+    def search_logs(self, index: str, query: Dict = None) -> Dict:
         """
         搜索日志
         
         Args:
             index: 索引名称
-            query: 查询条件
-            size: 返回结果数量
-            from_: 起始位置
-            sort: 排序条件
+            query: Elasticsearch原生查询体
             
         Returns:
             搜索结果
         """
-        search_body = {
-            "size": size,
-            "from": from_
-        }
-        
-        if query:
-            search_body["query"] = query
-        else:
-            search_body["query"] = {"match_all": {}}
-            
-        if sort:
-            search_body["sort"] = sort
-        else:
-            search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
-            
-        return self._make_request('POST', f'/{index}/_search', data=search_body)
-        
-    def search_by_time_range(self, index: str, start_time: datetime, end_time: datetime,
-                           query_string: str = None, fields: List[str] = None,
-                           size: int = 1000) -> Dict:
-        """
-        按时间范围搜索日志
-        
-        Args:
-            index: 索引名称
-            start_time: 开始时间
-            end_time: 结束时间
-            query_string: 查询字符串
-            fields: 返回字段列表
-            size: 返回结果数量
-            
-        Returns:
-            搜索结果
-        """
-        # 构建时间范围查询
-        time_range_query = {
-            "range": {
-                "@timestamp": {
-                    "gte": start_time.isoformat(),
-                    "lte": end_time.isoformat()
-                }
-            }
-        }
-        
-        # 构建完整查询
-        if query_string:
-            query = {
-                "bool": {
-                    "must": [
-                        time_range_query,
-                        {
-                            "query_string": {
-                                "query": query_string
-                            }
-                        }
-                    ]
-                }
-            }
-        else:
-            query = time_range_query
-            
-        search_body = {
-            "query": query,
-            "size": size,
-            "sort": [{"@timestamp": {"order": "desc"}}]
-        }
-        
-        # 指定返回字段
-        if fields:
-            search_body["_source"] = fields
-            
-        return self._make_request('POST', f'/{index}/_search', data=search_body)
-        
-    def search_by_level(self, index: str, level: str, hours_back: int = 1,
-                       size: int = 1000) -> Dict:
-        """
-        按日志级别搜索
-        
-        Args:
-            index: 索引名称
-            level: 日志级别 (ERROR, WARN, INFO, DEBUG等)
-            hours_back: 搜索多少小时前的日志
-            size: 返回结果数量
-            
-        Returns:
-            搜索结果
-        """
-        end_time = datetime.now()
-        start_time = end_time - timedelta(hours=hours_back)
-        
-        query = {
-            "bool": {
-                "must": [
-                    {
-                        "range": {
-                            "@timestamp": {
-                                "gte": start_time.isoformat(),
-                                "lte": end_time.isoformat()
-                            }
-                        }
-                    },
-                    {
-                        "match": {
-                            "level": level.upper()
-                        }
-                    }
-                ]
-            }
-        }
-        
-        return self.search_logs(index, query, size)
-        
-    def search_by_keyword(self, index: str, keyword: str, fields: List[str] = None,
-                         hours_back: int = 24, size: int = 1000) -> Dict:
-        """
-        按关键词搜索日志
-        
-        Args:
-            index: 索引名称
-            keyword: 关键词
-            fields: 搜索字段列表
-            hours_back: 搜索多少小时前的日志
-            size: 返回结果数量
-            
-        Returns:
-            搜索结果
-        """
-        end_time = datetime.now()
-        start_time = end_time - timedelta(hours=hours_back)
-        
-        # 构建多字段搜索
-        if fields:
-            keyword_query = {
-                "multi_match": {
-                    "query": keyword,
-                    "fields": fields
-                }
-            }
-        else:
-            keyword_query = {
-                "query_string": {
-                    "query": f"*{keyword}*"
-                }
-            }
-            
-        query = {
-            "bool": {
-                "must": [
-                    {
-                        "range": {
-                            "@timestamp": {
-                                "gte": start_time.isoformat(),
-                                "lte": end_time.isoformat()
-                            }
-                        }
-                    },
-                    keyword_query
-                ]
-            }
-        }
-        
-        return self.search_logs(index, query, size)
-        
-    def get_aggregation_data(self, index: str, agg_field: str, hours_back: int = 24) -> Dict:
-        """
-        获取聚合数据
-        
-        Args:
-            index: 索引名称
-            agg_field: 聚合字段
-            hours_back: 聚合多少小时前的数据
-            
-        Returns:
-            聚合结果
-        """
-        end_time = datetime.now()
-        start_time = end_time - timedelta(hours=hours_back)
-        
-        search_body = {
-            "size": 0,
-            "query": {
-                "range": {
-                    "@timestamp": {
-                        "gte": start_time.isoformat(),
-                        "lte": end_time.isoformat()
-                    }
-                }
-            },
-            "aggs": {
-                "data_over_time": {
-                    "date_histogram": {
-                        "field": "@timestamp",
-                        "calendar_interval": "1h"
-                    }
-                },
-                "top_values": {
-                    "terms": {
-                        "field": f"{agg_field}.keyword",
-                        "size": 10
-                    }
-                }
-            }
-        }
-        
-        return self._make_request('POST', f'/{index}/_search', data=search_body)
-        
-    def get_log_statistics(self, index: str, hours_back: int = 24) -> Dict:
-        """
-        获取日志统计信息
-        
-        Args:
-            index: 索引名称
-            hours_back: 统计多少小时前的数据
-            
-        Returns:
-            统计信息
-        """
-        end_time = datetime.now()
-        start_time = end_time - timedelta(hours=hours_back)
-        
-        search_body = {
-            "size": 0,
-            "query": {
-                "range": {
-                    "@timestamp": {
-                        "gte": start_time.isoformat(),
-                        "lte": end_time.isoformat()
-                    }
-                }
-            },
-            "aggs": {
-                "log_levels": {
-                    "terms": {
-                        "field": "level.keyword",
-                        "size": 10
-                    }
-                },
-                "logs_over_time": {
-                    "date_histogram": {
-                        "field": "@timestamp",
-                        "calendar_interval": "1h"
-                    }
-                },
-                "top_hosts": {
-                    "terms": {
-                        "field": "host.keyword",
-                        "size": 10
-                    }
-                }
-            }
-        }
-        
-        return self._make_request('POST', f'/{index}/_search', data=search_body)
-        
-    def collect_logs(self, indices: List[str], query_conditions: Dict = None,
-                    hours_back: int = 1, max_logs: int = 10000) -> Dict[str, Any]:
-        """
-        采集日志数据（综合方法）
-        
-        Args:
-            indices: 索引列表
-            query_conditions: 查询条件
-            hours_back: 采集多少小时前的数据
-            max_logs: 最大日志条数
-            
-        Returns:
-            采集的日志数据
-        """
-        try:
-            end_time = datetime.now()
-            start_time = end_time - timedelta(hours=hours_back)
-            
-            collected_data = {
-                "indices": [],
-                "total_logs": 0,
-                "statistics": {},
-                "timestamp": datetime.now().isoformat()
-            }
-            
-            for index in indices:
-                try:
-                    # 获取基础日志数据
-                    logs = self.search_by_time_range(
-                        index=index,
-                        start_time=start_time,
-                        end_time=end_time,
-                        size=min(max_logs // len(indices), 1000)
-                    )
-                    
-                    # 获取统计信息
-                    stats = self.get_log_statistics(index, hours_back)
-                    
-                    index_data = {
-                        "index": index,
-                        "logs": logs.get("hits", {}).get("hits", []),
-                        "total_hits": logs.get("hits", {}).get("total", {}).get("value", 0),
-                        "statistics": stats.get("aggregations", {})
-                    }
-                    
-                    collected_data["indices"].append(index_data)
-                    collected_data["total_logs"] += len(index_data["logs"])
-                    
-                except Exception as e:
-                    logger.error(f"Failed to collect logs from index {index}: {e}")
-                    continue
-                    
-            return collected_data
-            
-        except Exception as e:
-            logger.error(f"Failed to collect logs: {e}")
-            return {"error": str(e)}
+        return self._make_request('POST', f'/{index}/_search', data=query)
 
 
 def create_elasticsearch_client(host: str, port: int = 9200, username: str = None,
@@ -502,23 +478,42 @@ if __name__ == "__main__":
         # 创建客户端
         es_client = create_elasticsearch_client(ES_HOST, ES_PORT, ES_USERNAME, ES_PASSWORD)
         
-        # 采集日志数据
-        log_data = es_client.collect_logs(
-            indices=["mysql-error-*", "mysql-slow-*", "logstash-test"],
-            hours_back=2,
-            max_logs=5000
-        )
-        
-        print(json.dumps(log_data, indent=2, ensure_ascii=False, default=str))
-        
         # 搜索错误日志
-        error_logs = es_client.search_by_level(
+        query = {
+            "size": 100,
+            "query": {
+                "match": {
+                    "level": "ERROR"
+                }
+            },
+            "sort": [{"@timestamp": {"order": "desc"}}]
+        }
+        error_logs = es_client.search_logs(
             index="mysql-error-*",
-            level="ERROR",
-            hours_back=1
+            query=query
         )
         
         print(f"Found {error_logs.get('hits', {}).get('total', {}).get('value', 0)} error logs")
+        
+        # 聚合查询示例
+        query = {
+            "size": 0,
+            "aggs": {
+                "log_levels": {
+                    "terms": {
+                        "field": "level.keyword",
+                        "size": 10
+                    }
+                }
+            }
+        }
+        agg_result = es_client.search_logs(
+            index="mysql-error-*",
+            query=query
+        )
+        
+        print("\nLog levels distribution:")
+        print(json.dumps(agg_result.get('aggregations', {}).get('log_levels', {}).get('buckets', []), indent=2))
         
     except Exception as e:
         logger.error(f"Error: {e}")
