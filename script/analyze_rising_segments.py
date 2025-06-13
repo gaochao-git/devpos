@@ -232,7 +232,7 @@ def main():
     数据库正常响应耗时为1秒
     当前数据库响应耗时上升段为(单位为秒)：
     {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2)}
-    当前网络流量上升段为(单位为kbps)：
+    当前网络流量上升段为(单位为bps)：
     {json.dumps(formatted_zabbix_segments, ensure_ascii=False, indent=2)}
     请根据以上数据，分析出数据库响应耗时上升区间和网络流量上升区间有没有直接关系
     输出格式要求：
