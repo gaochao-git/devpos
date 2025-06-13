@@ -34,7 +34,7 @@ CONFIG = dict2ns({
     },
     "time": {
         "time_from_str": "2025-06-13 17:00:00",  # 必须填写
-        "time_till_str": "2025-06-13 19:00:00"   # 必须填写
+        "time_till_str": "2025-06-13 20:00:00"   # 必须填写
     }
 })
 
@@ -112,12 +112,10 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
                 }
             }
         }
-        print(f"es_query: {es_query}")
         es_result = es_client.search_logs(CONFIG.es.index, es_query)
-        print(f"es_result: {es_result}")
         es_buckets = es_result.get("aggregations", {}).get("response_time_over_time", {}).get("buckets", [])
         es_data = [
-            (datetime.strptime(bucket["key_as_string"], "%Y-%m-%dT%H:%M:%S.%fZ"), bucket["avg_response_time"]["value"])
+            (datetime.strptime(bucket["key_as_string_bj"], "%Y-%m-%d %H:%M:%S"), bucket["avg_response_time"]["value"])
             for bucket in es_buckets
             if bucket["avg_response_time"]["value"] is not None
         ]
