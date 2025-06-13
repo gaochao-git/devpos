@@ -29,6 +29,11 @@ CONFIG = dict2ns({
         "password": "zabbix",
         "item_keys": ["net.if.in[eth0]"],
         "threshold": 100*1000  # 100kbps，判断是否上升段的基础阈值，避免微小波动被误判
+    },
+    "llm": {
+        "url": "http://127.0.0.1/v1/chat-messages",
+        "api_key": "app-B8Ux0kQnN51hcgjwlGtp7xoL",
+        "user": "abc-123"
     }
 })
 
@@ -191,7 +196,7 @@ def format_rising_segments(rising_segments, times, raw_data, source="es"):
         })
     return formatted_segments
 
-def call_llm_analysis(prompt, api_url="http://127.0.0.1/v1/chat-messages", api_key="app-B8Ux0kQnN51hcgjwlGtp7xoL", user="abc-123"):
+def call_llm_analysis(prompt, api_url=CONFIG.llm.url, api_key=CONFIG.llm.api_key, user=CONFIG.llm.user):
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
