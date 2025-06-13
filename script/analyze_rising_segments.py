@@ -34,14 +34,26 @@ CONFIG = {
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def find_rising_segments(data, threshold):
+def find_rising_segments(data, threshold, times=None, raw_data=None):
     """
     找出上升段
     Args:
         data: 数据列表
         threshold: 阈值
+        times: 时间列表（可选）
+        raw_data: 原始数据列表（可选）
     Returns:
-        上升段列表，每个元素为 (start_idx, end_idx, max_value)
+        如果提供了times和raw_data，返回格式化后的上升段列表：
+        [
+            {
+                "time_from": "YYYY-MM-DD HH:MM:SS",
+                "time_till": "YYYY-MM-DD HH:MM:SS",
+                "data": [...]
+            },
+            ...
+        ]
+        否则返回原始格式：
+        [(start_idx, end_idx, max_value), ...]
     """
     rising_segments = []
     start_idx = None
@@ -56,7 +68,6 @@ def find_rising_segments(data, threshold):
                 max_value = max(max_value, data[i])
         elif start_idx is not None:  # 下降且之前有上升段
             if max_value > threshold:
-                # 确保start_idx小于end_idx
                 rising_segments.append((min(start_idx, i-1), max(start_idx, i-1), max_value))
             start_idx = None
             max_value = None
@@ -65,6 +76,19 @@ def find_rising_segments(data, threshold):
     if start_idx is not None and max_value > threshold:
         rising_segments.append((min(start_idx, len(data)-1), max(start_idx, len(data)-1), max_value))
     
+    # 如果提供了times和raw_data，返回格式化后的数据
+    if times is not None and raw_data is not None:
+        formatted_segments = []
+        for start, end, max_value in rising_segments:
+            time_from_str = times[start].strftime("%Y-%m-%d %H:%M:%S")
+            time_till_str = times[end].strftime("%Y-%m-%d %H:%M:%S")
+            segment_data = raw_data[start:end+1]
+            formatted_segments.append({
+                "time_from": time_from_str,
+                "time_till": time_till_str,
+                "data": segment_data
+            })
+        return formatted_segments
     return rising_segments
 
 def get_metric_data(es_client, zabbix_client, time_from, time_till):
@@ -133,31 +157,18 @@ def main():
     # 提取时间序列
     es_times = [t for t, v in es_data]
     es_values = [v for t, v in es_data]
-    # 修复zabbix数据解包
     zabbix_times = [datetime.strptime(item["time"], "%Y-%m-%d %H:%M:%S") for item in zabbix_data]
     zabbix_values = [item["value"] for item in zabbix_data]
     
     # 设置阈值
-    es_threshold = CONFIG["es"]["threshold"]  # ES响应耗时阈值（毫秒）
-    zabbix_threshold = CONFIG["zabbix"]["threshold"]  # Zabbix网络流量阈值（字节）
+    es_threshold = CONFIG["es"]["threshold"]
+    zabbix_threshold = CONFIG["zabbix"]["threshold"]
     
     es_rising_segments = find_rising_segments(es_values, es_threshold)
-    zabbix_rising_segments = find_rising_segments(zabbix_values, zabbix_threshold)
+    zabbix_rising_segments = find_rising_segments(zabbix_values, zabbix_threshold, times=zabbix_times, raw_data=zabbix_data)
     
-    # 输出结果
-    if zabbix_rising_segments:
-        result = []
-        for start, end, max_value in zabbix_rising_segments:
-            # 确保start和end的顺序正确
-            if start > end:
-                start, end = end, start
-            time_from_str = zabbix_times[start].strftime("%Y-%m-%d %H:%M:%S")
-            time_till_str = zabbix_times[end].strftime("%Y-%m-%d %H:%M:%S")
-            data = zabbix_data[start:end+1]  # 直接使用原始数据，因为已经是需要的格式
-            result.append({"time_from": time_from_str, "time_till": time_till_str, "data": data})
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-    else:
-        print("未发现超过阈值的上升段")
+    print(f"es_rising_segments: {es_rising_segments}")
+    print(f"zabbix_rising_segments: {zabbix_rising_segments}")
 
 if __name__ == "__main__":
     main()
