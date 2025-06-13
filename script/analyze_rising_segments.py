@@ -93,7 +93,7 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
                 }
             },
             "aggs": {
-                "response_time_over_time": {
+                "my_aggs_name": {
                     "date_histogram": {
                         "field": "@timestamp",
                         "fixed_interval": CONFIG.es.fixed_interval
@@ -109,7 +109,7 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
             }
         }
         es_result = es_client.search_logs(CONFIG.es.index, es_query)
-        es_buckets = es_result.get("aggregations", {}).get("response_time_over_time", {}).get("buckets", [])
+        es_buckets = es_result.get("aggregations", {}).get("my_aggs_name", {}).get("buckets", [])
         es_data = [
             (datetime.strptime(bucket["key_as_string_bj"], "%Y-%m-%d %H:%M:%S"), bucket["avg_response_time"]["value"])
             for bucket in es_buckets
