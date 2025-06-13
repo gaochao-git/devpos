@@ -109,7 +109,7 @@ def get_es_metric_data(time_from, time_till):
         es_result = es_client.search_logs(CONFIG.es.index, es_query)
         es_buckets = es_result.get("aggregations", {}).get("my_aggs_name", {}).get("buckets", [])
         es_data = [
-            {"time": bucket["key_as_string_bj"], "value": bucket["avg_response_time"]["value"]}
+            {"time": bucket["key_as_string_bj"], "value": bucket["avg_response_time"]["value"], "key": "avg_response_time"}
             for bucket in es_buckets
             if bucket["avg_response_time"]["value"] is not None
         ]
@@ -154,13 +154,13 @@ def extract_time_value_series(data):
     values = [item["value"] for item in data]
     return times, values
 
-def format_rising_segments(rising_segments, times, raw_data):
+def format_rising_segments(rising_segments, times, raw_data, source="es"):
     """
     将原始上升段数据格式化为包含time_from、time_till和data的列表
     Args:
         rising_segments: 原始上升段数据，格式为 [(start_idx, end_idx, max_value), ...]
         times: 时间列表
-        raw_data: 原始数据列表
+        raw_data: 原始数据列表，格式为[{"time": "2025-06-13 10:00:00", "value": 1000, "key": "key名称"}]
     Returns:
         格式化后的上升段列表：
         [
@@ -176,23 +176,14 @@ def format_rising_segments(rising_segments, times, raw_data):
     for start, end, max_value in rising_segments:
         time_from_str = times[start]
         time_till_str = times[end]
-        # 判断数据类型
-        if raw_data and isinstance(raw_data[0], dict):
-            # Zabbix数据
-            segment_data = [
-                {
-                    "key": item.get("key"),
-                    "time": item.get("time"),
-                    "value": item.get("value")
-                }
-                for item in raw_data[start:end+1]
-            ]
-        else:
-            # ES数据
-            segment_data = [
-                (t, v)
-                for t, v in raw_data[start:end+1]
-            ]
+        segment_data = [
+            {
+                "key": item.get("key"),
+                 "time": item.get("time"),
+                 "value": item.get("value")
+             }
+             for item in raw_data[start:end+1]
+         ]
         formatted_segments.append({
             "time_from": time_from_str,
             "time_till": time_till_str,
@@ -224,7 +215,7 @@ def analyze_es_rising_segments(time_from, time_till):
     es_times, es_values = extract_time_value_series(es_data)
     es_threshold = CONFIG.es.threshold
     es_rising_segments = find_rising_segments(es_values, es_threshold)
-    formatted_es_segments = format_rising_segments(es_rising_segments, es_times, es_data)
+    formatted_es_segments = format_rising_segments(es_rising_segments, es_times, es_data, source="es")
     return formatted_es_segments
 
 def analyze_zabbix_rising_segments(time_from, time_till):
@@ -232,7 +223,7 @@ def analyze_zabbix_rising_segments(time_from, time_till):
     zabbix_times, zabbix_values = extract_time_value_series(zabbix_data)
     zabbix_threshold = CONFIG.zabbix.threshold
     zabbix_rising_segments = find_rising_segments(zabbix_values, zabbix_threshold)
-    formatted_zabbix_segments = format_rising_segments(zabbix_rising_segments, zabbix_times, zabbix_data)
+    formatted_zabbix_segments = format_rising_segments(zabbix_rising_segments, zabbix_times, zabbix_data, source="zabbix")
     return formatted_zabbix_segments
 
 def main():
