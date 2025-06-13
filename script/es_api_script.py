@@ -441,7 +441,33 @@ class ElasticsearchAPI:
         Returns:
             搜索结果
         """
-        return self._make_request('POST', f'/{index}/_search', data=query)
+        result = self._make_request('POST', f'/{index}/_search', data=query)
+        # 自动将date_histogram聚合的key_as_string转为北京时间，并将所有聚合value保留两位小数
+        aggs = result.get('aggregations', {})
+        def process_bucket(bucket):
+            # 处理key_as_string为北京时间
+            if 'key_as_string' in bucket and bucket['key_as_string'].endswith('Z'):
+                try:
+                    dt_utc = datetime.strptime(bucket['key_as_string'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    dt_bj = dt_utc + timedelta(hours=8)
+                    bucket['key_as_string_bj'] = dt_bj.strftime("%Y-%m-%d %H:%M:%S")
+                except Exception:
+                    pass
+            # 处理所有value为两位小数
+            for k, v in bucket.items():
+                if isinstance(v, dict) and 'value' in v and isinstance(v['value'], float):
+                    v['value'] = round(v['value'], 2)
+            # 递归处理嵌套buckets
+            for v in bucket.values():
+                if isinstance(v, list):
+                    for sub_bucket in v:
+                        if isinstance(sub_bucket, dict):
+                            process_bucket(sub_bucket)
+        for agg in aggs.values():
+            if isinstance(agg, dict) and 'buckets' in agg:
+                for bucket in agg['buckets']:
+                    process_bucket(bucket)
+        return result
 
 
 def create_elasticsearch_client(host: str, port: int = 9200, username: str = None,

@@ -26,7 +26,8 @@ CONFIG = {
         "threshold": 100*1000  # kbps
     },
     "time": {
-        "hours_back": 18
+        "time_from_str": "2025-06-13 17:00:00",  # 必须填写
+        "time_till_str": "2025-06-13 19:00:00"   # 必须填写
     }
 }
 
@@ -83,7 +84,8 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
                 "range": {
                     "@timestamp": {
                         "gte": time_from.isoformat(),
-                        "lte": time_till.isoformat()
+                        "lte": time_till.isoformat(),
+                        "time_zone": "+08:00"
                     }
                 }
             },
@@ -103,15 +105,15 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
                 }
             }
         }
-        
+        print(f"es_query: {es_query}")
         es_result = es_client.search_logs(CONFIG["es"]["index"], es_query)
+        print(f"es_result: {es_result}")
         es_buckets = es_result.get("aggregations", {}).get("response_time_over_time", {}).get("buckets", [])
         es_data = [
             (datetime.strptime(bucket["key_as_string"], "%Y-%m-%dT%H:%M:%S.%fZ"), bucket["avg_response_time"]["value"])
             for bucket in es_buckets
             if bucket["avg_response_time"]["value"] is not None
         ]
-        print("[调试] es_data:", es_data)
         logger.info(f"从ES获取到 {len(es_data)} 条数据")
         
         # 获取Zabbix数据
@@ -182,7 +184,7 @@ def format_rising_segments(rising_segments, times, raw_data):
         else:
             # ES数据
             segment_data = [
-                (t.strftime("%Y-%m-%d %H:%M:%S") if isinstance(t, datetime) else t, f"{round(v, 2):.2f}")
+                (t.strftime("%Y-%m-%d %H:%M:%S") if isinstance(t, datetime) else t, v)
                 for t, v in raw_data[start:end+1]
             ]
         formatted_segments.append({
@@ -197,9 +199,13 @@ def main():
     es_client = create_elasticsearch_client(CONFIG["es"]["host"], CONFIG["es"]["port"])
     zabbix_client = create_zabbix_client(CONFIG["zabbix"]["url"], CONFIG["zabbix"]["username"], CONFIG["zabbix"]["password"])
     
-    # 获取时间范围
-    time_till = datetime.now()
-    time_from = time_till - timedelta(hours=CONFIG["time"]["hours_back"])
+    # 获取时间范围（强制要求字符串）
+    time_cfg = CONFIG["time"]
+    if time_cfg.get("time_from_str") and time_cfg.get("time_till_str"):
+        time_from = datetime.strptime(time_cfg["time_from_str"], "%Y-%m-%d %H:%M:%S")
+        time_till = datetime.strptime(time_cfg["time_till_str"], "%Y-%m-%d %H:%M:%S")
+    else:
+        raise ValueError("请在CONFIG['time']中填写'time_from_str'和'time_till_str'，格式为'YYYY-MM-DD HH:MM:SS'")
     
     # 获取数据
     es_data, zabbix_data = get_metric_data(es_client, zabbix_client, time_from, time_till)
@@ -221,7 +227,7 @@ def main():
     formatted_zabbix_segments = format_rising_segments(zabbix_rising_segments, zabbix_times, zabbix_data)
     
     print(f"formatted_es_segments: {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2)}")
-    print(f"formatted_zabbix_segments: {json.dumps(formatted_zabbix_segments, ensure_ascii=False, indent=2)}")
+    # print(f"formatted_zabbix_segments: {json.dumps(formatted_zabbix_segments, ensure_ascii=False, indent=2)}")
 
 if __name__ == "__main__":
     main()
