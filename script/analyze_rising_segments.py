@@ -31,10 +31,6 @@ CONFIG = dict2ns({
         "password": "zabbix",
         "item_keys": ["net.if.in[eth0]"],
         "threshold": 100*1000  # kbps
-    },
-    "time": {
-        "time_from_str": "2025-06-13 18:00:00",  # 必须填写
-        "time_till_str": "2025-06-13 20:00:00"   # 必须填写
     }
 })
 
@@ -205,12 +201,10 @@ def main():
     zabbix_client = create_zabbix_client(CONFIG.zabbix.url, CONFIG.zabbix.username, CONFIG.zabbix.password)
     
     # 获取时间范围（强制要求字符串）
-    time_cfg = CONFIG.time
-    if time_cfg.time_from_str and time_cfg.time_till_str:
-        time_from = datetime.strptime(time_cfg.time_from_str, "%Y-%m-%d %H:%M:%S")
-        time_till = datetime.strptime(time_cfg.time_till_str, "%Y-%m-%d %H:%M:%S")
-    else:
-        raise ValueError("请在CONFIG['time']中填写'time_from_str'和'time_till_str'，格式为'YYYY-MM-DD HH:MM:SS'")
+    time_from_str = "2025-06-13 18:00:00"
+    time_till_str = "2025-06-13 20:00:00"
+    time_from = datetime.strptime(time_from_str, "%Y-%m-%d %H:%M:%S")
+    time_till = datetime.strptime(time_till_str, "%Y-%m-%d %H:%M:%S")
     
     # 获取数据
     es_data, zabbix_data = get_metric_data(es_client, zabbix_client, time_from, time_till)
