@@ -22,7 +22,7 @@ CONFIG = dict2ns({
         "url": "http://82.156.146.51:9200",
         "index": "mysql-slow-*",
         "field": "query_time",
-        "threshold": 3,  # 毫秒，判断是否上升段的基础阈值，避免微小波动被误判
+        "threshold": 1,  # 毫秒，判断是否上升段的基础阈值，避免微小波动被误判
         "fixed_interval": "5s"  # 聚合间隔
     },
     "zabbix": {
@@ -111,7 +111,7 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
         es_result = es_client.search_logs(CONFIG.es.index, es_query)
         es_buckets = es_result.get("aggregations", {}).get("my_aggs_name", {}).get("buckets", [])
         es_data = [
-            (datetime.strptime(bucket["key_as_string_bj"], "%Y-%m-%d %H:%M:%S"), bucket["avg_response_time"]["value"])
+            {"time": bucket["key_as_string_bj"], "value": bucket["avg_response_time"]["value"]}
             for bucket in es_buckets
             if bucket["avg_response_time"]["value"] is not None
         ]
@@ -131,22 +131,22 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
         logger.error(f"获取数据异常: {str(e)}")
         raise
 
-def extract_time_value_series(data, is_es=True):
+def extract_time_value_series(data):
     """
     从原始数据中提取时间序列和值序列
     Args:
         data: 原始数据列表
-        is_es: 是否为ES数据，默认为True
+            [
+                {"time": "2025-06-13 10:00:00", "value": 1000},
+                {"time": "2025-06-13 10:01:00", "value": 1001},
+                ...
+            ]
     Returns:
         times: 时间序列
         values: 值序列
     """
-    if is_es:
-        times = [t for t, v in data]
-        values = [v for t, v in data]
-    else:
-        times = [datetime.strptime(item["time"], "%Y-%m-%d %H:%M:%S") for item in data]
-        values = [item["value"] for item in data]
+    times = [item["time"] for item in data]
+    values = [item["value"] for item in data]
     return times, values
 
 def format_rising_segments(rising_segments, times, raw_data):
@@ -169,8 +169,8 @@ def format_rising_segments(rising_segments, times, raw_data):
     """
     formatted_segments = []
     for start, end, max_value in rising_segments:
-        time_from_str = times[start].strftime("%Y-%m-%d %H:%M:%S")
-        time_till_str = times[end].strftime("%Y-%m-%d %H:%M:%S")
+        time_from_str = times[start]
+        time_till_str = times[end]
         # 判断数据类型
         if raw_data and isinstance(raw_data[0], dict):
             # Zabbix数据
@@ -185,7 +185,7 @@ def format_rising_segments(rising_segments, times, raw_data):
         else:
             # ES数据
             segment_data = [
-                (t.strftime("%Y-%m-%d %H:%M:%S") if isinstance(t, datetime) else t, v)
+                (t, v)
                 for t, v in raw_data[start:end+1]
             ]
         formatted_segments.append({
@@ -227,20 +227,15 @@ def main():
     
     # 获取数据
     es_data, zabbix_data = get_metric_data(es_client, zabbix_client, time_from, time_till)
-    
     # 提取时间序列和值序列
-    es_times, es_values = extract_time_value_series(es_data, is_es=True)
-    zabbix_times, zabbix_values = extract_time_value_series(zabbix_data, is_es=False)
-    
+    es_times, es_values = extract_time_value_series(es_data)
+    zabbix_times, zabbix_values = extract_time_value_series(zabbix_data)
     # 设置阈值，控制确认为上升段的基础阈值，避免微小波动被误判
     es_threshold = CONFIG.es.threshold
     zabbix_threshold = CONFIG.zabbix.threshold
-    print(es_threshold)
-    print(zabbix_threshold)
     # 找出上升段
     es_rising_segments = find_rising_segments(es_values, es_threshold)
     zabbix_rising_segments = find_rising_segments(zabbix_values, zabbix_threshold)
-    
     # 格式化上升段数据为人类或者大模型可读的json格式
     formatted_es_segments = format_rising_segments(es_rising_segments, es_times, es_data)
     formatted_zabbix_segments = format_rising_segments(zabbix_rising_segments, zabbix_times, zabbix_data)
