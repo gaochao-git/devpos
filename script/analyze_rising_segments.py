@@ -224,8 +224,24 @@ def main():
     formatted_es_segments = format_rising_segments(es_rising_segments, es_times, es_data)
     formatted_zabbix_segments = format_rising_segments(zabbix_rising_segments, zabbix_times, zabbix_data)
     
-    print(f"formatted_es_segments: {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2)}")
+    # print(f"formatted_es_segments: {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2)}")
     # print(f"formatted_zabbix_segments: {json.dumps(formatted_zabbix_segments, ensure_ascii=False, indent=2)}")
+    llm_prompt = f"""
+    你是一个经验丰富的数据库专家，擅长分析数据库响应耗时和网络流量之间的关系。
+    网卡容量为40Gbps
+    数据库正常响应耗时为1秒
+    当前数据库响应耗时上升段为(单位为秒)：
+    {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2)}
+    当前网络流量上升段为(单位为kbps)：
+    {json.dumps(formatted_zabbix_segments, ensure_ascii=False, indent=2)}
+    请根据以上数据，分析出数据库响应耗时上升区间和网络流量上升区间有没有直接关系
+    输出格式要求：
+    【机房级别数据库响应耗时上升预警】
+    异常现象：2025-06-13 18:00:00-18:01:00，数据库响应耗时由1000ms上升到2000ms
+    与防火墙流量有无关系：有关系/无关系，有关系则给出依据，无关系则给出依据
+    依据：数据库响应耗时升高，防火墙流量上升，从1000kbps上升到2000kbps，上升了1000kbps
+    """
+    print(llm_prompt)
 
 if __name__ == "__main__":
     main()
