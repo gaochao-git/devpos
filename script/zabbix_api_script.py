@@ -73,14 +73,17 @@ print(top_ips)
 3. 默认最近default_time_back时间范围数据
 """
 
-import requests
 import logging
 from typing import Dict, List
 from datetime import datetime, timedelta
+from pyzabbix import ZabbixAPI as PyZabbixAPI, ZabbixAPIException
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# 屏蔽 pyzabbix 库的 INFO 级别日志，避免打印过多无关信息
+logging.getLogger("pyzabbix").setLevel(logging.WARNING)
 
 
 class ZabbixAPI:
@@ -95,45 +98,13 @@ class ZabbixAPI:
             username: 用户名
             password: 密码
         """
-        self.url = url.rstrip('/') + '/api_jsonrpc.php'
+        self.url = url
         self.username = username
         self.password = password
-        self.auth_token = None
-        self.session = requests.Session()
-        self.session.headers.update({'Content-Type': 'application/json-rpc','User-Agent': 'Zabbix API Client'})
+        self.zapi = None
         self.default_time_back = "5m"
         self.default_limit = 1000
         
-    def _make_request(self, method: str, params: Dict = None) -> Dict:
-        """
-        发送API请求
-        
-        Args:
-            method: API方法名
-            params: 请求参数
-            
-        Returns:
-            API响应数据
-        """
-        request_data = {
-            "jsonrpc": "2.0",
-            "method": method,
-            "params": params or {},
-            "id": 1
-        }
-        
-        if self.auth_token and method != "user.login":
-            request_data["auth"] = self.auth_token
-            
-        try:
-            response = self.session.post(self.url, json=request_data, timeout=30)
-            response.raise_for_status()
-            result = response.json()
-            return result.get("result", {})
-        except Exception as e:
-            logger.error(f"Request failed: {e}")
-            return {"status": "error", "message": str(e)}
-            
     def login(self) -> bool:
         """
         登录到Zabbix
@@ -142,11 +113,12 @@ class ZabbixAPI:
             登录是否成功
         """
         try:
-            result = self._make_request("user.login", {"user": self.username,"password": self.password})
-            self.auth_token = result
-            logger.info("Successfully logged in to Zabbix")
+            self.zapi = PyZabbixAPI(self.url)
+            self.zapi.login(self.username, self.password)
+            server_version = self.zapi.api_version()
+            logger.info(f"Connected to Zabbix: {self.zapi.api_version()}")
             return True
-        except Exception as e:
+        except ZabbixAPIException as e:
             logger.error(f"Login failed: {e}")
             return False
             
@@ -158,12 +130,12 @@ class ZabbixAPI:
             登出是否成功
         """
         try:
-            if self.auth_token:
-                self._make_request("user.logout")
-                self.auth_token = None
+            if self.zapi:
+                self.zapi.user.logout()
+                self.zapi = None
                 logger.info("Successfully logged out from Zabbix")
             return True
-        except Exception as e:
+        except ZabbixAPIException as e:
             logger.error(f"Logout failed: {e}")
             return False
             
@@ -176,19 +148,26 @@ class ZabbixAPI:
         Returns:
             主机信息列表
         """
-        all_hosts = self._make_request("host.get", {
-            "output": ["hostid", "host", "name", "status"],
-            "selectGroups": ["groupid", "name"],
-            "selectInterfaces": ["interfaceid", "ip", "dns", "port"]
-        })
-        if not ip_addresses:
-            return all_hosts
-        matched_hosts = []
-        for host in all_hosts:
-            host_ip = self._get_host_ip(host)
-            if host_ip in ip_addresses:
-                matched_hosts.append(host)
-        return matched_hosts
+        try:
+            params = {
+                "output": ["hostid", "host", "name", "status"],
+                "selectGroups": ["groupid", "name"],
+                "selectInterfaces": ["interfaceid", "ip", "dns", "port"]
+            }
+            all_hosts = self.zapi.host.get(**params)
+            
+            if not ip_addresses:
+                return all_hosts
+                
+            matched_hosts = []
+            for host in all_hosts:
+                host_ip = self._get_host_ip(host)
+                if host_ip in ip_addresses:
+                    matched_hosts.append(host)
+            return matched_hosts
+        except ZabbixAPIException as e:
+            logger.error(f"Failed to get hosts: {e}")
+            return []
 
     def get_items(self, host_ips: List[str] = None, item_keys: List[str] = None) -> List[Dict]:
         """
@@ -200,19 +179,24 @@ class ZabbixAPI:
         Returns:
             监控项信息列表
         """
-        host_ids = None
-        if host_ips:
-            hosts = self.get_hosts(ip_addresses=host_ips)
-            host_ids = [host["hostid"] for host in hosts]
-        params = {
-            "output": ["itemid", "name", "key_", "hostid", "status", "value_type", "units"],
-            "selectHosts": ["hostid", "host", "name"]
-        }
-        if host_ids:
-            params["hostids"] = host_ids
-        if item_keys:
-            params["filter"] = {"key_": item_keys}
-        return self._make_request("item.get", params)
+        try:
+            host_ids = None
+            if host_ips:
+                hosts = self.get_hosts(ip_addresses=host_ips)
+                host_ids = [host["hostid"] for host in hosts]
+                
+            params = {
+                "output": ["itemid", "name", "key_", "hostid", "status", "value_type", "units"],
+                "selectHosts": ["hostid", "host", "name"]
+            }
+            if host_ids:
+                params["hostids"] = host_ids
+            if item_keys:
+                params["filter"] = {"key_": item_keys}
+            return self.zapi.item.get(**params)
+        except ZabbixAPIException as e:
+            logger.error(f"Failed to get items: {e}")
+            return []
         
     def _resolve_time_range(self, time_from=None, time_till=None, time_back=None):
         """
@@ -250,38 +234,42 @@ class ZabbixAPI:
                 "units": 单位
             }
         """
-        items = self.get_items(host_ips=host_ips, item_keys=item_keys)
-        item_ids = [item["itemid"] for item in items]
-        if not item_ids:
+        try:
+            items = self.get_items(host_ips=host_ips, item_keys=item_keys)
+            item_ids = [item["itemid"] for item in items]
+            if not item_ids:
+                return []
+                
+            time_from, time_till = self._resolve_time_range(time_from, time_till, time_back)
+            params = {
+                "output": "extend",
+                "itemids": item_ids,
+                "time_from": int(time_from.timestamp()),
+                "time_till": int(time_till.timestamp()),
+                "sortfield": "clock",
+                "sortorder": "ASC",  # 正序
+                "limit": limit
+            }
+            raw_data = self.zapi.history.get(**params)
+            
+            # 创建itemid到key和单位的映射
+            item_key_map = {item["itemid"]: item["key_"] for item in items}
+            item_units_map = {item["itemid"]: item.get("units", "") for item in items}
+            
+            # 转换数据格式
+            formatted_data = []
+            for item in raw_data:
+                formatted_data.append({
+                    "key": item_key_map.get(item["itemid"], "unknown"),
+                    "time": datetime.fromtimestamp(int(item["clock"])).strftime("%Y-%m-%d %H:%M:%S"),
+                    "value": float(item["value"]),
+                    "units": item_units_map.get(item["itemid"], "")
+                })
+            return formatted_data
+        except ZabbixAPIException as e:
+            logger.error(f"Failed to get history: {e}")
             return []
-        time_from, time_till = self._resolve_time_range(time_from, time_till, time_back)
-        params = {
-            "output": "extend",
-            "itemids": item_ids,
-            "time_from": int(time_from.timestamp()),
-            "time_till": int(time_till.timestamp()),
-            "sortfield": "clock",
-            "sortorder": "ASC",  # 正序
-            "limit": limit
-        }
-        raw_data = self._make_request("history.get", params)
         
-        # 创建itemid到key和单位的映射
-        item_key_map = {item["itemid"]: item["key_"] for item in items}
-        item_units_map = {item["itemid"]: item.get("units", "") for item in items}
-        
-        # 转换数据格式
-        formatted_data = []
-        for item in raw_data:
-            formatted_data.append({
-                "key": item_key_map.get(item["itemid"], "unknown"),
-                "time": datetime.fromtimestamp(int(item["clock"])).strftime("%Y-%m-%d %H:%M:%S"),
-                "value": float(item["value"]),
-                "units": item_units_map.get(item["itemid"], "")
-            })
-        return formatted_data
-        
-
     def get_problems(self, host_ips: List[str] = None, severity: int = None) -> List[Dict]:
         """
         获取问题列表（仅支持IP地址）
@@ -291,46 +279,54 @@ class ZabbixAPI:
         Returns:
             问题列表，每个问题增加'time'字段（可读时间）和'key_'字段（监控项key）
         """
-        host_ids = None
-        if host_ips:
-            hosts = self.get_hosts(ip_addresses=host_ips)
-            host_ids = [host["hostid"] for host in hosts]
-        params = {}
-        if host_ids:
-            params["hostids"] = host_ids
-        if severity is not None:
-            params["severities"] = [severity]
-        problems = self._make_request("problem.get", params)
-        # 增加可读时间字段
-        for problem in problems:
-            if "clock" in problem:
-                try:
-                    problem["time"] = datetime.fromtimestamp(int(problem["clock"])).strftime("%Y-%m-%d %H:%M:%S")
-                except Exception:
-                    problem["time"] = problem["clock"]
-            # 补充key_字段
-            if problem.get("object") == "0":  # trigger
-                trigger_id = problem.get("objectid")
-                if trigger_id:
-                    trigger_info = self._make_request("trigger.get", {
-                        "triggerids": [trigger_id],
-                        "output": ["expression"],
-                        "selectItems": ["itemid", "key_"]
-                    })
-                    if trigger_info and len(trigger_info) > 0:
-                        # 从trigger关联的items中获取key_
-                        items = trigger_info[0].get("items", [])
-                        if items:
-                            problem["key_"] = items[0].get("key_", "unknown")
+        try:
+            host_ids = None
+            if host_ips:
+                hosts = self.get_hosts(ip_addresses=host_ips)
+                host_ids = [host["hostid"] for host in hosts]
+                
+            params = {}
+            if host_ids:
+                params["hostids"] = host_ids
+            if severity is not None:
+                params["severities"] = [severity]
+                
+            problems = self.zapi.problem.get(**params)
+            
+            # 增加可读时间字段
+            for problem in problems:
+                if "clock" in problem:
+                    try:
+                        problem["time"] = datetime.fromtimestamp(int(problem["clock"])).strftime("%Y-%m-%d %H:%M:%S")
+                    except Exception:
+                        problem["time"] = problem["clock"]
+                        
+                # 补充key_字段
+                if problem.get("object") == "0":  # trigger
+                    trigger_id = problem.get("objectid")
+                    if trigger_id:
+                        trigger_info = self.zapi.trigger.get(
+                            triggerids=[trigger_id],
+                            output=["expression"],
+                            selectItems=["itemid", "key_"]
+                        )
+                        if trigger_info and len(trigger_info) > 0:
+                            # 从trigger关联的items中获取key_
+                            items = trigger_info[0].get("items", [])
+                            if items:
+                                problem["key_"] = items[0].get("key_", "unknown")
+                            else:
+                                problem["key_"] = "unknown"
                         else:
                             problem["key_"] = "unknown"
                     else:
                         problem["key_"] = "unknown"
                 else:
                     problem["key_"] = "unknown"
-            else:
-                problem["key_"] = "unknown"
-        return problems
+            return problems
+        except ZabbixAPIException as e:
+            logger.error(f"Failed to get problems: {e}")
+            return []
             
     def _get_host_ip(self, host_info: Dict) -> str:
         """
@@ -359,25 +355,25 @@ class ZabbixAPI:
         """
         time_from, time_till = self._resolve_time_range(time_from, time_till, time_back)
         hosts = self.get_hosts(ip_addresses=ip_addresses)
-        items = self._make_request("item.get", {
-            "output": ["itemid", "hostid", "key_", "units"],
-            "hostids": [host["hostid"] for host in hosts],
-            "search": {"key_": item_key},
-            "searchWildcardsEnabled": True
-        })
+        items = self.zapi.item.get(
+            output=["itemid", "hostid", "key_", "units"],
+            hostids=[host["hostid"] for host in hosts],
+            search={"key_": item_key},
+            searchWildcardsEnabled=True
+        )
         # 构建itemid到key_和units的映射
         itemid_to_info = {item["itemid"]: {"key_": item["key_"], "units": item.get("units", "") } for item in items}
         history = []
         for item in items:
-            item_history = self._make_request("history.get", {
-                "output": "extend",
-                "history": 0,
-                "itemids": item["itemid"],
-                "time_from": int(time_from.timestamp()),
-                "time_till": int(time_till.timestamp()),
-                "sortfield": "clock",
-                "sortorder": "ASC"
-            })
+            item_history = self.zapi.history.get(
+                output="extend",
+                history=0,
+                itemids=item["itemid"],
+                time_from=int(time_from.timestamp()),
+                time_till=int(time_till.timestamp()),
+                sortfield="clock",
+                sortorder="ASC"
+            )
             if item_history:
                 for h in item_history:
                     h["hostid"] = item["hostid"]
