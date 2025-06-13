@@ -9,6 +9,7 @@ from es_api_script import create_elasticsearch_client
 from zabbix_api_script import create_zabbix_client
 import json
 from types import SimpleNamespace
+import requests
 
 # 全局配置
 def dict2ns(d):
@@ -194,14 +195,33 @@ def format_rising_segments(rising_segments, times, raw_data):
         })
     return formatted_segments
 
+def call_llm_analysis(prompt, api_url="http://127.0.0.1/v1/chat-messages", api_key="app-B8Ux0kQnN51hcgjwlGtp7xoL", user="abc-123"):
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "inputs": {},
+        "query": prompt,
+        "response_mode": "blocking",
+        "conversation_id": "",
+        "user": user
+    }
+    response = requests.post(api_url, headers=headers, json=payload, timeout=60)
+    response.raise_for_status()
+    try:
+        return response.json().get("answer", response.text)
+    except Exception:
+        return response.text
+
 def main():
     # 初始化客户端
     es_client = create_elasticsearch_client(CONFIG.es.url)
     zabbix_client = create_zabbix_client(CONFIG.zabbix.url, CONFIG.zabbix.username, CONFIG.zabbix.password)
     
     # 获取时间范围（强制要求字符串）
-    time_from_str = "2025-06-13 18:25:00"
-    time_till_str = "2025-06-13 18:30:00"
+    time_from_str = "2025-06-13 23:02:00"
+    time_till_str = "2025-06-13 23:07:00"
     time_from = datetime.strptime(time_from_str, "%Y-%m-%d %H:%M:%S")
     time_till = datetime.strptime(time_till_str, "%Y-%m-%d %H:%M:%S")
     
@@ -227,21 +247,13 @@ def main():
     # print(f"formatted_es_segments: {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2)}")
     # print(f"formatted_zabbix_segments: {json.dumps(formatted_zabbix_segments, ensure_ascii=False, indent=2)}")
     llm_prompt = f"""
-    你是一个经验丰富的数据库专家，擅长分析数据库响应耗时和网络流量之间的关系。
-    网卡容量为40Gbps
-    数据库正常响应耗时为1秒
-    当前数据库响应耗时上升段为(单位为秒)：
+    # 当前数据库响应耗时上升的各个区间时间段如下(单位为秒)：
     {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2)}
-    当前网络流量上升段为(单位为bps)：
+    # 当前网络流量上升的各个区间如下(单位为bps)：
     {json.dumps(formatted_zabbix_segments, ensure_ascii=False, indent=2)}
-    请根据以上数据，分析出数据库响应耗时上升区间和网络流量上升区间有没有直接关系
-    输出格式要求：
-    【机房级别数据库响应耗时上升预警】
-    异常现象：2025-06-13 18:00:00-18:01:00，数据库响应耗时由1000ms上升到2000ms
-    与防火墙流量有无关系：有关系/无关系，有关系则给出依据，无关系则给出依据
-    依据：数据库响应耗时升高，防火墙流量上升，从1000kbps上升到2000kbps，上升了1000kbps
     """
-    print(llm_prompt)
+    result = call_llm_analysis(llm_prompt)
+    logger.info(f"大模型分析结果：\n{result}")
 
 if __name__ == "__main__":
     main()
