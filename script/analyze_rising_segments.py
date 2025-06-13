@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from datetime import datetime, timedelta
-import numpy as np
-import pandas as pd
+from datetime import datetime
 from es_api_script import create_elasticsearch_client
 from zabbix_api_script import create_zabbix_client
 import json
@@ -76,10 +74,10 @@ def find_rising_segments(data, threshold):
     
     return rising_segments
 
-def get_metric_data(es_client, zabbix_client, time_from, time_till):
-    """获取ES和Zabbix的指标数据"""
+def get_es_metric_data(time_from, time_till):
+    """只获取ES的指标数据"""
     try:
-        # 获取ES数据
+        es_client = create_elasticsearch_client(CONFIG.es.url)
         logger.info("正在从ES获取数据...")
         es_query = {
             "size": 0,
@@ -116,8 +114,15 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
             if bucket["avg_response_time"]["value"] is not None
         ]
         logger.info(f"从ES获取到 {len(es_data)} 条数据")
-        
-        # 获取Zabbix数据
+        return es_data
+    except Exception as e:
+        logger.error(f"获取ES数据异常: {str(e)}")
+        raise
+
+def get_zabbix_metric_data(time_from, time_till):
+    """只获取Zabbix的指标数据"""
+    try:
+        zabbix_client = create_zabbix_client(CONFIG.zabbix.url, CONFIG.zabbix.username, CONFIG.zabbix.password)
         logger.info("正在从Zabbix获取数据...")
         zabbix_data = zabbix_client.get_history(
             time_from=time_from,
@@ -126,9 +131,9 @@ def get_metric_data(es_client, zabbix_client, time_from, time_till):
             item_keys=CONFIG.zabbix.item_keys
         )
         logger.info(f"从Zabbix获取到 {len(zabbix_data)} 条数据")
-        return es_data, zabbix_data
+        return zabbix_data
     except Exception as e:
-        logger.error(f"获取数据异常: {str(e)}")
+        logger.error(f"获取Zabbix数据异常: {str(e)}")
         raise
 
 def extract_time_value_series(data):
@@ -214,34 +219,42 @@ def call_llm_analysis(prompt, api_url="http://127.0.0.1/v1/chat-messages", api_k
     except Exception:
         return response.text
 
+def analyze_es_rising_segments(time_from, time_till):
+    es_data = get_es_metric_data(time_from, time_till)
+    es_times, es_values = extract_time_value_series(es_data)
+    es_threshold = CONFIG.es.threshold
+    es_rising_segments = find_rising_segments(es_values, es_threshold)
+    formatted_es_segments = format_rising_segments(es_rising_segments, es_times, es_data)
+    return formatted_es_segments
+
+def analyze_zabbix_rising_segments(time_from, time_till):
+    zabbix_data = get_zabbix_metric_data(time_from, time_till)
+    zabbix_times, zabbix_values = extract_time_value_series(zabbix_data)
+    zabbix_threshold = CONFIG.zabbix.threshold
+    zabbix_rising_segments = find_rising_segments(zabbix_values, zabbix_threshold)
+    formatted_zabbix_segments = format_rising_segments(zabbix_rising_segments, zabbix_times, zabbix_data)
+    return formatted_zabbix_segments
+
 def main():
-    # 初始化客户端
-    es_client = create_elasticsearch_client(CONFIG.es.url)
-    zabbix_client = create_zabbix_client(CONFIG.zabbix.url, CONFIG.zabbix.username, CONFIG.zabbix.password)
-    
     # 获取时间范围（强制要求字符串）
     time_from_str = "2025-06-13 23:02:00"
     time_till_str = "2025-06-13 23:07:00"
     time_from = datetime.strptime(time_from_str, "%Y-%m-%d %H:%M:%S")
     time_till = datetime.strptime(time_till_str, "%Y-%m-%d %H:%M:%S")
-    
-    # 获取数据
-    es_data, zabbix_data = get_metric_data(es_client, zabbix_client, time_from, time_till)
-    # 提取时间序列和值序列
-    es_times, es_values = extract_time_value_series(es_data)
-    zabbix_times, zabbix_values = extract_time_value_series(zabbix_data)
-    # 设置阈值，控制确认为上升段的基础阈值，避免微小波动被误判
-    es_threshold = CONFIG.es.threshold
-    zabbix_threshold = CONFIG.zabbix.threshold
-    # 找出上升段
-    es_rising_segments = find_rising_segments(es_values, es_threshold)
-    zabbix_rising_segments = find_rising_segments(zabbix_values, zabbix_threshold)
-    # 格式化上升段数据为人类或者大模型可读的json格式
-    formatted_es_segments = format_rising_segments(es_rising_segments, es_times, es_data)
-    formatted_zabbix_segments = format_rising_segments(zabbix_rising_segments, zabbix_times, zabbix_data)
-    
-    # print(f"formatted_es_segments: {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2)}")
-    # print(f"formatted_zabbix_segments: {json.dumps(formatted_zabbix_segments, ensure_ascii=False, indent=2)}")
+
+    # 分析ES的上升段
+    formatted_es_segments = analyze_es_rising_segments(time_from, time_till)
+    if not formatted_es_segments:
+        logger.info("没有ES的上升段")
+        return
+
+    # 分析Zabbix的上升段
+    formatted_zabbix_segments = analyze_zabbix_rising_segments(time_from, time_till)
+    if not formatted_zabbix_segments:
+        logger.info("没有Zabbix的上升段")
+        return
+
+    # 组装大模型分析的prompt，并调用大模型分析
     llm_prompt = f"""
     # 当前数据库响应耗时上升的各个区间时间段如下(单位为秒)：
     {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2)}
