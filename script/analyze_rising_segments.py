@@ -5,20 +5,29 @@
 ===========================================
 
 功能描述:
-    定时分析数据库响应耗时和网络流量的上升段，通过大模型分析其关联性和可能原因。
+    定时分析数据库响应耗时和多种监控指标的上升段，通过大模型分析其关联性和可能原因。
     支持自动调度和手动执行两种模式。
 
 主要特性:
     1. 自动定时分析（默认每5分钟执行一次）
     2. 手动执行分析（支持指定时间范围或分析最近5分钟）
     3. 多数据源支持（Elasticsearch + Zabbix）
-    4. 智能上升段检测
-    5. 大模型关联分析
-    6. 重试机制和异常处理
-    7. 优雅退出支持（Ctrl+C）
-    8. 防止多实例运行的安全机制（文件锁）
-    9. 僵尸锁文件清理
-    10. 大模型调用超时和重试机制
+    4. 多指标监控支持（网卡入出流量、DNS解析时间、CPU使用率、内存使用率等）
+    5. 智能上升段检测（每个指标可配置独立阈值）
+    6. 大模型关联分析（支持多指标关联性分析）
+    7. 重试机制和异常处理
+    8. 优雅退出支持（Ctrl+C）
+    9. 防止多实例运行的安全机制（文件锁）
+    10. 僵尸锁文件清理
+    11. 大模型调用超时和重试机制
+
+支持的监控指标:
+    - 网卡入流量 (net.if.in[eth0])
+    - 网卡出流量 (net.if.out[eth0]) 
+    - DNS解析时间 (net.dns.time[,8.8.8.8])
+    - CPU使用率 (system.cpu.util[,avg1])
+    - 内存使用率 (vm.memory.size[pused])
+    注：可在CONFIG.zabbix.metrics中添加更多指标，每个指标支持独立开关控制
 
 使用方法:
     1. 帮助:
@@ -41,10 +50,29 @@
 配置说明:
     在CONFIG变量中可配置:
     - 数据源连接信息（Elasticsearch, Zabbix）
-    - 阈值设置（上升段判断标准）
+    - 多指标监控配置（每个指标可设置独立阈值、名称、单位、启用/禁用开关）
     - 重试机制参数
     - 大模型API配置（包括超时时间和重试次数）
     - 锁文件路径设置
+
+多指标配置示例:
+    CONFIG.zabbix.metrics = {
+        "net_in": {
+            "item_key": "net.if.in[eth0]",
+            "threshold": 100*1000,  # 100kbps
+            "name": "网卡入流量",
+            "unit": "bps",
+            "enabled": True  # 启用此指标
+        },
+        "memory_usage": {
+            "item_key": "vm.memory.size[pused]",
+            "threshold": 85,  # 85%
+            "name": "内存使用率",
+            "unit": "%",
+            "enabled": False  # 禁用此指标
+        }
+        # 可添加更多指标...
+    }
 
 运行示例:
     # 启动定时调度器，每5分钟分析一次
@@ -63,8 +91,9 @@
     按 Ctrl+C 优雅退出定时调度器
 
 作者: 自动化监控团队
-版本: v2.0
+版本: v2.1
 更新时间: 2025-06-14
+更新内容: 支持多指标监控和关联分析
 """
 
 import logging
@@ -140,8 +169,44 @@ CONFIG = dict2ns({
         "url": "http://82.156.146.51/zabbix",
         "username": "Admin",
         "password": "zabbix",
-        "item_keys": ["net.if.in[eth0]"],
-        "threshold": 100*1000  # 100kbps，判断是否上升段的基础阈值，避免微小波动被误判
+        # 支持多个监控指标，每个指标可以有不同的阈值
+        "metrics": {
+            "net_in": {
+                "item_key": "net.if.in[eth0]",
+                "threshold": 100*1000,  # 100kbps
+                "name": "网卡入流量",
+                "unit": "bps",
+                "enabled": True  # 启用此指标
+            },
+            "net_out": {
+                "item_key": "net.if.out[eth0]",
+                "threshold": 100*1000,  # 100kbps
+                "name": "网卡出流量",
+                "unit": "bps",
+                "enabled": True  # 是否启用此指标
+            },
+            "dns_time": {
+                "item_key": "net.dns.time[,8.8.8.8]",
+                "threshold": 0.05,  # 50ms
+                "name": "DNS解析时间",
+                "unit": "秒",
+                "enabled": True  # 是否启用此指标
+            },
+            "cpu_usage": {
+                "item_key": "system.cpu.util[,avg1]",
+                "threshold": 80,  # 80%
+                "name": "CPU使用率",
+                "unit": "%",
+                "enabled": True  # 是否启用此指标
+            },
+            "memory_usage": {
+                "item_key": "vm.memory.size[pused]",
+                "threshold": 85,  # 85%
+                "name": "内存使用率",
+                "unit": "%",
+                "enabled": False  # 禁用此指标
+            }
+        }
     },
     "llm": {
         "url": "http://127.0.0.1/v1/chat-messages",
@@ -290,18 +355,50 @@ def get_es_metric_data(time_from, time_till):
         raise
 
 def get_zabbix_metric_data(time_from, time_till):
-    """只获取Zabbix的指标数据"""
+    """获取所有启用的Zabbix指标数据"""
     try:
         zabbix_client = create_zabbix_client(CONFIG.zabbix.url, CONFIG.zabbix.username, CONFIG.zabbix.password)
         logger.info("正在从Zabbix获取数据...")
+        
+        # 只获取启用的指标 - 使用vars()来获取SimpleNamespace的属性字典
+        enabled_metrics = {
+            name: config for name, config in vars(CONFIG.zabbix.metrics).items()
+            if config.enabled
+        }
+        
+        if not enabled_metrics:
+            logger.warning("没有启用任何Zabbix监控指标")
+            return {}
+        
+        # 获取所有启用指标的item_keys
+        item_keys = [metric.item_key for metric in enabled_metrics.values()]
+        
+        logger.info(f"启用的监控指标: {[config.name for config in enabled_metrics.values()]}")
+        
+        # 获取所有启用指标的历史数据
         zabbix_data = zabbix_client.get_history(
             time_from=time_from,
             time_till=time_till,
             host_ips=None,
-            item_keys=CONFIG.zabbix.item_keys
+            item_keys=item_keys
         )
-        logger.info(f"从Zabbix获取到 {len(zabbix_data)} 条数据")
-        return zabbix_data
+        
+        # 按指标分组数据
+        metrics_data = {}
+        for metric_name, metric_config in enabled_metrics.items():
+            # 筛选出当前指标的数据
+            metric_data = [
+                item for item in zabbix_data 
+                if item.get("key") == metric_config.item_key
+            ]
+            metrics_data[metric_name] = {
+                "data": metric_data,
+                "config": metric_config
+            }
+            logger.info(f"从Zabbix获取到 {metric_config.name} 数据: {len(metric_data)} 条")
+        
+        logger.info(f"从Zabbix总共获取到 {len(zabbix_data)} 条数据，涵盖 {len(metrics_data)} 个启用指标")
+        return metrics_data
     except Exception as e:
         logger.error(f"获取Zabbix数据异常: {str(e)}")
         raise
@@ -462,16 +559,58 @@ def analyze_es_rising_segments(time_from, time_till):
     return formatted_es_segments
 
 def analyze_zabbix_rising_segments(time_from, time_till):
-    # 获取Zabbix的指标数据
-    zabbix_data = get_zabbix_metric_data(time_from, time_till)
-    # 提取时间序列和值序列
-    zabbix_times, zabbix_values = extract_time_value_series(zabbix_data)
-    # 找出上升段
-    zabbix_threshold = CONFIG.zabbix.threshold
-    zabbix_rising_segments = find_rising_segments(zabbix_values, zabbix_threshold)
-    # 格式化上升段
-    formatted_zabbix_segments = format_rising_segments(zabbix_rising_segments, zabbix_times, zabbix_data, source="zabbix")
-    return formatted_zabbix_segments
+    """分析所有启用的Zabbix指标的上升段"""
+    # 检查有哪些指标被禁用 - 使用vars()来获取SimpleNamespace的属性字典
+    disabled_metrics = [
+        config.name for name, config in vars(CONFIG.zabbix.metrics).items()
+        if not config.enabled
+    ]
+    if disabled_metrics:
+        logger.info(f"已禁用的监控指标: {disabled_metrics}")
+    
+    # 获取所有启用的Zabbix指标数据
+    metrics_data = get_zabbix_metric_data(time_from, time_till)
+    
+    if not metrics_data:
+        logger.info("没有启用的Zabbix监控指标或数据为空")
+        return {}
+    
+    all_formatted_segments = {}
+    
+    # 对每个启用的指标分别分析上升段
+    for metric_name, metric_info in metrics_data.items():
+        metric_data = metric_info["data"]
+        metric_config = metric_info["config"]
+        
+        if not metric_data:
+            logger.info(f"{metric_config.name} 没有数据，跳过分析")
+            continue
+            
+        # 提取时间序列和值序列
+        times, values = extract_time_value_series(metric_data)
+        
+        if not times or not values:
+            logger.info(f"{metric_config.name} 数据为空，跳过分析")
+            continue
+            
+        # 找出上升段
+        threshold = metric_config.threshold
+        rising_segments = find_rising_segments(values, threshold)
+        
+        if rising_segments:
+            # 格式化上升段
+            formatted_segments = format_rising_segments(rising_segments, times, metric_data, source="zabbix")
+            all_formatted_segments[metric_name] = {
+                "name": metric_config.name,
+                "unit": metric_config.unit,
+                "threshold": threshold,
+                "segments": formatted_segments
+            }
+            logger.info(f"{metric_config.name} 发现 {len(formatted_segments)} 个上升段")
+        else:
+            logger.info(f"{metric_config.name} 没有发现上升段")
+    
+    return all_formatted_segments
 
 def analyze_db_response_with_retry():
     """带重试机制的数据库响应分析"""
@@ -488,16 +627,26 @@ def analyze_db_response_with_retry():
                 logger.info("没有ES的上升段，无需继续分析")
                 return True
             
-            # 分析Zabbix的上升段
-            formatted_zabbix_segments = analyze_zabbix_rising_segments(time_from, time_till)
+            # 分析所有Zabbix指标的上升段
+            all_zabbix_segments = analyze_zabbix_rising_segments(time_from, time_till)
             
-            # 检查是否有Zabbix的上升段
-            if not formatted_zabbix_segments:
-                logger.info("没有Zabbix的上升段，无需继续当前分析，从其他方面排查原因")
+            # 检查是否有任何Zabbix指标的上升段
+            has_zabbix_segments = any(
+                metric_info["segments"] for metric_info in all_zabbix_segments.values()
+            )
+            
+            if not has_zabbix_segments:
+                logger.info("没有任何Zabbix指标的上升段，无需继续当前分析，从其他方面排查原因")
                 return True
             
-            # 如果有上升段，进行大模型分析
-            logger.info(f"发现上升段 - ES: {len(formatted_es_segments)}, Zabbix: {len(formatted_zabbix_segments)}")
+            # 统计各指标的上升段数量
+            segment_counts = {
+                metric_name: len(metric_info["segments"]) 
+                for metric_name, metric_info in all_zabbix_segments.items()
+                if metric_info["segments"]
+            }
+            
+            logger.info(f"发现上升段 - ES: {len(formatted_es_segments)}, Zabbix指标: {segment_counts}")
             
             # 组装大模型分析的prompt
             llm_prompt = f"""
@@ -507,10 +656,26 @@ def analyze_db_response_with_retry():
             # 数据库响应耗时上升的各个区间时间段如下(单位为秒)：
             {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2) if formatted_es_segments else "无明显上升段"}
             
-            # 网络流量上升的各个区间如下(单位为bps)：
-            {json.dumps(formatted_zabbix_segments, ensure_ascii=False, indent=2) if formatted_zabbix_segments else "无明显上升段"}
+            # 各监控指标上升的区间如下：
+            """
             
-            请分析这些数据的关联性和可能的原因。
+            # 为每个有上升段的指标添加详细信息
+            for metric_name, metric_info in all_zabbix_segments.items():
+                if metric_info["segments"]:
+                    llm_prompt += f"""
+            ## {metric_info["name"]} (单位: {metric_info["unit"]})
+            阈值: {metric_info["threshold"]}
+            上升段数据:
+            {json.dumps(metric_info["segments"], ensure_ascii=False, indent=2)}
+            """
+            
+            llm_prompt += """
+            
+            请分析这些数据的关联性和可能的原因，重点关注：
+            1. 数据库响应时间上升与各监控指标的时间关联性
+            2. 不同监控指标之间的相关性
+            3. 可能的根本原因分析
+            4. 优化建议
             """
             
             result = call_llm_analysis(llm_prompt)
