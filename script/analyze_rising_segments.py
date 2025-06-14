@@ -663,6 +663,7 @@ def analyze_db_response():
         
         # 获取上升段指标的Top 10 IP数据
         top_ips_data = get_top_ips_for_rising_segments(all_zabbix_segments, time_from, time_till)
+        logger.info(f"Top IP数据: {top_ips_data}")
         
         # 组装大模型分析的prompt
         llm_prompt = f"""
