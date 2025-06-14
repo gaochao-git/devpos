@@ -16,14 +16,14 @@
     5. 大模型关联分析
     6. 重试机制和异常处理
     7. 优雅退出支持（Ctrl+C）
+    8. 防止多实例运行的安全机制（文件锁）
 
 使用方法:
     1. 帮助:
        python3 analyze_rising_segments.py --help
-    2. 定时调度模式（默认）:
-       python3 analyze_rising_segments.py
-       python3 analyze_rising_segments.py --mode scheduler
-       python3 analyze_rising_segments.py --mode scheduler --interval 10  # 10分钟间隔
+         2. 定时调度模式:
+        python3 analyze_rising_segments.py --mode scheduler
+        python3 analyze_rising_segments.py --mode scheduler --interval 10  # 10分钟间隔
     
     3. 手动执行模式:
        python3 analyze_rising_segments.py --mode manual  # 分析最近5分钟
@@ -45,10 +45,10 @@
 
 运行示例:
     # 启动定时调度器，每5分钟分析一次
-    python3 analyze_rising_segments.py
+    python3 analyze_rising_segments.py --mode scheduler
     
     # 启动定时调度器，每10分钟分析一次
-    python3 analyze_rising_segments.py --interval 10
+    python3 analyze_rising_segments.py --mode scheduler --interval 10
     
     # 手动分析最近5分钟数据
     python3 analyze_rising_segments.py --mode manual
@@ -69,6 +69,8 @@ import time
 import signal
 import sys
 import argparse
+import os
+import atexit
 from datetime import datetime, timedelta
 from es_api_script import create_elasticsearch_client
 from zabbix_api_script import create_zabbix_client
@@ -76,18 +78,40 @@ import json
 from types import SimpleNamespace
 import requests
 
-# 全局变量用于优雅退出
+# 全局变量用于优雅退出和锁文件管理
 running = True
+lock_file_path = None
+
+def cleanup_lock_file():
+    """清理锁文件（只清理属于当前进程的锁文件）"""
+    global lock_file_path
+    if lock_file_path and os.path.exists(lock_file_path):
+        try:
+            # 检查锁文件是否属于当前进程
+            with open(lock_file_path, 'r') as f:
+                file_pid = int(f.read().strip())
+            current_pid = os.getpid()
+            
+            if file_pid == current_pid:
+                os.remove(lock_file_path)
+                logger.info(f"已清理锁文件: {lock_file_path}")
+            else:
+                logger.debug(f"锁文件属于其他进程 (PID: {file_pid})，不清理")
+        except Exception as e:
+            logger.error(f"清理锁文件失败: {e}")
 
 def signal_handler(signum, frame):
     """信号处理器，用于优雅退出"""
     global running
     logger.info(f"接收到信号 {signum}，正在优雅退出...")
     running = False
+    cleanup_lock_file()
+    sys.exit(0)
 
-# 注册信号处理器
+# 注册信号处理器和退出处理器
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
+atexit.register(cleanup_lock_file)
 
 # 全局配置
 def dict2ns(d):
@@ -99,7 +123,8 @@ CONFIG = dict2ns({
     "scheduler": {
         "interval_minutes": 5,  # 定时执行间隔（分钟）
         "max_retries": 3,      # 最大重试次数
-        "retry_delay": 30      # 重试延迟（秒）
+        "retry_delay": 30,     # 重试延迟（秒）
+        "lock_file": "/tmp/db_analyzer.lock"  # 锁文件路径
     },
     "es": {
         "url": "http://82.156.146.51:9200",
@@ -125,6 +150,49 @@ CONFIG = dict2ns({
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+def create_lock_file():
+    """创建锁文件，防止多个实例同时运行"""
+    global lock_file_path
+    lock_file_path = CONFIG.scheduler.lock_file
+    
+    # 检查锁文件是否存在
+    if os.path.exists(lock_file_path):
+        try:
+            # 检查锁文件中的PID是否仍在运行
+            with open(lock_file_path, 'r') as f:
+                old_pid = int(f.read().strip())
+            
+            # 检查进程是否还在运行
+            try:
+                os.kill(old_pid, 0)  # 发送信号0来检查进程是否存在
+                logger.error(f"检测到另一个实例正在运行 (PID: {old_pid})")
+                logger.error("如果确认没有其他实例在运行，请手动删除锁文件：")
+                logger.error(f"rm {lock_file_path}")
+                return False
+            except OSError:
+                # 进程不存在，说明是僵尸锁文件
+                logger.warning(f"发现僵尸锁文件，正在清理: {lock_file_path}")
+                os.remove(lock_file_path)
+                
+        except (ValueError, FileNotFoundError):
+            # 锁文件格式错误或不存在，删除它
+            logger.warning(f"锁文件格式错误，正在清理: {lock_file_path}")
+            try:
+                os.remove(lock_file_path)
+            except FileNotFoundError:
+                pass
+    
+    # 创建新的锁文件
+    try:
+        current_pid = os.getpid()
+        with open(lock_file_path, 'w') as f:
+            f.write(str(current_pid))
+        logger.info(f"已创建锁文件: {lock_file_path} (PID: {current_pid})")
+        return True
+    except Exception as e:
+        logger.error(f"创建锁文件失败: {e}")
+        return False
 
 def get_analysis_time_range():
     """获取分析时间范围：最近5分钟"""
@@ -387,6 +455,11 @@ def analyze_db_response_with_retry():
 
 def run_scheduler():
     """运行定时调度器"""
+    # 创建锁文件
+    if not create_lock_file():
+        logger.error("无法创建锁文件，程序退出")
+        sys.exit(1)
+    
     logger.info(f"启动数据库响应分析调度器，间隔: {CONFIG.scheduler.interval_minutes} 分钟")
     logger.info("按 Ctrl+C 退出程序")
     
@@ -421,26 +494,35 @@ def run_scheduler():
 
 def run_manual_analysis(time_from_str=None, time_till_str=None):
     """手动执行分析"""
-    if time_from_str and time_till_str:
-        # 使用指定时间范围
-        try:
-            time_from = datetime.strptime(time_from_str, "%Y-%m-%d %H:%M:%S")
-            time_till = datetime.strptime(time_till_str, "%Y-%m-%d %H:%M:%S")
-        except ValueError as e:
-            logger.error(f"时间格式错误: {e}")
-            logger.error("请使用格式: YYYY-MM-DD HH:MM:SS")
-            return False
-    else:
-        # 使用最近5分钟
-        time_from, time_till = get_analysis_time_range()
+    # 创建锁文件
+    if not create_lock_file():
+        logger.error("无法创建锁文件，程序退出")
+        return False
     
-    logger.info("执行手动分析...")
-    return analyze_db_response_with_retry()
+    try:
+        if time_from_str and time_till_str:
+            # 使用指定时间范围
+            try:
+                time_from = datetime.strptime(time_from_str, "%Y-%m-%d %H:%M:%S")
+                time_till = datetime.strptime(time_till_str, "%Y-%m-%d %H:%M:%S")
+            except ValueError as e:
+                logger.error(f"时间格式错误: {e}")
+                logger.error("请使用格式: YYYY-MM-DD HH:MM:SS")
+                return False
+        else:
+            # 使用最近5分钟
+            time_from, time_till = get_analysis_time_range()
+        
+        logger.info("执行手动分析...")
+        return analyze_db_response_with_retry()
+    finally:
+        # 确保锁文件被清理
+        cleanup_lock_file()
 
 def main():
     parser = argparse.ArgumentParser(description='数据库响应分析工具')
-    parser.add_argument('--mode', choices=['scheduler', 'manual'], default='scheduler',
-                       help='运行模式: scheduler=定时调度, manual=手动执行')
+    parser.add_argument('--mode', choices=['scheduler', 'manual'], required=True,
+                       help='运行模式: scheduler=定时调度, manual=手动执行 (必需参数)')
     parser.add_argument('--time-from', type=str,
                        help='分析开始时间 (格式: YYYY-MM-DD HH:MM:SS)')
     parser.add_argument('--time-till', type=str,
@@ -451,7 +533,7 @@ def main():
     args = parser.parse_args()
     
     # 更新配置
-    if args.interval:
+    if args.interval != 5:  # 只有当用户明确指定了间隔时才更新
         CONFIG.scheduler.interval_minutes = args.interval
     
     if args.mode == 'scheduler':
