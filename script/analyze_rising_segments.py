@@ -1,13 +1,93 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+数据库响应分析工具 - Database Response Analyzer
+===========================================
+
+功能描述:
+    定时分析数据库响应耗时和网络流量的上升段，通过大模型分析其关联性和可能原因。
+    支持自动调度和手动执行两种模式。
+
+主要特性:
+    1. 自动定时分析（默认每5分钟执行一次）
+    2. 手动执行分析（支持指定时间范围或分析最近5分钟）
+    3. 多数据源支持（Elasticsearch + Zabbix）
+    4. 智能上升段检测
+    5. 大模型关联分析
+    6. 重试机制和异常处理
+    7. 优雅退出支持（Ctrl+C）
+
+使用方法:
+    1. 帮助:
+       python3 analyze_rising_segments.py --help
+    2. 定时调度模式（默认）:
+       python3 analyze_rising_segments.py
+       python3 analyze_rising_segments.py --mode scheduler
+       python3 analyze_rising_segments.py --mode scheduler --interval 10  # 10分钟间隔
+    
+    3. 手动执行模式:
+       python3 analyze_rising_segments.py --mode manual  # 分析最近5分钟
+       python3 analyze_rising_segments.py --mode manual --time-from "2025-06-14 10:00:00" --time-till "2025-06-14 10:05:00"
+    
+
+参数说明:
+    --mode          运行模式，可选值: scheduler(定时调度), manual(手动执行)
+    --interval      定时执行间隔（分钟），默认5分钟
+    --time-from     手动模式：分析开始时间，格式: YYYY-MM-DD HH:MM:SS
+    --time-till     手动模式：分析结束时间，格式: YYYY-MM-DD HH:MM:SS
+
+配置说明:
+    在CONFIG变量中可配置:
+    - 数据源连接信息（Elasticsearch, Zabbix）
+    - 阈值设置（上升段判断标准）
+    - 重试机制参数
+    - 大模型API配置
+
+运行示例:
+    # 启动定时调度器，每5分钟分析一次
+    python3 analyze_rising_segments.py
+    
+    # 启动定时调度器，每10分钟分析一次
+    python3 analyze_rising_segments.py --interval 10
+    
+    # 手动分析最近5分钟数据
+    python3 analyze_rising_segments.py --mode manual
+    
+    # 手动分析指定时间段
+    python3 analyze_rising_segments.py --mode manual --time-from "2025-06-14 10:00:00" --time-till "2025-06-14 10:05:00"
+
+停止方法:
+    按 Ctrl+C 优雅退出定时调度器
+
+作者: 自动化监控团队
+版本: v2.0
+更新时间: 2025-06-14
+"""
 
 import logging
-from datetime import datetime
+import time
+import signal
+import sys
+import argparse
+from datetime import datetime, timedelta
 from es_api_script import create_elasticsearch_client
 from zabbix_api_script import create_zabbix_client
 import json
 from types import SimpleNamespace
 import requests
+
+# 全局变量用于优雅退出
+running = True
+
+def signal_handler(signum, frame):
+    """信号处理器，用于优雅退出"""
+    global running
+    logger.info(f"接收到信号 {signum}，正在优雅退出...")
+    running = False
+
+# 注册信号处理器
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 # 全局配置
 def dict2ns(d):
@@ -16,6 +96,11 @@ def dict2ns(d):
     return d
 
 CONFIG = dict2ns({
+    "scheduler": {
+        "interval_minutes": 5,  # 定时执行间隔（分钟）
+        "max_retries": 3,      # 最大重试次数
+        "retry_delay": 30      # 重试延迟（秒）
+    },
     "es": {
         "url": "http://82.156.146.51:9200",
         "index": "mysql-slow-*",
@@ -40,6 +125,13 @@ CONFIG = dict2ns({
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+def get_analysis_time_range():
+    """获取分析时间范围：最近5分钟"""
+    now = datetime.now()
+    time_till = now
+    time_from = now - timedelta(minutes=CONFIG.scheduler.interval_minutes)
+    return time_from, time_till
 
 def find_rising_segments(data, threshold):
     """
@@ -239,34 +331,134 @@ def analyze_zabbix_rising_segments(time_from, time_till):
     formatted_zabbix_segments = format_rising_segments(zabbix_rising_segments, zabbix_times, zabbix_data, source="zabbix")
     return formatted_zabbix_segments
 
+def analyze_db_response_with_retry():
+    """带重试机制的数据库响应分析"""
+    for attempt in range(CONFIG.scheduler.max_retries):
+        try:
+            # 获取分析时间范围
+            time_from, time_till = get_analysis_time_range()
+            logger.info(f"开始分析时间段: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}")
+            
+            # 分析ES的上升段
+            formatted_es_segments = analyze_es_rising_segments(time_from, time_till)
+            
+            # 分析Zabbix的上升段
+            formatted_zabbix_segments = analyze_zabbix_rising_segments(time_from, time_till)
+            
+            # 检查是否有上升段数据
+            if not formatted_es_segments:
+                logger.info("没有ES的上升段，无需进行大模型分析")
+                return True
+            
+            if not formatted_zabbix_segments:
+                logger.info("没有Zabbix的上升段，无需进行大模型分析")
+                return True
+            
+            # 如果有上升段，进行大模型分析
+            logger.info(f"发现上升段 - ES: {len(formatted_es_segments)}, Zabbix: {len(formatted_zabbix_segments)}")
+            
+            # 组装大模型分析的prompt
+            llm_prompt = f"""
+            # 时间段分析报告
+            分析时间: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}
+            
+            # 数据库响应耗时上升的各个区间时间段如下(单位为秒)：
+            {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2) if formatted_es_segments else "无明显上升段"}
+            
+            # 网络流量上升的各个区间如下(单位为bps)：
+            {json.dumps(formatted_zabbix_segments, ensure_ascii=False, indent=2) if formatted_zabbix_segments else "无明显上升段"}
+            
+            请分析这些数据的关联性和可能的原因。
+            """
+            
+            result = call_llm_analysis(llm_prompt)
+            logger.info(f"大模型分析结果：\n{result}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"分析失败 (尝试 {attempt + 1}/{CONFIG.scheduler.max_retries}): {str(e)}")
+            if attempt < CONFIG.scheduler.max_retries - 1:
+                logger.info(f"等待 {CONFIG.scheduler.retry_delay} 秒后重试...")
+                time.sleep(CONFIG.scheduler.retry_delay)
+            else:
+                logger.error("达到最大重试次数，本次分析失败")
+                return False
+
+def run_scheduler():
+    """运行定时调度器"""
+    logger.info(f"启动数据库响应分析调度器，间隔: {CONFIG.scheduler.interval_minutes} 分钟")
+    logger.info("按 Ctrl+C 退出程序")
+    
+    # 立即执行一次分析
+    logger.info("执行初始分析...")
+    analyze_db_response_with_retry()
+    
+    while running:
+        try:
+            # 等待指定间隔
+            sleep_seconds = CONFIG.scheduler.interval_minutes * 60
+            logger.info(f"等待 {CONFIG.scheduler.interval_minutes} 分钟后执行下次分析...")
+            
+            # 分段睡眠，以便能够响应退出信号
+            for _ in range(sleep_seconds):
+                if not running:
+                    break
+                time.sleep(1)
+            
+            if running:
+                logger.info("开始执行定时分析...")
+                analyze_db_response_with_retry()
+                
+        except KeyboardInterrupt:
+            logger.info("接收到键盘中断信号，正在退出...")
+            break
+        except Exception as e:
+            logger.error(f"调度器运行异常: {str(e)}")
+            time.sleep(30)  # 异常后等待一会再继续
+    
+    logger.info("数据库响应分析调度器已停止")
+
+def run_manual_analysis(time_from_str=None, time_till_str=None):
+    """手动执行分析"""
+    if time_from_str and time_till_str:
+        # 使用指定时间范围
+        try:
+            time_from = datetime.strptime(time_from_str, "%Y-%m-%d %H:%M:%S")
+            time_till = datetime.strptime(time_till_str, "%Y-%m-%d %H:%M:%S")
+        except ValueError as e:
+            logger.error(f"时间格式错误: {e}")
+            logger.error("请使用格式: YYYY-MM-DD HH:MM:SS")
+            return False
+    else:
+        # 使用最近5分钟
+        time_from, time_till = get_analysis_time_range()
+    
+    logger.info("执行手动分析...")
+    return analyze_db_response_with_retry()
+
 def main():
-    # 获取时间范围（强制要求字符串）
-    time_from_str = "2025-06-13 23:02:00"
-    time_till_str = "2025-06-13 23:07:00"
-    time_from = datetime.strptime(time_from_str, "%Y-%m-%d %H:%M:%S")
-    time_till = datetime.strptime(time_till_str, "%Y-%m-%d %H:%M:%S")
-
-    # 分析ES的上升段
-    formatted_es_segments = analyze_es_rising_segments(time_from, time_till)
-    if not formatted_es_segments:
-        logger.info("没有ES的上升段")
-        return
-
-    # 分析Zabbix的上升段
-    formatted_zabbix_segments = analyze_zabbix_rising_segments(time_from, time_till)
-    if not formatted_zabbix_segments:
-        logger.info("没有Zabbix的上升段")
-        return
-
-    # 组装大模型分析的prompt，并调用大模型分析
-    llm_prompt = f"""
-    # 当前数据库响应耗时上升的各个区间时间段如下(单位为秒)：
-    {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2)}
-    # 当前网络流量上升的各个区间如下(单位为bps)：
-    {json.dumps(formatted_zabbix_segments, ensure_ascii=False, indent=2)}
-    """
-    result = call_llm_analysis(llm_prompt)
-    logger.info(f"大模型分析结果：\n{result}")
+    parser = argparse.ArgumentParser(description='数据库响应分析工具')
+    parser.add_argument('--mode', choices=['scheduler', 'manual'], default='scheduler',
+                       help='运行模式: scheduler=定时调度, manual=手动执行')
+    parser.add_argument('--time-from', type=str,
+                       help='分析开始时间 (格式: YYYY-MM-DD HH:MM:SS)')
+    parser.add_argument('--time-till', type=str,
+                       help='分析结束时间 (格式: YYYY-MM-DD HH:MM:SS)')
+    parser.add_argument('--interval', type=int, default=5,
+                       help='定时执行间隔（分钟），默认5分钟')
+    
+    args = parser.parse_args()
+    
+    # 更新配置
+    if args.interval:
+        CONFIG.scheduler.interval_minutes = args.interval
+    
+    if args.mode == 'scheduler':
+        run_scheduler()
+    elif args.mode == 'manual':
+        success = run_manual_analysis(args.time_from, args.time_till)
+        sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
     main()
