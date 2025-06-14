@@ -46,28 +46,43 @@
 
 配置说明:
     在CONFIG变量中可配置:
-    - 数据源连接信息（Elasticsearch, Zabbix）
+    - 多机房配置（每个机房独立的ES、Zabbix配置）
+    - 机房开关控制（支持灰度执行，可单独启用/禁用某个机房）
     - 多指标监控配置（每个指标可设置独立阈值、名称、单位、启用/禁用开关）
     - 大模型API配置（包括超时时间）
     - 锁文件路径设置
 
-多指标配置示例:
-    CONFIG.zabbix.metrics = {
-        "net_in": {
-            "item_key": "net.if.in[eth0]",
-            "threshold": 100*1000,  # 100kbps
-            "name": "网卡入流量",
-            "unit": "bps",
-            "enabled": True  # 启用此指标
+多机房配置示例:
+    CONFIG.datacenters = {
+        "11": {
+            "name": "北京机房11",
+            "enabled": True,  # 机房开关，支持灰度执行
+            "es": {
+                "url": "http://es-bj11:9200",
+                "index": "mysql-slow-*",
+                "field": "query_time",
+                "threshold": 0.01,
+                "fixed_interval": "5s"
+            },
+            "zabbix": {
+                "url": "http://zabbix-bj11/zabbix",
+                "username": "Admin",
+                "password": "zabbix",
+                "firewall_ip": "192.168.1.1",
+                "dns_ip": "192.168.1.10",
+                "metrics": {
+                    "net_in": {"enabled": True, ...},
+                    "net_out": {"enabled": True, ...},
+                    "dns_time": {"enabled": True, ...}
+                }
+            }
         },
-        "memory_usage": {
-            "item_key": "vm.memory.size[pused]",
-            "threshold": 85,  # 85%
-            "name": "内存使用率",
-            "unit": "%",
-            "enabled": False  # 禁用此指标
+        "12": {
+            "name": "北京机房12",
+            "enabled": False,  # 禁用此机房（灰度控制）
+            # ... 其他配置
         }
-        # 可添加更多指标...
+        # ... 更多机房
     }
 
 运行示例:
@@ -153,39 +168,239 @@ CONFIG = dict2ns({
         "interval_minutes": 5,  # 定时执行间隔（分钟）
         "lock_file": "/tmp/db_analyzer.lock"  # 锁文件路径
     },
-    "es": {
-        "url": "http://82.156.146.51:9200",
-        "index": "mysql-slow-*",
-        "field": "query_time",
-        "threshold": 0.01,  # 毫秒，判断是否上升段的基础阈值，避免微小波动被误判
-        "fixed_interval": "5s"  # 聚合间隔
-    },
-    "zabbix": {
-        "url": "http://82.156.146.51/zabbix",
-        "username": "Admin",
-        "password": "zabbix",
-        # 支持多个监控指标，每个指标可以有不同的阈值
-        "metrics": {
-            "net_in": {
-                "item_key": "net.if.in[eth0]",
-                "threshold": 100*1000,  # 100kbps
-                "name": "机房防火墙入流量",
-                "unit": "bps",
-                "enabled": True  # 启用此指标
+    # 机房配置
+    "datacenters": {
+        "11": {
+            "name": "北京机房11",
+            "enabled": True,  # 机房开关，支持灰度执行
+            "es": {
+                "url": "http://82.156.146.51:9200",
+                "index": "mysql-slow-*",
+                "field": "query_time",
+                "threshold": 0.01,  # 毫秒，判断是否上升段的基础阈值，避免微小波动被误判
+                "fixed_interval": "5s"  # 聚合间隔
             },
-            "net_out": {
-                "item_key": "net.if.out[eth0]",
-                "threshold": 100*1000,  # 100kbps
-                "name": "防火墙出流量",
-                "unit": "bps",
-                "enabled": True  # 是否启用此指标
+            "zabbix": {
+                "url": "http://82.156.146.51/zabbix",
+                "username": "Admin",
+                "password": "zabbix",
+                "firewall_ip": "192.168.1.1",  # 防火墙IP，用于网络流量监控
+                "dns_ip": "192.168.1.10",  # DNS服务器IP，用于DNS解析时间监控
+                # 支持多个监控指标，每个指标可以有不同的阈值
+                "metrics": {
+                    "net_in": {
+                        "item_key": "net.if.in[eth0]",
+                        "threshold": 100*1000,  # 100kbps
+                        "name": "机房防火墙入流量",
+                        "unit": "bps",
+                        "enabled": True  # 启用此指标
+                    },
+                    "net_out": {
+                        "item_key": "net.if.out[eth0]",
+                        "threshold": 100*1000,  # 100kbps
+                        "name": "防火墙出流量",
+                        "unit": "bps",
+                        "enabled": True  # 是否启用此指标
+                    },
+                    "dns_time": {
+                        "item_key": "net.dns.time[,8.8.8.8]",
+                        "threshold": 0.05,  # 0.05ms
+                        "name": "DNS解析时间",
+                        "unit": "ms",
+                        "enabled": True  # 是否启用此指标
+                    }
+                }
+            }
+        },
+        "12": {
+            "name": "北京机房12",
+            "enabled": True,  # 机房开关，支持灰度执行
+            "es": {
+                "url": "http://82.156.146.51:9200",
+                "index": "mysql-slow-*",
+                "field": "query_time",
+                "threshold": 0.01,
+                "fixed_interval": "5s"
             },
-            "dns_time": {
-                "item_key": "net.dns.time[,8.8.8.8]",
-                "threshold": 0.05,  # 0.05ms
-                "name": "DNS解析时间",
-                "unit": "ms",
-                "enabled": True  # 是否启用此指标
+            "zabbix": {
+                "url": "http://82.156.146.51/zabbix",
+                "username": "Admin",
+                "password": "zabbix",
+                "firewall_ip": None,  # 无防火墙
+                "dns_ip": "192.168.1.20",  # DNS服务器IP
+                "metrics": {
+                    "dns_time": {
+                        "item_key": "net.dns.time[,8.8.8.8]",
+                        "threshold": 0.05,
+                        "name": "DNS解析时间",
+                        "unit": "ms",
+                        "enabled": True
+                    }
+                }
+            }
+        },
+        "20": {
+            "name": "上海机房20",
+            "enabled": True,  # 机房开关，支持灰度执行
+            "es": {
+                "url": "http://82.156.146.51:9200",
+                "index": "mysql-slow-*",
+                "field": "query_time",
+                "threshold": 0.01,
+                "fixed_interval": "5s"
+            },
+            "zabbix": {
+                "url": "http://82.156.146.51/zabbix",
+                "username": "Admin",
+                "password": "zabbix",
+                "firewall_ip": "192.168.2.1",
+                "dns_ip": "192.168.2.10",
+                "metrics": {
+                    "net_in": {
+                        "item_key": "net.if.in[eth0]",
+                        "threshold": 100*1000,
+                        "name": "机房防火墙入流量",
+                        "unit": "bps",
+                        "enabled": True
+                    },
+                    "net_out": {
+                        "item_key": "net.if.out[eth0]",
+                        "threshold": 100*1000,
+                        "name": "防火墙出流量",
+                        "unit": "bps",
+                        "enabled": True
+                    },
+                    "dns_time": {
+                        "item_key": "net.dns.time[,8.8.8.8]",
+                        "threshold": 0.05,
+                        "name": "DNS解析时间",
+                        "unit": "ms",
+                        "enabled": True
+                    }
+                }
+            }
+        },
+        "21": {
+            "name": "上海机房21",
+            "enabled": True,  # 机房开关，支持灰度执行
+            "es": {
+                "url": "http://82.156.146.51:9200",
+                "index": "mysql-slow-*",
+                "field": "query_time",
+                "threshold": 0.01,
+                "fixed_interval": "5s"
+            },
+            "zabbix": {
+                "url": "http://82.156.146.51/zabbix",
+                "username": "Admin",
+                "password": "zabbix",
+                "firewall_ip": "192.168.2.2",
+                "dns_ip": "192.168.2.20",
+                "metrics": {
+                    "net_in": {
+                        "item_key": "net.if.in[eth0]",
+                        "threshold": 100*1000,
+                        "name": "机房防火墙入流量",
+                        "unit": "bps",
+                        "enabled": True
+                    },
+                    "net_out": {
+                        "item_key": "net.if.out[eth0]",
+                        "threshold": 100*1000,
+                        "name": "防火墙出流量",
+                        "unit": "bps",
+                        "enabled": True
+                    },
+                    "dns_time": {
+                        "item_key": "net.dns.time[,8.8.8.8]",
+                        "threshold": 0.05,
+                        "name": "DNS解析时间",
+                        "unit": "ms",
+                        "enabled": True
+                    }
+                }
+            }
+        },
+        "30": {
+            "name": "深圳机房30",
+            "enabled": True,  # 机房开关，支持灰度执行
+            "es": {
+                "url": "http://82.156.146.51:9200",
+                "index": "mysql-slow-*",
+                "field": "query_time",
+                "threshold": 0.01,
+                "fixed_interval": "5s"
+            },
+            "zabbix": {
+                "url": "http://82.156.146.51/zabbix",
+                "username": "Admin",
+                "password": "zabbix",
+                "firewall_ip": "192.168.3.1",
+                "dns_ip": "192.168.3.10",
+                "metrics": {
+                    "net_in": {
+                        "item_key": "net.if.in[eth0]",
+                        "threshold": 100*1000,
+                        "name": "机房防火墙入流量",
+                        "unit": "bps",
+                        "enabled": True
+                    },
+                    "net_out": {
+                        "item_key": "net.if.out[eth0]",
+                        "threshold": 100*1000,
+                        "name": "防火墙出流量",
+                        "unit": "bps",
+                        "enabled": True
+                    },
+                    "dns_time": {
+                        "item_key": "net.dns.time[,8.8.8.8]",
+                        "threshold": 0.05,
+                        "name": "DNS解析时间",
+                        "unit": "ms",
+                        "enabled": True
+                    }
+                }
+            }
+        },
+        "31": {
+            "name": "深圳机房31",
+            "enabled": False,  # 机房开关，支持灰度执行（示例：此机房暂时禁用）
+            "es": {
+                "url": "http://82.156.146.51:9200",
+                "index": "mysql-slow-*",
+                "field": "query_time",
+                "threshold": 0.01,
+                "fixed_interval": "5s"
+            },
+            "zabbix": {
+                "url": "http://82.156.146.51/zabbix",
+                "username": "Admin",
+                "password": "zabbix",
+                "firewall_ip": "192.168.3.2",
+                "dns_ip": "192.168.3.20",
+                "metrics": {
+                    "net_in": {
+                        "item_key": "net.if.in[eth0]",
+                        "threshold": 100*1000,
+                        "name": "机房防火墙入流量",
+                        "unit": "bps",
+                        "enabled": True
+                    },
+                    "net_out": {
+                        "item_key": "net.if.out[eth0]",
+                        "threshold": 100*1000,
+                        "name": "防火墙出流量",
+                        "unit": "bps",
+                        "enabled": True
+                    },
+                    "dns_time": {
+                        "item_key": "net.dns.time[,8.8.8.8]",
+                        "threshold": 0.05,
+                        "name": "DNS解析时间",
+                        "unit": "ms",
+                        "enabled": True
+                    }
+                }
             }
         }
     },
@@ -323,99 +538,7 @@ def find_rising_segments(data, threshold):
     
     return rising_segments
 
-def get_es_metric_data(time_from, time_till):
-    """只获取ES的指标数据"""
-    try:
-        es_client = create_elasticsearch_client(CONFIG.es.url)
-        logger.info("正在从ES获取数据...")
-        es_query = {
-            "size": 0,
-            "query": {
-                "range": {
-                    "@timestamp": {
-                        "gte": time_from.isoformat(),
-                        "lte": time_till.isoformat(),
-                        "time_zone": "+08:00"
-                    }
-                }
-            },
-            "aggs": {
-                "my_aggs_name": {
-                    "date_histogram": {
-                        "field": "@timestamp",
-                        "fixed_interval": CONFIG.es.fixed_interval
-                    },
-                    "aggs": {
-                        "avg_response_time": {
-                            "avg": {
-                                "field": CONFIG.es.field
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        es_result = es_client.search_logs(CONFIG.es.index, es_query)
-        es_buckets = es_result.get("aggregations", {}).get("my_aggs_name", {}).get("buckets", [])
-        es_data = [
-            {"time": bucket["key_as_string_bj"], "value": bucket["avg_response_time"]["value"], "key": "avg_response_time"}
-            for bucket in es_buckets
-            if bucket["avg_response_time"]["value"] is not None
-        ]
-        logger.info(f"从ES获取到 {len(es_data)} 条数据")
-        return es_data
-    except Exception as e:
-        logger.error(f"获取ES数据异常: {str(e)}")
-        raise
 
-def get_zabbix_metric_data(time_from, time_till):
-    """获取所有启用的Zabbix指标数据"""
-    try:
-        zabbix_client = create_zabbix_client(CONFIG.zabbix.url, CONFIG.zabbix.username, CONFIG.zabbix.password)
-        logger.info("正在从Zabbix获取数据...")
-        
-        # 只获取启用的指标 - 使用vars()来获取SimpleNamespace的属性字典
-        enabled_metrics = {
-            name: config for name, config in vars(CONFIG.zabbix.metrics).items()
-            if config.enabled
-        }
-        
-        if not enabled_metrics:
-            logger.warning("没有启用任何Zabbix监控指标")
-            return {}
-        
-        # 获取所有启用指标的item_keys
-        item_keys = [metric.item_key for metric in enabled_metrics.values()]
-        
-        logger.info(f"启用的监控指标: {[config.name for config in enabled_metrics.values()]}")
-        
-        # 获取所有启用指标的历史数据
-        zabbix_data = zabbix_client.get_history(
-            time_from=time_from,
-            time_till=time_till,
-            host_ips=None,
-            item_keys=item_keys
-        )
-        
-        # 按指标分组数据
-        metrics_data = {}
-        for metric_name, metric_config in enabled_metrics.items():
-            # 筛选出当前指标的数据
-            metric_data = [
-                item for item in zabbix_data 
-                if item.get("key") == metric_config.item_key
-            ]
-            metrics_data[metric_name] = {
-                "data": metric_data,
-                "config": metric_config
-            }
-            logger.info(f"从Zabbix获取到 {metric_config.name} 数据: {len(metric_data)} 条")
-        
-        logger.info(f"从Zabbix总共获取到 {len(zabbix_data)} 条数据，涵盖 {len(metrics_data)} 个启用指标")
-        return metrics_data
-    except Exception as e:
-        logger.error(f"获取Zabbix数据异常: {str(e)}")
-        raise
 
 def extract_time_value_series(data):
     """
@@ -532,138 +655,287 @@ def call_llm_analysis(prompt, api_url=CONFIG.llm.url, api_key=CONFIG.llm.api_key
         logger.error(f"大模型调用失败: {e}")
         raise Exception(f"大模型调用失败: {e}")
 
-def analyze_es_rising_segments(time_from, time_till):
-    # 获取ES的指标数据
-    es_data = get_es_metric_data(time_from, time_till)
-    # 提取时间序列和值序列
-    es_times, es_values = extract_time_value_series(es_data)
-    # 找出上升段
-    es_threshold = CONFIG.es.threshold
-    es_rising_segments = find_rising_segments(es_values, es_threshold)
-    # 格式化上升段
-    formatted_es_segments = format_rising_segments(es_rising_segments, es_times, es_data, source="es")
-    return formatted_es_segments
 
-def analyze_zabbix_rising_segments(time_from, time_till):
-    """分析所有启用的Zabbix指标的上升段"""
-    # 检查有哪些指标被禁用 - 使用vars()来获取SimpleNamespace的属性字典
-    disabled_metrics = [
-        config.name for name, config in vars(CONFIG.zabbix.metrics).items()
-        if not config.enabled
-    ]
-    if disabled_metrics:
-        logger.info(f"已禁用的监控指标: {disabled_metrics}")
-    
-    # 获取所有启用的Zabbix指标数据
-    metrics_data = get_zabbix_metric_data(time_from, time_till)
-    
-    if not metrics_data:
-        logger.info("没有启用的Zabbix监控指标或数据为空")
-        return {}
-    
-    all_formatted_segments = {}
-    
-    # 对每个启用的指标分别分析上升段
-    for metric_name, metric_info in metrics_data.items():
-        metric_data = metric_info["data"]
-        metric_config = metric_info["config"]
-        
-        if not metric_data:
-            logger.info(f"{metric_config.name} 没有数据，跳过分析")
-            continue
-            
-        # 提取时间序列和值序列
-        times, values = extract_time_value_series(metric_data)
-        
-        if not times or not values:
-            logger.info(f"{metric_config.name} 数据为空，跳过分析")
-            continue
-            
-        # 找出上升段
-        threshold = metric_config.threshold
-        rising_segments = find_rising_segments(values, threshold)
-        
-        if rising_segments:
-            # 格式化上升段
-            formatted_segments = format_rising_segments(rising_segments, times, metric_data, source="zabbix")
-            all_formatted_segments[metric_name] = {
-                "name": metric_config.name,
-                "unit": metric_config.unit,
-                "threshold": threshold,
-                "segments": formatted_segments
-            }
-            logger.info(f"{metric_config.name} 发现 {len(formatted_segments)} 个上升段")
-        else:
-            logger.info(f"{metric_config.name} 没有发现上升段")
-    
-    return all_formatted_segments
 
 def analyze_db_response():
-    """数据库响应分析"""
+    """多机房数据库响应分析 - 按机房顺序依次处理"""
     try:
         # 获取分析时间范围
         time_from, time_till = get_analysis_time_range()
-        logger.info(f"开始分析时间段: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f"开始多机房分析，时间段: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}")
         
-        # 分析ES的上升段
-        formatted_es_segments = analyze_es_rising_segments(time_from, time_till)
-        # 检查是否有上升段数据
-        if not formatted_es_segments:
-            logger.info("没有ES的上升段，无需继续分析")
+        # 获取机房列表，按编号顺序处理
+        datacenter_order = ["11", "12", "20", "21", "30", "31"]
+        
+        # 筛选出启用的机房
+        enabled_datacenters = []
+        disabled_datacenters = []
+        
+        for idc in datacenter_order:
+            if idc not in vars(CONFIG.datacenters):
+                logger.warning(f"机房 {idc} 未在配置中找到，跳过")
+                continue
+                
+            dc = getattr(CONFIG.datacenters, idc)
+            if dc.enabled:
+                enabled_datacenters.append((idc, dc.name))
+            else:
+                disabled_datacenters.append((idc, dc.name))
+        
+        logger.info(f"启用的机房: {[idc for idc, name in enabled_datacenters]}")
+        if disabled_datacenters:
+            logger.info(f"禁用的机房: {[idc for idc, name in disabled_datacenters]}")
+        
+        if not enabled_datacenters:
+            logger.warning("没有启用任何机房，退出分析")
             return True
         
-        # 分析所有Zabbix指标的上升段
-        all_zabbix_segments = analyze_zabbix_rising_segments(time_from, time_till)
+        all_es_segments = {}
+        all_zabbix_segments = {}
         
-        # 检查是否有任何Zabbix指标的上升段
-        has_zabbix_segments = any(
-            metric_info["segments"] for metric_info in all_zabbix_segments.values()
+        # 按顺序逐个处理每个启用的机房
+        for idc, dc_name in enabled_datacenters:
+            dc = getattr(CONFIG.datacenters, idc)
+            # 定义当前机房的日志前缀
+            log_prefix = f"[idc{idc}]"
+            
+            logger.info("="*60)
+            # 处理当前机房的ES数据
+            logger.info(f"{log_prefix} 开始分析ES数据库响应耗时...")
+            try:
+                es_client = create_elasticsearch_client(dc.es.url)
+                
+                es_query = {
+                    "size": 0,
+                    "query": {
+                        "range": {
+                            "@timestamp": {
+                                "gte": time_from.isoformat(),
+                                "lte": time_till.isoformat(),
+                                "time_zone": "+08:00"
+                            }
+                        }
+                    },
+                    "aggs": {
+                        "my_aggs_name": {
+                            "date_histogram": {
+                                "field": "@timestamp",
+                                "fixed_interval": dc.es.fixed_interval
+                            },
+                            "aggs": {
+                                "avg_response_time": {
+                                    "avg": {
+                                        "field": dc.es.field
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                es_result = es_client.search_logs(dc.es.index, es_query)
+                es_buckets = es_result.get("aggregations", {}).get("my_aggs_name", {}).get("buckets", [])
+                es_data = [
+                    {"time": bucket["key_as_string_bj"], "value": bucket["avg_response_time"]["value"], "key": "avg_response_time"}
+                    for bucket in es_buckets
+                    if bucket["avg_response_time"]["value"] is not None
+                ]
+                
+                logger.info(f"{log_prefix} ES数据获取成功: {len(es_data)} 条记录")
+                
+                if es_data:
+                    # 分析ES上升段
+                    es_times, es_values = extract_time_value_series(es_data)
+                    es_threshold = dc.es.threshold
+                    es_rising_segments = find_rising_segments(es_values, es_threshold)
+                    
+                    if es_rising_segments:
+                        formatted_segments = format_rising_segments(es_rising_segments, es_times, es_data, source="es")
+                        all_es_segments[idc] = {
+                            "threshold": es_threshold,
+                            "segments": formatted_segments
+                        }
+                        logger.info(f"{log_prefix} ES发现 {len(formatted_segments)} 个上升段")
+                    else:
+                        logger.info(f"{log_prefix} ES没有发现上升段，跳过Zabbix监控指标获取")
+                        continue
+                else:
+                    logger.info(f"{log_prefix} ES数据为空，跳过Zabbix监控指标获取")
+                    continue
+                    
+            except Exception as e:
+                logger.error(f"{log_prefix} ES数据获取失败: {str(e)}")
+                continue
+            
+            # 只有ES有上升段时才处理Zabbix数据
+            logger.info(f"{log_prefix} ES发现上升段，开始分析Zabbix监控指标...")
+            try:
+                logger.info(f"{log_prefix} 连接Zabbix: {dc.zabbix.url}")
+                zabbix_client = create_zabbix_client(dc.zabbix.url, dc.zabbix.username, dc.zabbix.password)
+                
+                # 获取当前机房启用的指标
+                enabled_metrics = {
+                    name: config for name, config in vars(dc.zabbix.metrics).items()
+                    if config.enabled
+                }
+                
+                if not enabled_metrics:
+                    logger.info(f"{log_prefix} 没有启用任何Zabbix监控指标")
+                    continue
+                
+                # 按指标类型分别获取数据，因为不同指标对应不同的主机IP
+                zabbix_data = []
+                
+                # 网络流量指标（防火墙IP）
+                network_metrics = [name for name in enabled_metrics.keys() if name in ['net_in', 'net_out']]
+                if network_metrics and dc.zabbix.firewall_ip:
+                    network_item_keys = [enabled_metrics[name].item_key for name in network_metrics]
+                    logger.info(f"{log_prefix} 网络流量指标: {[enabled_metrics[name].name for name in network_metrics]}, 主机IP: {dc.zabbix.firewall_ip}")
+                    
+                    network_data = zabbix_client.get_history(
+                        time_from=time_from,
+                        time_till=time_till,
+                        host_ips=[dc.zabbix.firewall_ip],
+                        item_keys=network_item_keys
+                    )
+                    zabbix_data.extend(network_data)
+                
+                # DNS指标（DNS服务器IP）
+                dns_metrics = [name for name in enabled_metrics.keys() if name == 'dns_time']
+                if dns_metrics and dc.zabbix.dns_ip:
+                    dns_item_keys = [enabled_metrics[name].item_key for name in dns_metrics]
+                    logger.info(f"{log_prefix} DNS指标: {[enabled_metrics[name].name for name in dns_metrics]}, 主机IP: {dc.zabbix.dns_ip}")
+                    
+                    dns_data = zabbix_client.get_history(
+                        time_from=time_from,
+                        time_till=time_till,
+                        host_ips=[dc.zabbix.dns_ip],
+                        item_keys=dns_item_keys
+                    )
+                    zabbix_data.extend(dns_data)
+                
+                logger.info(f"{log_prefix} Zabbix数据获取成功: {len(zabbix_data)} 条记录")
+                
+                # 按指标分组数据并分析上升段
+                dc_segments = {}
+                for metric_name, metric_config in enabled_metrics.items():
+                    # 筛选出当前指标的数据
+                    metric_data = [
+                        item for item in zabbix_data 
+                        if item.get("key") == metric_config.item_key
+                    ]
+                    
+                    logger.info(f"{log_prefix} {metric_config.name}: {len(metric_data)} 条数据")
+                    
+                    if metric_data:
+                        # 提取时间序列和值序列
+                        times, values = extract_time_value_series(metric_data)
+                        
+                        if times and values:
+                            # 找出上升段
+                            threshold = metric_config.threshold
+                            rising_segments = find_rising_segments(values, threshold)
+                            
+                            if rising_segments:
+                                # 格式化上升段
+                                formatted_segments = format_rising_segments(rising_segments, times, metric_data, source="zabbix")
+                                dc_segments[metric_name] = {
+                                    "name": metric_config.name,
+                                    "unit": metric_config.unit,
+                                    "threshold": threshold,
+                                    "segments": formatted_segments
+                                }
+                                logger.info(f"{log_prefix} {metric_config.name} 发现 {len(formatted_segments)} 个上升段")
+                            else:
+                                logger.info(f"{log_prefix} {metric_config.name} 没有发现上升段")
+                        else:
+                            logger.info(f"{log_prefix} {metric_config.name} 数据为空")
+                    else:
+                        logger.info(f"{log_prefix} {metric_config.name} 没有数据")
+                
+                if dc_segments:
+                    all_zabbix_segments[idc] = {
+                        "zabbix_url": dc.zabbix.url,
+                        "firewall_ip": dc.zabbix.firewall_ip,
+                        "dns_ip": dc.zabbix.dns_ip,
+                        "metrics": dc_segments
+                    }
+                    
+            except Exception as e:
+                logger.error(f"{log_prefix} Zabbix数据获取失败: {str(e)}")
+            
+            # 检查当前机房是否需要大模型分析
+            # 由于只有ES有上升段才会获取Zabbix数据，所以这里一定有ES上升段
+            dc_has_zabbix_segments = idc in all_zabbix_segments and any(
+                metric_info["segments"] for metric_info in all_zabbix_segments[idc]["metrics"].values()
+            )
+            
+            if dc_has_zabbix_segments:
+                logger.info(f"{log_prefix} 开始大模型分析...")
+                
+                # 组装当前机房的分析prompt
+                dc_es_info = all_es_segments[idc]
+                dc_zabbix_info = all_zabbix_segments[idc]
+                
+                llm_prompt = f"""
+                # 机房{idc} 时间段分析报告
+                分析时间: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}
+                
+                # 数据库响应耗时上升的区间时间段如下(单位为秒)：
+                阈值: {dc_es_info["threshold"]}
+                上升段数据:
+                {json.dumps(dc_es_info["segments"], ensure_ascii=False, indent=2)}
+                
+                # 监控指标上升的区间如下：
+                Zabbix服务器: {dc_zabbix_info["zabbix_url"]}
+                防火墙IP: {dc_zabbix_info["firewall_ip"] or "无"}
+                DNS IP: {dc_zabbix_info["dns_ip"] or "无"}
+                """
+                
+                for metric_name, metric_info in dc_zabbix_info["metrics"].items():
+                    if metric_info["segments"]:
+                        llm_prompt += f"""
+                ## {metric_info["name"]} (单位: {metric_info["unit"]})
+                阈值: {metric_info["threshold"]}
+                上升段数据:
+                {json.dumps(metric_info["segments"], ensure_ascii=False, indent=2)}
+                """
+                
+                llm_prompt += """
+                
+                请分析这个机房的数据关联性和可能的原因，重点关注：
+                1. 数据库响应时间上升与监控指标的时间关联性
+                2. 不同监控指标之间的相关性
+                3. 可能的根本原因分析（网络、基础设施、应用层面）
+                4. 针对性的优化建议
+                """
+                
+                try:
+                    result = call_llm_analysis(llm_prompt)
+                    logger.info(f"{log_prefix} 大模型分析结果：")
+                    logger.info(result)
+                except Exception as e:
+                    logger.error(f"{log_prefix} 大模型分析失败: {str(e)}")
+                    
+            else:
+                logger.info(f"{log_prefix} ES有上升段但Zabbix指标无上升段，建议从其他方面排查原因")
+            
+            logger.info(f"{log_prefix} 机房处理完成")
+        
+        # 简单汇总
+        logger.info("")
+        logger.info("="*60)
+        logger.info("所有机房处理完成")
+        logger.info("="*60)
+        
+        # 统计汇总信息
+        total_es_segments = sum(len(dc_info["segments"]) for dc_info in all_es_segments.values())
+        total_zabbix_segments = sum(
+            sum(len(metric_info["segments"]) for metric_info in dc_info["metrics"].values())
+            for dc_info in all_zabbix_segments.values()
         )
         
-        if not has_zabbix_segments:
-            logger.info("没有任何Zabbix指标的上升段，无需继续当前分析，从其他方面排查原因")
-            return True
-        
-        # 统计各指标的上升段数量
-        segment_counts = {
-            metric_name: len(metric_info["segments"]) 
-            for metric_name, metric_info in all_zabbix_segments.items()
-            if metric_info["segments"]
-        }
-        logger.info(f"发现上升段 - ES: {len(formatted_es_segments)}, Zabbix指标: {segment_counts}")
-        
-        # 组装大模型分析的prompt
-        llm_prompt = f"""
-        # 时间段分析报告
-        分析时间: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}
-        
-        # 数据库响应耗时上升的各个区间时间段如下(单位为秒)：
-        {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2) if formatted_es_segments else "无明显上升段"}
-        
-        # 各监控指标上升的区间如下：
-        """
-        
-        # 为每个有上升段的指标添加详细信息
-        for metric_name, metric_info in all_zabbix_segments.items():
-            if metric_info["segments"]:
-                llm_prompt += f"""
-        ## {metric_info["name"]} (单位: {metric_info["unit"]})
-        阈值: {metric_info["threshold"]}
-        上升段数据:
-        {json.dumps(metric_info["segments"], ensure_ascii=False, indent=2)}
-        """
-        
-        llm_prompt += """
-        
-        请分析这些数据的关联性和可能的原因，重点关注：
-        1. 数据库响应时间上升与各监控指标的时间关联性
-        2. 不同监控指标之间的相关性
-        3. 可能的根本原因分析
-        4. 优化建议
-        """
-        
-        result = call_llm_analysis(llm_prompt)
-        logger.info(f"大模型分析结果：\n{result}")
+        logger.info(f"汇总统计 - ES上升段总数: {total_es_segments}, Zabbix指标上升段总数: {total_zabbix_segments}")
         
         return True
         
