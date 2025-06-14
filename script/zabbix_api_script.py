@@ -17,6 +17,8 @@ Zabbix API 公共方法模块
 from zabbix_api_script import create_zabbix_client
 # 创建Zabbix客户端
 zabbix = create_zabbix_client(url="http://192.168.1.100/zabbix", username="Admin", password="zabbix")
+# 创建带超时设置的Zabbix客户端（10秒超时）
+zabbix = create_zabbix_client(url="http://192.168.1.100/zabbix", username="Admin", password="zabbix", timeout=10)
 ```
 
 ### 2. 获取所有主机
@@ -89,7 +91,7 @@ logging.getLogger("pyzabbix").setLevel(logging.WARNING)
 class ZabbixAPI:
     """Zabbix API 客户端类"""
     
-    def __init__(self, url: str, username: str, password: str):
+    def __init__(self, url: str, username: str, password: str, timeout: int = 30):
         """
         初始化Zabbix API客户端
         
@@ -97,10 +99,12 @@ class ZabbixAPI:
             url: Zabbix服务器URL
             username: 用户名
             password: 密码
+            timeout: 请求超时时间（秒），默认30秒
         """
         self.url = url
         self.username = username
         self.password = password
+        self.timeout = timeout
         self.zapi = None
         self.default_time_back = "5m"
         self.default_limit = 1000
@@ -113,13 +117,16 @@ class ZabbixAPI:
             登录是否成功
         """
         try:
-            self.zapi = PyZabbixAPI(self.url)
+            self.zapi = PyZabbixAPI(self.url, timeout=self.timeout)
             self.zapi.login(self.username, self.password)
             server_version = self.zapi.api_version()
-            logger.info(f"Connected to Zabbix: {self.zapi.api_version()}")
+            logger.info(f"Connected to Zabbix: {self.zapi.api_version()} (timeout: {self.timeout}s)")
             return True
         except ZabbixAPIException as e:
             logger.error(f"Login failed: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Connection failed (timeout or network error): {e}")
             return False
             
     def logout(self) -> bool:
@@ -543,7 +550,7 @@ class ZabbixAPI:
         return timedelta(**kwargs)
 
 
-def create_zabbix_client(url: str, username: str, password: str) -> ZabbixAPI:
+def create_zabbix_client(url: str, username: str, password: str, timeout: int = 30) -> ZabbixAPI:
     """
     创建Zabbix API客户端
     
@@ -551,11 +558,12 @@ def create_zabbix_client(url: str, username: str, password: str) -> ZabbixAPI:
         url: Zabbix服务器URL
         username: 用户名
         password: 密码
+        timeout: 请求超时时间（秒），默认30秒
         
     Returns:
         ZabbixAPI客户端实例
     """
-    client = ZabbixAPI(url, username, password)
+    client = ZabbixAPI(url, username, password, timeout)
     if client.login():
         return client
     else:
@@ -574,8 +582,8 @@ if __name__ == "__main__":
     PASSWORD = "zabbix"
     
     try:
-        # 创建客户端并测试连接
-        zabbix = create_zabbix_client(ZABBIX_URL, USERNAME, PASSWORD)
+        # 创建客户端并测试连接（使用30秒超时）
+        zabbix = create_zabbix_client(ZABBIX_URL, USERNAME, PASSWORD, timeout=30)
         
         # 新增：获取所有主机信息
         all_hosts = zabbix.get_hosts()
