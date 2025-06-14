@@ -15,11 +15,10 @@
     4. 多指标监控支持（网卡入出流量、DNS解析时间、CPU使用率、内存使用率等）
     5. 智能上升段检测（每个指标可配置独立阈值）
     6. 大模型关联分析（支持多指标关联性分析）
-    7. 重试机制和异常处理
+    7. Top IP分析（获取上升段指标的Top 10 IP统计数据）
     8. 优雅退出支持（Ctrl+C）
     9. 防止多实例运行的安全机制（文件锁）
     10. 僵尸锁文件清理
-    11. 大模型调用超时和重试机制
 
 支持的监控指标:
     - 网卡入流量 (net.if.in[eth0])
@@ -50,8 +49,7 @@
     在CONFIG变量中可配置:
     - 数据源连接信息（Elasticsearch, Zabbix）
     - 多指标监控配置（每个指标可设置独立阈值、名称、单位、启用/禁用开关）
-    - 重试机制参数
-    - 大模型API配置（包括超时时间和重试次数）
+    - 大模型API配置（包括超时时间）
     - 锁文件路径设置
 
 多指标配置示例:
@@ -90,9 +88,9 @@
     按 Ctrl+C 优雅退出定时调度器
 
 作者: 自动化监控团队
-版本: v2.1
+版本: v2.2
 更新时间: 2025-06-14
-更新内容: 支持多指标监控和关联分析
+更新内容: 支持多指标监控、关联分析和Top IP统计
 """
 
 import logging
@@ -153,8 +151,6 @@ def dict2ns(d):
 CONFIG = dict2ns({
     "scheduler": {
         "interval_minutes": 5,  # 定时执行间隔（分钟）
-        "max_retries": 3,      # 最大重试次数
-        "retry_delay": 30,     # 重试延迟（秒）
         "lock_file": "/tmp/db_analyzer.lock"  # 锁文件路径
     },
     "es": {
@@ -204,8 +200,7 @@ CONFIG = dict2ns({
         "url": "http://127.0.0.1/v1/chat-messages",
         "api_key": "app-B8Ux0kQnN51hcgjwlGtp7xoL",
         "user": "abc-123",
-        "timeout": 30,      # 大模型调用超时时间（秒）
-        "max_retries": 3    # 最大重试次数
+        "timeout": 30      # 大模型调用超时时间（秒）
     }
 })
 
@@ -452,7 +447,7 @@ def format_rising_segments(rising_segments, times, raw_data, source="es"):
 
 def call_llm_analysis(prompt, api_url=CONFIG.llm.url, api_key=CONFIG.llm.api_key, user=CONFIG.llm.user, timeout=CONFIG.llm.timeout):
     """
-    调用大模型分析，支持超时和重试机制
+    调用大模型分析
     Args:
         prompt: 分析提示词
         api_url: API地址
@@ -474,69 +469,41 @@ def call_llm_analysis(prompt, api_url=CONFIG.llm.url, api_key=CONFIG.llm.api_key
         "user": user
     }
     
-    # 多次重试机制
-    max_retries = CONFIG.llm.max_retries
-    for attempt in range(max_retries):
+    try:
+        logger.info(f"正在调用大模型分析，超时设置: {timeout}秒")
+        
+        # 设置连接超时和读取超时
+        response = requests.post(
+            api_url, 
+            headers=headers, 
+            json=payload, 
+            timeout=(10, timeout)  # (连接超时, 读取超时)
+        )
+        response.raise_for_status()
+        
         try:
-            logger.info(f"正在调用大模型分析 (尝试 {attempt + 1}/{max_retries})，超时设置: {timeout}秒")
+            result = response.json().get("answer", response.text)
+            logger.info("大模型分析调用成功")
+            return result
+        except Exception as parse_error:
+            logger.warning(f"解析响应失败: {parse_error}")
+            return response.text
             
-            # 设置连接超时和读取超时
-            response = requests.post(
-                api_url, 
-                headers=headers, 
-                json=payload, 
-                timeout=(10, timeout)  # (连接超时, 读取超时)
-            )
-            response.raise_for_status()
-            
-            try:
-                result = response.json().get("answer", response.text)
-                logger.info("大模型分析调用成功")
-                return result
-            except Exception as parse_error:
-                logger.warning(f"解析响应失败: {parse_error}")
-                return response.text
-                
-        except requests.exceptions.Timeout as e:
-            logger.error(f"大模型调用超时 (尝试 {attempt + 1}/{max_retries}): {e}")
-            if attempt < max_retries - 1:
-                wait_time = (attempt + 1) * 5  # 递增等待时间: 5s, 10s, 15s
-                logger.info(f"等待 {wait_time} 秒后重试...")
-                time.sleep(wait_time)
-            else:
-                return f"大模型调用超时，已重试 {max_retries} 次。请检查网络连接或增加超时时间。"
-                
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"大模型连接失败 (尝试 {attempt + 1}/{max_retries}): {e}")
-            if attempt < max_retries - 1:
-                wait_time = (attempt + 1) * 3  # 递增等待时间: 3s, 6s, 9s
-                logger.info(f"等待 {wait_time} 秒后重试...")
-                time.sleep(wait_time)
-            else:
-                return f"大模型连接失败，已重试 {max_retries} 次。请检查API服务是否可用。"
-                
-        except requests.exceptions.HTTPError as e:
-            logger.error(f"大模型HTTP错误 (尝试 {attempt + 1}/{max_retries}): {e}")
-            if e.response.status_code == 429:  # 限流错误
-                if attempt < max_retries - 1:
-                    wait_time = (attempt + 1) * 10  # 限流时等待更长时间
-                    logger.info(f"遇到限流，等待 {wait_time} 秒后重试...")
-                    time.sleep(wait_time)
-                else:
-                    return f"大模型API限流，已重试 {max_retries} 次。请稍后再试。"
-            else:
-                return f"大模型HTTP错误: {e}"
-                
-        except Exception as e:
-            logger.error(f"大模型调用未知错误 (尝试 {attempt + 1}/{max_retries}): {e}")
-            if attempt < max_retries - 1:
-                wait_time = (attempt + 1) * 2
-                logger.info(f"等待 {wait_time} 秒后重试...")
-                time.sleep(wait_time)
-            else:
-                return f"大模型调用失败，已重试 {max_retries} 次。错误: {e}"
-    
-    return "大模型调用失败，已达到最大重试次数。"
+    except requests.exceptions.Timeout as e:
+        logger.error(f"大模型调用超时: {e}")
+        raise Exception(f"大模型调用超时: {e}")
+        
+    except requests.exceptions.ConnectionError as e:
+        logger.error(f"大模型连接失败: {e}")
+        raise Exception(f"大模型连接失败: {e}")
+        
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"大模型HTTP错误: {e}")
+        raise Exception(f"大模型HTTP错误: {e}")
+        
+    except Exception as e:
+        logger.error(f"大模型调用失败: {e}")
+        raise Exception(f"大模型调用失败: {e}")
 
 def analyze_es_rising_segments(time_from, time_till):
     # 获取ES的指标数据
@@ -604,85 +571,157 @@ def analyze_zabbix_rising_segments(time_from, time_till):
     
     return all_formatted_segments
 
-def analyze_db_response_with_retry():
-    """带重试机制的数据库响应分析"""
-    for attempt in range(CONFIG.scheduler.max_retries):
-        try:
-            # 获取分析时间范围
-            time_from, time_till = get_analysis_time_range()
-            logger.info(f"开始分析时间段: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}")
-            
-            # 分析ES的上升段
-            formatted_es_segments = analyze_es_rising_segments(time_from, time_till)
-            # 检查是否有上升段数据
-            if not formatted_es_segments:
-                logger.info("没有ES的上升段，无需继续分析")
-                return True
-            
-            # 分析所有Zabbix指标的上升段
-            all_zabbix_segments = analyze_zabbix_rising_segments(time_from, time_till)
-            
-            # 检查是否有任何Zabbix指标的上升段
-            has_zabbix_segments = any(
-                metric_info["segments"] for metric_info in all_zabbix_segments.values()
-            )
-            
-            if not has_zabbix_segments:
-                logger.info("没有任何Zabbix指标的上升段，无需继续当前分析，从其他方面排查原因")
-                return True
-            
-            # 统计各指标的上升段数量
-            segment_counts = {
-                metric_name: len(metric_info["segments"]) 
-                for metric_name, metric_info in all_zabbix_segments.items()
-                if metric_info["segments"]
-            }
-            
-            logger.info(f"发现上升段 - ES: {len(formatted_es_segments)}, Zabbix指标: {segment_counts}")
-            
-            # 组装大模型分析的prompt
-            llm_prompt = f"""
-            # 时间段分析报告
-            分析时间: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}
-            
-            # 数据库响应耗时上升的各个区间时间段如下(单位为秒)：
-            {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2) if formatted_es_segments else "无明显上升段"}
-            
-            # 各监控指标上升的区间如下：
-            """
-            
-            # 为每个有上升段的指标添加详细信息
-            for metric_name, metric_info in all_zabbix_segments.items():
-                if metric_info["segments"]:
-                    llm_prompt += f"""
-            ## {metric_info["name"]} (单位: {metric_info["unit"]})
-            阈值: {metric_info["threshold"]}
-            上升段数据:
-            {json.dumps(metric_info["segments"], ensure_ascii=False, indent=2)}
-            """
-            
-            llm_prompt += """
-            
-            请分析这些数据的关联性和可能的原因，重点关注：
-            1. 数据库响应时间上升与各监控指标的时间关联性
-            2. 不同监控指标之间的相关性
-            3. 可能的根本原因分析
-            4. 优化建议
-            """
-            
-            result = call_llm_analysis(llm_prompt)
-            logger.info(f"大模型分析结果：\n{result}")
-            
+def get_top_ips_for_rising_segments(all_zabbix_segments, time_from, time_till):
+    """
+    获取上升段指标的Top 10 IP数据
+    Args:
+        all_zabbix_segments: 所有Zabbix指标的上升段数据
+        time_from: 开始时间
+        time_till: 结束时间
+    Returns:
+        包含各指标Top IP数据的字典
+    """
+    top_ips_data = {}
+    
+    try:
+        # 创建Zabbix客户端
+        zabbix_client = create_zabbix_client(CONFIG.zabbix.url, CONFIG.zabbix.username, CONFIG.zabbix.password)
+        
+        # 为每个有上升段的指标获取Top 10 IP
+        for metric_name, metric_info in all_zabbix_segments.items():
+            if metric_info["segments"]:
+                try:
+                    # 获取对应的监控项配置
+                    enabled_metrics = vars(CONFIG.zabbix.metrics)
+                    if metric_name in enabled_metrics:
+                        metric_config = enabled_metrics[metric_name]
+                        item_key = metric_config.item_key
+                        
+                        logger.info(f"正在获取 {metric_info['name']} 的Top 10 IP数据...")
+                        
+                        # 使用zabbix客户端的get_top_ips_by_metric方法
+                        top_ips_result = zabbix_client.get_top_ips_by_metric(
+                            item_key=item_key,
+                            limit=10,
+                            time_from=time_from,
+                            time_till=time_till
+                        )
+                        
+                        if top_ips_result and (top_ips_result.get("avg") or top_ips_result.get("max")):
+                            top_ips_data[metric_info["name"]] = top_ips_result
+                            logger.info(f"{metric_info['name']} 获取到Top IP数据: avg={len(top_ips_result.get('avg', []))}, max={len(top_ips_result.get('max', []))}")
+                        else:
+                            logger.info(f"{metric_info['name']} 没有获取到Top IP数据")
+                            
+                except Exception as e:
+                    logger.error(f"获取 {metric_info['name']} Top IP数据失败: {e}")
+                    continue
+        
+        # 登出Zabbix客户端
+        zabbix_client.logout()
+        
+    except Exception as e:
+        logger.error(f"创建Zabbix客户端失败: {e}")
+        return {}
+    
+    return top_ips_data
+
+def analyze_db_response():
+    """数据库响应分析"""
+    try:
+        # 获取分析时间范围
+        time_from, time_till = get_analysis_time_range()
+        logger.info(f"开始分析时间段: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        # 分析ES的上升段
+        formatted_es_segments = analyze_es_rising_segments(time_from, time_till)
+        # 检查是否有上升段数据
+        if not formatted_es_segments:
+            logger.info("没有ES的上升段，无需继续分析")
             return True
-            
-        except Exception as e:
-            logger.error(f"分析失败 (尝试 {attempt + 1}/{CONFIG.scheduler.max_retries}): {str(e)}")
-            if attempt < CONFIG.scheduler.max_retries - 1:
-                logger.info(f"等待 {CONFIG.scheduler.retry_delay} 秒后重试...")
-                time.sleep(CONFIG.scheduler.retry_delay)
-            else:
-                logger.error("达到最大重试次数，本次分析失败")
-                return False
+        
+        # 分析所有Zabbix指标的上升段
+        all_zabbix_segments = analyze_zabbix_rising_segments(time_from, time_till)
+        
+        # 检查是否有任何Zabbix指标的上升段
+        has_zabbix_segments = any(
+            metric_info["segments"] for metric_info in all_zabbix_segments.values()
+        )
+        
+        if not has_zabbix_segments:
+            logger.info("没有任何Zabbix指标的上升段，无需继续当前分析，从其他方面排查原因")
+            return True
+        
+        # 统计各指标的上升段数量
+        segment_counts = {
+            metric_name: len(metric_info["segments"]) 
+            for metric_name, metric_info in all_zabbix_segments.items()
+            if metric_info["segments"]
+        }
+        
+        logger.info(f"发现上升段 - ES: {len(formatted_es_segments)}, Zabbix指标: {segment_counts}")
+        
+        # 获取上升段指标的Top 10 IP数据
+        top_ips_data = get_top_ips_for_rising_segments(all_zabbix_segments, time_from, time_till)
+        
+        # 组装大模型分析的prompt
+        llm_prompt = f"""
+        # 时间段分析报告
+        分析时间: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}
+        
+        # 数据库响应耗时上升的各个区间时间段如下(单位为秒)：
+        {json.dumps(formatted_es_segments, ensure_ascii=False, indent=2) if formatted_es_segments else "无明显上升段"}
+        
+        # 各监控指标上升的区间如下：
+        """
+        
+        # 为每个有上升段的指标添加详细信息
+        for metric_name, metric_info in all_zabbix_segments.items():
+            if metric_info["segments"]:
+                llm_prompt += f"""
+        ## {metric_info["name"]} (单位: {metric_info["unit"]})
+        阈值: {metric_info["threshold"]}
+        上升段数据:
+        {json.dumps(metric_info["segments"], ensure_ascii=False, indent=2)}
+        """
+        
+        # 添加Top IP信息
+        if top_ips_data:
+            llm_prompt += """
+        
+        # 上升段指标的Top 10 IP统计数据：
+        """
+            for metric_name, ip_stats in top_ips_data.items():
+                if ip_stats:
+                    llm_prompt += f"""
+        ## {metric_name} - Top 10 IP统计
+        分析时间范围: {ip_stats.get('time_from', 'N/A')} - {ip_stats.get('time_till', 'N/A')}
+        
+        ### 平均值Top 10:
+        {json.dumps(ip_stats.get('avg', []), ensure_ascii=False, indent=2)}
+        
+        ### 最大值Top 10:
+        {json.dumps(ip_stats.get('max', []), ensure_ascii=False, indent=2)}
+        """
+        
+        llm_prompt += """
+        
+        请分析这些数据的关联性和可能的原因，重点关注：
+        1. 数据库响应时间上升与各监控指标的时间关联性
+        2. 不同监控指标之间的相关性
+        3. Top IP数据是否显示了异常的主机或访问模式
+        4. 可能的根本原因分析
+        5. 优化建议
+        """
+        
+        result = call_llm_analysis(llm_prompt)
+        logger.info(f"大模型分析结果：\n{result}")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"分析失败: {str(e)}")
+        return False
 
 def run_scheduler():
     """运行定时调度器"""
@@ -696,7 +735,7 @@ def run_scheduler():
     
     # 立即执行一次分析
     logger.info("执行初始分析...")
-    analyze_db_response_with_retry()
+    analyze_db_response()
     
     while running:
         try:
@@ -712,7 +751,7 @@ def run_scheduler():
             
             if running:
                 logger.info("开始执行定时分析...")
-                analyze_db_response_with_retry()
+                analyze_db_response()
                 
         except KeyboardInterrupt:
             logger.info("接收到键盘中断信号，正在退出...")
@@ -745,7 +784,7 @@ def run_manual_analysis(time_from_str=None, time_till_str=None):
             time_from, time_till = get_analysis_time_range()
         
         logger.info("执行手动分析...")
-        return analyze_db_response_with_retry()
+        return analyze_db_response()
     finally:
         # 确保锁文件被清理
         cleanup_lock_file()
