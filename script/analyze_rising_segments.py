@@ -105,7 +105,7 @@ CONFIG = dict2ns({
         "url": "http://82.156.146.51:9200",
         "index": "mysql-slow-*",
         "field": "query_time",
-        "threshold": 1,  # 毫秒，判断是否上升段的基础阈值，避免微小波动被误判
+        "threshold": 0.01,  # 毫秒，判断是否上升段的基础阈值，避免微小波动被误判
         "fixed_interval": "5s"  # 聚合间隔
     },
     "zabbix": {
