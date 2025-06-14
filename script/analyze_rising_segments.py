@@ -165,14 +165,14 @@ def dict2ns(d):
 
 CONFIG = dict2ns({
     "scheduler": {
-        "interval_minutes": 5,  # 定时执行间隔（分钟）
+        "interval_minutes": 5,  # 默认定时执行间隔（分钟）可以被命令行参数覆盖
         "lock_file": "/tmp/db_analyzer.lock"  # 锁文件路径
     },
     # 机房配置
     "datacenters": {
         "11": {
             "name": "北京机房11",
-            "enabled": True,  # 机房开关，支持灰度执行
+            "enabled": True,  # 机房开关，打开后会分析此机房的监控指标
             "es": {
                 "url": "http://82.156.146.51:9200",
                 "index": "mysql-slow-*",
@@ -215,7 +215,7 @@ CONFIG = dict2ns({
         },
         "12": {
             "name": "北京机房12",
-            "enabled": True,  # 机房开关，支持灰度执行
+            "enabled": True,  # 机房开关，打开后会分析此机房的监控指标
             "es": {
                 "url": "http://82.156.146.51:9200",
                 "index": "mysql-slow-*",
@@ -241,7 +241,7 @@ CONFIG = dict2ns({
         },
         "20": {
             "name": "上海机房20",
-            "enabled": True,  # 机房开关，支持灰度执行
+            "enabled": True,  # 机房开关，打开后会分析此机房的监控指标
             "es": {
                 "url": "http://82.156.146.51:9200",
                 "index": "mysql-slow-*",
@@ -283,7 +283,7 @@ CONFIG = dict2ns({
         },
         "21": {
             "name": "上海机房21",
-            "enabled": True,  # 机房开关，支持灰度执行
+            "enabled": True,  # 机房开关，打开后会分析此机房的监控指标
             "es": {
                 "url": "http://82.156.146.51:9200",
                 "index": "mysql-slow-*",
@@ -325,7 +325,7 @@ CONFIG = dict2ns({
         },
         "30": {
             "name": "深圳机房30",
-            "enabled": True,  # 机房开关，支持灰度执行
+            "enabled": True,  # 机房开关，打开后会分析此机房的监控指标
             "es": {
                 "url": "http://82.156.146.51:9200",
                 "index": "mysql-slow-*",
@@ -367,7 +367,7 @@ CONFIG = dict2ns({
         },
         "31": {
             "name": "深圳机房31",
-            "enabled": False,  # 机房开关，支持灰度执行（示例：此机房暂时禁用）
+            "enabled": False,  # 机房开关，打开后会分析此机房的监控指标（示例：此机房暂时禁用）
             "es": {
                 "url": "http://82.156.146.51:9200",
                 "index": "mysql-slow-*",
@@ -497,7 +497,7 @@ def create_lock_file():
         logger.error(f"创建锁文件失败: {e}")
         return False
 
-def get_analysis_time_range():
+def get_analysis_default_time_range():
     """获取分析时间范围：最近5分钟"""
     now = datetime.now()
     time_till = now
@@ -665,7 +665,7 @@ def analyze_db_response():
     """多机房数据库响应分析 - 按机房顺序依次处理"""
     try:
         # 获取分析时间范围
-        time_from, time_till = get_analysis_time_range()
+        time_from, time_till = get_analysis_default_time_range()
         logger.info(f"开始多机房分析，时间段: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}")
         
         # 获取机房列表，按编号顺序处理
@@ -992,7 +992,7 @@ def run_manual_analysis(time_from_str=None, time_till_str=None):
                 return False
         else:
             # 使用最近5分钟
-            time_from, time_till = get_analysis_time_range()
+            time_from, time_till = get_analysis_default_time_range()
         
         logger.info("执行手动分析...")
         return analyze_db_response()
