@@ -94,6 +94,7 @@
 """
 
 import logging
+import logging.handlers
 import time
 import signal
 import sys
@@ -201,12 +202,45 @@ CONFIG = dict2ns({
         "api_key": "app-B8Ux0kQnN51hcgjwlGtp7xoL",
         "user": "abc-123",
         "timeout": 30      # 大模型调用超时时间（秒）
+    },
+    "logging": {
+        "file": "/tmp/db_analyzer.log",  # 日志文件路径. 如果为空，则不输出到文件
+        "level": "INFO",                # 日志级别
+        "when": "D",                    # 按天 'D' 切割
+        "interval": 1,                  # 每天一个文件
+        "backupCount": 7                # 保留最近7天的日志
     }
 })
 
 # 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+logger.setLevel(getattr(logging, CONFIG.logging.level.upper(), logging.INFO))
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+# 检查是否需要输出到文件
+log_file_path = CONFIG.logging.file
+if log_file_path:
+    # 确保日志目录存在
+    log_dir = os.path.dirname(log_file_path)
+    if log_dir and not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+    
+    # 创建文件处理器，按日切割
+    file_handler = logging.handlers.TimedRotatingFileHandler(
+        filename=log_file_path,
+        when=CONFIG.logging.when,
+        interval=CONFIG.logging.interval,
+        backupCount=CONFIG.logging.backupCount,
+        encoding='utf-8'
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+# 始终输出到控制台
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+
 
 def create_lock_file():
     """创建锁文件，防止多个实例同时运行"""
