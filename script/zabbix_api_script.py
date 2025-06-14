@@ -362,30 +362,60 @@ class ZabbixAPI:
         """
         time_from, time_till = self._resolve_time_range(time_from, time_till, time_back)
         hosts = self.get_hosts(ip_addresses=ip_addresses)
+        
+        # 使用filter模式进行精确匹配
         items = self.zapi.item.get(
-            output=["itemid", "hostid", "key_", "units"],
+            output=["itemid", "hostid", "key_", "units", "value_type"],
             hostids=[host["hostid"] for host in hosts],
-            search={"key_": item_key},
-            searchWildcardsEnabled=True
+            filter={"key_": item_key}
         )
+        
+        if not items:
+            logger.warning(f"没有找到匹配的监控项: {item_key}")
+            return {
+                "avg": [],
+                "max": [],
+                "time_from": time_from.strftime("%Y-%m-%d %H:%M:%S"),
+                "time_till": time_till.strftime("%Y-%m-%d %H:%M:%S")
+            }
+        
         # 构建itemid到key_和units的映射
         itemid_to_info = {item["itemid"]: {"key_": item["key_"], "units": item.get("units", "") } for item in items}
+        
         history = []
         for item in items:
+            # 根据value_type确定history参数
+            # value_type: 0=float, 1=character, 2=log, 3=unsigned, 4=text
+            value_type = int(item.get('value_type', 3))
+            if value_type == 0:
+                history_type = 0  # numeric float
+            elif value_type == 1:
+                history_type = 1  # character
+            elif value_type == 2:
+                history_type = 2  # log
+            elif value_type == 3:
+                history_type = 3  # numeric unsigned
+            elif value_type == 4:
+                history_type = 4  # text
+            else:
+                history_type = 3  # 默认使用numeric unsigned
+            
             item_history = self.zapi.history.get(
                 output="extend",
-                history=0,
+                history=history_type,
                 itemids=item["itemid"],
                 time_from=int(time_from.timestamp()),
                 time_till=int(time_till.timestamp()),
                 sortfield="clock",
                 sortorder="ASC"
             )
+            
             if item_history:
                 for h in item_history:
                     h["hostid"] = item["hostid"]
                     h["itemid"] = item["itemid"]
                 history.extend(item_history)
+        
         ip_values = {}
         for item in items:
             host_id = item["hostid"]
@@ -404,10 +434,12 @@ class ZabbixAPI:
                             "key_": item["key_"],
                             "units": item.get("units", "")
                         }
+        
         # 按平均值排序
         sorted_ips_avg = sorted(ip_values.items(), key=lambda x: x[1]["avg_value"], reverse=True)
         # 按最大值排序
         sorted_ips_max = sorted(ip_values.items(), key=lambda x: x[1]["max_value"], reverse=True)
+        
         result_avg = [
             {
                 "ip": ip,
@@ -427,12 +459,14 @@ class ZabbixAPI:
             }
             for ip, values in sorted_ips_max[:limit]
         ]
+        
         return {
             "avg": result_avg,
             "max": result_max,
             "time_from": time_from.strftime("%Y-%m-%d %H:%M:%S"),
             "time_till": time_till.strftime("%Y-%m-%d %H:%M:%S")
         }
+
     def _is_ip_address(self, identifier: str) -> bool:
         """
         判断字符串是否为IP地址

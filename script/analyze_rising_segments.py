@@ -573,21 +573,21 @@ def analyze_zabbix_rising_segments(time_from, time_till):
 
 def get_top_ips_for_rising_segments(all_zabbix_segments, time_from, time_till):
     """
-    获取上升段指标的Top 10 IP数据
+    获取上升段指标的Top统计数据（适用于单主机和多主机环境）
     Args:
         all_zabbix_segments: 所有Zabbix指标的上升段数据
         time_from: 开始时间
         time_till: 结束时间
     Returns:
-        包含各指标Top IP数据的字典
+        包含各指标Top统计数据的字典
     """
-    top_ips_data = {}
+    top_stats_data = {}
     
     try:
         # 创建Zabbix客户端
         zabbix_client = create_zabbix_client(CONFIG.zabbix.url, CONFIG.zabbix.username, CONFIG.zabbix.password)
         
-        # 为每个有上升段的指标获取Top 10 IP
+        # 为每个有上升段的指标获取Top统计数据
         for metric_name, metric_info in all_zabbix_segments.items():
             if metric_info["segments"]:
                 try:
@@ -597,24 +597,28 @@ def get_top_ips_for_rising_segments(all_zabbix_segments, time_from, time_till):
                         metric_config = enabled_metrics[metric_name]
                         item_key = metric_config.item_key
                         
-                        logger.info(f"正在获取 {metric_info['name']} 的Top 10 IP数据...")
+                        logger.info(f"正在获取 {metric_info['name']} 的Top统计数据...")
                         
                         # 使用zabbix客户端的get_top_ips_by_metric方法
-                        top_ips_result = zabbix_client.get_top_ips_by_metric(
+                        stats_result = zabbix_client.get_top_ips_by_metric(
                             item_key=item_key,
                             limit=10,
                             time_from=time_from,
                             time_till=time_till
                         )
                         
-                        if top_ips_result and (top_ips_result.get("avg") or top_ips_result.get("max")):
-                            top_ips_data[metric_info["name"]] = top_ips_result
-                            logger.info(f"{metric_info['name']} 获取到Top IP数据: avg={len(top_ips_result.get('avg', []))}, max={len(top_ips_result.get('max', []))}")
+                        if stats_result and (stats_result.get("avg") or stats_result.get("max")):
+                            top_stats_data[metric_info["name"]] = stats_result
+                            avg_count = len(stats_result.get('avg', []))
+                            max_count = len(stats_result.get('max', []))
+                            logger.info(f"{metric_info['name']} 获取到Top统计数据: avg={avg_count}, max={max_count}")
                         else:
-                            logger.info(f"{metric_info['name']} 没有获取到Top IP数据")
+                            logger.warning(f"{metric_info['name']} 没有获取到Top统计数据")
+                    else:
+                        logger.error(f"metric_name '{metric_name}' 不在enabled_metrics中")
                             
                 except Exception as e:
-                    logger.error(f"获取 {metric_info['name']} Top IP数据失败: {e}")
+                    logger.error(f"获取 {metric_info['name']} Top统计数据失败: {e}")
                     continue
         
         # 登出Zabbix客户端
@@ -624,7 +628,7 @@ def get_top_ips_for_rising_segments(all_zabbix_segments, time_from, time_till):
         logger.error(f"创建Zabbix客户端失败: {e}")
         return {}
     
-    return top_ips_data
+    return top_stats_data
 
 def analyze_db_response():
     """数据库响应分析"""
@@ -661,9 +665,9 @@ def analyze_db_response():
         
         logger.info(f"发现上升段 - ES: {len(formatted_es_segments)}, Zabbix指标: {segment_counts}")
         
-        # 获取上升段指标的Top 10 IP数据
-        top_ips_data = get_top_ips_for_rising_segments(all_zabbix_segments, time_from, time_till)
-        logger.info(f"Top IP数据: {top_ips_data}")
+        # 获取上升段指标的Top统计数据
+        top_stats_data = get_top_ips_for_rising_segments(all_zabbix_segments, time_from, time_till)
+        logger.info(f"Top统计数据: {top_stats_data}")
         
         # 组装大模型分析的prompt
         llm_prompt = f"""
@@ -686,23 +690,23 @@ def analyze_db_response():
         {json.dumps(metric_info["segments"], ensure_ascii=False, indent=2)}
         """
         
-        # 添加Top IP信息
-        if top_ips_data:
+        # 添加Top统计信息
+        if top_stats_data:
             llm_prompt += """
         
-        # 上升段指标的Top 10 IP统计数据：
+        # 上升段指标的Top统计数据：
         """
-            for metric_name, ip_stats in top_ips_data.items():
-                if ip_stats:
+            for metric_name, stats in top_stats_data.items():
+                if stats:
                     llm_prompt += f"""
-        ## {metric_name} - Top 10 IP统计
-        分析时间范围: {ip_stats.get('time_from', 'N/A')} - {ip_stats.get('time_till', 'N/A')}
+        ## {metric_name} - Top统计
+        分析时间范围: {stats.get('time_from', 'N/A')} - {stats.get('time_till', 'N/A')}
         
         ### 平均值Top 10:
-        {json.dumps(ip_stats.get('avg', []), ensure_ascii=False, indent=2)}
+        {json.dumps(stats.get('avg', []), ensure_ascii=False, indent=2)}
         
         ### 最大值Top 10:
-        {json.dumps(ip_stats.get('max', []), ensure_ascii=False, indent=2)}
+        {json.dumps(stats.get('max', []), ensure_ascii=False, indent=2)}
         """
         
         llm_prompt += """
@@ -710,7 +714,7 @@ def analyze_db_response():
         请分析这些数据的关联性和可能的原因，重点关注：
         1. 数据库响应时间上升与各监控指标的时间关联性
         2. 不同监控指标之间的相关性
-        3. Top IP数据是否显示了异常的主机或访问模式
+        3. Top统计数据是否显示了异常的数值或访问模式
         4. 可能的根本原因分析
         5. 优化建议
         """
