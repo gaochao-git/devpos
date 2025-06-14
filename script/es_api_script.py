@@ -9,13 +9,7 @@ Elasticsearch API 客户端模块
 使用示例：
 ```python
 # 创建客户端
-es_client = create_elasticsearch_client(
-    host="your_es_host",
-    port=9200,
-    username="your_username",  # 可选
-    password="your_password",  # 可选
-    use_ssl=False  # 可选，是否使用SSL
-)
+es_client = create_elasticsearch_client("http://your_es_host:9200")
 
 # 1. 基础搜索
 query = {
@@ -66,36 +60,6 @@ query = {
             "@timestamp": {
                 "gte": start_time.isoformat(),  # 转换为ISO格式
                 "lte": end_time.isoformat()
-            }
-        }
-    },
-    "sort": [{"@timestamp": {"order": "desc"}}]
-}
-result = es_client.search_logs("your-index-*", query)
-
-# 2.4 使用带时区的时间范围
-query = {
-    "size": 100,
-    "query": {
-        "range": {
-            "@timestamp": {
-                "gte": "2024-03-13T00:00:00+08:00",  # 东八区时间
-                "lte": "2024-03-13T23:59:59+08:00"
-            }
-        }
-    },
-    "sort": [{"@timestamp": {"order": "desc"}}]
-}
-result = es_client.search_logs("your-index-*", query)
-
-# 2.5 使用时间戳（毫秒）
-query = {
-    "size": 100,
-    "query": {
-        "range": {
-            "@timestamp": {
-                "gte": 1710345600000,  # 毫秒级时间戳
-                "lte": 1710431999000
             }
         }
     },
@@ -188,55 +152,6 @@ query = {
     }
 }
 result = es_client.search_logs("your-index-*", query)
-
-# 6.3 多维度聚合
-query = {
-    "size": 0,
-    "aggs": {
-        "logs_over_time": {
-            "date_histogram": {
-                "field": "@timestamp",
-                "calendar_interval": "1h"
-            },
-            "aggs": {
-                "log_levels": {
-                    "terms": {
-                        "field": "level.keyword",
-                        "size": 10
-                    }
-                }
-            }
-        }
-    }
-}
-result = es_client.search_logs("your-index-*", query)
-
-# 6.4 带过滤条件的聚合
-query = {
-    "size": 0,
-    "query": {
-        "range": {
-            "@timestamp": {
-                "gte": start_time.isoformat(),
-                "lte": end_time.isoformat()
-            }
-        }
-    },
-    "aggs": {
-        "log_levels": {
-            "terms": {
-                "field": "level.keyword",
-                "size": 10
-            }
-        },
-        "avg_response_time": {
-            "avg": {
-                "field": "response_time"
-            }
-        }
-    }
-}
-result = es_client.search_logs("your-index-*", query)
 ```
 
 参数说明：
@@ -248,28 +163,9 @@ result = es_client.search_logs("your-index-*", query)
    {
        "hits": {
            "total": {"value": 数量},
-           "hits": [
-               {
-                   "_index": "索引名",
-                   "_source": {
-                       "@timestamp": "时间戳",
-                       "message": "日志消息",
-                       "level": "日志级别",
-                       ...
-                   }
-               }
-           ]
+           "hits": [...]
        },
-       "aggregations": {  # 聚合结果
-           "聚合名称": {
-               "buckets": [
-                   {
-                       "key": "分组值",
-                       "doc_count": 数量
-                   }
-               ]
-           }
-       }
+       "aggregations": {...}  # 如果有聚合查询
    }
 
 @timestamp时间范围查询说明：
@@ -295,100 +191,27 @@ result = es_client.search_logs("your-index-*", query)
    - 示例：datetime.now().isoformat()
 """
 
-import json
 import requests
+import json
 import logging
-from typing import Dict, List, Optional, Any, Union
-from datetime import datetime, timedelta
-from urllib.parse import urljoin
-import base64
-import urllib3
+from typing import Dict, List
+from datetime import datetime, timedelta, timezone
 
 # 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
 
 class ElasticsearchAPI:
     """Elasticsearch API 客户端类"""
     
-    def __init__(self, url: str, username: str = None, password: str = None, use_ssl: bool = False, verify_certs: bool = True):
+    def __init__(self, url: str):
         """
         初始化Elasticsearch API客户端
         
         Args:
-            url: 完整ES服务URL（如http://host:port）
-            username: 用户名
-            password: 密码
-            use_ssl: 是否使用SSL
-            verify_certs: 是否验证证书
+            url: Elasticsearch服务器URL
         """
-        self.url = url
-        self.username = username
-        self.password = password
-        self.use_ssl = use_ssl
-        self.verify_certs = verify_certs
-        
-        # 构建基础URL
         self.base_url = url.rstrip('/')
         
-        # 创建session
-        self.session = requests.Session()
-        self.session.headers.update({
-            'Content-Type': 'application/json',
-            'User-Agent': 'Elasticsearch API Client'
-        })
-        
-        # 设置认证
-        if username and password:
-            auth_string = base64.b64encode(f"{username}:{password}".encode()).decode()
-            self.session.headers.update({
-                'Authorization': f'Basic {auth_string}'
-            })
-            
-        # SSL设置
-        if not verify_certs:
-            self.session.verify = False
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            
-    def _make_request(self, method: str, endpoint: str, data: Dict = None, params: Dict = None) -> Dict:
-        """
-        发送HTTP请求
-        
-        Args:
-            method: HTTP方法
-            endpoint: API端点
-            data: 请求数据
-            params: URL参数
-            
-        Returns:
-            响应数据
-        """
-        url = urljoin(self.base_url, endpoint)
-        
-        try:
-            response = self.session.request(
-                method=method,
-                url=url,
-                json=data,
-                params=params,
-                timeout=30
-            )
-            
-            response.raise_for_status()
-            
-            if response.content:
-                return response.json()
-            else:
-                return {}
-                
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Request failed: {e}")
-            raise
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error: {e}")
-            raise
-            
     def test_connection(self) -> bool:
         """
         测试连接
@@ -397,8 +220,11 @@ class ElasticsearchAPI:
             连接是否成功
         """
         try:
-            result = self._make_request('GET', '/')
-            logger.info(f"Connected to Elasticsearch: {result.get('version', {}).get('number', 'Unknown')}")
+            response = requests.get(f"{self.base_url}/", timeout=10)
+            response.raise_for_status()
+            result = response.json()
+            version = result.get("version", {}).get("number", "unknown")
+            logger.info(f"Connected to Elasticsearch: {version}")
             return True
         except Exception as e:
             logger.error(f"Connection test failed: {e}")
@@ -411,8 +237,14 @@ class ElasticsearchAPI:
         Returns:
             集群健康信息
         """
-        return self._make_request('GET', '/_cluster/health')
-        
+        try:
+            response = requests.get(f"{self.base_url}/_cluster/health", timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Get cluster health failed: {e}")
+            return {}
+            
     def list_indices(self, pattern: str = "*") -> List[Dict]:
         """
         列出索引
@@ -423,68 +255,81 @@ class ElasticsearchAPI:
         Returns:
             索引列表
         """
-        result = self._make_request('GET', f'/_cat/indices/{pattern}', params={'format': 'json'})
-        return result if isinstance(result, list) else []
-        
+        try:
+            response = requests.get(f"{self.base_url}/_cat/indices/{pattern}?format=json", timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"List indices failed: {e}")
+            return []
+            
     def search_logs(self, index: str, query: Dict = None) -> Dict:
         """
         搜索日志
         
         Args:
             index: 索引名称
-            query: Elasticsearch原生查询体
+            query: 查询体
             
         Returns:
             搜索结果
         """
-        result = self._make_request('POST', f'/{index}/_search', data=query)
-        # 自动将date_histogram聚合的key_as_string转为北京时间，并将所有聚合value保留两位小数
-        aggs = result.get('aggregations', {})
-        def process_bucket(bucket):
-            # 处理key_as_string为北京时间
-            if 'key_as_string' in bucket and bucket['key_as_string'].endswith('Z'):
-                try:
-                    dt_utc = datetime.strptime(bucket['key_as_string'], "%Y-%m-%dT%H:%M:%S.%fZ")
-                    dt_bj = dt_utc + timedelta(hours=8)
-                    bucket['key_as_string_bj'] = dt_bj.strftime("%Y-%m-%d %H:%M:%S")
-                except Exception:
-                    pass
-            # 处理所有value为两位小数
-            for k, v in bucket.items():
-                if isinstance(v, dict) and 'value' in v and isinstance(v['value'], float):
-                    v['value'] = round(v['value'], 2)
-            # 递归处理嵌套buckets
-            for v in bucket.values():
-                if isinstance(v, list):
-                    for sub_bucket in v:
-                        if isinstance(sub_bucket, dict):
+        try:
+            url = f"{self.base_url}/{index}/_search"
+            response = requests.post(url, json=query, timeout=30)
+            response.raise_for_status()
+            result = response.json()
+            
+            # 处理时间字段为北京时间
+            def process_bucket(bucket):
+                # 处理key_as_string为北京时间
+                if "key_as_string" in bucket:
+                    try:
+                        # 解析UTC时间
+                        utc_time = datetime.fromisoformat(bucket["key_as_string"].replace('Z', '+00:00'))
+                        # 转换为北京时间
+                        beijing_time = utc_time.astimezone(timezone(timedelta(hours=8)))
+                        bucket["key_as_string_bj"] = beijing_time.strftime('%Y-%m-%d %H:%M:%S')
+                    except:
+                        bucket["key_as_string_bj"] = bucket["key_as_string"]
+                
+                # 递归处理嵌套的聚合
+                for key, value in bucket.items():
+                    if isinstance(value, dict) and "buckets" in value:
+                        for sub_bucket in value["buckets"]:
                             process_bucket(sub_bucket)
-        for agg in aggs.values():
-            if isinstance(agg, dict) and 'buckets' in agg:
-                for bucket in agg['buckets']:
-                    process_bucket(bucket)
-        return result
+            
+            # 处理聚合结果中的时间字段
+            if "aggregations" in result:
+                for agg_name, agg_data in result["aggregations"].items():
+                    if "buckets" in agg_data:
+                        for bucket in agg_data["buckets"]:
+                            process_bucket(bucket)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Search logs failed: {e}")
+            raise
 
 
-def create_elasticsearch_client(url: str, username: str = None,
-                              password: str = None, use_ssl: bool = False) -> ElasticsearchAPI:
+def create_elasticsearch_client(url: str) -> ElasticsearchAPI:
     """
-    创建Elasticsearch API客户端
+    创建Elasticsearch客户端
     
     Args:
-        url: 完整ES服务URL（如http://host:port）
-        username: 用户名
-        password: 密码
-        use_ssl: 是否使用SSL
+        url: Elasticsearch服务器URL
         
     Returns:
-        ElasticsearchAPI客户端实例
+        ElasticsearchAPI实例
     """
-    client = ElasticsearchAPI(url, username, password, use_ssl)
-    if client.test_connection():
-        return client
-    else:
+    client = ElasticsearchAPI(url)
+    
+    # 测试连接
+    if not client.test_connection():
         raise Exception("Failed to connect to Elasticsearch")
+        
+    return client
 
 
 # 使用示例
@@ -496,7 +341,7 @@ if __name__ == "__main__":
     
     try:
         # 创建客户端
-        es_client = create_elasticsearch_client(url=ES_URL, username=ES_USERNAME, password=ES_PASSWORD)
+        es_client = create_elasticsearch_client(url=ES_URL)
         
         # 搜索错误日志
         query = {
