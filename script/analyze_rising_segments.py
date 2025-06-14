@@ -214,6 +214,7 @@ CONFIG = dict2ns({
 
 # 配置日志
 logger = logging.getLogger(__name__)
+logger.propagate = False
 logger.setLevel(getattr(logging, CONFIG.logging.level.upper(), logging.INFO))
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
