@@ -359,11 +359,25 @@ class ZabbixAPI:
         获取指定监控项Top N的IP列表（可选仅在指定IP范围内）
         返回的avg和max都包含ip、value、units、key_，max还包含time（最大值对应的时间），平均值保留2位小数。
         同时返回time_from和time_till（可读时间）。
+        
+        优化特性：
+        1. 对于长时间范围（>1小时），使用trends API获取预聚合数据
+        2. 对于短时间范围，使用批量history API调用减少网络开销
+        3. 减少内存使用和网络传输
         """
         time_from, time_till = self._resolve_time_range(time_from, time_till, time_back)
         hosts = self.get_hosts(ip_addresses=ip_addresses)
         
-        # 使用filter模式进行精确匹配
+        if not hosts:
+            logger.warning("没有找到匹配的主机")
+            return {
+                "avg": [],
+                "max": [],
+                "time_from": time_from.strftime("%Y-%m-%d %H:%M:%S"),
+                "time_till": time_till.strftime("%Y-%m-%d %H:%M:%S")
+            }
+        
+        # 获取监控项
         items = self.zapi.item.get(
             output=["itemid", "hostid", "key_", "units", "value_type"],
             hostids=[host["hostid"] for host in hosts],
@@ -379,85 +393,143 @@ class ZabbixAPI:
                 "time_till": time_till.strftime("%Y-%m-%d %H:%M:%S")
             }
         
-        # 构建itemid到key_和units的映射
-        itemid_to_info = {item["itemid"]: {"key_": item["key_"], "units": item.get("units", "") } for item in items}
+        # 判断是否使用trends API（时间范围超过1小时）
+        time_diff = time_till - time_from
+        use_trends = time_diff.total_seconds() > 3600
         
-        history = []
-        for item in items:
-            # 根据value_type确定history参数
-            # value_type: 0=float, 1=character, 2=log, 3=unsigned, 4=text
-            value_type = int(item.get('value_type', 3))
-            if value_type == 0:
-                history_type = 0  # numeric float
-            elif value_type == 1:
-                history_type = 1  # character
-            elif value_type == 2:
-                history_type = 2  # log
-            elif value_type == 3:
-                history_type = 3  # numeric unsigned
-            elif value_type == 4:
-                history_type = 4  # text
-            else:
-                history_type = 3  # 默认使用numeric unsigned
-            
-            item_history = self.zapi.history.get(
-                output="extend",
-                history=history_type,
-                itemids=item["itemid"],
-                time_from=int(time_from.timestamp()),
-                time_till=int(time_till.timestamp()),
-                sortfield="clock",
-                sortorder="ASC"
-            )
-            
-            if item_history:
-                for h in item_history:
-                    h["hostid"] = item["hostid"]
-                    h["itemid"] = item["itemid"]
-                history.extend(item_history)
+        ip_stats = {}
         
-        ip_values = {}
-        for item in items:
-            host_id = item["hostid"]
-            host_info = next((h for h in hosts if h["hostid"] == host_id), None)
-            if host_info:
+        if use_trends:
+            # 长时间范围：使用trends API（逐个获取，因为trends不支持批量）
+            for item in items:
+                host_id = item["hostid"]
+                host_info = next((h for h in hosts if h["hostid"] == host_id), None)
+                if not host_info:
+                    continue
+                    
                 ip = self._get_host_ip(host_info)
-                if ip:
-                    values = [(float(h["value"]), int(h["clock"])) for h in history if h["itemid"] == item["itemid"]]
-                    if values:
-                        avg_value = round(sum(v[0] for v in values) / len(values), 2)
-                        max_value, max_clock = max(values, key=lambda x: x[0])
-                        ip_values[ip] = {
-                            "avg_value": avg_value,
-                            "max_value": max_value,
-                            "max_clock": max_clock,
-                            "key_": item["key_"],
-                            "units": item.get("units", "")
-                        }
+                if not ip:
+                    continue
+                
+                try:
+                    trends_data = self.zapi.trend.get(
+                        output=["itemid", "clock", "num", "value_min", "value_avg", "value_max"],
+                        itemids=item["itemid"],
+                        time_from=int(time_from.timestamp()),
+                        time_till=int(time_till.timestamp())
+                    )
+                    
+                    if trends_data:
+                        # 计算加权平均值和最大值
+                        total_weight = sum(int(t["num"]) for t in trends_data)
+                        if total_weight > 0:
+                            weighted_avg = sum(float(t["value_avg"]) * int(t["num"]) for t in trends_data) / total_weight
+                            max_value = max(float(t["value_max"]) for t in trends_data)
+                            max_time = max(trends_data, key=lambda x: float(x["value_max"]))["clock"]
+                            
+                            ip_stats[ip] = {
+                                "avg_value": round(weighted_avg, 2),
+                                "max_value": max_value,
+                                "max_clock": int(max_time),
+                                "key_": item["key_"],
+                                "units": item.get("units", "")
+                            }
+                except Exception as e:
+                    logger.warning(f"获取主机 {ip} 的trends数据失败: {e}")
+                    continue
+        else:
+            # 短时间范围：按批次处理主机，每批次最多10台
+            batch_size = 10
+            
+            # 获取value_type（同一个item_key的所有主机value_type都相同）
+            if items:
+                value_type = int(items[0].get('value_type', 3))
+                history_type = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4}.get(value_type, 3)
+                
+                # 将监控项按批次分组（每批次最多10个）
+                for i in range(0, len(items), batch_size):
+                    batch_items = items[i:i + batch_size]
+                    item_ids = [item["itemid"] for item in batch_items]
+                    
+                    try:
+                        # 批量获取当前批次的历史数据
+                        history_data = self.zapi.history.get(
+                            output=["itemid", "clock", "value"],
+                            history=history_type,
+                            itemids=item_ids,  # 当前批次的监控项（最多10个）
+                            time_from=int(time_from.timestamp()),
+                            time_till=int(time_till.timestamp())
+                        )
+                        
+                        # 按itemid分组历史数据
+                        history_by_item = {}
+                        for h in history_data:
+                            item_id = h["itemid"]
+                            if item_id not in history_by_item:
+                                history_by_item[item_id] = []
+                            history_by_item[item_id].append(h)
+                        
+                        # 计算当前批次每个主机的统计数据
+                        for item in batch_items:
+                            host_id = item["hostid"]
+                            host_info = next((h for h in hosts if h["hostid"] == host_id), None)
+                            if not host_info:
+                                continue
+                                
+                            ip = self._get_host_ip(host_info)
+                            if not ip:
+                                continue
+                            
+                            # 检查是否已经处理过这个IP（避免重复处理）
+                            if ip in ip_stats:
+                                logger.warning(f"IP {ip} 已经处理过，跳过重复处理")
+                                continue
+                            
+                            item_history = history_by_item.get(item["itemid"], [])
+                            if not item_history:
+                                continue
+                                
+                            values = [float(h["value"]) for h in item_history]
+                            if values:
+                                weighted_avg = sum(values) / len(values)
+                                max_value = max(values)
+                                max_time = max(item_history, key=lambda x: float(x["value"]))["clock"]
+                                
+                                ip_stats[ip] = {
+                                    "avg_value": round(weighted_avg, 2),
+                                    "max_value": max_value,
+                                    "max_clock": int(max_time),
+                                    "key_": item["key_"],
+                                    "units": item.get("units", "")
+                                }
+                                
+                    except Exception as e:
+                        logger.warning(f"获取批次 {i//batch_size + 1} 的历史数据失败: {e}")
+                        continue
         
-        # 按平均值排序
-        sorted_ips_avg = sorted(ip_values.items(), key=lambda x: x[1]["avg_value"], reverse=True)
-        # 按最大值排序
-        sorted_ips_max = sorted(ip_values.items(), key=lambda x: x[1]["max_value"], reverse=True)
+        # 排序并返回结果
+        sorted_ips_avg = sorted(ip_stats.items(), key=lambda x: x[1]["avg_value"], reverse=True)
+        sorted_ips_max = sorted(ip_stats.items(), key=lambda x: x[1]["max_value"], reverse=True)
         
         result_avg = [
             {
                 "ip": ip,
-                "value": values["avg_value"],
-                "units": values["units"],
-                "key_": values["key_"]
+                "value": stats["avg_value"],
+                "units": stats["units"],
+                "key_": stats["key_"]
             }
-            for ip, values in sorted_ips_avg[:limit]
+            for ip, stats in sorted_ips_avg[:limit]
         ]
+        
         result_max = [
             {
                 "ip": ip,
-                "value": values["max_value"],
-                "units": values["units"],
-                "key_": values["key_"],
-                "time": datetime.fromtimestamp(values["max_clock"]).strftime("%Y-%m-%d %H:%M:%S")
+                "value": stats["max_value"],
+                "units": stats["units"],
+                "key_": stats["key_"],
+                "time": datetime.fromtimestamp(stats["max_clock"]).strftime("%Y-%m-%d %H:%M:%S")
             }
-            for ip, values in sorted_ips_max[:limit]
+            for ip, stats in sorted_ips_max[:limit]
         ]
         
         return {
