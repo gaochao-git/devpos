@@ -59,7 +59,10 @@
             "threshold": 100*1000,  # 100kbps
             "name": "网卡入流量",
             "unit": "bps",
-            "enabled": True  # 启用此指标
+            "enabled": True,  # 启用此指标
+            # 当防火墙流量升高时，我们不直接对防火墙本身做TopIP分析，
+            # 而是通过此配置，去查询所有服务器上具有相同`item_key`的指标，找到Top 10的服务器IP
+            "drill_down_all_hosts_top_n_metric_key": "net.if.in[eth0]"
         },
         "memory_usage": {
             "item_key": "vm.memory.size[pused]",
@@ -170,29 +173,26 @@ CONFIG = dict2ns({
             "net_in": {
                 "item_key": "net.if.in[eth0]",
                 "threshold": 100*1000,  # 100kbps
-                "name": "网卡入流量",
+                "name": "机房防火墙入流量",
                 "unit": "bps",
-                "enabled": True  # 启用此指标
+                "enabled": True,  # 启用此指标
+                # 当防火墙流量升高时，我们不直接对防火墙本身做TopIP分析，
+                # 而是通过此配置，去查询所有服务器上具有相同`item_key`的指标，找到Top 10的服务器IP
+                "drill_down_all_hosts_top_n_metric_key": "net.if.in[eth0]"
             },
             "net_out": {
                 "item_key": "net.if.out[eth0]",
                 "threshold": 100*1000,  # 100kbps
-                "name": "网卡出流量",
+                "name": "防火墙出流量",
                 "unit": "bps",
-                "enabled": True  # 是否启用此指标
+                "enabled": True,  # 是否启用此指标
+                "drill_down_all_hosts_top_n_metric_key": "net.if.out[eth0]"
             },
             "dns_time": {
                 "item_key": "net.dns.time[,8.8.8.8]",
-                "threshold": 0.05,  # 50ms
+                "threshold": 0.05,  # 0.05ms
                 "name": "DNS解析时间",
                 "unit": "ms",
-                "enabled": True  # 是否启用此指标
-            },
-            "cpu_usage": {
-                "item_key": "system.cpu.util[,user]",
-                "threshold": 10,  # 80%
-                "name": "CPU使用率",
-                "unit": "%",
                 "enabled": True  # 是否启用此指标
             }
         }
@@ -608,13 +608,8 @@ def analyze_zabbix_rising_segments(time_from, time_till):
 
 def get_top_ips_for_rising_segments(all_zabbix_segments, time_from, time_till):
     """
-    获取上升段指标的Top统计数据（适用于单主机和多主机环境）
-    Args:
-        all_zabbix_segments: 所有Zabbix指标的上升段数据
-        time_from: 开始时间
-        time_till: 结束时间
-    Returns:
-        包含各指标Top统计数据的字典
+    获取上升段指标的Top统计数据.
+    支持下一级分析: 例如，当防火墙流量升高时，获取所有服务器的对应网卡流量，找到Top IP.
     """
     top_stats_data = {}
     
@@ -630,25 +625,34 @@ def get_top_ips_for_rising_segments(all_zabbix_segments, time_from, time_till):
                     enabled_metrics = vars(CONFIG.zabbix.metrics)
                     if metric_name in enabled_metrics:
                         metric_config = enabled_metrics[metric_name]
-                        item_key = metric_config.item_key
                         
-                        logger.info(f"正在获取 {metric_info['name']} 的Top统计数据...")
+                        # 检查是否有下一级分析的配置
+                        # 如果有，使用指定的key进行Top查询；否则，使用指标自身的key
+                        item_key_for_top_query = getattr(metric_config, 'drill_down_all_hosts_top_n_metric_key', metric_config.item_key)
+                        top_query_metric_name = metric_info['name']
                         
+                        if hasattr(metric_config, 'drill_down_all_hosts_top_n_metric_key'):
+                            drill_down_name = f"所有服务器 {metric_info['name']}"
+                            logger.info(f"检测到 {metric_info['name']} 的下一级分析配置, 将使用 '{item_key_for_top_query}' 对 '{drill_down_name}' 进行Top IP分析...")
+                            top_query_metric_name = drill_down_name
+                        else:
+                            logger.info(f"正在获取 {metric_info['name']} 的Top统计数据...")
+
                         # 使用zabbix客户端的get_top_ips_by_metric方法
                         stats_result = zabbix_client.get_top_ips_by_metric(
-                            item_key=item_key,
+                            item_key=item_key_for_top_query,
                             limit=10,
                             time_from=time_from,
                             time_till=time_till
                         )
                         
                         if stats_result and (stats_result.get("avg") or stats_result.get("max")):
-                            top_stats_data[metric_info["name"]] = stats_result
+                            top_stats_data[top_query_metric_name] = stats_result
                             avg_count = len(stats_result.get('avg', []))
                             max_count = len(stats_result.get('max', []))
-                            logger.info(f"{metric_info['name']} 获取到Top统计数据: avg={avg_count}, max={max_count}")
+                            logger.info(f"'{top_query_metric_name}' 获取到Top统计数据: avg={avg_count}, max={max_count}")
                         else:
-                            logger.warning(f"{metric_info['name']} 没有获取到Top统计数据")
+                            logger.warning(f"'{top_query_metric_name}' 没有获取到Top统计数据")
                     else:
                         logger.error(f"metric_name '{metric_name}' 不在enabled_metrics中")
                             
@@ -697,7 +701,7 @@ def analyze_db_response():
             for metric_name, metric_info in all_zabbix_segments.items()
             if metric_info["segments"]
         }
-        
+        print(all_zabbix_segments)
         logger.info(f"发现上升段 - ES: {len(formatted_es_segments)}, Zabbix指标: {segment_counts}")
         
         # 获取上升段指标的Top统计数据
