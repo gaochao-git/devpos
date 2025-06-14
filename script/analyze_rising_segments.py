@@ -18,6 +18,7 @@
     7. 优雅退出支持（Ctrl+C）
     8. 防止多实例运行的安全机制（文件锁）
     9. 僵尸锁文件清理
+    10. 大模型调用超时和重试机制
 
 使用方法:
     1. 帮助:
@@ -42,7 +43,8 @@
     - 数据源连接信息（Elasticsearch, Zabbix）
     - 阈值设置（上升段判断标准）
     - 重试机制参数
-    - 大模型API配置
+    - 大模型API配置（包括超时时间和重试次数）
+    - 锁文件路径设置
 
 运行示例:
     # 启动定时调度器，每5分钟分析一次
@@ -144,7 +146,9 @@ CONFIG = dict2ns({
     "llm": {
         "url": "http://127.0.0.1/v1/chat-messages",
         "api_key": "app-B8Ux0kQnN51hcgjwlGtp7xoL",
-        "user": "abc-123"
+        "user": "abc-123",
+        "timeout": 30,      # 大模型调用超时时间（秒）
+        "max_retries": 3    # 最大重试次数
     }
 })
 
@@ -357,7 +361,18 @@ def format_rising_segments(rising_segments, times, raw_data, source="es"):
         })
     return formatted_segments
 
-def call_llm_analysis(prompt, api_url=CONFIG.llm.url, api_key=CONFIG.llm.api_key, user=CONFIG.llm.user):
+def call_llm_analysis(prompt, api_url=CONFIG.llm.url, api_key=CONFIG.llm.api_key, user=CONFIG.llm.user, timeout=CONFIG.llm.timeout):
+    """
+    调用大模型分析，支持超时和重试机制
+    Args:
+        prompt: 分析提示词
+        api_url: API地址
+        api_key: API密钥
+        user: 用户标识
+        timeout: 超时时间（秒）
+    Returns:
+        str: 分析结果
+    """
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
@@ -369,12 +384,70 @@ def call_llm_analysis(prompt, api_url=CONFIG.llm.url, api_key=CONFIG.llm.api_key
         "conversation_id": "",
         "user": user
     }
-    response = requests.post(api_url, headers=headers, json=payload, timeout=60)
-    response.raise_for_status()
-    try:
-        return response.json().get("answer", response.text)
-    except Exception:
-        return response.text
+    
+    # 多次重试机制
+    max_retries = CONFIG.llm.max_retries
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"正在调用大模型分析 (尝试 {attempt + 1}/{max_retries})，超时设置: {timeout}秒")
+            
+            # 设置连接超时和读取超时
+            response = requests.post(
+                api_url, 
+                headers=headers, 
+                json=payload, 
+                timeout=(10, timeout)  # (连接超时, 读取超时)
+            )
+            response.raise_for_status()
+            
+            try:
+                result = response.json().get("answer", response.text)
+                logger.info("大模型分析调用成功")
+                return result
+            except Exception as parse_error:
+                logger.warning(f"解析响应失败: {parse_error}")
+                return response.text
+                
+        except requests.exceptions.Timeout as e:
+            logger.error(f"大模型调用超时 (尝试 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                wait_time = (attempt + 1) * 5  # 递增等待时间: 5s, 10s, 15s
+                logger.info(f"等待 {wait_time} 秒后重试...")
+                time.sleep(wait_time)
+            else:
+                return f"大模型调用超时，已重试 {max_retries} 次。请检查网络连接或增加超时时间。"
+                
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"大模型连接失败 (尝试 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                wait_time = (attempt + 1) * 3  # 递增等待时间: 3s, 6s, 9s
+                logger.info(f"等待 {wait_time} 秒后重试...")
+                time.sleep(wait_time)
+            else:
+                return f"大模型连接失败，已重试 {max_retries} 次。请检查API服务是否可用。"
+                
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"大模型HTTP错误 (尝试 {attempt + 1}/{max_retries}): {e}")
+            if e.response.status_code == 429:  # 限流错误
+                if attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 10  # 限流时等待更长时间
+                    logger.info(f"遇到限流，等待 {wait_time} 秒后重试...")
+                    time.sleep(wait_time)
+                else:
+                    return f"大模型API限流，已重试 {max_retries} 次。请稍后再试。"
+            else:
+                return f"大模型HTTP错误: {e}"
+                
+        except Exception as e:
+            logger.error(f"大模型调用未知错误 (尝试 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                wait_time = (attempt + 1) * 2
+                logger.info(f"等待 {wait_time} 秒后重试...")
+                time.sleep(wait_time)
+            else:
+                return f"大模型调用失败，已重试 {max_retries} 次。错误: {e}"
+    
+    return "大模型调用失败，已达到最大重试次数。"
 
 def analyze_es_rising_segments(time_from, time_till):
     # 获取ES的指标数据
