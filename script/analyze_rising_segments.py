@@ -184,30 +184,31 @@ CONFIG = dict2ns({
                 "url": "http://82.156.146.51/zabbix",
                 "username": "Admin",
                 "password": "zabbix",
-                "firewall_ip": "127.0.0.1",  # 防火墙IP，用于网络流量监控
-                "dns_ip": "192.168.1.10",  # DNS服务器IP，用于DNS解析时间监控
-                # 支持多个监控指标，每个指标可以有不同的阈值
+                # 支持多个监控指标，每个指标可以有不同的阈值和主机IP
                 "metrics": {
                     "net_in": {
                         "item_key": "net.if.in[eth0]",
                         "threshold": 100*1000,  # 100kbps
                         "name": "机房防火墙入流量",
                         "unit": "bps",
-                        "enabled": True  # 启用此指标
+                        "enabled": True,  # 启用此指标
+                        "host_ip": "127.0.0.1"  # 防火墙IP
                     },
                     "net_out": {
                         "item_key": "net.if.out[eth0]",
                         "threshold": 100*1000,  # 100kbps
                         "name": "防火墙出流量",
                         "unit": "bps",
-                        "enabled": True  # 是否启用此指标
+                        "enabled": True,  # 是否启用此指标
+                        "host_ip": "127.0.0.1"  # 防火墙IP
                     },
                     "dns_time": {
                         "item_key": "net.dns.time[,8.8.8.8]",
                         "threshold": 0.05,  # 0.05ms
                         "name": "DNS解析时间",
                         "unit": "ms",
-                        "enabled": True  # 是否启用此指标
+                        "enabled": True,  # 是否启用此指标
+                        "host_ip": "192.168.1.10"  # DNS服务器IP
                     }
                 }
             }
@@ -226,15 +227,14 @@ CONFIG = dict2ns({
                 "url": "http://82.156.146.51/zabbix",
                 "username": "Admin",
                 "password": "zabbix",
-                "firewall_ip": None,  # 无防火墙
-                "dns_ip": "192.168.1.20",  # DNS服务器IP
                 "metrics": {
                     "dns_time": {
                         "item_key": "net.dns.time[,8.8.8.8]",
                         "threshold": 0.05,
                         "name": "DNS解析时间",
                         "unit": "ms",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.1.20"  # DNS服务器IP
                     }
                 }
             }
@@ -253,29 +253,30 @@ CONFIG = dict2ns({
                 "url": "http://82.156.146.51/zabbix",
                 "username": "Admin",
                 "password": "zabbix",
-                "firewall_ip": "192.168.2.1",
-                "dns_ip": "192.168.2.10",
                 "metrics": {
                     "net_in": {
                         "item_key": "net.if.in[eth0]",
                         "threshold": 100*1000,
                         "name": "机房防火墙入流量",
                         "unit": "bps",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.2.1"
                     },
                     "net_out": {
                         "item_key": "net.if.out[eth0]",
                         "threshold": 100*1000,
                         "name": "防火墙出流量",
                         "unit": "bps",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.2.1"
                     },
                     "dns_time": {
                         "item_key": "net.dns.time[,8.8.8.8]",
                         "threshold": 0.05,
                         "name": "DNS解析时间",
                         "unit": "ms",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.2.10"
                     }
                 }
             }
@@ -294,29 +295,30 @@ CONFIG = dict2ns({
                 "url": "http://82.156.146.51/zabbix",
                 "username": "Admin",
                 "password": "zabbix",
-                "firewall_ip": "192.168.2.2",
-                "dns_ip": "192.168.2.20",
                 "metrics": {
                     "net_in": {
                         "item_key": "net.if.in[eth0]",
                         "threshold": 100*1000,
                         "name": "机房防火墙入流量",
                         "unit": "bps",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.2.2"
                     },
                     "net_out": {
                         "item_key": "net.if.out[eth0]",
                         "threshold": 100*1000,
                         "name": "防火墙出流量",
                         "unit": "bps",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.2.2"
                     },
                     "dns_time": {
                         "item_key": "net.dns.time[,8.8.8.8]",
                         "threshold": 0.05,
                         "name": "DNS解析时间",
                         "unit": "ms",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.2.20"
                     }
                 }
             }
@@ -335,29 +337,30 @@ CONFIG = dict2ns({
                 "url": "http://82.156.146.51/zabbix",
                 "username": "Admin",
                 "password": "zabbix",
-                "firewall_ip": "192.168.3.1",
-                "dns_ip": "192.168.3.10",
                 "metrics": {
                     "net_in": {
                         "item_key": "net.if.in[eth0]",
                         "threshold": 100*1000,
                         "name": "机房防火墙入流量",
                         "unit": "bps",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.3.1"
                     },
                     "net_out": {
                         "item_key": "net.if.out[eth0]",
                         "threshold": 100*1000,
                         "name": "防火墙出流量",
                         "unit": "bps",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.3.1"
                     },
                     "dns_time": {
                         "item_key": "net.dns.time[,8.8.8.8]",
                         "threshold": 0.05,
                         "name": "DNS解析时间",
                         "unit": "ms",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.3.10"
                     }
                 }
             }
@@ -376,29 +379,30 @@ CONFIG = dict2ns({
                 "url": "http://82.156.146.51/zabbix",
                 "username": "Admin",
                 "password": "zabbix",
-                "firewall_ip": "192.168.3.2",
-                "dns_ip": "192.168.3.20",
                 "metrics": {
                     "net_in": {
                         "item_key": "net.if.in[eth0]",
                         "threshold": 100*1000,
                         "name": "机房防火墙入流量",
                         "unit": "bps",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.3.2"
                     },
                     "net_out": {
                         "item_key": "net.if.out[eth0]",
                         "threshold": 100*1000,
                         "name": "防火墙出流量",
                         "unit": "bps",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.3.2"
                     },
                     "dns_time": {
                         "item_key": "net.dns.time[,8.8.8.8]",
                         "threshold": 0.05,
                         "name": "DNS解析时间",
                         "unit": "ms",
-                        "enabled": True
+                        "enabled": True,
+                        "host_ip": "192.168.3.20"
                     }
                 }
             }
@@ -783,49 +787,38 @@ def analyze_db_response():
                     logger.info(f"{log_prefix} 没有启用任何Zabbix监控指标")
                     continue
                 
-                # 按指标类型分别获取数据，因为不同指标对应不同的主机IP
-                zabbix_data = []
+                # 按指标逐个获取数据，每个指标使用自己的host_ip
+                all_metric_data = {}
+                total_data_count = 0
                 
-                # 网络流量指标（防火墙IP）
-                network_metrics = [name for name in enabled_metrics.keys() if name in ['net_in', 'net_out']]
-                if network_metrics and dc.zabbix.firewall_ip:
-                    network_item_keys = [enabled_metrics[name].item_key for name in network_metrics]
-                    logger.info(f"{log_prefix} 网络流量指标: {[enabled_metrics[name].name for name in network_metrics]}, 主机IP: {dc.zabbix.firewall_ip}")
+                for metric_name, metric_config in enabled_metrics.items():
+                    if not hasattr(metric_config, 'host_ip') or not metric_config.host_ip:
+                        logger.warning(f"{log_prefix} {metric_config.name} 缺少host_ip配置，跳过")
+                        continue
                     
-                    network_data = zabbix_client.get_history(
-                        time_from=time_from,
-                        time_till=time_till,
-                        host_ips=[dc.zabbix.firewall_ip],
-                        item_keys=network_item_keys
-                    )
-                    zabbix_data.extend(network_data)
-                
-                # DNS指标（DNS服务器IP）
-                dns_metrics = [name for name in enabled_metrics.keys() if name == 'dns_time']
-                if dns_metrics and dc.zabbix.dns_ip:
-                    dns_item_keys = [enabled_metrics[name].item_key for name in dns_metrics]
-                    logger.info(f"{log_prefix} DNS指标: {[enabled_metrics[name].name for name in dns_metrics]}, 主机IP: {dc.zabbix.dns_ip}")
+                    logger.info(f"{log_prefix} 获取指标 {metric_config.name}, 主机IP: {metric_config.host_ip}")
                     
-                    dns_data = zabbix_client.get_history(
-                        time_from=time_from,
-                        time_till=time_till,
-                        host_ips=[dc.zabbix.dns_ip],
-                        item_keys=dns_item_keys
-                    )
-                    zabbix_data.extend(dns_data)
+                    try:
+                        metric_data = zabbix_client.get_history(
+                            time_from=time_from,
+                            time_till=time_till,
+                            host_ips=[metric_config.host_ip],
+                            item_keys=[metric_config.item_key]
+                        )
+                        all_metric_data[metric_name] = metric_data
+                        total_data_count += len(metric_data)
+                        logger.info(f"{log_prefix} {metric_config.name}: {len(metric_data)} 条数据")
+                    except Exception as e:
+                        logger.error(f"{log_prefix} {metric_config.name} 数据获取失败: {str(e)}")
+                        all_metric_data[metric_name] = []
                 
-                logger.info(f"{log_prefix} Zabbix数据获取成功: {len(zabbix_data)} 条记录")
+                logger.info(f"{log_prefix} Zabbix数据获取完成，总计: {total_data_count} 条记录")
                 
                 # 按指标分组数据并分析上升段
                 dc_segments = {}
                 for metric_name, metric_config in enabled_metrics.items():
-                    # 筛选出当前指标的数据
-                    metric_data = [
-                        item for item in zabbix_data 
-                        if item.get("key") == metric_config.item_key
-                    ]
-                    
-                    logger.info(f"{log_prefix} {metric_config.name}: {len(metric_data)} 条数据")
+                    # 获取当前指标的数据
+                    metric_data = all_metric_data.get(metric_name, [])
                     
                     if metric_data:
                         # 提取时间序列和值序列
@@ -843,6 +836,7 @@ def analyze_db_response():
                                     "name": metric_config.name,
                                     "unit": metric_config.unit,
                                     "threshold": threshold,
+                                    "host_ip": metric_config.host_ip,
                                     "segments": formatted_segments
                                 }
                                 logger.info(f"{log_prefix} {metric_config.name} 发现 {len(formatted_segments)} 个上升段")
@@ -856,8 +850,6 @@ def analyze_db_response():
                 if dc_segments:
                     all_zabbix_segments[idc] = {
                         "zabbix_url": dc.zabbix.url,
-                        "firewall_ip": dc.zabbix.firewall_ip,
-                        "dns_ip": dc.zabbix.dns_ip,
                         "metrics": dc_segments
                     }
                     
@@ -888,14 +880,13 @@ def analyze_db_response():
                 
                 # 监控指标上升的区间如下：
                 Zabbix服务器: {dc_zabbix_info["zabbix_url"]}
-                防火墙IP: {dc_zabbix_info["firewall_ip"] or "无"}
-                DNS IP: {dc_zabbix_info["dns_ip"] or "无"}
                 """
                 
                 for metric_name, metric_info in dc_zabbix_info["metrics"].items():
                     if metric_info["segments"]:
                         llm_prompt += f"""
                 ## {metric_info["name"]} (单位: {metric_info["unit"]})
+                主机IP: {metric_info["host_ip"]}
                 阈值: {metric_info["threshold"]}
                 上升段数据:
                 {json.dumps(metric_info["segments"], ensure_ascii=False, indent=2)}
