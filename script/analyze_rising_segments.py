@@ -17,12 +17,13 @@
     6. 重试机制和异常处理
     7. 优雅退出支持（Ctrl+C）
     8. 防止多实例运行的安全机制（文件锁）
+    9. 僵尸锁文件清理
 
 使用方法:
     1. 帮助:
        python3 analyze_rising_segments.py --help
          2. 定时调度模式:
-        python3 analyze_rising_segments.py --mode scheduler
+        python3 analyze_rising_segments.py --mode scheduler  # 默认5分钟间隔
         python3 analyze_rising_segments.py --mode scheduler --interval 10  # 10分钟间隔
     
     3. 手动执行模式:
@@ -409,17 +410,17 @@ def analyze_db_response_with_retry():
             
             # 分析ES的上升段
             formatted_es_segments = analyze_es_rising_segments(time_from, time_till)
+            # 检查是否有上升段数据
+            if not formatted_es_segments:
+                logger.info("没有ES的上升段，无需继续分析")
+                return True
             
             # 分析Zabbix的上升段
             formatted_zabbix_segments = analyze_zabbix_rising_segments(time_from, time_till)
             
-            # 检查是否有上升段数据
-            if not formatted_es_segments:
-                logger.info("没有ES的上升段，无需进行大模型分析")
-                return True
-            
+            # 检查是否有Zabbix的上升段
             if not formatted_zabbix_segments:
-                logger.info("没有Zabbix的上升段，无需进行大模型分析")
+                logger.info("没有Zabbix的上升段，无需继续当前分析，从其他方面排查原因")
                 return True
             
             # 如果有上升段，进行大模型分析
