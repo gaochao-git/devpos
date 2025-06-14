@@ -184,7 +184,7 @@ CONFIG = dict2ns({
                 "url": "http://82.156.146.51/zabbix",
                 "username": "Admin",
                 "password": "zabbix",
-                "firewall_ip": "192.168.1.1",  # 防火墙IP，用于网络流量监控
+                "firewall_ip": "127.0.0.1",  # 防火墙IP，用于网络流量监控
                 "dns_ip": "192.168.1.10",  # DNS服务器IP，用于DNS解析时间监控
                 # 支持多个监控指标，每个指标可以有不同的阈值
                 "metrics": {

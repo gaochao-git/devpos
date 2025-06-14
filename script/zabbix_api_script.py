@@ -190,6 +190,10 @@ class ZabbixAPI:
             if host_ips:
                 hosts = self.get_hosts(ip_addresses=host_ips)
                 host_ids = [host["hostid"] for host in hosts]
+                # 如果指定了IP但找不到对应主机，直接返回空列表
+                if not host_ids:
+                    logger.warning(f"No hosts found for IPs: {host_ips}")
+                    return []
                 
             params = {
                 "output": ["itemid", "name", "key_", "hostid", "status", "value_type", "units"],
