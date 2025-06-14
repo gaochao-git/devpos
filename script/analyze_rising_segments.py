@@ -15,10 +15,9 @@
     4. 多指标监控支持（网卡入出流量、DNS解析时间、CPU使用率、内存使用率等）
     5. 智能上升段检测（每个指标可配置独立阈值）
     6. 大模型关联分析（支持多指标关联性分析）
-    7. Top IP分析（获取上升段指标的Top 10 IP统计数据）
-    8. 优雅退出支持（Ctrl+C）
-    9. 防止多实例运行的安全机制（文件锁）
-    10. 僵尸锁文件清理
+    7. 优雅退出支持（Ctrl+C）
+    8. 防止多实例运行的安全机制（文件锁）
+    9. 僵尸锁文件清理
 
 支持的监控指标:
     - 网卡入流量 (net.if.in[eth0])
@@ -59,10 +58,7 @@
             "threshold": 100*1000,  # 100kbps
             "name": "网卡入流量",
             "unit": "bps",
-            "enabled": True,  # 启用此指标
-            # 当防火墙流量升高时，我们不直接对防火墙本身做TopIP分析，
-            # 而是通过此配置，去查询所有服务器上具有相同`item_key`的指标，找到Top 10的服务器IP
-            "drill_down_all_hosts_top_n_metric_key": "net.if.in[eth0]"
+            "enabled": True  # 启用此指标
         },
         "memory_usage": {
             "item_key": "vm.memory.size[pused]",
@@ -91,9 +87,9 @@
     按 Ctrl+C 优雅退出定时调度器
 
 作者: 自动化监控团队
-版本: v2.2
+版本: v2.3
 更新时间: 2025-06-14
-更新内容: 支持多指标监控、关联分析和Top IP统计
+更新内容: 支持多指标监控和关联分析
 """
 
 import logging
@@ -175,18 +171,14 @@ CONFIG = dict2ns({
                 "threshold": 100*1000,  # 100kbps
                 "name": "机房防火墙入流量",
                 "unit": "bps",
-                "enabled": True,  # 启用此指标
-                # 当防火墙流量升高时，我们不直接对防火墙本身做TopIP分析，
-                # 而是通过此配置，去查询所有服务器上具有相同`item_key`的指标，找到Top 10的服务器IP
-                "drill_down_all_hosts_top_n_metric_key": "net.if.in[eth0]"
+                "enabled": True  # 启用此指标
             },
             "net_out": {
                 "item_key": "net.if.out[eth0]",
                 "threshold": 100*1000,  # 100kbps
                 "name": "防火墙出流量",
                 "unit": "bps",
-                "enabled": True,  # 是否启用此指标
-                "drill_down_all_hosts_top_n_metric_key": "net.if.out[eth0]"
+                "enabled": True  # 是否启用此指标
             },
             "dns_time": {
                 "item_key": "net.dns.time[,8.8.8.8]",
@@ -606,69 +598,6 @@ def analyze_zabbix_rising_segments(time_from, time_till):
     
     return all_formatted_segments
 
-def get_top_ips_for_rising_segments(all_zabbix_segments, time_from, time_till):
-    """
-    获取上升段指标的Top统计数据.
-    支持下一级分析: 例如，当防火墙流量升高时，获取所有服务器的对应网卡流量，找到Top IP.
-    """
-    top_stats_data = {}
-    
-    try:
-        # 创建Zabbix客户端
-        zabbix_client = create_zabbix_client(CONFIG.zabbix.url, CONFIG.zabbix.username, CONFIG.zabbix.password)
-        
-        # 为每个有上升段的指标获取Top统计数据
-        for metric_name, metric_info in all_zabbix_segments.items():
-            if metric_info["segments"]:
-                try:
-                    # 获取对应的监控项配置
-                    enabled_metrics = vars(CONFIG.zabbix.metrics)
-                    if metric_name in enabled_metrics:
-                        metric_config = enabled_metrics[metric_name]
-                        
-                        # 检查是否有下一级分析的配置
-                        # 如果有，使用指定的key进行Top查询；否则，使用指标自身的key
-                        item_key_for_top_query = getattr(metric_config, 'drill_down_all_hosts_top_n_metric_key', metric_config.item_key)
-                        top_query_metric_name = metric_info['name']
-                        
-                        if hasattr(metric_config, 'drill_down_all_hosts_top_n_metric_key'):
-                            drill_down_name = f"所有服务器 {metric_info['name']}"
-                            logger.info(f"检测到 {metric_info['name']} 的下一级分析配置, 将使用 '{item_key_for_top_query}' 对 '{drill_down_name}' 进行Top IP分析...")
-                            top_query_metric_name = drill_down_name
-                        else:
-                            logger.info(f"正在获取 {metric_info['name']} 的Top统计数据...")
-
-                        # 使用zabbix客户端的get_top_ips_by_metric方法
-                        stats_result = zabbix_client.get_top_ips_by_metric(
-                            item_key=item_key_for_top_query,
-                            limit=10,
-                            time_from=time_from,
-                            time_till=time_till
-                        )
-                        
-                        if stats_result and (stats_result.get("avg") or stats_result.get("max")):
-                            top_stats_data[top_query_metric_name] = stats_result
-                            avg_count = len(stats_result.get('avg', []))
-                            max_count = len(stats_result.get('max', []))
-                            logger.info(f"'{top_query_metric_name}' 获取到Top统计数据: avg={avg_count}, max={max_count}")
-                        else:
-                            logger.warning(f"'{top_query_metric_name}' 没有获取到Top统计数据")
-                    else:
-                        logger.error(f"metric_name '{metric_name}' 不在enabled_metrics中")
-                            
-                except Exception as e:
-                    logger.error(f"获取 {metric_info['name']} Top统计数据失败: {e}")
-                    continue
-        
-        # 登出Zabbix客户端
-        zabbix_client.logout()
-        
-    except Exception as e:
-        logger.error(f"创建Zabbix客户端失败: {e}")
-        return {}
-    
-    return top_stats_data
-
 def analyze_db_response():
     """数据库响应分析"""
     try:
@@ -703,10 +632,6 @@ def analyze_db_response():
         }
         logger.info(f"发现上升段 - ES: {len(formatted_es_segments)}, Zabbix指标: {segment_counts}")
         
-        # 获取上升段指标的Top统计数据
-        top_stats_data = get_top_ips_for_rising_segments(all_zabbix_segments, time_from, time_till)
-        logger.info(f"Top统计数据: {top_stats_data}")
-        
         # 组装大模型分析的prompt
         llm_prompt = f"""
         # 时间段分析报告
@@ -728,33 +653,13 @@ def analyze_db_response():
         {json.dumps(metric_info["segments"], ensure_ascii=False, indent=2)}
         """
         
-        # 添加Top统计信息
-        if top_stats_data:
-            llm_prompt += """
-        
-        # 上升段指标的Top统计数据：
-        """
-            for metric_name, stats in top_stats_data.items():
-                if stats:
-                    llm_prompt += f"""
-        ## {metric_name} - Top统计
-        分析时间范围: {stats.get('time_from', 'N/A')} - {stats.get('time_till', 'N/A')}
-        
-        ### 平均值Top 10:
-        {json.dumps(stats.get('avg', []), ensure_ascii=False, indent=2)}
-        
-        ### 最大值Top 10:
-        {json.dumps(stats.get('max', []), ensure_ascii=False, indent=2)}
-        """
-        
         llm_prompt += """
         
         请分析这些数据的关联性和可能的原因，重点关注：
         1. 数据库响应时间上升与各监控指标的时间关联性
         2. 不同监控指标之间的相关性
-        3. Top统计数据是否显示了异常的数值或访问模式
-        4. 可能的根本原因分析
-        5. 优化建议
+        3. 可能的根本原因分析
+        4. 优化建议
         """
         
         result = call_llm_analysis(llm_prompt)

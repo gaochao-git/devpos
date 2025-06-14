@@ -81,7 +81,6 @@ from datetime import datetime, timedelta
 from pyzabbix import ZabbixAPI as PyZabbixAPI, ZabbixAPIException
 
 # 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # 屏蔽 pyzabbix 库的 INFO 级别日志，避免打印过多无关信息
