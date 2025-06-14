@@ -701,7 +701,6 @@ def analyze_db_response():
             for metric_name, metric_info in all_zabbix_segments.items()
             if metric_info["segments"]
         }
-        print(all_zabbix_segments)
         logger.info(f"发现上升段 - ES: {len(formatted_es_segments)}, Zabbix指标: {segment_counts}")
         
         # 获取上升段指标的Top统计数据
