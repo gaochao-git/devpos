@@ -173,8 +173,8 @@ CONFIG = dict2ns({
     },
     # 并发控制配置
     "concurrency": {
-        "max_workers": 6,  # 最大并发线程数，建议不超过机房总数
-        "enable_parallel": True,  # 是否启用并行处理，False时使用串行处理
+        "max_workers": 2,  # 最大并发线程数，建议不超过机房总数
+        "enable_parallel": False,  # 是否启用并行处理，False时使用串行处理
         "timeout_seconds": 300  # 单个机房处理超时时间（秒），防止某个机房卡死影响整体
     },
     # 机房配置
@@ -224,7 +224,7 @@ CONFIG = dict2ns({
         },
         "12": {
             "name": "北京机房12",
-            "enabled": True,  # 机房开关，打开后会分析此机房的监控指标
+            "enabled": False,  # 机房开关，打开后会分析此机房的监控指标
             "es": {
                 "url": "http://82.156.146.51:9200",
                 "index": "mysql-slow-*",
@@ -292,7 +292,7 @@ CONFIG = dict2ns({
         },
         "21": {
             "name": "上海机房21",
-            "enabled": True,  # 机房开关，打开后会分析此机房的监控指标
+            "enabled": False,  # 机房开关，打开后会分析此机房的监控指标
             "es": {
                 "url": "http://82.156.146.51:9200",
                 "index": "mysql-slow-*",
@@ -334,7 +334,7 @@ CONFIG = dict2ns({
         },
         "30": {
             "name": "深圳机房30",
-            "enabled": True,  # 机房开关，打开后会分析此机房的监控指标
+            "enabled": False,  # 机房开关，打开后会分析此机房的监控指标
             "es": {
                 "url": "http://82.156.146.51:9200",
                 "index": "mysql-slow-*",
