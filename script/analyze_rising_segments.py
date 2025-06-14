@@ -25,8 +25,7 @@
     - 网卡入流量 (net.if.in[eth0])
     - 网卡出流量 (net.if.out[eth0]) 
     - DNS解析时间 (net.dns.time[,8.8.8.8])
-    - CPU使用率 (system.cpu.util[,avg1])
-    - 内存使用率 (vm.memory.size[pused])
+    - CPU使用率 (system.cpu.util[,user])
     注：可在CONFIG.zabbix.metrics中添加更多指标，每个指标支持独立开关控制
 
 使用方法:
