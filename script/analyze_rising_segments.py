@@ -189,22 +189,15 @@ CONFIG = dict2ns({
                 "item_key": "net.dns.time[,8.8.8.8]",
                 "threshold": 0.05,  # 50ms
                 "name": "DNS解析时间",
-                "unit": "秒",
+                "unit": "ms",
                 "enabled": True  # 是否启用此指标
             },
             "cpu_usage": {
-                "item_key": "system.cpu.util[,avg1]",
-                "threshold": 80,  # 80%
+                "item_key": "system.cpu.util[,user]",
+                "threshold": 10,  # 80%
                 "name": "CPU使用率",
                 "unit": "%",
                 "enabled": True  # 是否启用此指标
-            },
-            "memory_usage": {
-                "item_key": "vm.memory.size[pused]",
-                "threshold": 85,  # 85%
-                "name": "内存使用率",
-                "unit": "%",
-                "enabled": False  # 禁用此指标
             }
         }
     },
