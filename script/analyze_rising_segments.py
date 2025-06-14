@@ -6,18 +6,19 @@
 
 功能描述:
     定时分析数据库响应耗时和多种监控指标的上升段，通过大模型分析其关联性和可能原因。
-    支持自动调度和手动执行两种模式。
+    支持自动调度和手动执行两种模式，支持多机房并行处理以提高分析效率。
 
 主要特性:
     1. 自动定时分析（默认每5分钟执行一次）
     2. 手动执行分析（支持指定时间范围或分析最近5分钟）
-    3. 多数据源支持（Elasticsearch + Zabbix）
-    4. 多指标监控支持（网卡入出流量、DNS解析时间、CPU使用率、内存使用率等）
-    5. 智能上升段检测（每个指标可配置独立阈值）
-    6. 大模型关联分析（支持多指标关联性分析）
-    7. 优雅退出支持（Ctrl+C）
-    8. 防止多实例运行的安全机制（文件锁）
-    9. 僵尸锁文件清理
+    3. 多机房并行处理（最多6个机房同时分析，大幅提升处理效率）
+    4. 多数据源支持（Elasticsearch + Zabbix）
+    5. 多指标监控支持（网卡入出流量、DNS解析时间、CPU使用率、内存使用率等）
+    6. 智能上升段检测（每个指标可配置独立阈值和主机IP）
+    7. 大模型关联分析（支持多指标关联性分析）
+    8. 优雅退出支持（Ctrl+C）
+    9. 防止多实例运行的安全机制（文件锁）
+    10. 僵尸锁文件清理
 
 支持的监控指标:
     - 网卡入流量 (net.if.in[eth0])
@@ -121,6 +122,8 @@ from zabbix_api_script import create_zabbix_client
 import json
 from types import SimpleNamespace
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 # 全局变量用于优雅退出和锁文件管理
 running = True
@@ -167,6 +170,12 @@ CONFIG = dict2ns({
     "scheduler": {
         "interval_minutes": 5,  # 默认定时执行间隔（分钟）可以被命令行参数覆盖
         "lock_file": "/tmp/db_analyzer.lock"  # 锁文件路径
+    },
+    # 并发控制配置
+    "concurrency": {
+        "max_workers": 6,  # 最大并发线程数，建议不超过机房总数
+        "enable_parallel": True,  # 是否启用并行处理，False时使用串行处理
+        "timeout_seconds": 300  # 单个机房处理超时时间（秒），防止某个机房卡死影响整体
     },
     # 机房配置
     "datacenters": {
@@ -659,27 +668,265 @@ def call_llm_analysis(prompt, api_url=CONFIG.llm.url, api_key=CONFIG.llm.api_key
         logger.error(f"大模型调用失败: {e}")
         raise Exception(f"大模型调用失败: {e}")
 
+def process_single_datacenter(idc, dc_name, time_from, time_till):
+    """处理单个机房的分析 - 用于并行处理"""
+    dc = getattr(CONFIG.datacenters, idc)
+    log_prefix = f"[idc{idc}]"
+    
+    result = {
+        'idc': idc,
+        'dc_name': dc_name,
+        'es_segments': None,
+        'zabbix_segments': None,
+        'success': False,
+        'error': None
+    }
+    
+    try:
+        logger.info(f"{log_prefix} 开始分析ES数据库响应耗时...")
+        
+        # 处理ES数据
+        try:
+            es_client = create_elasticsearch_client(dc.es.url)
+            
+            es_query = {
+                "size": 0,
+                "query": {
+                    "range": {
+                        "@timestamp": {
+                            "gte": time_from.isoformat(),
+                            "lte": time_till.isoformat(),
+                            "time_zone": "+08:00"
+                        }
+                    }
+                },
+                "aggs": {
+                    "my_aggs_name": {
+                        "date_histogram": {
+                            "field": "@timestamp",
+                            "fixed_interval": dc.es.fixed_interval
+                        },
+                        "aggs": {
+                            "avg_response_time": {
+                                "avg": {
+                                    "field": dc.es.field
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            es_result = es_client.search_logs(dc.es.index, es_query)
+            es_buckets = es_result.get("aggregations", {}).get("my_aggs_name", {}).get("buckets", [])
+            es_data = [
+                {"time": bucket["key_as_string_bj"], "value": bucket["avg_response_time"]["value"], "key": "avg_response_time"}
+                for bucket in es_buckets
+                if bucket["avg_response_time"]["value"] is not None
+            ]
+            
+            logger.info(f"{log_prefix} ES数据获取成功: {len(es_data)} 条记录")
+            
+            if not es_data:
+                logger.info(f"{log_prefix} ES数据为空，跳过Zabbix监控指标获取")
+                result['success'] = True
+                return result
+            
+            # 分析ES上升段
+            es_times, es_values = extract_time_value_series(es_data)
+            es_threshold = dc.es.threshold
+            es_rising_segments = find_rising_segments(es_values, es_threshold)
+            
+            if not es_rising_segments:
+                logger.info(f"{log_prefix} ES没有发现上升段，跳过Zabbix监控指标获取")
+                result['success'] = True
+                return result
+            
+            # ES有上升段，保存结果
+            formatted_segments = format_rising_segments(es_rising_segments, es_times, es_data, source="es")
+            result['es_segments'] = {
+                "threshold": es_threshold,
+                "segments": formatted_segments
+            }
+            logger.info(f"{log_prefix} ES发现 {len(formatted_segments)} 个上升段")
+            
+        except Exception as e:
+            logger.error(f"{log_prefix} ES数据获取失败: {str(e)}")
+            result['error'] = f"ES数据获取失败: {str(e)}"
+            return result
+        
+        # 只有ES有上升段时才处理Zabbix数据
+        logger.info(f"{log_prefix} ES发现上升段，开始分析Zabbix监控指标...")
+        try:
+            logger.info(f"{log_prefix} 连接Zabbix: {dc.zabbix.url}")
+            zabbix_client = create_zabbix_client(dc.zabbix.url, dc.zabbix.username, dc.zabbix.password)
+            
+            # 获取当前机房启用的指标
+            enabled_metrics = {
+                name: config for name, config in vars(dc.zabbix.metrics).items()
+                if config.enabled
+            }
+            
+            if not enabled_metrics:
+                logger.info(f"{log_prefix} 没有启用任何Zabbix监控指标")
+                result['success'] = True
+                return result
+            
+            # 按指标逐个获取数据，每个指标使用自己的host_ip
+            all_metric_data = {}
+            total_data_count = 0
+            
+            for metric_name, metric_config in enabled_metrics.items():
+                if not hasattr(metric_config, 'host_ip') or not metric_config.host_ip:
+                    logger.warning(f"{log_prefix} {metric_config.name} 缺少host_ip配置，跳过")
+                    continue
+                
+                logger.info(f"{log_prefix} 获取指标 {metric_config.name}, 主机IP: {metric_config.host_ip}")
+                
+                try:
+                    metric_data = zabbix_client.get_history(
+                        time_from=time_from,
+                        time_till=time_till,
+                        host_ips=[metric_config.host_ip],
+                        item_keys=[metric_config.item_key]
+                    )
+                    all_metric_data[metric_name] = metric_data
+                    total_data_count += len(metric_data)
+                    logger.info(f"{log_prefix} {metric_config.name}: {len(metric_data)} 条数据")
+                except Exception as e:
+                    logger.error(f"{log_prefix} {metric_config.name} 数据获取失败: {str(e)}")
+                    all_metric_data[metric_name] = []
+            
+            logger.info(f"{log_prefix} Zabbix数据获取完成，总计: {total_data_count} 条记录")
+            
+            # 按指标分组数据并分析上升段
+            dc_segments = {}
+            for metric_name, metric_config in enabled_metrics.items():
+                # 获取当前指标的数据
+                metric_data = all_metric_data.get(metric_name, [])
+                
+                if metric_data:
+                    # 提取时间序列和值序列
+                    times, values = extract_time_value_series(metric_data)
+                    
+                    if times and values:
+                        # 找出上升段
+                        threshold = metric_config.threshold
+                        rising_segments = find_rising_segments(values, threshold)
+                        
+                        if rising_segments:
+                            # 格式化上升段
+                            formatted_segments = format_rising_segments(rising_segments, times, metric_data, source="zabbix")
+                            dc_segments[metric_name] = {
+                                "name": metric_config.name,
+                                "unit": metric_config.unit,
+                                "threshold": threshold,
+                                "host_ip": metric_config.host_ip,
+                                "segments": formatted_segments
+                            }
+                            logger.info(f"{log_prefix} {metric_config.name} 发现 {len(formatted_segments)} 个上升段")
+                        else:
+                            logger.info(f"{log_prefix} {metric_config.name} 没有发现上升段")
+                    else:
+                        logger.info(f"{log_prefix} {metric_config.name} 数据为空")
+                else:
+                    logger.info(f"{log_prefix} {metric_config.name} 没有数据")
+            
+            if dc_segments:
+                result['zabbix_segments'] = {
+                    "zabbix_url": dc.zabbix.url,
+                    "metrics": dc_segments
+                }
+                
+        except Exception as e:
+            logger.error(f"{log_prefix} Zabbix数据获取失败: {str(e)}")
+            result['error'] = f"Zabbix数据获取失败: {str(e)}"
+            return result
+        
+        # 检查是否需要大模型分析
+        dc_has_zabbix_segments = result['zabbix_segments'] and any(
+            metric_info["segments"] for metric_info in result['zabbix_segments']["metrics"].values()
+        )
+        
+        if dc_has_zabbix_segments:
+            logger.info(f"{log_prefix} 开始大模型分析...")
+            
+            # 组装当前机房的分析prompt
+            dc_es_info = result['es_segments']
+            dc_zabbix_info = result['zabbix_segments']
+            
+            llm_prompt = f"""
+            # 机房{idc} 时间段分析报告
+            分析时间: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}
+            
+            # 数据库响应耗时上升的区间时间段如下(单位为秒)：
+            阈值: {dc_es_info["threshold"]}
+            上升段数据:
+            {json.dumps(dc_es_info["segments"], ensure_ascii=False, indent=2)}
+            
+            # 监控指标上升的区间如下：
+            Zabbix服务器: {dc_zabbix_info["zabbix_url"]}
+            """
+            
+            for metric_name, metric_info in dc_zabbix_info["metrics"].items():
+                if metric_info["segments"]:
+                    llm_prompt += f"""
+            ## {metric_info["name"]} (单位: {metric_info["unit"]})
+            主机IP: {metric_info["host_ip"]}
+            阈值: {metric_info["threshold"]}
+            上升段数据:
+            {json.dumps(metric_info["segments"], ensure_ascii=False, indent=2)}
+            """
+            
+            llm_prompt += """
+            
+            请分析这个机房的数据关联性和可能的原因，重点关注：
+            1. 数据库响应时间上升与监控指标的时间关联性
+            2. 不同监控指标之间的相关性
+            3. 可能的根本原因分析（网络、基础设施、应用层面）
+            4. 针对性的优化建议
+            """
+            
+            try:
+                llm_result = call_llm_analysis(llm_prompt)
+                logger.info(f"{log_prefix} 大模型分析结果：")
+                logger.info(llm_result)
+            except Exception as e:
+                logger.error(f"{log_prefix} 大模型分析失败: {str(e)}")
+                
+        else:
+            logger.info(f"{log_prefix} ES有上升段但Zabbix指标无上升段，建议从其他方面排查原因")
+        
+        logger.info(f"{log_prefix} 机房处理完成")
+        result['success'] = True
+        return result
+        
+    except Exception as e:
+        logger.error(f"{log_prefix} 机房处理异常: {str(e)}")
+        result['error'] = f"机房处理异常: {str(e)}"
+        return result
 
 
-def analyze_db_response():
-    """多机房数据库响应分析 - 按机房顺序依次处理"""
+def analyze_db_response(time_from=None, time_till=None):
+    """多机房数据库响应分析 - 支持并行/串行处理模式"""
     try:
         # 获取分析时间范围
-        time_from, time_till = get_analysis_default_time_range()
-        logger.info(f"开始多机房分析，时间段: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}")
+        if time_from is None or time_till is None:
+            time_from, time_till = get_analysis_default_time_range()
         
-        # 获取机房列表，按编号顺序处理
-        datacenter_order = ["11", "12", "20", "21", "30", "31"]
+        # 获取并发配置
+        enable_parallel = CONFIG.concurrency.enable_parallel
+        max_workers = CONFIG.concurrency.max_workers
+        timeout_seconds = CONFIG.concurrency.timeout_seconds
         
-        # 筛选出启用的机房
+        processing_mode = "并行" if enable_parallel else "串行"
+        logger.info(f"开始多机房{processing_mode}分析，时间段: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        # 直接从配置中获取机房列表，保持配置中的顺序
         enabled_datacenters = []
         disabled_datacenters = []
         
-        for idc in datacenter_order:
-            if idc not in vars(CONFIG.datacenters):
-                logger.warning(f"机房 {idc} 未在配置中找到，跳过")
-                continue
-                
+        for idc in vars(CONFIG.datacenters):
             dc = getattr(CONFIG.datacenters, idc)
             if dc.enabled:
                 enabled_datacenters.append((idc, dc.name))
@@ -694,244 +941,104 @@ def analyze_db_response():
             logger.warning("没有启用任何机房，退出分析")
             return True
         
-        all_es_segments = {}
-        all_zabbix_segments = {}
+        all_results = {}
+        successful_count = 0
+        failed_count = 0
         
-        # 按顺序逐个处理每个启用的机房
-        for idc, dc_name in enabled_datacenters:
-            dc = getattr(CONFIG.datacenters, idc)
-            # 定义当前机房的日志前缀
-            log_prefix = f"[idc{idc}]"
+        if enable_parallel:
+            # 并行处理模式
+            actual_workers = min(len(enabled_datacenters), max_workers)
+            logger.info(f"并行模式: 使用 {actual_workers} 个线程处理 {len(enabled_datacenters)} 个机房 (最大并发: {max_workers}, 超时: {timeout_seconds}秒)")
             
-            logger.info("="*60)
-            # 处理当前机房的ES数据
-            logger.info(f"{log_prefix} 开始分析ES数据库响应耗时...")
-            try:
-                es_client = create_elasticsearch_client(dc.es.url)
-                
-                es_query = {
-                    "size": 0,
-                    "query": {
-                        "range": {
-                            "@timestamp": {
-                                "gte": time_from.isoformat(),
-                                "lte": time_till.isoformat(),
-                                "time_zone": "+08:00"
-                            }
-                        }
-                    },
-                    "aggs": {
-                        "my_aggs_name": {
-                            "date_histogram": {
-                                "field": "@timestamp",
-                                "fixed_interval": dc.es.fixed_interval
-                            },
-                            "aggs": {
-                                "avg_response_time": {
-                                    "avg": {
-                                        "field": dc.es.field
-                                    }
-                                }
-                            }
-                        }
-                    }
+            with ThreadPoolExecutor(max_workers=actual_workers) as executor:
+                # 提交所有机房的处理任务
+                future_to_idc = {
+                    executor.submit(process_single_datacenter, idc, dc_name, time_from, time_till): idc
+                    for idc, dc_name in enabled_datacenters
                 }
                 
-                es_result = es_client.search_logs(dc.es.index, es_query)
-                es_buckets = es_result.get("aggregations", {}).get("my_aggs_name", {}).get("buckets", [])
-                es_data = [
-                    {"time": bucket["key_as_string_bj"], "value": bucket["avg_response_time"]["value"], "key": "avg_response_time"}
-                    for bucket in es_buckets
-                    if bucket["avg_response_time"]["value"] is not None
-                ]
-                
-                logger.info(f"{log_prefix} ES数据获取成功: {len(es_data)} 条记录")
-                
-                if es_data:
-                    # 分析ES上升段
-                    es_times, es_values = extract_time_value_series(es_data)
-                    es_threshold = dc.es.threshold
-                    es_rising_segments = find_rising_segments(es_values, es_threshold)
-                    
-                    if es_rising_segments:
-                        formatted_segments = format_rising_segments(es_rising_segments, es_times, es_data, source="es")
-                        all_es_segments[idc] = {
-                            "threshold": es_threshold,
-                            "segments": formatted_segments
-                        }
-                        logger.info(f"{log_prefix} ES发现 {len(formatted_segments)} 个上升段")
-                    else:
-                        logger.info(f"{log_prefix} ES没有发现上升段，跳过Zabbix监控指标获取")
-                        continue
-                else:
-                    logger.info(f"{log_prefix} ES数据为空，跳过Zabbix监控指标获取")
-                    continue
-                    
-            except Exception as e:
-                logger.error(f"{log_prefix} ES数据获取失败: {str(e)}")
-                continue
-            
-            # 只有ES有上升段时才处理Zabbix数据
-            logger.info(f"{log_prefix} ES发现上升段，开始分析Zabbix监控指标...")
-            try:
-                logger.info(f"{log_prefix} 连接Zabbix: {dc.zabbix.url}")
-                zabbix_client = create_zabbix_client(dc.zabbix.url, dc.zabbix.username, dc.zabbix.password)
-                
-                # 获取当前机房启用的指标
-                enabled_metrics = {
-                    name: config for name, config in vars(dc.zabbix.metrics).items()
-                    if config.enabled
-                }
-                
-                if not enabled_metrics:
-                    logger.info(f"{log_prefix} 没有启用任何Zabbix监控指标")
-                    continue
-                
-                # 按指标逐个获取数据，每个指标使用自己的host_ip
-                all_metric_data = {}
-                total_data_count = 0
-                
-                for metric_name, metric_config in enabled_metrics.items():
-                    if not hasattr(metric_config, 'host_ip') or not metric_config.host_ip:
-                        logger.warning(f"{log_prefix} {metric_config.name} 缺少host_ip配置，跳过")
-                        continue
-                    
-                    logger.info(f"{log_prefix} 获取指标 {metric_config.name}, 主机IP: {metric_config.host_ip}")
-                    
+                # 收集结果，支持超时控制
+                for future in as_completed(future_to_idc, timeout=timeout_seconds):
+                    idc = future_to_idc[future]
                     try:
-                        metric_data = zabbix_client.get_history(
-                            time_from=time_from,
-                            time_till=time_till,
-                            host_ips=[metric_config.host_ip],
-                            item_keys=[metric_config.item_key]
-                        )
-                        all_metric_data[metric_name] = metric_data
-                        total_data_count += len(metric_data)
-                        logger.info(f"{log_prefix} {metric_config.name}: {len(metric_data)} 条数据")
-                    except Exception as e:
-                        logger.error(f"{log_prefix} {metric_config.name} 数据获取失败: {str(e)}")
-                        all_metric_data[metric_name] = []
-                
-                logger.info(f"{log_prefix} Zabbix数据获取完成，总计: {total_data_count} 条记录")
-                
-                # 按指标分组数据并分析上升段
-                dc_segments = {}
-                for metric_name, metric_config in enabled_metrics.items():
-                    # 获取当前指标的数据
-                    metric_data = all_metric_data.get(metric_name, [])
-                    
-                    if metric_data:
-                        # 提取时间序列和值序列
-                        times, values = extract_time_value_series(metric_data)
+                        result = future.result(timeout=timeout_seconds)
+                        all_results[idc] = result
                         
-                        if times and values:
-                            # 找出上升段
-                            threshold = metric_config.threshold
-                            rising_segments = find_rising_segments(values, threshold)
-                            
-                            if rising_segments:
-                                # 格式化上升段
-                                formatted_segments = format_rising_segments(rising_segments, times, metric_data, source="zabbix")
-                                dc_segments[metric_name] = {
-                                    "name": metric_config.name,
-                                    "unit": metric_config.unit,
-                                    "threshold": threshold,
-                                    "host_ip": metric_config.host_ip,
-                                    "segments": formatted_segments
-                                }
-                                logger.info(f"{log_prefix} {metric_config.name} 发现 {len(formatted_segments)} 个上升段")
-                            else:
-                                logger.info(f"{log_prefix} {metric_config.name} 没有发现上升段")
+                        if result['success']:
+                            successful_count += 1
+                            logger.info(f"[idc{idc}] 处理成功")
                         else:
-                            logger.info(f"{log_prefix} {metric_config.name} 数据为空")
-                    else:
-                        logger.info(f"{log_prefix} {metric_config.name} 没有数据")
-                
-                if dc_segments:
-                    all_zabbix_segments[idc] = {
-                        "zabbix_url": dc.zabbix.url,
-                        "metrics": dc_segments
-                    }
-                    
-            except Exception as e:
-                logger.error(f"{log_prefix} Zabbix数据获取失败: {str(e)}")
+                            failed_count += 1
+                            logger.error(f"[idc{idc}] 处理失败: {result.get('error', '未知错误')}")
+                            
+                    except Exception as e:
+                        failed_count += 1
+                        logger.error(f"[idc{idc}] 处理异常: {str(e)}")
+                        all_results[idc] = {
+                            'idc': idc,
+                            'success': False,
+                            'error': f"处理异常: {str(e)}"
+                        }
+        else:
+            # 串行处理模式
+            logger.info(f"串行模式: 按顺序处理 {len(enabled_datacenters)} 个机房")
             
-            # 检查当前机房是否需要大模型分析
-            # 由于只有ES有上升段才会获取Zabbix数据，所以这里一定有ES上升段
-            dc_has_zabbix_segments = idc in all_zabbix_segments and any(
-                metric_info["segments"] for metric_info in all_zabbix_segments[idc]["metrics"].values()
-            )
-            
-            if dc_has_zabbix_segments:
-                logger.info(f"{log_prefix} 开始大模型分析...")
-                
-                # 组装当前机房的分析prompt
-                dc_es_info = all_es_segments[idc]
-                dc_zabbix_info = all_zabbix_segments[idc]
-                
-                llm_prompt = f"""
-                # 机房{idc} 时间段分析报告
-                分析时间: {time_from.strftime('%Y-%m-%d %H:%M:%S')} - {time_till.strftime('%Y-%m-%d %H:%M:%S')}
-                
-                # 数据库响应耗时上升的区间时间段如下(单位为秒)：
-                阈值: {dc_es_info["threshold"]}
-                上升段数据:
-                {json.dumps(dc_es_info["segments"], ensure_ascii=False, indent=2)}
-                
-                # 监控指标上升的区间如下：
-                Zabbix服务器: {dc_zabbix_info["zabbix_url"]}
-                """
-                
-                for metric_name, metric_info in dc_zabbix_info["metrics"].items():
-                    if metric_info["segments"]:
-                        llm_prompt += f"""
-                ## {metric_info["name"]} (单位: {metric_info["unit"]})
-                主机IP: {metric_info["host_ip"]}
-                阈值: {metric_info["threshold"]}
-                上升段数据:
-                {json.dumps(metric_info["segments"], ensure_ascii=False, indent=2)}
-                """
-                
-                llm_prompt += """
-                
-                请分析这个机房的数据关联性和可能的原因，重点关注：
-                1. 数据库响应时间上升与监控指标的时间关联性
-                2. 不同监控指标之间的相关性
-                3. 可能的根本原因分析（网络、基础设施、应用层面）
-                4. 针对性的优化建议
-                """
-                
+            for idc, dc_name in enabled_datacenters:
+                logger.info(f"开始处理机房 {idc}...")
                 try:
-                    result = call_llm_analysis(llm_prompt)
-                    logger.info(f"{log_prefix} 大模型分析结果：")
-                    logger.info(result)
-                except Exception as e:
-                    logger.error(f"{log_prefix} 大模型分析失败: {str(e)}")
+                    result = process_single_datacenter(idc, dc_name, time_from, time_till)
+                    all_results[idc] = result
                     
-            else:
-                logger.info(f"{log_prefix} ES有上升段但Zabbix指标无上升段，建议从其他方面排查原因")
-            
-            logger.info(f"{log_prefix} 机房处理完成")
+                    if result['success']:
+                        successful_count += 1
+                        logger.info(f"[idc{idc}] 处理成功")
+                    else:
+                        failed_count += 1
+                        logger.error(f"[idc{idc}] 处理失败: {result.get('error', '未知错误')}")
+                        
+                except Exception as e:
+                    failed_count += 1
+                    logger.error(f"[idc{idc}] 处理异常: {str(e)}")
+                    all_results[idc] = {
+                        'idc': idc,
+                        'success': False,
+                        'error': f"处理异常: {str(e)}"
+                    }
         
-        # 简单汇总
+        # 汇总统计
         logger.info("")
         logger.info("="*60)
-        logger.info("所有机房处理完成")
+        logger.info(f"所有机房{processing_mode}处理完成")
         logger.info("="*60)
         
-        # 统计汇总信息
-        total_es_segments = sum(len(dc_info["segments"]) for dc_info in all_es_segments.values())
-        total_zabbix_segments = sum(
-            sum(len(metric_info["segments"]) for metric_info in dc_info["metrics"].values())
-            for dc_info in all_zabbix_segments.values()
-        )
+        logger.info(f"处理结果统计: 成功 {successful_count} 个, 失败 {failed_count} 个")
+        
+        # 统计上升段数量
+        total_es_segments = 0
+        total_zabbix_segments = 0
+        
+        for idc, result in all_results.items():
+            if result['success']:
+                if result.get('es_segments'):
+                    total_es_segments += len(result['es_segments']['segments'])
+                
+                if result.get('zabbix_segments'):
+                    for metric_info in result['zabbix_segments']['metrics'].values():
+                        total_zabbix_segments += len(metric_info['segments'])
         
         logger.info(f"汇总统计 - ES上升段总数: {total_es_segments}, Zabbix指标上升段总数: {total_zabbix_segments}")
         
-        return True
+        # 显示失败的机房详情
+        if failed_count > 0:
+            logger.warning("失败机房详情:")
+            for idc, result in all_results.items():
+                if not result['success']:
+                    logger.warning(f"  机房{idc}: {result.get('error', '未知错误')}")
+        
+        return successful_count > 0  # 只要有一个机房成功就算成功
         
     except Exception as e:
-        logger.error(f"分析失败: {str(e)}")
+        logger.error(f"{processing_mode}分析失败: {str(e)}")
         return False
 
 def run_scheduler():
@@ -995,21 +1102,51 @@ def run_manual_analysis(time_from_str=None, time_till_str=None):
             time_from, time_till = get_analysis_default_time_range()
         
         logger.info("执行手动分析...")
-        return analyze_db_response()
+        return analyze_db_response(time_from, time_till)
     finally:
         # 确保锁文件被清理
         cleanup_lock_file()
 
 def main():
-    parser = argparse.ArgumentParser(description='数据库响应分析工具')
+    parser = argparse.ArgumentParser(
+        description='多机房数据库响应分析工具 - 监控ES数据库响应时间和Zabbix系统指标',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+使用示例:
+  # 手动分析 - 使用默认时间范围（最近5分钟）
+  python3 %(prog)s --mode manual
+  
+  # 手动分析 - 指定时间范围
+  python3 %(prog)s --mode manual --time-from "2025-06-15 07:10:00" --time-till "2025-06-15 07:15:00"
+  
+  # 定时调度 - 使用默认间隔（5分钟）
+  python3 %(prog)s --mode scheduler
+  
+  # 定时调度 - 自定义间隔（10分钟）
+  python3 %(prog)s --mode scheduler --interval 10
+
+功能说明:
+  - 支持多机房并行/串行处理，可通过配置文件调整
+  - ES优先策略：只有发现数据库响应上升段才获取Zabbix数据
+  - 每个机房独立分析，单个机房失败不影响其他机房
+  - 支持大模型智能分析，提供详细的异常诊断报告
+  - 完全配置驱动，支持机房启用/禁用、并发控制等
+
+注意事项:
+  - scheduler模式只支持--interval参数
+  - manual模式只支持--time-from和--time-till参数
+  - 时间格式必须为: YYYY-MM-DD HH:MM:SS
+  - 程序使用锁文件防止重复运行
+        ''')
+    
     parser.add_argument('--mode', choices=['scheduler', 'manual'], required=True,
-                       help='运行模式: scheduler=定时调度, manual=手动执行 (必需参数)')
-    parser.add_argument('--time-from', type=str,
-                       help='分析开始时间 (格式: YYYY-MM-DD HH:MM:SS)')
-    parser.add_argument('--time-till', type=str,
-                       help='分析结束时间 (格式: YYYY-MM-DD HH:MM:SS)')
-    parser.add_argument('--interval', type=int, default=5,
-                       help='定时执行间隔（分钟），默认5分钟')
+                       help='运行模式 (必需): scheduler=定时调度模式, manual=手动执行模式')
+    parser.add_argument('--time-from', type=str, metavar='TIME',
+                       help='[manual模式] 分析开始时间，格式: YYYY-MM-DD HH:MM:SS')
+    parser.add_argument('--time-till', type=str, metavar='TIME',
+                       help='[manual模式] 分析结束时间，格式: YYYY-MM-DD HH:MM:SS')
+    parser.add_argument('--interval', type=int, default=5, metavar='MINUTES',
+                       help='[scheduler模式] 定时执行间隔，单位：分钟 (默认: 5分钟)')
     
     args = parser.parse_args()
     
