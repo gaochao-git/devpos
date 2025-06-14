@@ -25,17 +25,17 @@
     - 网卡入流量 (net.if.in[eth0])
     - 网卡出流量 (net.if.out[eth0]) 
     - DNS解析时间 (net.dns.time[,8.8.8.8])
-    - CPU使用率 (system.cpu.util[,user])
+    - CPU使用率 (system.cpu.util[,avg1])
     注：可在CONFIG.zabbix.metrics中添加更多指标，每个指标支持独立开关控制
 
 使用方法:
     1. 帮助:
        python3 analyze_rising_segments.py --help
-         2. 定时调度模式:
+         2. 定时调度模式（默认5分钟间隔）:
         python3 analyze_rising_segments.py --mode scheduler  # 默认5分钟间隔
         python3 analyze_rising_segments.py --mode scheduler --interval 10  # 10分钟间隔
     
-    3. 手动执行模式:
+    3. 手动执行模式（执行1次）:
        python3 analyze_rising_segments.py --mode manual  # 分析最近5分钟
        python3 analyze_rising_segments.py --mode manual --time-from "2025-06-14 10:00:00" --time-till "2025-06-14 10:05:00"
     
