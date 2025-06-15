@@ -704,7 +704,7 @@ def process_single_datacenter(idc, dc_name, time_from, time_till):
                                     "@timestamp": {
                                         "gte": start_time_timestamp,
                                         "lte": stop_time_timestamp,
-                                        "time_zone": "+08:00"
+                                        # "time_zone": "+08:00"
                                     }
                                 }
                             },
