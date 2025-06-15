@@ -681,7 +681,8 @@ def process_single_datacenter(idc, dc_name, time_from, time_till):
         'success': False,
         'error': None
     }
-    
+    start_time_timestamp = int(time.mktime(time_from.timetuple())) * 1000
+    end_time_timestamp = int(time.mktime(time_till.timetuple())) * 1000
     try:
         logger.info(f"{log_prefix} 开始分析ES数据库响应耗时...")
         
@@ -701,8 +702,8 @@ def process_single_datacenter(idc, dc_name, time_from, time_till):
                             {
                                 "range": {
                                     "@timestamp": {
-                                        "gte": time_from.isoformat(),
-                                        "lte": time_till.isoformat(),
+                                        "gte": start_time_timestamp,
+                                        "lte": end_time_timestamp,
                                         "time_zone": "+08:00"
                                     }
                                 }
