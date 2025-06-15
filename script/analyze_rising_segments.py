@@ -692,12 +692,26 @@ def process_single_datacenter(idc, dc_name, time_from, time_till):
             es_query = {
                 "size": 0,
                 "query": {
-                    "range": {
-                        "@timestamp": {
-                            "gte": time_from.isoformat(),
-                            "lte": time_till.isoformat(),
-                            "time_zone": "+08:00"
-                        }
+                    "bool": {
+                        "must": [],
+                        "must_not": [],
+                        "should": [],
+                        "filter": [
+                            {
+                                "range": {
+                                    "@timestamp": {
+                                        "gte": time_from.isoformat(),
+                                        "lte": time_till.isoformat(),
+                                        "time_zone": "+08:00"
+                                    }
+                                }
+                            },
+                            # {
+                            #     "match": {
+                            #         "idc": idc
+                            #     }
+                            # }
+                        ]
                     }
                 },
                 "aggs": {
