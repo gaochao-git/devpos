@@ -816,7 +816,7 @@ def process_single_datacenter(idc, dc_name, time_from, time_till):
                         time_from=time_from,
                         time_till=time_till,
                         host_ips=[metric_config.host_ip],
-                        item_keys=[metric_config.item_key]
+                        item_key=metric_config.item_key
                     )
                     all_metric_data[metric_name] = metric_data
                     total_data_count += len(metric_data)
