@@ -8,15 +8,15 @@ Elasticsearch API 客户端模块
 
 使用示例：
 ```python
-# 创建客户端
-es_client = create_elasticsearch_client("http://your_es_host:9200")
+# 创建客户端 - 指定Elasticsearch服务器URL和索引
+es_client = create_elasticsearch_client("http://your_es_host:9200/_search", "your-index-*")
 
 # 1. 基础搜索
 query = {
     "size": 100,
     "sort": [{"@timestamp": {"order": "desc"}}]
 }
-result = es_client.search_logs("your-index-*", query)
+result = es_client.search_logs(query)
 
 # 2. 时间范围搜索
 # 2.1 使用相对时间
@@ -32,7 +32,7 @@ query = {
     },
     "sort": [{"@timestamp": {"order": "desc"}}]
 }
-result = es_client.search_logs("your-index-*", query)
+result = es_client.search_logs(query)
 
 # 2.2 使用日期范围
 query = {
@@ -47,7 +47,7 @@ query = {
     },
     "sort": [{"@timestamp": {"order": "desc"}}]
 }
-result = es_client.search_logs("your-index-*", query)
+result = es_client.search_logs(query)
 
 # 2.3 使用Python datetime对象
 from datetime import datetime, timedelta
@@ -65,7 +65,7 @@ query = {
     },
     "sort": [{"@timestamp": {"order": "desc"}}]
 }
-result = es_client.search_logs("your-index-*", query)
+result = es_client.search_logs(query)
 
 # 3. 日志级别搜索
 query = {
@@ -77,7 +77,7 @@ query = {
     },
     "sort": [{"@timestamp": {"order": "desc"}}]
 }
-result = es_client.search_logs("your-index-*", query)
+result = es_client.search_logs(query)
 
 # 4. 关键词搜索
 query = {
@@ -90,7 +90,7 @@ query = {
     },
     "sort": [{"@timestamp": {"order": "desc"}}]
 }
-result = es_client.search_logs("your-index-*", query)
+result = es_client.search_logs(query)
 
 # 5. 组合查询
 query = {
@@ -122,7 +122,7 @@ query = {
     },
     "sort": [{"@timestamp": {"order": "desc"}}]
 }
-result = es_client.search_logs("your-index-*", query)
+result = es_client.search_logs(query)
 
 # 6. 聚合查询示例
 # 6.1 按时间统计日志数量
@@ -137,7 +137,7 @@ query = {
         }
     }
 }
-result = es_client.search_logs("your-index-*", query)
+result = es_client.search_logs(query)
 
 # 6.2 按日志级别统计
 query = {
@@ -151,15 +151,18 @@ query = {
         }
     }
 }
-result = es_client.search_logs("your-index-*", query)
+result = es_client.search_logs(query)
 ```
 
 参数说明：
-1. search_logs 方法参数：
+1. create_elasticsearch_client 方法参数：
+   - url: Elasticsearch服务器URL，格式：http://host:port/_msearch
    - index: 索引名称，支持通配符
+
+2. search_logs 方法参数：
    - query: Elasticsearch原生查询体，包含查询条件、排序、分页、聚合等
 
-2. 返回结果格式：
+3. 返回结果格式：
    {
        "hits": {
            "total": {"value": 数量},
@@ -208,27 +211,40 @@ class ElasticsearchAPI:
         初始化Elasticsearch API客户端
         
         Args:
-            url: 完整的查询URL
+            url: Elasticsearch服务器URL，格式：http://host:port/_msearch
+            index: 索引名称，支持通配符
         """
         self.api_url = url
         self.headers = {"Content-Type": "application/json"}
         self.index = index
+        self.header_line = json.dumps({
+            "index": self.index,
+            "search_type": "query_then_fetch",
+            "ignore_unavailable": "true"
+        })
         
     def search_logs(self, query: Dict = None) -> Dict:
         """
         搜索日志
         
         Args:
-            index: 索引名称
-            query: 查询体
+            query: Elasticsearch查询体，包含查询条件、排序、分页、聚合等
             
         Returns:
             搜索结果
         """
         try:
-            response = requests.post(self.api_url, json=query, timeout=30)
+            # 构造msearch格式的请求体：第一行是索引信息，第二行是查询体
+            query_line = json.dumps(query) if query else "{}"
+            request_body = f"{self.header_line}\n{query_line}\n"
+            
+            # 使用data参数发送纯文本格式的请求体
+            response = requests.post(self.api_url, data=request_body, headers=self.headers, timeout=30)
             response.raise_for_status()
-            result = response.json()
+            msearch_result = response.json()
+            
+            # _msearch 返回的是一个数组，我们取第一个结果
+            result = msearch_result.get('responses', [{}])[0] if msearch_result.get('responses') else {}
             
             # 处理时间字段为北京时间
             def process_bucket(bucket):
@@ -263,31 +279,17 @@ class ElasticsearchAPI:
             raise
 
 
-def create_elasticsearch_client(url: str, index: str) -> ElasticsearchAPI:
-    """
-    创建Elasticsearch客户端
-    
-    Args:
-        url: Elasticsearch服务器URL
-        
-    Returns:
-        ElasticsearchAPI实例
-    """
-    client = ElasticsearchAPI(url, index)
-    
-    return client
-
 
 # 使用示例
 if __name__ == "__main__":
     # 配置信息
-    ES_BASE_URL = "http://82.156.146.51:9200/_search"
+    ES_URL = "http://82.156.146.51:9200/_msearch"
     ES_USERNAME = None  # 无需认证
     ES_PASSWORD = None  # 无需认证
     
     try:
-        # 创建客户端 - 使用完整的查询URL
-        es_client = create_elasticsearch_client(url=f"{ES_BASE_URL}", index="mysql-error-*")
+        # 创建客户端 - 使用_msearch URL
+        es_client = ElasticsearchAPI(url=f"{ES_URL}", index="mysql-error-*")
         
         # 搜索错误日志
         query = {
@@ -299,9 +301,7 @@ if __name__ == "__main__":
             },
             "sort": [{"@timestamp": {"order": "desc"}}]
         }
-        error_logs = es_client.search_logs(
-            query=query
-        )
+        error_logs = es_client.search_logs(query=query)
         
         print(f"Found {error_logs.get('hits', {}).get('total', {}).get('value', 0)} error logs")
         
