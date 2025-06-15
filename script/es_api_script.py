@@ -246,9 +246,6 @@ class ElasticsearchAPI:
             response.raise_for_status()
             result = response.json()
             
-            # 处理时间字段为北京时间（复用时间处理逻辑）
-            self._process_time_fields(result)
-            
             return result
             
         except Exception as e:
@@ -278,46 +275,11 @@ class ElasticsearchAPI:
             # _msearch 返回的是一个数组，我们取第一个结果
             result = msearch_result.get('responses', [{}])[0] if msearch_result.get('responses') else {}
             
-            # 处理时间字段为北京时间
-            self._process_time_fields(result)
-            
             return result
             
         except Exception as e:
             logger.error(f"MSearch log failed: {e}")
             raise
-    
-    def _process_time_fields(self, result: Dict):
-        """
-        处理时间字段为北京时间（内部方法）
-        
-        Args:
-            result: 搜索结果
-        """
-        def process_bucket(bucket):
-            # 处理key_as_string为北京时间
-            if "key_as_string" in bucket:
-                try:
-                    # 解析UTC时间
-                    utc_time = datetime.fromisoformat(bucket["key_as_string"].replace('Z', '+00:00'))
-                    # 转换为北京时间
-                    beijing_time = utc_time.astimezone(timezone(timedelta(hours=8)))
-                    bucket["key_as_string_bj"] = beijing_time.strftime('%Y-%m-%d %H:%M:%S')
-                except:
-                    bucket["key_as_string_bj"] = bucket["key_as_string"]
-            
-            # 递归处理嵌套的聚合
-            for key, value in bucket.items():
-                if isinstance(value, dict) and "buckets" in value:
-                    for sub_bucket in value["buckets"]:
-                        process_bucket(sub_bucket)
-        
-        # 处理聚合结果中的时间字段
-        if "aggregations" in result:
-            for agg_name, agg_data in result["aggregations"].items():
-                if "buckets" in agg_data:
-                    for bucket in agg_data["buckets"]:
-                        process_bucket(bucket)
     
     def search_logs(self, query: Dict = None) -> Dict:
         """
@@ -334,9 +296,6 @@ class ElasticsearchAPI:
             response = requests.post(self.search_url, json=query, headers=self.json_headers, timeout=30)
             response.raise_for_status()
             result = response.json()
-            
-            # 处理时间字段为北京时间
-            self._process_time_fields(result)
             
             return result
             

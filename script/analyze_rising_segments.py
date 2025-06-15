@@ -735,11 +735,13 @@ def process_single_datacenter(idc, dc_name, time_from, time_till):
             # 使用msearch_log方法进行查询
             es_result = es_client.msearch_log(es_query)
             es_buckets = es_result.get("aggregations", {}).get("my_aggs_name", {}).get("buckets", [])
+            print(es_buckets)
             es_data = [
                 {"time": bucket["key_as_string_bj"], "value": bucket["avg_response_time"]["value"], "key": "avg_response_time"}
                 for bucket in es_buckets
                 if bucket["avg_response_time"]["value"] is not None
             ]
+            print(es_data)
             
             logger.info(f"{log_prefix} ES数据获取成功: {len(es_data)} 条记录")
             
