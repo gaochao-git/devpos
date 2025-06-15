@@ -42,8 +42,7 @@ print(items)
 ### 5. 获取监控项的历史数据
 ```python
 if items:
-    item_ids = [item["itemid"] for item in items]
-    history = zabbix.get_history(host_ips=None, item_keys=["system.cpu.util[,user]"], time_back="1h")
+    history = zabbix.get_history(host_ips=["127.0.0.1"], item_key="system.cpu.util[,user]", time_back="1h")
     print(history)
 ```
 
@@ -62,7 +61,8 @@ print(top_ips)
 ## 参数说明
 - ip_addresses: 主机IP地址列表
 - host_ips: 主机IP地址列表（用于 get_items/get_problems）
-- item_keys: 监控项key列表
+- item_key: 监控项key（用于 get_history）
+- item_keys: 监控项key列表（用于 get_items）
 - item_ids: 监控项ID列表
 - time_from: 开始时间（datetime对象或"YYYY-MM-DD HH:MM:SS"格式字符串）
 - time_till: 结束时间（datetime对象或"YYYY-MM-DD HH:MM:SS"格式字符串）
@@ -224,13 +224,13 @@ class ZabbixAPI:
             time_till = datetime.now()
         return time_from, time_till
 
-    def get_history(self, host_ips: List[str], item_keys: List[str], time_from: datetime = None, time_till: datetime = None, time_back: str = None, limit: int = None) -> List[Dict]:
+    def get_history(self, host_ips: List[str], item_key: str, time_from: datetime = None, time_till: datetime = None, time_back: str = None, limit: int = None) -> List[Dict]:
         """
         通过监控项key_获取历史数据（可选指定IP）
         
         Args:
             host_ips: 主机IP地址列表（可选）
-            item_keys: 监控项key_列表
+            item_key: 监控项key_
             time_from: 开始时间
             time_till: 结束时间
             time_back: 时间回溯（支持s/m/h/d/w单位，如"2h", "30m", "7d"）
@@ -245,7 +245,7 @@ class ZabbixAPI:
             }
         """
         try:
-            items = self.get_items(host_ips=host_ips, item_keys=item_keys)
+            items = self.get_items(host_ips=host_ips, item_keys=[item_key])
             item_ids = [item["itemid"] for item in items]
             if not item_ids:
                 return []
@@ -262,18 +262,17 @@ class ZabbixAPI:
             }
             raw_data = self.zapi.history.get(**params)
             
-            # 创建itemid到key和单位的映射
-            item_key_map = {item["itemid"]: item["key_"] for item in items}
-            item_units_map = {item["itemid"]: item.get("units", "") for item in items}
+            # 获取单位信息
+            units = items[0].get("units", "") if items else ""
             
             # 转换数据格式
             formatted_data = []
             for item in raw_data:
                 formatted_data.append({
-                    "key": item_key_map.get(item["itemid"], "unknown"),
+                    "key": item_key,
                     "time": datetime.fromtimestamp(int(item["clock"])).strftime("%Y-%m-%d %H:%M:%S"),
                     "value": float(item["value"]),
-                    "units": item_units_map.get(item["itemid"], "")
+                    "units": units
                 })
             return formatted_data
         except ZabbixAPIException as e:
@@ -708,8 +707,8 @@ if __name__ == "__main__":
         
         # 测试 get_history
         if items_by_ip:
-            item_keys = [item["key_"] for item in items_by_ip]
-            history = zabbix.get_history(host_ips=["127.0.0.1"], item_keys=item_keys, time_back="1m")
+            item_key = items_by_ip[0]["key_"]  # 取第一个监控项的key
+            history = zabbix.get_history(host_ips=["127.0.0.1"], item_key=item_key, time_back="1m")
             print("get_history 测试结果:", history)
         
         # 测试 get_problems
