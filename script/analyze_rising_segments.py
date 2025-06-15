@@ -735,9 +735,18 @@ def process_single_datacenter(idc, dc_name, time_from, time_till):
             # 使用msearch_log方法进行查询
             es_result = es_client.msearch_log(es_query)
             es_buckets = es_result.get("aggregations", {}).get("my_aggs_name", {}).get("buckets", [])
-            print(es_buckets)
+            
+            # 直接使用时间戳转换为时间格式
+            def convert_timestamp(timestamp_ms):
+                """将毫秒时间戳转换为时间字符串"""
+                try:
+                    dt = datetime.fromtimestamp(timestamp_ms / 1000)
+                    return dt.strftime('%Y-%m-%d %H:%M:%S')
+                except:
+                    return str(timestamp_ms)
+            
             es_data = [
-                {"time": bucket["key_as_string_bj"], "value": bucket["avg_response_time"]["value"], "key": "avg_response_time"}
+                {"time": convert_timestamp(bucket["key"]), "value": round(bucket["avg_response_time"]["value"], 2), "key": "avg_response_time"}
                 for bucket in es_buckets
                 if bucket["avg_response_time"]["value"] is not None
             ]
