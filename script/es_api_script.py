@@ -203,67 +203,18 @@ logger = logging.getLogger(__name__)
 class ElasticsearchAPI:
     """Elasticsearch API 客户端类"""
     
-    def __init__(self, url: str):
+    def __init__(self, url: str, index: str):
         """
         初始化Elasticsearch API客户端
         
         Args:
-            url: Elasticsearch服务器URL
+            url: 完整的查询URL
         """
-        self.base_url = url.rstrip('/')
+        self.api_url = url
+        self.headers = {"Content-Type": "application/json"}
+        self.index = index
         
-    def test_connection(self) -> bool:
-        """
-        测试连接
-        
-        Returns:
-            连接是否成功
-        """
-        try:
-            response = requests.get(f"{self.base_url}/", timeout=10)
-            response.raise_for_status()
-            result = response.json()
-            version = result.get("version", {}).get("number", "unknown")
-            logger.info(f"Connected to Elasticsearch: {version}")
-            return True
-        except Exception as e:
-            logger.error(f"Connection test failed: {e}")
-            return False
-            
-    def get_cluster_health(self) -> Dict:
-        """
-        获取集群健康状态
-        
-        Returns:
-            集群健康信息
-        """
-        try:
-            response = requests.get(f"{self.base_url}/_cluster/health", timeout=10)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logger.error(f"Get cluster health failed: {e}")
-            return {}
-            
-    def list_indices(self, pattern: str = "*") -> List[Dict]:
-        """
-        列出索引
-        
-        Args:
-            pattern: 索引模式
-            
-        Returns:
-            索引列表
-        """
-        try:
-            response = requests.get(f"{self.base_url}/_cat/indices/{pattern}?format=json", timeout=10)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logger.error(f"List indices failed: {e}")
-            return []
-            
-    def search_logs(self, index: str, query: Dict = None) -> Dict:
+    def search_logs(self, query: Dict = None) -> Dict:
         """
         搜索日志
         
@@ -275,8 +226,7 @@ class ElasticsearchAPI:
             搜索结果
         """
         try:
-            url = f"{self.base_url}/{index}/_search"
-            response = requests.post(url, json=query, timeout=30)
+            response = requests.post(self.api_url, json=query, timeout=30)
             response.raise_for_status()
             result = response.json()
             
@@ -313,7 +263,7 @@ class ElasticsearchAPI:
             raise
 
 
-def create_elasticsearch_client(url: str) -> ElasticsearchAPI:
+def create_elasticsearch_client(url: str, index: str) -> ElasticsearchAPI:
     """
     创建Elasticsearch客户端
     
@@ -323,25 +273,21 @@ def create_elasticsearch_client(url: str) -> ElasticsearchAPI:
     Returns:
         ElasticsearchAPI实例
     """
-    client = ElasticsearchAPI(url)
+    client = ElasticsearchAPI(url, index)
     
-    # 测试连接
-    if not client.test_connection():
-        raise Exception("Failed to connect to Elasticsearch")
-        
     return client
 
 
 # 使用示例
 if __name__ == "__main__":
     # 配置信息
-    ES_URL = "http://82.156.146.51:9200"
+    ES_BASE_URL = "http://82.156.146.51:9200/_search"
     ES_USERNAME = None  # 无需认证
     ES_PASSWORD = None  # 无需认证
     
     try:
-        # 创建客户端
-        es_client = create_elasticsearch_client(url=ES_URL)
+        # 创建客户端 - 使用完整的查询URL
+        es_client = create_elasticsearch_client(url=f"{ES_BASE_URL}", index="mysql-error-*")
         
         # 搜索错误日志
         query = {
@@ -354,7 +300,6 @@ if __name__ == "__main__":
             "sort": [{"@timestamp": {"order": "desc"}}]
         }
         error_logs = es_client.search_logs(
-            index="mysql-error-*",
             query=query
         )
         
@@ -373,7 +318,6 @@ if __name__ == "__main__":
             }
         }
         agg_result = es_client.search_logs(
-            index="mysql-error-*",
             query=query
         )
         
