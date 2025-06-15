@@ -687,7 +687,8 @@ def process_single_datacenter(idc, dc_name, time_from, time_till):
         
         # 处理ES数据
         try:
-            es_client = create_elasticsearch_client(dc.es.url)
+            # 使用新的ES客户端创建方式，传入基础URL和索引
+            es_client = create_elasticsearch_client(dc.es.url, dc.es.index)
             
             es_query = {
                 "size": 0,
@@ -731,7 +732,8 @@ def process_single_datacenter(idc, dc_name, time_from, time_till):
                 }
             }
             
-            es_result = es_client.search_logs(dc.es.index, es_query)
+            # 使用msearch_log方法进行查询
+            es_result = es_client.msearch_log(es_query)
             es_buckets = es_result.get("aggregations", {}).get("my_aggs_name", {}).get("buckets", [])
             es_data = [
                 {"time": bucket["key_as_string_bj"], "value": bucket["avg_response_time"]["value"], "key": "avg_response_time"}

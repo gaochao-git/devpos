@@ -345,6 +345,19 @@ class ElasticsearchAPI:
             raise
 
 
+def create_elasticsearch_client(base_url: str, index: str) -> ElasticsearchAPI:
+    """
+    创建Elasticsearch客户端
+    
+    Args:
+        base_url: Elasticsearch服务器基础URL，格式：http://host:port
+        index: 索引名称，支持通配符
+        
+    Returns:
+        ElasticsearchAPI实例
+    """
+    return ElasticsearchAPI(base_url, index)
+
 
 # 使用示例
 if __name__ == "__main__":
@@ -354,8 +367,8 @@ if __name__ == "__main__":
     ES_PASSWORD = None  # 无需认证
     
     try:
-        # 创建客户端 - 传入基础URL
-        es_client = ElasticsearchAPI(base_url=ES_BASE_URL, index="mysql-error-*")
+        # 创建客户端 - 使用create函数
+        es_client = create_elasticsearch_client(base_url=ES_BASE_URL, index="mysql-error-*")
         
         # 查询配置
         query = {
