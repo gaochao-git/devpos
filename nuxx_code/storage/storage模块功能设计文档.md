@@ -139,16 +139,24 @@
 
 ```mermaid
 graph TD
-    API["storage API"] --> Core["storage Core"]
-    Core --> Store["storage Store"]
+    Application[应用层] --> StorageEngine[存储引擎]
+    StorageEngine --> BufferManager[缓冲管理器]
+    StorageEngine --> IndexManager[索引管理器]
+    StorageEngine --> SpaceManager[空间管理器]
+    BufferManager --> Cache[缓存池]
+    IndexManager --> BTree[B+树索引]
+    IndexManager --> Hash[哈希索引]
+    SpaceManager --> Pages[页面管理]
+    Pages --> DiskStorage[磁盘存储]
 ```
 
 ### 5.2 组件划分
 | 组件 | 职责 | 关键接口 |
 |------|------|----------|
-| Core | 核心逻辑处理 | `init()` / `run()` / `stop()` |
-| API  | 对外接口层   | `create()` / `update()` / `delete()` |
-| Store| 数据存储层   | `save()` / `load()` |
+| StorageEngine | 存储引擎 | `read()` / `write()` / `allocate()` |
+| BufferManager | 缓冲管理器 | `pin()` / `unpin()` / `flush()` |
+| IndexManager | 索引管理器 | `createIndex()` / `search()` / `insert()` |
+| SpaceManager | 空间管理器 | `allocatePage()` / `freePage()` / `defrag()` |
 
 ### 5.3 数据模型
 - 列出关键数据结构及说明。
@@ -159,16 +167,20 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API
-    participant Core
-    participant Store
-    Client->>API: 请求
-    API->>Core: 业务调用
-    Core->>Store: 数据读写
-    Store-->>Core: 返回结果
-    Core-->>API: 响应
-    API-->>Client: 相应数据
+    participant App as 应用层
+    participant Engine as 存储引擎
+    participant Buffer as 缓冲管理器
+    participant Index as 索引管理器
+    participant Disk as 磁盘存储
+    
+    App->>Engine: 读取数据
+    Engine->>Index: 查找位置
+    Index-->>Engine: 页面地址
+    Engine->>Buffer: 获取页面
+    Buffer->>Disk: 读取页面
+    Disk-->>Buffer: 页面数据
+    Buffer-->>Engine: 缓存页面
+    Engine-->>App: 返回数据
 ```
 
 

@@ -139,16 +139,22 @@
 
 ```mermaid
 graph TD
-    API["log API"] --> Core["log Core"]
-    Core --> Store["log Store"]
+    App[应用程序] --> Logger[日志记录器]
+    Logger --> Formatter[格式化器]
+    Logger --> Appender[输出器]
+    Appender --> FileOut[文件输出]
+    Appender --> ConsoleOut[控制台输出]
+    Appender --> NetworkOut[网络输出]
+    FileOut --> Rotator[文件轮转]
 ```
 
 ### 5.2 组件划分
 | 组件 | 职责 | 关键接口 |
 |------|------|----------|
-| Core | 核心逻辑处理 | `init()` / `run()` / `stop()` |
-| API  | 对外接口层   | `create()` / `update()` / `delete()` |
-| Store| 数据存储层   | `save()` / `load()` |
+| Logger | 日志记录器 | `log()` / `setLevel()` / `addAppender()` |
+| Formatter | 格式化器 | `format()` / `setPattern()` |
+| Appender | 输出器 | `append()` / `flush()` / `close()` |
+| Rotator | 文件轮转 | `rotate()` / `compress()` / `cleanup()` |
 
 ### 5.3 数据模型
 - 列出关键数据结构及说明。
@@ -159,16 +165,19 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API
-    participant Core
-    participant Store
-    Client->>API: 请求
-    API->>Core: 业务调用
-    Core->>Store: 数据读写
-    Store-->>Core: 返回结果
-    Core-->>API: 响应
-    API-->>Client: 相应数据
+    participant App as 应用程序
+    participant Logger as 日志记录器
+    participant Formatter as 格式化器
+    participant Appender as 输出器
+    participant File as 文件系统
+    
+    App->>Logger: log(level, message)
+    Logger->>Formatter: format(record)
+    Formatter-->>Logger: formatted_text
+    Logger->>Appender: append(formatted_text)
+    Appender->>File: write(data)
+    File-->>Appender: success
+    Appender-->>Logger: complete
 ```
 
 

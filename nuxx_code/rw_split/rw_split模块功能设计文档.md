@@ -139,16 +139,27 @@
 
 ```mermaid
 graph TD
-    API["rw_split API"] --> Core["rw_split Core"]
-    Core --> Store["rw_split Store"]
+    Client[客户端] --> Router[读写路由器]
+    Router --> WritePool[写连接池]
+    Router --> ReadPool[读连接池]
+    WritePool --> Master[主数据库]
+    ReadPool --> Slave1[从数据库1]
+    ReadPool --> Slave2[从数据库2]
+    ReadPool --> Slave3[从数据库3]
+    Router --> Monitor[健康监控]
+    Monitor --> Master
+    Monitor --> Slave1
+    Monitor --> Slave2
+    Monitor --> Slave3
 ```
 
 ### 5.2 组件划分
 | 组件 | 职责 | 关键接口 |
 |------|------|----------|
-| Core | 核心逻辑处理 | `init()` / `run()` / `stop()` |
-| API  | 对外接口层   | `create()` / `update()` / `delete()` |
-| Store| 数据存储层   | `save()` / `load()` |
+| Router | 读写路由器 | `route()` / `selectRead()` / `selectWrite()` |
+| ConnectionPool | 连接池 | `getConnection()` / `releaseConnection()` |
+| HealthMonitor | 健康监控 | `checkHealth()` / `failover()` |
+| LoadBalancer | 负载均衡器 | `balance()` / `updateWeights()` |
 
 ### 5.3 数据模型
 - 列出关键数据结构及说明。
@@ -159,16 +170,20 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API
-    participant Core
-    participant Store
-    Client->>API: 请求
-    API->>Core: 业务调用
-    Core->>Store: 数据读写
-    Store-->>Core: 返回结果
-    Core-->>API: 响应
-    API-->>Client: 相应数据
+    participant Client as 客户端
+    participant Router as 读写路由器
+    participant Master as 主数据库
+    participant Slave as 从数据库
+    
+    Client->>Router: SELECT查询
+    Router->>Slave: 路由到从库
+    Slave-->>Router: 查询结果
+    Router-->>Client: 返回数据
+    
+    Client->>Router: INSERT/UPDATE
+    Router->>Master: 路由到主库
+    Master-->>Router: 执行结果
+    Router-->>Client: 返回结果
 ```
 
 

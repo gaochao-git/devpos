@@ -139,16 +139,23 @@
 
 ```mermaid
 graph TD
-    API["shard API"] --> Core["shard Core"]
-    Core --> Store["shard Store"]
+    Client[客户端] --> ShardRouter[分片路由器]
+    ShardRouter --> ShardManager[分片管理器]
+    ShardManager --> Shard1[分片1]
+    ShardManager --> Shard2[分片2]
+    ShardManager --> Shard3[分片3]
+    ShardRouter --> QueryMerger[查询合并器]
+    ShardRouter --> LoadBalancer[负载均衡]
+    ShardManager --> Rebalancer[重平衡器]
 ```
 
 ### 5.2 组件划分
 | 组件 | 职责 | 关键接口 |
 |------|------|----------|
-| Core | 核心逻辑处理 | `init()` / `run()` / `stop()` |
-| API  | 对外接口层   | `create()` / `update()` / `delete()` |
-| Store| 数据存储层   | `save()` / `load()` |
+| ShardRouter | 分片路由器 | `route()` / `locate()` / `distribute()` |
+| ShardManager | 分片管理器 | `createShard()` / `migrateShard()` |
+| QueryMerger | 查询合并器 | `merge()` / `aggregate()` / `sort()` |
+| Rebalancer | 重平衡器 | `rebalance()` / `migrate()` / `monitor()` |
 
 ### 5.3 数据模型
 - 列出关键数据结构及说明。
@@ -159,16 +166,19 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API
-    participant Core
-    participant Store
-    Client->>API: 请求
-    API->>Core: 业务调用
-    Core->>Store: 数据读写
-    Store-->>Core: 返回结果
-    Core-->>API: 响应
-    API-->>Client: 相应数据
+    participant Client as 客户端
+    participant Router as 分片路由器
+    participant Shard1 as 分片1
+    participant Shard2 as 分片2
+    participant Merger as 查询合并器
+    
+    Client->>Router: 跨分片查询
+    Router->>Shard1: 子查询1
+    Router->>Shard2: 子查询2
+    Shard1-->>Merger: 结果1
+    Shard2-->>Merger: 结果2
+    Merger->>Merger: 合并排序
+    Merger-->>Client: 最终结果
 ```
 
 

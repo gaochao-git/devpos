@@ -139,16 +139,23 @@
 
 ```mermaid
 graph TD
-    API["security API"] --> Core["security Core"]
-    Core --> Store["security Store"]
+    Request[请求] --> AuthGateway[认证网关]
+    AuthGateway --> AuthService[认证服务]
+    AuthGateway --> AuthzService[授权服务]
+    AuthService --> UserStore[用户存储]
+    AuthzService --> RoleStore[角色权限]
+    AuthGateway --> Audit[审计日志]
+    AuthGateway --> Encryption[加密模块]
+    Encryption --> DataStore[数据存储]
 ```
 
 ### 5.2 组件划分
 | 组件 | 职责 | 关键接口 |
 |------|------|----------|
-| Core | 核心逻辑处理 | `init()` / `run()` / `stop()` |
-| API  | 对外接口层   | `create()` / `update()` / `delete()` |
-| Store| 数据存储层   | `save()` / `load()` |
+| AuthService | 认证服务 | `authenticate()` / `login()` / `logout()` |
+| AuthzService | 授权服务 | `authorize()` / `checkPermission()` |
+| Encryption | 加密模块 | `encrypt()` / `decrypt()` / `hash()` |
+| AuditLogger | 审计日志 | `logAccess()` / `logOperation()` |
 
 ### 5.3 数据模型
 - 列出关键数据结构及说明。
@@ -159,16 +166,20 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API
-    participant Core
-    participant Store
-    Client->>API: 请求
-    API->>Core: 业务调用
-    Core->>Store: 数据读写
-    Store-->>Core: 返回结果
-    Core-->>API: 响应
-    API-->>Client: 相应数据
+    participant User as 用户
+    participant Gateway as 安全网关
+    participant Auth as 认证服务
+    participant Authz as 授权服务
+    participant Resource as 资源服务
+    
+    User->>Gateway: 访问请求
+    Gateway->>Auth: 验证身份
+    Auth-->>Gateway: 认证结果
+    Gateway->>Authz: 检查权限
+    Authz-->>Gateway: 授权结果
+    Gateway->>Resource: 转发请求
+    Resource-->>Gateway: 响应
+    Gateway-->>User: 返回结果
 ```
 
 

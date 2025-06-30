@@ -139,16 +139,23 @@ SQL扩展模块能够提供更丰富的SQL功能，包括自定义函数、存�
 
 ```mermaid
 graph TD
-    API["sql_extend API"] --> Core["sql_extend Core"]
-    Core --> Store["sql_extend Store"]
+    SQL[SQL语句] --> Parser[SQL解析器]
+    Parser --> AST[抽象语法树]
+    AST --> Analyzer[语义分析器]
+    Analyzer --> Optimizer[查询优化器]
+    Optimizer --> Executor[执行引擎]
+    Parser --> FunctionRegistry[函数注册表]
+    Optimizer --> RuleEngine[规则引擎]
+    Executor --> Storage[存储引擎]
 ```
 
 ### 5.2 组件划分
 | 组件 | 职责 | 关键接口 |
 |------|------|----------|
-| Core | 核心逻辑处理 | `init()` / `run()` / `stop()` |
-| API  | 对外接口层   | `create()` / `update()` / `delete()` |
-| Store| 数据存储层   | `save()` / `load()` |
+| SQLParser | SQL解析器 | `parse()` / `validate()` / `buildAST()` |
+| Optimizer | 查询优化器 | `optimize()` / `rewrite()` / `suggest()` |
+| FunctionRegistry | 函数注册表 | `register()` / `lookup()` / `invoke()` |
+| RuleEngine | 规则引擎 | `applyRules()` / `addRule()` / `evaluate()` |
 
 ### 5.3 数据模型
 - 列出关键数据结构及说明。
@@ -159,16 +166,21 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API
-    participant Core
-    participant Store
-    Client->>API: 请求
-    API->>Core: 业务调用
-    Core->>Store: 数据读写
-    Store-->>Core: 返回结果
-    Core-->>API: 响应
-    API-->>Client: 相应数据
+    participant Client as 客户端
+    participant Parser as SQL解析器
+    participant Optimizer as 查询优化器
+    participant Executor as 执行引擎
+    participant Storage as 存储引擎
+    
+    Client->>Parser: SQL语句
+    Parser->>Parser: 词法分析
+    Parser->>Parser: 语法分析
+    Parser->>Optimizer: AST
+    Optimizer->>Optimizer: 查询重写
+    Optimizer->>Executor: 执行计划
+    Executor->>Storage: 数据操作
+    Storage-->>Executor: 结果集
+    Executor-->>Client: 查询结果
 ```
 
 

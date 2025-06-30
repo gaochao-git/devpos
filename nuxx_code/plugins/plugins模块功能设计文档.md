@@ -139,16 +139,23 @@
 
 ```mermaid
 graph TD
-    API["plugins API"] --> Core["plugins Core"]
-    Core --> Store["plugins Store"]
+    Core[核心系统] --> PluginManager[插件管理器]
+    PluginManager --> Registry[插件注册表]
+    PluginManager --> Loader[插件加载器]
+    PluginManager --> Lifecycle[生命周期管理]
+    Loader --> PluginA[插件A]
+    Loader --> PluginB[插件B]
+    Loader --> PluginC[插件C]
+    Registry --> Dependencies[依赖管理]
 ```
 
 ### 5.2 组件划分
 | 组件 | 职责 | 关键接口 |
 |------|------|----------|
-| Core | 核心逻辑处理 | `init()` / `run()` / `stop()` |
-| API  | 对外接口层   | `create()` / `update()` / `delete()` |
-| Store| 数据存储层   | `save()` / `load()` |
+| PluginManager | 插件管理器 | `load()` / `unload()` / `register()` |
+| Registry | 插件注册表 | `register()` / `discover()` / `resolve()` |
+| Loader | 插件加载器 | `loadPlugin()` / `unloadPlugin()` |
+| Lifecycle | 生命周期管理 | `init()` / `start()` / `stop()` / `destroy()` |
 
 ### 5.3 数据模型
 - 列出关键数据结构及说明。
@@ -159,16 +166,19 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API
-    participant Core
-    participant Store
-    Client->>API: 请求
-    API->>Core: 业务调用
-    Core->>Store: 数据读写
-    Store-->>Core: 返回结果
-    Core-->>API: 响应
-    API-->>Client: 相应数据
+    participant Core as 核心系统
+    participant Manager as 插件管理器
+    participant Loader as 插件加载器
+    participant Plugin as 插件实例
+    
+    Core->>Manager: loadPlugin(name)
+    Manager->>Loader: load(pluginPath)
+    Loader->>Plugin: create instance
+    Plugin-->>Loader: plugin object
+    Loader->>Plugin: init()
+    Plugin-->>Loader: success
+    Loader-->>Manager: plugin ready
+    Manager-->>Core: load complete
 ```
 
 

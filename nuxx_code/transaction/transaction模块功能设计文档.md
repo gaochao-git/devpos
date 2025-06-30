@@ -139,16 +139,23 @@
 
 ```mermaid
 graph TD
-    API["transaction API"] --> Core["transaction Core"]
-    Core --> Store["transaction Store"]
+    Client[客户端] --> TxManager[事务管理器]
+    TxManager --> LockManager[锁管理器]
+    TxManager --> LogManager[日志管理器]
+    TxManager --> DeadlockDetector[死锁检测器]
+    LockManager --> LockTable[锁表]
+    LogManager --> WAL[预写日志]
+    TxManager --> RecoveryManager[恢复管理器]
+    RecoveryManager --> Checkpoint[检查点]
 ```
 
 ### 5.2 组件划分
 | 组件 | 职责 | 关键接口 |
 |------|------|----------|
-| Core | 核心逻辑处理 | `init()` / `run()` / `stop()` |
-| API  | 对外接口层   | `create()` / `update()` / `delete()` |
-| Store| 数据存储层   | `save()` / `load()` |
+| TxManager | 事务管理器 | `begin()` / `commit()` / `rollback()` |
+| LockManager | 锁管理器 | `lock()` / `unlock()` / `upgrade()` |
+| LogManager | 日志管理器 | `writeLog()` / `flush()` / `replay()` |
+| DeadlockDetector | 死锁检测器 | `detect()` / `resolve()` / `abort()` |
 
 ### 5.3 数据模型
 - 列出关键数据结构及说明。
@@ -159,16 +166,23 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant API
-    participant Core
-    participant Store
-    Client->>API: 请求
-    API->>Core: 业务调用
-    Core->>Store: 数据读写
-    Store-->>Core: 返回结果
-    Core-->>API: 响应
-    API-->>Client: 相应数据
+    participant Client as 客户端
+    participant TxMgr as 事务管理器
+    participant LockMgr as 锁管理器
+    participant LogMgr as 日志管理器
+    participant Storage as 存储层
+    
+    Client->>TxMgr: BEGIN
+    TxMgr->>TxMgr: 分配事务ID
+    Client->>TxMgr: UPDATE操作
+    TxMgr->>LockMgr: 申请写锁
+    LockMgr-->>TxMgr: 锁获取成功
+    TxMgr->>LogMgr: 写WAL日志
+    TxMgr->>Storage: 执行更新
+    Client->>TxMgr: COMMIT
+    TxMgr->>LogMgr: 写提交日志
+    TxMgr->>LockMgr: 释放所有锁
+    TxMgr-->>Client: 提交成功
 ```
 
 
