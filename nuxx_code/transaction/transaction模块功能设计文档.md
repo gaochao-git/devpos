@@ -134,40 +134,41 @@
 ### 5.1 总体架构
 - 描述transaction模块的总体架构图（可插入 Mermaid 或图片）。
 - 列出主要组件及其交互。
+-
+- **示例架构图**：
+
+```mermaid
+graph TD
+    API["transaction API"] --> Core["transaction Core"]
+    Core --> Store["transaction Store"]
+```
 
 ### 5.2 组件划分
 | 组件 | 职责 | 关键接口 |
 |------|------|----------|
-| Core | 核心逻辑处理 | init\()/run\()/stop\()|
-| API  | 对外接口层   | create\()/update\()/delete\()|
-| Store| 数据存储层   | save\()/load\()|
+| Core | 核心逻辑处理 | `init()` / `run()` / `stop()` |
+| API  | 对外接口层   | `create()` / `update()` / `delete()` |
+| Store| 数据存储层   | `save()` / `load()` |
 
 ### 5.3 数据模型
 - 列出关键数据结构及说明。
 - 使用UML类图或Mermaid表示。
 
 ### 5.4 交互流程
-- 典型业务流程时序图（Mermaid sequenceDiagram）。
+- 典型业务流程时序图：
 
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant Core
+    participant Store
+    Client->>API: 请求
+    API->>Core: 业务调用
+    Core->>Store: 数据读写
+    Store-->>Core: 返回结果
+    Core-->>API: 响应
+    API-->>Client: 相应数据
+```
 
-## 六、实施计划
-
-| 阶段 | 里程碑 | 起止日期 | 负责人 |
-|------|--------|----------|--------|
-| 需求澄清 | 完成需求评审 | T0 ~ T0+3d | PO |
-| 设计实现 | 完成功能设计评审 | T0+4d ~ T0+7d | 架构师 |
-| 开发实现 | 代码完毕 & 自测通过 | T0+8d ~ T0+20d | 开发 |
-| 集成测试 | 集成测试通过 | T0+21d ~ T0+27d | QA |
-| 上线发布 | 生产发布 & 验收 | T0+28d | 运维 |
-
-
-## 七、测试用例
-
-| 用例ID | 用例名称 | 关键步骤 | 预期结果 |
-|--------|----------|----------|----------|
-| TC-01 | 核心功能正常路径 | 正常请求 -> 成功响应 | 返回200及正确数据 |
-| TC-02 | 输入参数校验 | 缺失必填字段 | 返回400错误码 |
-| TC-03 | 异常处理 | 模拟内部异常 | 返回500并记录错误日志 |
-| TC-04 | 并发场景 | 1000并发请求 | 无错误，性能达标 |
-| TC-05 | 安全校验 | 未授权访问 | 返回401/403 |
 
