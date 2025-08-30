@@ -428,15 +428,15 @@ const parseMessageContent = (content, agentThoughts = []) => {
         const toolName = match[5];
         const toolData = agentThoughts.find(t => t.id === toolId);
         
-        segments.push({
-          type: 'tool',
-          data: toolData || {
-            id: toolId,
-            tool: toolName,
-            tool_input: null,
-            observation: null
-          }
-        });
+        // 只有当工具数据存在于当前消息的thoughts中时才显示
+        // 这样可以避免显示其他消息的工具
+        if (toolData) {
+          segments.push({
+            type: 'tool',
+            data: toolData
+          });
+        }
+        // 如果找不到工具数据，说明这个工具标记不属于当前消息，忽略它
         break;
         
       default:
