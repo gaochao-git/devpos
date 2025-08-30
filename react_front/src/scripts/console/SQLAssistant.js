@@ -259,19 +259,34 @@ class SQLAssistant extends Component {
                           console.log('Tool calls:', message.tool_calls);
                           message.tool_calls.forEach(toolCall => {
                             if (toolCall.name && toolCall.type === 'tool_call') {
-                              const newThought = {
-                                id: toolCall.id || `tool-${Date.now()}`,
-                                position: currentThoughts.length + 1,
-                                thought: `调用工具: ${toolCall.name}`,
-                                tool: toolCall.name,
-                                tool_input: JSON.stringify(toolCall.args || {}, null, 2),
-                                observation: '执行中...'
-                              };
+                              // 查找是否已存在该工具调用
+                              let existingThought = currentThoughts.find(t => t.id === toolCall.id);
                               
-                              currentThoughts.push(newThought);
+                              if (existingThought) {
+                                // 更新现有的工具调用参数
+                                existingThought.tool_input = JSON.stringify(toolCall.args || {}, null, 2);
+                                console.log('Updated tool thought:', existingThought);
+                              } else {
+                                // 创建新的工具调用记录
+                                const newThought = {
+                                  id: toolCall.id || `tool-${Date.now()}`,
+                                  position: currentThoughts.length + 1,
+                                  thought: `调用工具: ${toolCall.name}`,
+                                  tool: toolCall.name,
+                                  tool_input: JSON.stringify(toolCall.args || {}, null, 2),
+                                  observation: '执行中...'
+                                };
+                                
+                                currentThoughts.push(newThought);
+                                console.log('Added tool thought:', newThought);
+                                console.log('Tool call args:', toolCall.args);
+                                console.log('Tool input stringified:', newThought.tool_input);
+                                
+                                // 添加工具标记到assistantMessage中
+                                assistantMessage += `\n[TOOL:${newThought.id}:${newThought.tool}]\n`;
+                              }
                               
-                              // 添加工具标记到assistantMessage中
-                              assistantMessage += `\n[TOOL:${newThought.id}:${newThought.tool}]\n`;
+                              console.log('Current thoughts:', currentThoughts);
                               
                               // 实时更新状态
                               this.setState({ 
@@ -283,7 +298,7 @@ class SQLAssistant extends Component {
                       }
                     }
                   } else if (currentEvent === 'updates') {
-                    // 处理更新事件，可能包含工具调用信息
+                    // 处理更新事件，可能包含完整的工具调用信息
                     console.log('Updates event:', currentData);
                     
                     // 检查是否有工具调用
@@ -292,22 +307,35 @@ class SQLAssistant extends Component {
                       Object.entries(currentData).forEach(([key, value]) => {
                         if (value && value.messages && Array.isArray(value.messages)) {
                           value.messages.forEach(msg => {
-                            if (msg.type === 'AIMessage' && msg.tool_calls && msg.tool_calls.length > 0) {
-                              // 处理工具调用
+                            if (msg.type === 'ai' && msg.tool_calls && msg.tool_calls.length > 0) {
+                              // 处理完整的工具调用信息
                               msg.tool_calls.forEach(toolCall => {
-                                const newThought = {
-                                  id: toolCall.id || `tool-${Date.now()}`,
-                                  position: currentThoughts.length + 1,
-                                  thought: `调用工具: ${toolCall.name}`,
-                                  tool: toolCall.name,
-                                  tool_input: JSON.stringify(toolCall.args, null, 2),
-                                  observation: '执行中...'
-                                };
+                                // 查找是否已存在该工具调用
+                                let existingThought = currentThoughts.find(t => t.id === toolCall.id);
                                 
-                                currentThoughts.push(newThought);
-                                
-                                // 添加工具标记到assistantMessage中
-                                assistantMessage += `\n[TOOL:${newThought.id}:${newThought.tool}]\n`;
+                                if (existingThought) {
+                                  // 更新现有的工具调用参数
+                                  existingThought.tool_input = JSON.stringify(toolCall.args || {}, null, 2);
+                                  console.log('Updated tool thought from updates:', existingThought);
+                                } else {
+                                  // 如果不存在，创建新的
+                                  const newThought = {
+                                    id: toolCall.id || `tool-${Date.now()}`,
+                                    position: currentThoughts.length + 1,
+                                    thought: `调用工具: ${toolCall.name}`,
+                                    tool: toolCall.name,
+                                    tool_input: JSON.stringify(toolCall.args || {}, null, 2),
+                                    observation: '执行中...'
+                                  };
+                                  
+                                  currentThoughts.push(newThought);
+                                  console.log('Added tool thought from updates:', newThought);
+                                  
+                                  // 添加工具标记到assistantMessage中
+                                  if (!assistantMessage.includes(`[TOOL:${newThought.id}:`)) {
+                                    assistantMessage += `\n[TOOL:${newThought.id}:${newThought.tool}]\n`;
+                                  }
+                                }
                                 
                                 // 实时更新状态
                                 this.setState({ 
@@ -328,11 +356,25 @@ class SQLAssistant extends Component {
                       console.log('Task name:', currentData.name);
                     }
                   } else if (currentEvent === 'values') {
-                    // 处理values事件 - 可能包含工具执行结果
+                    // 处理values事件 - 可能包含工具执行结果和完整的工具调用信息
                     console.log('Values event:', currentData);
                     
                     if (currentData && currentData.messages) {
                       currentData.messages.forEach(msg => {
+                        // 处理AI消息中的工具调用
+                        if (msg.type === 'ai' && msg.tool_calls && msg.tool_calls.length > 0) {
+                          msg.tool_calls.forEach(toolCall => {
+                            // 查找是否已存在该工具调用
+                            let existingThought = currentThoughts.find(t => t.id === toolCall.id);
+                            
+                            if (existingThought) {
+                              // 更新现有的工具调用参数
+                              existingThought.tool_input = JSON.stringify(toolCall.args || {}, null, 2);
+                              console.log('Updated tool thought from values:', existingThought);
+                            }
+                          });
+                        }
+                        
                         // 处理工具消息（工具执行结果）
                         if (msg.type === 'tool' && msg.content) {
                           // 查找对应的工具调用
@@ -340,14 +382,17 @@ class SQLAssistant extends Component {
                           if (toolThought) {
                             // 更新工具执行结果
                             toolThought.observation = msg.content;
-                            
-                            // 更新状态
-                            this.setState({ 
-                              agentThoughts: [...currentThoughts]
-                            });
+                            console.log('Updated tool observation from values:', toolThought);
                           }
                         }
                       });
+                      
+                      // 统一更新状态
+                      if (currentThoughts.length > 0) {
+                        this.setState({ 
+                          agentThoughts: [...currentThoughts]
+                        });
+                      }
                     }
                   } else if (currentEvent === 'checkpoints') {
                     // 处理checkpoints事件
@@ -373,7 +418,8 @@ class SQLAssistant extends Component {
 
       if (this.state.isStreaming) {
         // 保存最终消息，包括思考过程
-        const finalThoughts = [...this.state.agentThoughts];
+        const finalThoughts = [...currentThoughts];
+        console.log('Final thoughts before saving:', finalThoughts);
         
         this.setState({
           conversationHistory: [
