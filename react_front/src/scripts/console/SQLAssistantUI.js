@@ -89,8 +89,6 @@ const SQLAssistantUI = (props) => {
   const isAllSelected = filteredTables.length > 0 && 
     filteredTables.every(table => selectedTables.includes(table));
 
-  console.log('SQLAssistantUI - selectedTables:', selectedTables);
-  console.log('SQLAssistantUI - filteredTables:', filteredTables);
 
   // 修改分页数据的计算逻辑
   const startIndex = (currentTablePage - 1) * tablePageSize;
