@@ -4,7 +4,7 @@ import MessageRenderer from './MessageRenderer';
 import DatasetManager from './DatasetManager';
 import MyAxios from '../common/interface';
 import { throttle } from '../common/throttle';
-const { TextArea } = Input;
+const { TextArea } = Input
 const { Option } = Select;
 const { Text } = Typography;
 
@@ -22,7 +22,7 @@ class SQLAssistant extends Component {
       showTableSelector: false,
       searchTableValue: '',
       streamingId: null,
-      conversation_id: null,
+      thread_id: null,
       streamingComplete: false,
       isUserBrowsing: false,
       isUserScrolling: false,
@@ -40,8 +40,10 @@ class SQLAssistant extends Component {
       instance: props.defaultInstance || '',
       database: props.defaultDatabase || '',
       cluster: props.defaultCluster || '',
-      dify_url: props.defaultDifyUrl || '',
-      dify_sql_asst_key: props.defaultDifyKey || '',
+      api_url: props.defaultApiUrl || 'http://localhost:3000',
+      api_key: props.defaultApiKey || 'sk-wVfiZyuebwQf2LX3kk3u53cnIWn32',
+      selected_model: props.defaultModel || 'deepseek-chat',
+      assistant_id: props.assistantId || 'diagnostic_agent',
       login_user_name: props.defaultUser || '',
       agentThoughts: [], // 添加思考过程状态
       
@@ -65,8 +67,8 @@ class SQLAssistant extends Component {
       showSharedDatasets: true,   // 显示共享数据集
       showOwnDatasets: true,      // 显示自己的数据集
       
-      // 添加task_id用于停止接口
-      currentTaskId: null,
+      // 添加run_id用于停止接口
+      currentRunId: null,
     };
     
     this.inputRef = React.createRef();
@@ -87,7 +89,7 @@ class SQLAssistant extends Component {
 
   // 发送消息并处理流式响应
   handleSendMessage = async () => {
-    const { inputValue, instance, database, selectedTables, conversation_id, dify_url, dify_sql_asst_key, login_user_name, selectedDataset, useDatasetContext } = this.state;
+    const { inputValue, instance, database, selectedTables, thread_id, api_url, api_key, login_user_name, selectedDataset, useDatasetContext, selected_model, assistant_id } = this.state;
     
     if (!inputValue.trim()) {
       message.warning('请输入问题');
@@ -131,27 +133,57 @@ class SQLAssistant extends Component {
       streamingComplete: false,
       isUserScrolling: false,
       agentThoughts: [], // 重置思考过程
-      currentTaskId: null, // 重置task_id
+      currentRunId: null, // 重置run_id
     });
 
     try {
-      //如果用nginx代理记得关闭nginx缓冲
-      // location /v1/chat-messages {
-      //   proxy_buffering off;
-      //   proxy_cache off;
-      // }
-      const response = await fetch(`${dify_url}/v1/chat-messages`, {
+      // 如果没有thread_id，先创建一个新的会话
+      let currentThreadId = this.state.thread_id;
+      if (!currentThreadId) {
+        const createThreadResponse = await fetch(`${api_url}/api/chat/threads`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${api_key}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
+        
+        if (!createThreadResponse.ok) {
+          throw new Error(`创建会话失败: ${createThreadResponse.status}`);
+        }
+        
+        const threadData = await createThreadResponse.json();
+        currentThreadId = threadData.thread_id;
+        this.setState({ thread_id: currentThreadId });
+      }
+
+      // 发送消息
+      const response = await fetch(`${api_url}/api/chat/threads/${currentThreadId}/runs/stream`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${dify_sql_asst_key}`,
+          'Authorization': `Bearer ${api_key}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-        inputs:{},
-          query: completeQuery, // 使用拼接后的完整查询
-          response_mode: 'streaming',
-          conversation_id,
-          user: login_user_name,
+          input: {
+            messages: [{
+              type: 'human',
+              content: completeQuery
+            }]
+          },
+          config: {
+            configurable: {
+              selected_model: selected_model,
+            }
+          },
+          stream_mode: [
+            'messages-tuple',
+            'values',
+            'updates'
+          ],
+          assistant_id: assistant_id,
+          on_disconnect: 'cancel'
         }),
       });
 
@@ -162,10 +194,10 @@ class SQLAssistant extends Component {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantMessage = '';
-      let newConversationId = null;
+      let newThreadId = currentThreadId;
       let currentThoughts = [];
       let buffer = '';
-      let currentTaskId = null;
+      let currentRunId = null;
 
       try {
         while (true) {
@@ -177,52 +209,154 @@ class SQLAssistant extends Component {
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
           
+          let currentEvent = null;
+          let currentData = null;
+          
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            // 调试输出
+            console.log('SSE line:', line);
+            
+            if (line.startsWith('id: ')) {
+              // 跳过id行
+              continue;
+            } else if (line.startsWith('event: ')) {
+              currentEvent = line.slice(7).trim();
+            } else if (line.startsWith('data: ')) {
               try {
-                // 添加微小延时，解决Windows输出按块输出问题，具体暂停ms数值不是很大影响，但是确解决了一直按块输出的问题,这个位置改了好多天，终于解决了
+                // 添加微小延时，解决Windows输出按块输出问题
                 await new Promise(resolve => setTimeout(resolve, 0));
                 const dataStr = line.slice(6).trim();
                 if (dataStr === '[DONE]' || !dataStr) continue;
                 
-                const data = JSON.parse(dataStr);
+                currentData = JSON.parse(dataStr);
                 
-                // 保存task_id用于停止接口
-                if (data.task_id && !currentTaskId) {
-                  currentTaskId = data.task_id;
-                  this.setState({ currentTaskId: data.task_id });
-                }
-                
-                // 处理不同类型的事件
-                if (['message', 'agent_message'].includes(data.event)) {
-                  // 处理文本消息
-                  if (data.answer && data.answer.length > 0) {
-                    assistantMessage += data.answer;
+                // 处理LangGraph的SSE事件
+                if (currentEvent && currentData) {
+                  console.log('Processing event:', currentEvent, 'with data:', currentData);
+                  
+                  if (currentEvent === 'messages') {
+                    // 处理消息事件
+                    if (Array.isArray(currentData) && currentData.length >= 2) {
+                      const message = currentData[0];
+                      const metadata = currentData[1];
+                      
+                      // 获取run_id
+                      if (metadata && metadata.langgraph_node && !currentRunId) {
+                        currentRunId = `run-${Date.now()}`; // 使用时间戳作为run_id
+                        this.setState({ currentRunId });
+                      }
+                      
+                      // 处理AI消息
+                      if (message && message.type === 'AIMessageChunk') {
+                        // 处理文本内容
+                        if (message.content) {
+                          console.log('Adding content:', message.content);
+                          assistantMessage += message.content;
+                        }
+                        
+                        // 处理工具调用
+                        if (message.tool_calls && message.tool_calls.length > 0) {
+                          console.log('Tool calls:', message.tool_calls);
+                          message.tool_calls.forEach(toolCall => {
+                            if (toolCall.name && toolCall.type === 'tool_call') {
+                              const newThought = {
+                                id: toolCall.id || `tool-${Date.now()}`,
+                                position: currentThoughts.length + 1,
+                                thought: `调用工具: ${toolCall.name}`,
+                                tool: toolCall.name,
+                                tool_input: JSON.stringify(toolCall.args || {}, null, 2),
+                                observation: '执行中...'
+                              };
+                              
+                              currentThoughts.push(newThought);
+                              
+                              // 添加工具标记到assistantMessage中
+                              assistantMessage += `\n[TOOL:${newThought.id}:${newThought.tool}]\n`;
+                              
+                              // 实时更新状态
+                              this.setState({ 
+                                agentThoughts: [...currentThoughts]
+                              });
+                            }
+                          });
+                        }
+                      }
+                    }
+                  } else if (currentEvent === 'updates') {
+                    // 处理更新事件，可能包含工具调用信息
+                    console.log('Updates event:', currentData);
+                    
+                    // 检查是否有工具调用
+                    if (currentData && typeof currentData === 'object') {
+                      // 遍历更新数据查找工具调用
+                      Object.entries(currentData).forEach(([key, value]) => {
+                        if (value && value.messages && Array.isArray(value.messages)) {
+                          value.messages.forEach(msg => {
+                            if (msg.type === 'AIMessage' && msg.tool_calls && msg.tool_calls.length > 0) {
+                              // 处理工具调用
+                              msg.tool_calls.forEach(toolCall => {
+                                const newThought = {
+                                  id: toolCall.id || `tool-${Date.now()}`,
+                                  position: currentThoughts.length + 1,
+                                  thought: `调用工具: ${toolCall.name}`,
+                                  tool: toolCall.name,
+                                  tool_input: JSON.stringify(toolCall.args, null, 2),
+                                  observation: '执行中...'
+                                };
+                                
+                                currentThoughts.push(newThought);
+                                
+                                // 添加工具标记到assistantMessage中
+                                assistantMessage += `\n[TOOL:${newThought.id}:${newThought.tool}]\n`;
+                                
+                                // 实时更新状态
+                                this.setState({ 
+                                  agentThoughts: [...currentThoughts]
+                                });
+                              });
+                            }
+                          });
+                        }
+                      });
+                    }
+                  } else if (currentEvent === 'tasks') {
+                    // 处理任务事件
+                    console.log('Tasks event:', currentData);
+                    
+                    // 任务事件可能包含工具执行信息
+                    if (currentData && currentData.name) {
+                      console.log('Task name:', currentData.name);
+                    }
+                  } else if (currentEvent === 'values') {
+                    // 处理values事件 - 可能包含工具执行结果
+                    console.log('Values event:', currentData);
+                    
+                    if (currentData && currentData.messages) {
+                      currentData.messages.forEach(msg => {
+                        // 处理工具消息（工具执行结果）
+                        if (msg.type === 'tool' && msg.content) {
+                          // 查找对应的工具调用
+                          const toolThought = currentThoughts.find(t => t.id === msg.tool_call_id);
+                          if (toolThought) {
+                            // 更新工具执行结果
+                            toolThought.observation = msg.content;
+                            
+                            // 更新状态
+                            this.setState({ 
+                              agentThoughts: [...currentThoughts]
+                            });
+                          }
+                        }
+                      });
+                    }
+                  } else if (currentEvent === 'checkpoints') {
+                    // 处理checkpoints事件
+                    console.log('Checkpoints event:', currentData);
                   }
-                } else if (data.event === 'message_end') {
-                  newConversationId = data.conversation_id;
-                } else if (data.event === 'agent_thought') {
-                  // 处理工具调用，只有当observation不为空时才认为是完整的工具调用
-                  if (data.tool && data.observation) {
-                    const newThought = {
-                      id: data.id,
-                      position: data.position,
-                      thought: data.thought,
-                      tool: data.tool,
-                      tool_input: data.tool_input,
-                      observation: data.observation
-                    };
-                    
-                    currentThoughts.push(newThought);
-                    
-                    // 添加工具标记到assistantMessage中
-                    assistantMessage += `\n[TOOL:${newThought.id}:${newThought.tool}]\n`;
-                    
-                    // 实时更新状态
-                    this.setState({ 
-                      agentThoughts: [...currentThoughts]
-                    });
-                  }
+                  
+                  // 重置事件和数据
+                  currentEvent = null;
+                  currentData = null;
                 }
                 
                 // 统一更新流式消息
@@ -255,10 +389,10 @@ class SQLAssistant extends Component {
           isStreaming: false,
           currentStreamingMessage: '',
           streamingId: null,
-          conversation_id: newConversationId || this.state.conversation_id,
+          thread_id: newThreadId || this.state.thread_id,
           streamingComplete: true,
           agentThoughts: [], // 清空思考过程
-          currentTaskId: null // 清空task_id
+          currentRunId: null // 清空task_id
         });
       }
 
@@ -271,47 +405,16 @@ class SQLAssistant extends Component {
         streamingId: null,
         streamingComplete: true,
         agentThoughts: [], // 清空思考过程
-        currentTaskId: null // 清空task_id
+        currentRunId: null // 清空task_id
       });
     }
   };
 
   handleStopStreaming = async () => {
-    const { currentStreamingMessage, streamingId, agentThoughts, dify_url, dify_sql_asst_key, login_user_name, currentTaskId } = this.state;
+    const { currentStreamingMessage, streamingId, agentThoughts } = this.state;
     
-    // 如果有currentTaskId，尝试调用后端停止接口
-    if (currentTaskId && dify_url && dify_sql_asst_key) {
-      try {
-        const response = await fetch(`${dify_url}/v1/chat-messages/${currentTaskId}/stop`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${dify_sql_asst_key}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            user: login_user_name
-          })
-        });
-        
-        if (response.ok) {
-          try {
-            const result = await response.json();
-            if (result.result === 'success') {
-              console.log('成功停止后端输出');
-              message.success('已停止AI回答');
-            } else {
-              console.warn('停止后端输出返回异常结果:', result);
-            }
-          } catch (parseError) {
-            console.warn('解析停止接口响应失败:', parseError);
-          }
-        } else {
-          console.warn('停止后端输出失败:', response.status);
-        }
-      } catch (error) {
-        console.error('调用停止接口失败:', error);
-      }
-    }
+    // LangGraph API目前可能不支持停止流式输出，只能在前端停止
+    // 如果需要后端停止支持，可以考虑使用WebSocket或其他方式
     
     // 如果有正在生成的内容，保存到历史记录中
     if (currentStreamingMessage.trim()) {
@@ -335,7 +438,7 @@ class SQLAssistant extends Component {
         streamingComplete: true,
         isUserScrolling: false,
         agentThoughts: [], // 清空思考过程
-        currentTaskId: null // 清空task_id
+        currentRunId: null // 清空task_id
       }));
     } else {
       // 如果没有内容，只清理状态
@@ -346,7 +449,7 @@ class SQLAssistant extends Component {
         streamingComplete: true,
         isUserScrolling: false,
         agentThoughts: [], // 清空思考过程
-        currentTaskId: null // 清空task_id
+        currentRunId: null // 清空task_id
       });
     }
   };
@@ -354,7 +457,7 @@ class SQLAssistant extends Component {
   handleClearHistory = () => {
     this.setState({
       conversationHistory: [],
-      conversation_id: null,
+      thread_id: null,
       isUserBrowsing: false,
       isUserScrolling: false,
       historicalConversations: [],
@@ -406,12 +509,14 @@ class SQLAssistant extends Component {
   }
 
   fetchConversationHistory = async () => {
-    const { lastConversationId, dify_url, dify_sql_asst_key, login_user_name } = this.state;
+    const { api_url, api_key, login_user_name, assistant_id } = this.state;
     this.setState({ isLoadingHistory: true });
     try {
-      const response = await fetch(`${dify_url}/v1/conversations?user=${login_user_name}&last_id=${lastConversationId || ''}&limit=20`, {
+      const response = await fetch(`${api_url}/api/chat/threads?limit=20&offset=0`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${dify_sql_asst_key}`
+          'Authorization': `Bearer ${api_key}`,
+          'Content-Type': 'application/json'
         }
       });
 
@@ -420,11 +525,17 @@ class SQLAssistant extends Component {
       }
 
       const data = await response.json();
-      this.setState(prevState => ({
-        historicalConversations: [...prevState.historicalConversations, ...data.data],
-        hasMoreConversations: data.has_more,
-        lastConversationId: data.data.length > 0 ? data.data[data.data.length - 1].id : null
-      }));
+      if (data.status === 'ok' && data.data && data.data.threads) {
+        this.setState({
+          historicalConversations: data.data.threads.map(thread => ({
+            id: thread.thread_id,
+            name: thread.thread_title,
+            created_at: new Date(thread.create_at).getTime() / 1000,
+            message_count: thread.message_count
+          })),
+          hasMoreConversations: data.data.threads.length >= 20
+        });
+      }
     } catch (error) {
       message.error('获取历史会话失败');
       console.error('获取历史会话失败:', error);
@@ -433,12 +544,13 @@ class SQLAssistant extends Component {
     }
   };
 
-  fetchConversationMessages = async (conversationId) => {
-    const { dify_url, dify_sql_asst_key, login_user_name } = this.state;
+  fetchConversationMessages = async (threadId) => {
+    const { api_url, api_key } = this.state;
     try {
-      const response = await fetch(`${dify_url}/v1/messages?user=${login_user_name}&conversation_id=${conversationId}`, {
+      const response = await fetch(`${api_url}/api/chat/threads/${threadId}/history`, {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${dify_sql_asst_key}`
+          'Authorization': `Bearer ${api_key}`
         }
       });
 
@@ -449,34 +561,35 @@ class SQLAssistant extends Component {
       const data = await response.json();
       const messages = [];
       
-      // Process each message and create both user and assistant entries
-      data.data.forEach(msg => {
-        if (msg.query) {
-          messages.push({
-            id: `${msg.id}-query`,
-            type: 'user',
-            content: msg.query,
-            timestamp: new Date(msg.created_at * 1000)
+      // Process LangGraph history format
+      if (Array.isArray(data) && data.length > 0) {
+        const latestCheckpoint = data[0];
+        if (latestCheckpoint.values && latestCheckpoint.values.messages) {
+          latestCheckpoint.values.messages.forEach((msg, index) => {
+            if (msg.type === 'human') {
+              messages.push({
+                id: msg.id || `msg-${index}-human`,
+                type: 'user',
+                content: msg.content,
+                timestamp: new Date()
+              });
+            } else if (msg.type === 'ai') {
+              messages.push({
+                id: msg.id || `msg-${index}-ai`,
+                type: 'assistant',
+                content: msg.content,
+                timestamp: new Date()
+              });
+            }
           });
         }
-        if (msg.answer) {
-          messages.push({
-            id: `${msg.id}-answer`,
-            type: 'assistant',
-            content: msg.answer,
-            timestamp: new Date(msg.created_at * 1000)
-          });
-        }
-      });
-
-      // Sort messages by timestamp
-      messages.sort((a, b) => a.timestamp - b.timestamp);
+      }
 
       this.setState({
         conversationHistory: messages,
-        conversation_id: conversationId,
+        thread_id: threadId,
         isHistoryDrawerVisible: false,
-        selectedConversation: conversationId
+        selectedConversation: threadId
       });
     } catch (error) {
       message.error('获取会话消息失败');
@@ -705,7 +818,7 @@ class SQLAssistant extends Component {
       showOwnDatasets,      // 显示自己的数据集
       
       // 添加task_id用于停止接口
-      currentTaskId,
+      currentRunId,
     } = this.state;
 
     // 获取过滤后的表格

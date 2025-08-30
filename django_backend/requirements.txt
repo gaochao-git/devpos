@@ -1,3 +1,4 @@
+#python -m pip install setuptools==50.3.2
 amqp==1.4.9
 ansible==4.10.0
 ansible-core==2.11.12
@@ -9,7 +10,7 @@ certifi==2021.5.30
 cffi==1.15.1
 charset-normalizer==2.0.12
 concurrent-log-handler==0.9.16
-ConcurrentLogHandler==0.9.1
+#ConcurrentLogHandler==0.9.1
 cryptography==40.0.2
 decorator==5.1.1
 Django==2.1.1
@@ -37,7 +38,7 @@ pycryptodomex==3.21.0
 PyJWT==1.5.3
 PyMySQL==0.9.2
 PyNaCl==1.5.0
-pyparsing==3.1.4
+#pyparsing==3.1.4
 python-cas==1.6.0
 python-dateutil==2.9.0.post0
 python-jenkins==1.8.2
