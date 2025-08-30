@@ -760,7 +760,7 @@ class SQLAssistant extends Component {
     
     this.setState({ loadingDatasets: true });
     try {
-      const res = await MyAxios.post('/api/sql_dataset/get_datasets', {
+      const res = await MyAxios.post('/web_console/v1/get_datasets/', {
         instance_name: instance,
         database_name: database
       });
