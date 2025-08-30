@@ -180,7 +180,7 @@ const formatJsonString = (jsonStr) => {
   }
 };
 
-// 工具调用组件
+// 工具调用组件 - 自定义比较函数，确保observation变化时重新渲染
 const ToolCallItem = React.memo(({ tool }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
   
@@ -286,6 +286,13 @@ const ToolCallItem = React.memo(({ tool }) => {
       )}
     </div>
   );
+}, (prevProps, nextProps) => {
+  // 自定义比较函数：当tool对象的任何属性变化时，都重新渲染
+  if (!prevProps.tool || !nextProps.tool) return false;
+  return prevProps.tool.tool === nextProps.tool.tool &&
+         prevProps.tool.tool_input === nextProps.tool.tool_input &&
+         prevProps.tool.observation === nextProps.tool.observation &&
+         prevProps.tool.id === nextProps.tool.id;
 });
 
 // 解析消息内容，分离文本、工具调用和思考内容

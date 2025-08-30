@@ -167,8 +167,9 @@ class SQLAssistant extends Component {
               const result = this.processEventData(currentEvent, data, assistantMessage, toolsMap);
               if (result.message !== undefined) {
                 assistantMessage = result.message;
-                this.updateStreamingDisplay(assistantMessage, toolsMap);
               }
+              // 总是更新显示，以确保工具状态变化能及时反映
+              this.updateStreamingDisplay(assistantMessage, toolsMap);
             } catch (e) {
               console.error('Failed to parse SSE data:', e);
             }
@@ -246,7 +247,14 @@ class SQLAssistant extends Component {
             if (msg.type === 'tool' && msg.content && msg.tool_call_id) {
               const tool = toolsMap.get(msg.tool_call_id);
               if (tool) {
-                tool.observation = msg.content;
+                // 创建新的工具对象，确保React能检测到变化
+                const updatedTool = {
+                  ...tool,
+                  observation: msg.content
+                };
+                toolsMap.set(msg.tool_call_id, updatedTool);
+                // 立即更新界面显示
+                this.updateStreamingDisplay(currentMessage, toolsMap);
               }
             }
             // 处理 AI 消息中的工具调用
