@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { message } from 'antd';
-import SQLAssistantUI from './SQLAssistantUI';
+import SQLAssistantUI from './components/chat/SQLAssistantUI';
 import MyAxios from '../common/interface';
 import { throttle } from '../common/throttle';
 

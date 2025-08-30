@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Modal, Button, Table, Input, message, Popconfirm, Form, Icon, Tooltip, Tabs, List, Checkbox, Tag, Row, Col, Card } from 'antd';
-import MyAxios from '../common/interface';
+import MyAxios from '../../../common/interface';
 const { TextArea } = Input;
 const { TabPane } = Tabs;
 

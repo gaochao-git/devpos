@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { List, Card, Typography, Spin, Icon, Button } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { throttle } from '../common/throttle';
+import { throttle } from '../../../common/throttle';
 import OptimizedCodeBlock from './OptimizedCodeBlock';
 
 const { Text, Paragraph } = Typography;
