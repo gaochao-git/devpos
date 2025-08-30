@@ -761,11 +761,11 @@ class SQLAssistant extends Component {
     this.setState({ loadingDatasets: true });
     try {
       const res = await MyAxios.post('/web_console/v1/get_datasets/', {
-        instance_name: instance,
+        cluster_group_name: instance,
         database_name: database
       });
       
-      if (res.data.success) {
+      if (res.data.status === "ok") {
         this.setState({ datasets: res.data.data || [] });
       } else {
         message.error(res.data.message || '获取数据集失败');
