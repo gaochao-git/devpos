@@ -89,6 +89,9 @@ const SQLAssistantUI = (props) => {
   const isAllSelected = filteredTables.length > 0 && 
     filteredTables.every(table => selectedTables.includes(table));
 
+  console.log('SQLAssistantUI - selectedTables:', selectedTables);
+  console.log('SQLAssistantUI - filteredTables:', filteredTables);
+
   // 修改分页数据的计算逻辑
   const startIndex = (currentTablePage - 1) * tablePageSize;
   const paginatedTables = filteredTables.slice(startIndex, startIndex + tablePageSize);
@@ -200,7 +203,7 @@ const SQLAssistantUI = (props) => {
                         backgroundColor: selectedTables.includes(table) ? '#e6f7ff' : 'transparent',
                         cursor: 'pointer'
                       }}
-                      onClick={() => handleTableSelect(table)}
+                      onClick={() => handleTableSelect({ table_name: table })}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                         <Icon 

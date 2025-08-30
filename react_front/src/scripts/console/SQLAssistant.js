@@ -672,9 +672,15 @@ class SQLAssistant extends Component {
   };
 
   handleTableSelect = (table) => {
-    if (!table || !table.table_name) return;
+    console.log('handleTableSelect called with:', table);
+    if (!table || !table.table_name) {
+      console.log('Invalid table object:', table);
+      return;
+    }
     
     const tableName = table.table_name;
+    console.log('Table name to toggle:', tableName);
+    
     this.setState(prevState => {
       const isSelected = prevState.selectedTables.includes(tableName);
       let newSelectedTables;
@@ -689,6 +695,7 @@ class SQLAssistant extends Component {
         newSelectedTables = [...prevState.selectedTables, tableName];
       }
       
+      console.log('Selected tables updated:', newSelectedTables);
       return { selectedTables: newSelectedTables };
     });
   };
@@ -851,10 +858,12 @@ class SQLAssistant extends Component {
   };
 
   render() {
+    console.log('SQLAssistant render - selectedTables:', this.state.selectedTables);
+    console.log('SQLAssistant render - props.selectedTables:', this.props.selectedTables);
     return (
       <SQLAssistantUI
-        {...this.state}
         {...this.props}
+        {...this.state}
         // Methods
         handleSendMessage={this.handleSendMessage}
         handleStopStreaming={this.handleStopStreaming}
