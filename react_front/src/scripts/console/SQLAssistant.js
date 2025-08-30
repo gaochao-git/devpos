@@ -60,10 +60,14 @@ class SQLAssistant extends Component {
     this.inputRef = React.createRef();
     this.messageRendererRef = React.createRef();
     
-    // 流式消息更新节流
-    this.throttledUpdateStreamingMessage = throttle((message) => {
-      this.setState({ currentStreamingMessage: message });
-    }, 20);
+    // 流式消息更新节流 - 增加到 50ms，提高性能
+    this.throttledUpdateStreamingMessage = throttle((message, tools) => {
+      // 批量更新状态，减少渲染次数
+      this.setState({ 
+        currentStreamingMessage: message,
+        agentThoughts: tools || this.state.agentThoughts
+      });
+    }, 50);
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -313,12 +317,9 @@ class SQLAssistant extends Component {
 
   // 更新流式显示
   updateStreamingDisplay = (message, toolsMap) => {
-    // 直接显示消息，工具标记已经在正确的位置了
-    this.throttledUpdateStreamingMessage(message);
-    
-    // 更新工具状态供 UI 使用
     const tools = Array.from(toolsMap.values());
-    this.setState({ agentThoughts: tools });
+    // 批量更新，通过节流函数统一处理
+    this.throttledUpdateStreamingMessage(message, tools);
   };
 
   // 主要的发送消息方法

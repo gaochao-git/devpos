@@ -3,6 +3,7 @@ import { List, Card, Typography, Spin, Icon, Button } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { throttle } from '../common/throttle';
+import OptimizedCodeBlock from './OptimizedCodeBlock';
 
 const { Text, Paragraph } = Typography;
 
@@ -27,102 +28,15 @@ const markdownComponents = {
     const codeContent = String(children).replace(/\n$/, '');
     
     if (!inline && codeContent) {
-      const lineCount = codeContent.split('\n').length;
-      const maxHeight = lineCount > 10 ? '220px' : 'auto';
-      
+      // 使用优化的代码块组件处理大型代码
       return (
-        <div style={{ margin: '8px 0' }}>
-          <div style={{ 
-            backgroundColor: '#f6f8fa', 
-            border: '1px solid #e1e4e8',
-            borderRadius: '6px',
-            overflow: 'hidden'
-          }}>
-            {language && (
-              <div style={{ 
-                backgroundColor: '#f1f3f4', 
-                padding: '4px 8px', 
-                fontSize: '12px',
-                color: '#666',
-                borderBottom: '1px solid #e1e4e8'
-              }}>
-                {language}
-              </div>
-            )}
-            
-            <pre 
-              ref={(el) => {
-                // 流式输出时自动滚动到底部
-                if (el && props.isStreaming) {
-                  setTimeout(() => {
-                    if (el) {
-                      el.scrollTop = el.scrollHeight;
-                    }
-                  }, 0);
-                }
-              }}
-              style={{ 
-                margin: 0, 
-                padding: '12px',
-                backgroundColor: '#fff',
-                fontSize: '14px',
-                fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-                overflow: lineCount > 10 ? 'auto' : 'visible',
-                maxHeight: maxHeight,
-                lineHeight: '1.5',
-                whiteSpace: 'pre',
-                overflowX: 'auto',
-                width: '100%'
-              }}
-            >
-              <code
-                className={className}
-                style={{
-                  display: 'block',
-                  padding: 0,
-                  fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-                  color: language === 'sql' ? '#0000ff' : 'inherit',
-                }}
-                {...props}
-              >
-                {children}
-              </code>
-            </pre>
-          </div>
-          
-          <div style={{ marginTop: '4px' }}>
-            <Button 
-              size="small" 
-              onClick={() => props.onCopySQL && props.onCopySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``)}
-              style={{ marginRight: '8px' }}
-              icon="copy"
-            >
-              复制
-            </Button>
-            {language === 'sql' && props.onApplySQL && (
-              <>
-                <Button 
-                  size="small" 
-                  type="primary"
-                  onClick={() => props.onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, false)}
-                  style={{ marginRight: '8px' }}
-                  icon="arrow-right"
-                >
-                  应用到编辑器
-                </Button>
-                <Button 
-                  size="small"
-                  type="primary"
-                  danger
-                  onClick={() => props.onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, true)}
-                  icon="play-circle"
-                >
-                  应用并执行
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
+        <OptimizedCodeBlock
+          language={language}
+          codeContent={codeContent}
+          onCopySQL={props.onCopySQL}
+          onApplySQL={props.onApplySQL}
+          isStreaming={props.isStreaming}
+        />
       );
     }
     
