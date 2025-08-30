@@ -78,28 +78,31 @@ const OptimizedCodeBlock = React.memo(({
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <Button size="small" icon="copy" onClick={handleCopy}>
-              复制
-            </Button>
-            {language === 'sql' && onApplySQL && (
-              <>
-                <Button 
-                  size="small" 
-                  onClick={() => onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, false)}
-                >
-                  应用到编辑器
-                </Button>
-                <Button 
-                  size="small" 
-                  type="primary"
-                  onClick={() => onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, true)}
-                >
-                  应用并执行
-                </Button>
-              </>
-            )}
-          </div>
+          {/* 流式输出中不显示操作按钮 */}
+          {!isStreaming && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button size="small" icon="copy" onClick={handleCopy}>
+                复制
+              </Button>
+              {language === 'sql' && onApplySQL && (
+                <>
+                  <Button 
+                    size="small" 
+                    onClick={() => onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, false)}
+                  >
+                    应用到编辑器
+                  </Button>
+                  <Button 
+                    size="small" 
+                    type="primary"
+                    onClick={() => onApplySQL(`\`\`\`${language}\n${codeContent}\n\`\`\``, true)}
+                  >
+                    应用并执行
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </div>
         
         {/* 代码内容区 */}
