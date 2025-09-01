@@ -35,7 +35,7 @@ class SQLAssistant extends Component {
       isSelectingAll: false,
       instance: props.defaultInstance || '',
       database: props.defaultDatabase || '',
-      cluster: props.defaultCluster || '',
+      cluster_name: props.defaultCluster || '',
       api_url: props.defaultApiUrl || 'http://localhost:3000',
       api_key: props.defaultApiKey || 'sk-wVfiZyuebwQf2LX3kk3u53cnIWn32',
       selected_model: props.defaultModel || 'deepseek-chat',
@@ -755,13 +755,13 @@ class SQLAssistant extends Component {
   };
 
   loadDatasets = async () => {
-    const { instance, database } = this.state;
+    const { instance, database, cluster_name } = this.state;
     if (!instance || !database) return;
     
     this.setState({ loadingDatasets: true });
     try {
       const res = await MyAxios.post('/web_console/v1/get_datasets/', {
-        cluster_name: instance,
+        cluster_name: cluster_name,
         database_name: database
       });
       

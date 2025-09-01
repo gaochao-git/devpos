@@ -27,7 +27,7 @@ const SQLAssistantUI = (props) => {
     isSearching,
     instance,
     database,
-    cluster,
+    cluster_name,
     api_url,
     api_key,
     selected_model,
@@ -519,6 +519,7 @@ const SQLAssistantUI = (props) => {
         instance={instance}
         database={database}
         allTables={allTables}
+        clusterName={cluster_name}
         currentUser={login_user_name}
       />
 

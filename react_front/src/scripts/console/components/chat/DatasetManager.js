@@ -73,13 +73,13 @@ class DatasetManager extends Component {
 
   // 获取数据集列表
   fetchDatasets = async () => {
-    const { instance, database } = this.props;
+    const { instance, database,cluster_name } = this.props;
     if (!instance || !database) return;
 
     this.setState({ loading: true });
     try {
       const response = await MyAxios.post('/web_console/v1/get_managed_datasets/', {
-        cluster_name: instance,
+        cluster_name: cluster_name,
         database_name: database
       });
       
