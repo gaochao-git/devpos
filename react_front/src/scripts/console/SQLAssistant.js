@@ -217,9 +217,9 @@ class SQLAssistant extends Component {
       if (messageChunk.tool_calls && messageChunk.tool_calls.length > 0) {
         messageChunk.tool_calls.forEach(toolCall => {
           if (toolCall.name && toolCall.id) {
-            // 如果是新的工具调用，添加工具标记到消息中
+            // 如果是新的工具调用，在消息中添加占位符
             if (!toolsMap.has(toolCall.id)) {
-              currentMessage += `\n[TOOL:${toolCall.id}:${toolCall.name}]\n`;
+              currentMessage += `\n{{TOOL:${toolCall.id}}}\n`;
             }
             
             // 使用 Map 的 set 方法自动去重
@@ -610,11 +610,11 @@ class SQLAssistant extends Component {
                 };
               }) : [];
               
-              // 为每个工具调用添加标记到内容中
+              // 为历史消息的工具调用添加占位符
               if (msg.tool_calls && msg.tool_calls.length > 0) {
                 msg.tool_calls.forEach(tc => {
-                  if (tc.id && tc.name) {
-                    messageContent += `\n[TOOL:${tc.id}:${tc.name}]\n`;
+                  if (tc.id) {
+                    messageContent += `\n{{TOOL:${tc.id}}}\n`;
                   }
                 });
               }

@@ -299,12 +299,13 @@ const ToolCallItem = React.memo(({ tool }) => {
 const parseMessageContent = (content, agentThoughts = []) => {
   if (!content) return [];
 
-  const segments = [];
+  let segments = [];
   
   // 使用一个正则表达式匹配所有特殊内容（思考块和工具调用）
   // 兼容两种思考格式：<details>...</details> 和 <think>...</think>
   // <think> 标签只需匹配开头，支持流式传输中的不完整内容
-  const allPattern = /(<details[^>]*style[^>]*>\s*<summary[^>]*>\s*Thinking\.\.\.\s*<\/summary>([\s\S]*?)(?:<\/details>|$)|<think[^>]*>([\s\S]*?)(?:<\/think>|$)|\[TOOL:([^:]+):([^\]]+)\])/gi;
+  // 工具占位符格式：{{TOOL:id}}
+  const allPattern = /(<details[^>]*style[^>]*>\s*<summary[^>]*>\s*Thinking\.\.\.\s*<\/summary>([\s\S]*?)(?:<\/details>|$)|<think[^>]*>([\s\S]*?)(?:<\/think>|$)|\{\{TOOL:([^}]+)\}\})/gi;
   
   let lastIndex = 0;
   let match;
@@ -324,7 +325,7 @@ const parseMessageContent = (content, agentThoughts = []) => {
     // 判断匹配到的是思考内容还是工具调用
     const matchType = match[0].startsWith('<details') ? 'details' :
                      match[0].startsWith('<think') ? 'think' :
-                     match[0].startsWith('[TOOL:') ? 'tool' : 'unknown';
+                     match[0].startsWith('{{TOOL:') ? 'tool' : 'unknown';
     
     switch (matchType) {
       case 'details':
@@ -344,20 +345,16 @@ const parseMessageContent = (content, agentThoughts = []) => {
         break;
         
       case 'tool':
-        // 工具调用
+        // 工具占位符 - 从 agentThoughts 中找到对应的工具
         const toolId = match[4];
-        const toolName = match[5];
         const toolData = agentThoughts.find(t => t.id === toolId);
         
-        // 只有当工具数据存在于当前消息的thoughts中时才显示
-        // 这样可以避免显示其他消息的工具
         if (toolData) {
           segments.push({
             type: 'tool',
             data: toolData
           });
         }
-        // 如果找不到工具数据，说明这个工具标记不属于当前消息，忽略它
         break;
         
       default:
@@ -375,6 +372,33 @@ const parseMessageContent = (content, agentThoughts = []) => {
       segments.push({
         type: 'text',
         content: textContent
+      });
+    }
+  }
+  
+  // 如果没有找到任何工具标记，但有工具数据，则在末尾添加
+  // 这是降级方案，确保工具总是能显示
+  if (agentThoughts && agentThoughts.length > 0) {
+    // 检查是否已经有工具 segments
+    const hasToolSegments = segments.some(s => s.type === 'tool');
+    
+    if (!hasToolSegments) {
+      // 使用 Map 去重
+      const toolsMap = new Map();
+      
+      agentThoughts.forEach(tool => {
+        if (tool && tool.tool) {
+          const key = tool.id || `${tool.tool}_${tool.tool_input || ''}`;
+          toolsMap.set(key, tool);
+        }
+      });
+      
+      // 添加到末尾
+      toolsMap.forEach(tool => {
+        segments.push({
+          type: 'tool',
+          data: tool
+        });
       });
     }
   }
