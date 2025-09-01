@@ -79,7 +79,7 @@ class DatasetManager extends Component {
     this.setState({ loading: true });
     try {
       const response = await MyAxios.post('/web_console/v1/get_managed_datasets/', {
-        cluster_group_name: instance,
+        cluster_name: instance,
         database_name: database
       });
       
@@ -219,7 +219,7 @@ class DatasetManager extends Component {
         dataset_name: datasetName,
         dataset_description: datasetDescription,
         dataset_content: datasetContent,
-        cluster_group_name: instance,
+        cluster_name: instance,
         database_name: database,
         is_shared: isShared ? 1 : 0
       });

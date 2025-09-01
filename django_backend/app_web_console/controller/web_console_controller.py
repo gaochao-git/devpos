@@ -392,14 +392,14 @@ class GetDatasetsController(BaseView):
         """
         request_body = self.request_params
         rules = {
-            "cluster_group_name": [Required, Length(1, 64)],
+            "cluster_name": [Required, Length(1, 64)],
             "database_name": [Required, Length(1, 64)],
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid:
             return self.my_response({"status": "error", "message": str(valid_ret.errors)})
         
-        cluster_group_name = request_body.get('cluster_group_name')
+        cluster_group_name = request_body.get('cluster_name')
         database_name = request_body.get('database_name')
         user_name = self.request_user_info.get('username')
         
@@ -416,14 +416,14 @@ class GetManagedDatasetsController(BaseView):
         """
         request_body = self.request_params
         rules = {
-            "cluster_group_name": [Required, Length(1, 64)],
+            "cluster_name": [Required, Length(1, 64)],
             "database_name": [Required, Length(1, 64)],
         }
         valid_ret = validate(rules, request_body)
         if not valid_ret.valid:
             return self.my_response({"status": "error", "message": str(valid_ret.errors)})
         
-        cluster_group_name = request_body.get('cluster_group_name')
+        cluster_group_name = request_body.get('cluster_name')
         database_name = request_body.get('database_name')
         user_name = self.request_user_info.get('username')
         
