@@ -180,8 +180,6 @@ class SQLAssistant extends Component {
       reader.releaseLock();
     }
     
-    // 直接返回累积的消息和工具，不再额外添加工具标记
-    // 因为工具标记已经在流式过程中添加到正确的位置了
     const tools = Array.from(toolsMap.values());
     
     return { assistantMessage, tools };
@@ -199,7 +197,7 @@ class SQLAssistant extends Component {
     }
   };
 
-  // 处理 messages 事件
+  // 处理 messages 事件 - 专门处理 AI 的流式输出
   processMessagesEvent = (data, currentMessage, toolsMap) => {
     if (!Array.isArray(data) || data.length < 2) {
       return { message: currentMessage };
@@ -213,115 +211,49 @@ class SQLAssistant extends Component {
         currentMessage += messageChunk.content;
       }
       
-      // 处理工具调用
-      if (messageChunk.tool_calls && messageChunk.tool_calls.length > 0) {
-        messageChunk.tool_calls.forEach(toolCall => {
-          if (toolCall.name && toolCall.id) {
-            // 如果是新的工具调用，在消息中添加占位符
-            if (!toolsMap.has(toolCall.id)) {
-              currentMessage += `\n{{TOOL:${toolCall.id}}}\n`;
-            }
-            
-            // 使用 Map 的 set 方法自动去重
-            toolsMap.set(toolCall.id, {
-              id: toolCall.id,
-              tool: toolCall.name,
-              tool_input: JSON.stringify(toolCall.args || {}, null, 2),
-              observation: null
-            });
-          }
-        });
-      }
+      // 注意：messages 事件中的 tool_calls 只是流式片段，不包含完整信息
+      // 完整的工具调用信息会在 updates 事件中
     }
     
     return { message: currentMessage };
   };
 
-  // 处理 updates 事件
+  // 处理 updates 事件 - 专门处理工具调用和执行结果
   processUpdatesEvent = (data, currentMessage, toolsMap) => {
     if (data && typeof data === 'object') {
-      Object.values(data).forEach(nodeData => {
+      // updates 事件包含不同节点的输出
+      Object.entries(data).forEach(([nodeName, nodeData]) => {
         if (nodeData && nodeData.messages && Array.isArray(nodeData.messages)) {
           nodeData.messages.forEach(msg => {
-            // 处理工具消息（工具执行结果）
-            if (msg.type === 'tool' && msg.content && msg.tool_call_id) {
-              const tool = toolsMap.get(msg.tool_call_id);
-              if (tool) {
-                // 创建新的工具对象，确保React能检测到变化
-                const updatedTool = {
-                  ...tool,
-                  observation: msg.content
-                };
-                toolsMap.set(msg.tool_call_id, updatedTool);
-                // 立即更新界面显示
-                this.updateStreamingDisplay(currentMessage, toolsMap);
-              }
-            }
-            // 处理 AI 消息中的工具调用
-            else if (msg.type === 'ai' && msg.tool_calls) {
+            // 处理 AI 节点的工具调用决策
+            if (msg.type === 'ai' && msg.tool_calls && msg.tool_calls.length > 0) {
               msg.tool_calls.forEach(toolCall => {
-                if (toolCall.name && toolCall.id) {
-                  const existingTool = toolsMap.get(toolCall.id);
-                  if (!existingTool) {
-                    // 如果是新的工具调用，在消息中添加占位符
-                    if (!toolsMap.has(toolCall.id)) {
-                      currentMessage += `\n{{TOOL:${toolCall.id}}}\n`;
-                    }
-                    toolsMap.set(toolCall.id, {
-                      id: toolCall.id,
-                      tool: toolCall.name,
-                      tool_input: JSON.stringify(toolCall.args || {}, null, 2),
-                      observation: null
-                    });
-                  }
+                if (toolCall.name && toolCall.id && !toolsMap.has(toolCall.id)) {
+                  // 新的工具调用：添加占位符并记录工具信息
+                  currentMessage += `\n{{TOOL:${toolCall.id}}}\n`;
+                  toolsMap.set(toolCall.id, {
+                    id: toolCall.id,
+                    tool: toolCall.name,
+                    tool_input: JSON.stringify(toolCall.args || {}, null, 2),
+                    observation: null
+                  });
                 }
               });
+            }
+            // 处理工具节点的执行结果
+            else if (msg.type === 'tool' && msg.content && msg.tool_call_id) {
+              const tool = toolsMap.get(msg.tool_call_id);
+              if (tool && !tool.observation) {
+                // 更新工具执行结果
+                toolsMap.set(msg.tool_call_id, {
+                  ...tool,
+                  observation: msg.content
+                });
+              }
             }
           });
         }
       });
-    }
-    
-    return { message: currentMessage };
-  };
-
-  // 处理 values 事件 - 包含完整的消息历史
-  processValuesEvent = (data, currentMessage, toolsMap) => {
-    if (data && data.messages && Array.isArray(data.messages)) {
-      // 找到最新的 AI 消息
-      const lastAiMessage = data.messages.filter(msg => msg.type === 'ai').pop();
-      
-      if (lastAiMessage) {
-        // 使用完整的消息内容
-        currentMessage = lastAiMessage.content || currentMessage;
-        
-        // 处理工具调用
-        if (lastAiMessage.tool_calls && lastAiMessage.tool_calls.length > 0) {
-          // 清空之前的工具，使用 values 中的完整信息
-          toolsMap.clear();
-          
-          lastAiMessage.tool_calls.forEach(toolCall => {
-            if (toolCall.name && toolCall.id) {
-              toolsMap.set(toolCall.id, {
-                id: toolCall.id,
-                tool: toolCall.name,
-                tool_input: JSON.stringify(toolCall.args || {}, null, 2),
-                observation: null
-              });
-            }
-          });
-        }
-        
-        // 查找工具执行结果
-        data.messages.forEach(msg => {
-          if (msg.type === 'tool' && msg.content && msg.tool_call_id) {
-            const tool = toolsMap.get(msg.tool_call_id);
-            if (tool) {
-              tool.observation = msg.content;
-            }
-          }
-        });
-      }
     }
     
     return { message: currentMessage };
