@@ -119,7 +119,7 @@ class SQLAssistant extends Component {
           }
         },
         stream_mode: [
-          'messages-tuple',
+          'messages',
           'updates'
         ],
         assistant_id: assistant_id,
@@ -263,6 +263,10 @@ class SQLAssistant extends Component {
                 if (toolCall.name && toolCall.id) {
                   const existingTool = toolsMap.get(toolCall.id);
                   if (!existingTool) {
+                    // 如果是新的工具调用，在消息中添加占位符
+                    if (!toolsMap.has(toolCall.id)) {
+                      currentMessage += `\n{{TOOL:${toolCall.id}}}\n`;
+                    }
                     toolsMap.set(toolCall.id, {
                       id: toolCall.id,
                       tool: toolCall.name,
