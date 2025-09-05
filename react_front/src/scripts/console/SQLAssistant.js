@@ -103,7 +103,7 @@ class SQLAssistant extends Component {
 
   // 发送消息到 LangGraph API
   sendMessage = async (threadId, completeQuery) => {
-    const { api_url, api_key, selected_model, assistant_id } = this.state;
+    const { api_url, api_key, selected_model, assistant_id, login_user_name } = this.state;
     
     const response = await fetch(`${api_url}/api/chat/threads/${threadId}/runs/stream`, {
       method: 'POST',
@@ -112,14 +112,13 @@ class SQLAssistant extends Component {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        input: {
-          messages: [{type: 'human',content: completeQuery}]
-        },
+        assistant_id: assistant_id,
+        user_name: login_user_name || 'anonymous',
+        query: completeQuery,
         config: {
-          configurable: {selected_model: selected_model}
-        },
-        stream_mode: ['messages','updates'],
-        assistant_id: assistant_id
+          selected_model: selected_model,
+          stream_mode: ['messages', 'updates']
+        }
       }),
     });
 
