@@ -85,7 +85,7 @@ class SQLAssistant extends Component {
         'Authorization': `Bearer ${api_key}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({assistant_id: "diagnostic_agent"}),
     });
     
     if (!response.ok) {
@@ -93,6 +93,11 @@ class SQLAssistant extends Component {
     }
     
     const threadData = await response.json();
+    // 处理统一响应格式
+    if (threadData && threadData.status === 'ok' && threadData.data) {
+      return threadData.data.thread_id;
+    }
+    // 兼容旧格式
     return threadData.thread_id;
   };
 
@@ -108,22 +113,13 @@ class SQLAssistant extends Component {
       },
       body: JSON.stringify({
         input: {
-          messages: [{
-            type: 'human',
-            content: completeQuery
-          }]
+          messages: [{type: 'human',content: completeQuery}]
         },
         config: {
-          configurable: {
-            selected_model: selected_model,
-          }
+          configurable: {selected_model: selected_model}
         },
-        stream_mode: [
-          'messages',
-          'updates'
-        ],
-        assistant_id: assistant_id,
-        on_disconnect: 'cancel'
+        stream_mode: ['messages','updates'],
+        assistant_id: assistant_id
       }),
     });
 
