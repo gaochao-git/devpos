@@ -452,11 +452,11 @@ class SQLAssistant extends Component {
 
   // 其他方法保持不变...
   fetchConversationHistory = async () => {
-    const { api_url, api_key, login_user_name, assistant_id } = this.state;
+    const { api_url, api_key, login_user_name, agent_id } = this.state;
     this.setState({ isLoadingHistory: true });
     try {
       const params = new URLSearchParams({
-        agent_id: assistant_id,
+        agent_id: agent_id,
         user_name: login_user_name || 'anonymous',
         limit: '20',
         offset: '0'
@@ -496,7 +496,7 @@ class SQLAssistant extends Component {
     const { api_url, api_key } = this.state;
     try {
       const params = new URLSearchParams({
-        agent_id: this.state.assistant_id
+        agent_id: this.state.agent_id
       });
       const response = await fetch(`${api_url}/api/v1/chat/threads/${threadId}?${params.toString()}`, {
         method: 'GET',
@@ -759,13 +759,13 @@ class SQLAssistant extends Component {
   };
 
   loadMoreHistory = async () => {
-    const { api_url, api_key, historicalConversations, login_user_name, assistant_id } = this.state;
+    const { api_url, api_key, historicalConversations, login_user_name, agent_id } = this.state;
     const offset = historicalConversations.length;
     
     this.setState({ isLoadingHistory: true });
     try {
       const params = new URLSearchParams({
-        agent_id: assistant_id,
+        agent_id: agent_id,
         user_name: login_user_name || 'anonymous',
         limit: '20',
         offset: offset.toString()
