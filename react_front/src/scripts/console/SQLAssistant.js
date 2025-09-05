@@ -39,7 +39,7 @@ class SQLAssistant extends Component {
       api_url: props.defaultApiUrl || 'http://localhost:3000',
       api_key: props.defaultApiKey || 'sk-wVfiZyuebwQf2LX3kk3u53cnIWn32',
       selected_model: props.defaultModel || 'deepseek-chat',
-      assistant_id: props.assistantId || 'diagnostic_agent',
+      agent_id: props.agentId || 'diagnostic_agent',
       login_user_name: props.defaultUser || '',
       agentThoughts: [],
       showDatasetManager: false,
@@ -85,7 +85,7 @@ class SQLAssistant extends Component {
         'Authorization': `Bearer ${api_key}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({assistant_id: "diagnostic_agent"}),
+      body: JSON.stringify({agent_id: "diagnostic_agent"}),
     });
     
     if (!response.ok) {
@@ -103,7 +103,7 @@ class SQLAssistant extends Component {
 
   // 发送消息到 LangGraph API
   sendMessage = async (threadId, completeQuery) => {
-    const { api_url, api_key, selected_model, assistant_id, login_user_name } = this.state;
+    const { api_url, api_key, selected_model, agent_id, login_user_name } = this.state;
     
     const response = await fetch(`${api_url}/api/v1/chat/threads/${threadId}/completion`, {
       method: 'POST',
@@ -112,7 +112,7 @@ class SQLAssistant extends Component {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        assistant_id: assistant_id,
+        agent_id: agent_id,
         user_name: login_user_name || 'anonymous',
         query: completeQuery,
         chat_mode: 'streaming',
@@ -495,7 +495,10 @@ class SQLAssistant extends Component {
   fetchConversationMessages = async (threadId) => {
     const { api_url, api_key } = this.state;
     try {
-      const response = await fetch(`${api_url}/api/v1/chat/threads/${threadId}`, {
+      const params = new URLSearchParams({
+        agent_id: this.state.assistant_id
+      });
+      const response = await fetch(`${api_url}/api/v1/chat/threads/${threadId}?${params.toString()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${api_key}`
