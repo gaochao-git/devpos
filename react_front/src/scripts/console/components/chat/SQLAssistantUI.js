@@ -427,17 +427,17 @@ const SQLAssistantUI = (props) => {
       }}>
         <Button 
           size="small" 
-          onClick={toggleHistoryDrawer}
-          icon="history"
-        >
-          历史会话
-        </Button>
-        <Button 
-          size="small" 
           onClick={handleClearHistory}
           icon="plus"
         >
           新建会话
+        </Button>
+        <Button 
+          size="small" 
+          onClick={toggleHistoryDrawer}
+          icon="history"
+        >
+          历史会话
         </Button>
       </div>
 
