@@ -492,16 +492,26 @@ class SQLAssistant extends Component {
       const response = await fetch(`${api_url}/api/chat/threads/${threadId}/history`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${api_key}`
-        }
+          'Authorization': `Bearer ${api_key}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
       const messages = [];
+      
+      // 处理新的标准响应格式
+      let data = responseData;
+      
+      // 如果是标准响应格式，提取 data 字段
+      if (responseData.status === 'ok' && responseData.data) {
+        data = responseData.data;
+      }
       
       // Process LangGraph history format
       if (Array.isArray(data) && data.length > 0) {
