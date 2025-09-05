@@ -79,7 +79,7 @@ class SQLAssistant extends Component {
   // 创建新的会话线程
   createThread = async () => {
     const { api_url, api_key } = this.state;
-    const response = await fetch(`${api_url}/api/chat/threads`, {
+    const response = await fetch(`${api_url}/api/v1/chat/threads`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${api_key}`,
@@ -105,7 +105,7 @@ class SQLAssistant extends Component {
   sendMessage = async (threadId, completeQuery) => {
     const { api_url, api_key, selected_model, assistant_id, login_user_name } = this.state;
     
-    const response = await fetch(`${api_url}/api/chat/threads/${threadId}/runs/stream`, {
+    const response = await fetch(`${api_url}/api/v1/chat/threads/${threadId}/completion`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${api_key}`,
@@ -115,6 +115,7 @@ class SQLAssistant extends Component {
         assistant_id: assistant_id,
         user_name: login_user_name || 'anonymous',
         query: completeQuery,
+        chat_mode: 'streaming',
         config: {
           selected_model: selected_model,
           stream_mode: ['messages', 'updates']
@@ -454,11 +455,16 @@ class SQLAssistant extends Component {
     const { api_url, api_key, login_user_name, assistant_id } = this.state;
     this.setState({ isLoadingHistory: true });
     try {
-      const response = await fetch(`${api_url}/api/chat/threads?limit=20&offset=0`, {
+      const params = new URLSearchParams({
+        agent_id: assistant_id,
+        user_name: login_user_name || 'anonymous',
+        limit: '20',
+        offset: '0'
+      });
+      const response = await fetch(`${api_url}/api/v1/chat/threads?${params.toString()}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${api_key}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${api_key}`
         }
       });
 
@@ -489,13 +495,11 @@ class SQLAssistant extends Component {
   fetchConversationMessages = async (threadId) => {
     const { api_url, api_key } = this.state;
     try {
-      const response = await fetch(`${api_url}/api/chat/threads/${threadId}/history`, {
-        method: 'POST',
+      const response = await fetch(`${api_url}/api/v1/chat/threads/${threadId}`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${api_key}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
+          'Authorization': `Bearer ${api_key}`
+        }
       });
 
       if (!response.ok) {
@@ -752,16 +756,21 @@ class SQLAssistant extends Component {
   };
 
   loadMoreHistory = async () => {
-    const { api_url, api_key, historicalConversations } = this.state;
+    const { api_url, api_key, historicalConversations, login_user_name, assistant_id } = this.state;
     const offset = historicalConversations.length;
     
     this.setState({ isLoadingHistory: true });
     try {
-      const response = await fetch(`${api_url}/api/chat/threads?limit=20&offset=${offset}`, {
+      const params = new URLSearchParams({
+        agent_id: assistant_id,
+        user_name: login_user_name || 'anonymous',
+        limit: '20',
+        offset: offset.toString()
+      });
+      const response = await fetch(`${api_url}/api/v1/chat/threads?${params.toString()}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${api_key}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${api_key}`
         }
       });
 
