@@ -40,6 +40,7 @@ class DatasetManager extends Component {
       database: props.database,
       allTables: props.allTables || [],
       currentUser: props.currentUser || '',
+      clusterName: props.clusterName
     };
   }
 
@@ -73,13 +74,13 @@ class DatasetManager extends Component {
 
   // 获取数据集列表
   fetchDatasets = async () => {
-    const { instance, database,cluster_name } = this.props;
+    const { instance, database,clusterName } = this.props;
     if (!instance || !database) return;
 
     this.setState({ loading: true });
     try {
       const response = await MyAxios.post('/web_console/v1/get_managed_datasets/', {
-        cluster_name: cluster_name,
+        cluster_name: clusterName,
         database_name: database
       });
       
@@ -202,7 +203,7 @@ class DatasetManager extends Component {
   // 保存数据集
   handleSaveDataset = async () => {
     const { datasetName, datasetDescription, datasetContent, isShared } = this.state;
-    const { instance, database } = this.props;
+    const { instance, database, clusterName } = this.props;
 
     if (!datasetName.trim()) {
       message.warning('请输入数据集名称');
@@ -219,7 +220,7 @@ class DatasetManager extends Component {
         dataset_name: datasetName,
         dataset_description: datasetDescription,
         dataset_content: datasetContent,
-        cluster_name: instance,
+        cluster_name: clusterName,
         database_name: database,
         is_shared: isShared ? 1 : 0
       });
