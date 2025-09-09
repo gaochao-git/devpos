@@ -37,9 +37,9 @@ class SQLAssistant extends Component {
       database: props.defaultDatabase || '',
       cluster_name: props.defaultCluster || '',
       api_url: props.defaultApiUrl || 'http://localhost:3000',
-      api_key: props.defaultApiKey || 'sk-wVfiZyuebwQf2LX3kk3u53cnIWn32',
-      selected_model: props.defaultModel || 'deepseek-chat',
-      agent_id: props.agentId || 'diagnostic_agent',
+      api_key: props.defaultApiKey || 'sk-1PAw891A1kIsPjBNbnjgyq2CIP89f',
+      selected_model: props.defaultModel || 'Qwen/Qwen3-30B-A3B-Instruct-2507',
+      agent_id: props.agent_id || 'sql_agent',
       login_user_name: props.defaultUser || '',
       agentThoughts: [],
       showDatasetManager: false,
@@ -78,14 +78,14 @@ class SQLAssistant extends Component {
 
   // 创建新的会话线程
   createThread = async () => {
-    const { api_url, api_key } = this.state;
+    const { api_url, api_key, agent_id } = this.state;
     const response = await fetch(`${api_url}/api/v1/chat/threads`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${api_key}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({agent_id: "diagnostic_agent"}),
+      body: JSON.stringify({agent_id: agent_id}),
     });
     
     if (!response.ok) {
