@@ -122,7 +122,7 @@ class DatasetManager extends Component {
 
       if (response.data.status === 'ok') {
         const structures = response.data.data;
-        const formattedContent = structures.join('\n\n-- =============================\n\n');
+        const formattedContent = "\n\n" + structures + "\n\n"
         
         this.setState({
           datasetContent: formattedContent
@@ -220,7 +220,7 @@ class DatasetManager extends Component {
         dataset_name: datasetName,
         dataset_description: datasetDescription,
         dataset_content: datasetContent,
-        cluster_name: clusterName,
+        cluster_group_name: clusterName,
         database_name: database,
         is_shared: isShared ? 1 : 0
       });
