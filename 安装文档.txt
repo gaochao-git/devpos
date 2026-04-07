@@ -1,0 +1,52 @@
+麒麟 V10 amd64 离线安装 Python3.8 / lxml 依赖命令
+
+1. 进入离线包目录
+
+cd /path/to/kylin_v10_amd64_python38_lxml_deps
+
+2. 校验文件完整性
+
+sha256sum -c SHA256SUMS
+
+3. 安装 ICU 依赖
+
+sudo dpkg -i libicu66_66.1-2kylin2.1_amd64.deb
+sudo dpkg -i icu-devtools_66.1-2kylin2.1_amd64.deb
+sudo dpkg -i libicu-dev_66.1-2kylin2.1_amd64.deb
+
+4. 安装 zlib / libxml2 / libxslt / python3.8-dev
+
+sudo dpkg -i zlib1g_1.2.11.dfsg-2kylin1k1_amd64.deb
+sudo dpkg -i zlib1g-dev_1.2.11.dfsg-2kylin1k1_amd64.deb
+sudo dpkg -i libxml2_2.9.10+dfsg-5kylin0.20.04.9_amd64.deb
+sudo dpkg -i libxml2-dev_2.9.10+dfsg-5kylin0.20.04.9_amd64.deb
+sudo dpkg -i libxslt1.1_1.1.34-4kylin0.20.04.3_amd64.deb
+sudo dpkg -i libxslt1-dev_1.1.34-4kylin0.20.04.3_amd64.deb
+sudo dpkg -i python3.8-dev_3.8.10-0kylin1~20.04.18_amd64.deb
+
+5. 检查系统依赖是否已安装
+
+dpkg -l | grep -E 'libicu|libxml2|libxslt|zlib1g|python3.8-dev'
+
+6. 进入项目并激活虚拟环境
+
+cd /home/nucc/work/git_repo/epcc/dba/clouddb_backends
+source ./venv/bin/activate
+
+7. 安装 Python 依赖
+
+pip install -r django_backend/requirements.txt
+
+8. 如果是离线 pip 包目录安装方式
+
+./venv/bin/pip3.8 install -r django_backend/requirements.txt --no-index --find-links=/Desktop/pip_packages
+
+9. 如果仍有 dpkg 依赖报错，执行以下命令查看未配置完成的包
+
+dpkg -l | grep '^iU'
+dpkg -l | grep '^iF'
+
+10. 如果仍有 lxml 安装报错，执行以下命令查看详细信息
+
+python3.8 -m pip --version
+./venv/bin/pip3.8 install lxml -v
