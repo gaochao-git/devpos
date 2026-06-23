@@ -99,7 +99,7 @@
     "semver": "6.3.0",
     "sql-formatter": "^2.3.3",
     "style-loader": "1.0.0",
-    "terser-webpack-plugin": "2.2.1",
+    "terser-webpack-plugin": "2.3.8",
     "ts-pnp": "1.1.5",
     "url-loader": "2.3.0",
     "watermark-component-for-react": "^1.0.0",
